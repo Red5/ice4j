@@ -48,6 +48,7 @@ public abstract class PacketQueue<T>
     /**
      * The capacity of the {@code byte[]} cache, if it is enabled.
      */
+    @SuppressWarnings("unused")
     private final static int CACHE_CAPACITY = 100;
 
     /**

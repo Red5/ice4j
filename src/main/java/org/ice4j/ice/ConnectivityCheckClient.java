@@ -19,6 +19,8 @@ package org.ice4j.ice;
 
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Future;
 import java.util.logging.*;
 
 import org.ice4j.*;
@@ -62,18 +64,18 @@ class ConnectivityCheckClient
     /**
      * The {@link PaceMaker}s that are currently running checks in this client.
      */
-    private final List<PaceMaker> paceMakers = new LinkedList<>();
+    private final CopyOnWriteArraySet<Future<?>> paceMakerFutures = new CopyOnWriteArraySet<>();
 
     /**
      * Timer that is used to let some seconds before a CheckList is considered
      * as FAILED.
      */
-    private Map<String, Timer> timers = new HashMap<>();
+    private Map<String, Future<?>> timerFutures = new HashMap<>();
 
     /**
      * A flag that determines whether we have received a STUN response or not.
      */
-    private boolean alive = false;
+    private boolean alive;
 
     /**
      * The {@link Logger} used by {@link ConnectivityCheckClient} instances.
@@ -148,13 +150,7 @@ class ConnectivityCheckClient
      */
     public void startChecks(CheckList checkList)
     {
-        PaceMaker paceMaker = new PaceMaker(checkList);
-
-        synchronized (paceMakers)
-        {
-            paceMakers.add(paceMaker);
-        }
-        paceMaker.start();
+        paceMakerFutures.add(parentAgent.submit(new PaceMaker(checkList)));
     }
 
     /**
@@ -431,31 +427,31 @@ class ConnectivityCheckClient
             if ( !stream.validListContainsAllComponents())
             {
                 final String streamName = stream.getName();
-                Timer timer = timers.get(streamName);
-
-                if (timer == null)
+                Future<?> future = timerFutures.get(streamName);
+                if (future == null)
                 {
                     logger.info("CheckList will failed in a few seconds if no" +
                             "succeeded checks come");
 
-                    TimerTask task = new TimerTask()
-                    {
-                        @Override
+                    timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run()
                         {
-                            if (checkList.getState() != CheckListState.COMPLETED)
-                            {
-                                logger.info("CheckList for stream " +
-                                    streamName + " FAILED");
+                            try {
+                                Thread.sleep(5000l);
+                                if (checkList.getState() != CheckListState.COMPLETED)
+                                {
+                                    logger.info("CheckList for stream " +
+                                        streamName + " FAILED");
 
-                                checkList.setState(CheckListState.FAILED);
-                                parentAgent.checkListStatesUpdated();
+                                    checkList.setState(CheckListState.FAILED);
+                                    parentAgent.checkListStatesUpdated();
+                                }
+                            } 
+                            catch (InterruptedException e)
+                            {
                             }
                         }
-                    };
-                    timer = new Timer();
-                    timers.put(streamName, timer);
-                    timer.schedule(task, 5000);
+                    }));
                 }
             }
 
@@ -632,10 +628,7 @@ class ConnectivityCheckClient
 
         synchronized (this)
         {
-            Vector<CandidatePair> parentCheckList
-                = new Vector<>(parentStream.getCheckList());
-
-            for (CandidatePair pair : parentCheckList)
+            for (CandidatePair pair : parentStream.getCheckList())
             {
                 if (pair.getState() == CandidatePairState.FROZEN
                         && checkedPair.getFoundation().equals(
@@ -851,13 +844,8 @@ class ConnectivityCheckClient
      * in the pace defined in RFC 5245.
      */
     private class PaceMaker
-        extends Thread
+        implements Runnable
     {
-        /**
-         * Indicates whether this <tt>Thread</tt> should still be running.
-         */
-        boolean running = true;
-
         /**
          * The {@link CheckList} that this <tt>PaceMaker</tt> will be running
          * checks for.
@@ -873,18 +861,7 @@ class ConnectivityCheckClient
          */
         public PaceMaker(CheckList checkList)
         {
-            super("ICE PaceMaker: " + parentAgent.getLocalUfrag());
-
             this.checkList = checkList;
-
-            /*
-             * Because PaceMaker does not seem to be a daemon at least on Ubuntu
-             * in the run-sample target and it looks like it should be from the
-             * standpoint of the application, explicitly tell it to be a daemon.
-             * Otherwise, it could prevent the application from exiting because
-             * of a problem in the ICE implementation.
-             */
-            setDaemon(true);
         }
 
         /**
@@ -914,40 +891,30 @@ class ConnectivityCheckClient
          * or the regular check lists.
          */
         @Override
-        public synchronized void run()
+        public void run()
         {
+            Thread.currentThread().setName("ICE PaceMaker: " + parentAgent.getLocalUfrag());
             try
             {
-                while(running)
+                // loop until interrupted or finished
+                while(true)
                 {
                     long waitFor = getNextWaitInterval();
-
                     if (waitFor > 0)
                     {
                         /*
                          * waitFor will be 0 for the first check since we won't
                          * have any active check lists at that point yet.
                          */
-                        try
-                        {
-                            wait(waitFor);
-                        }
-                        catch (InterruptedException e)
-                        {
-                            logger.log(Level.FINER, "PaceMaker got interrupted",
-                                    e);
-                        }
-
-                        if (!running)
-                            break;
+                        Thread.sleep(waitFor);
                     }
 
                     CandidatePair pairToCheck = checkList.popTriggeredCheck();
-
                     //if there are no triggered checks, go for an ordinary one.
                     if (pairToCheck == null)
+                    {
                         pairToCheck = checkList.getNextOrdinaryPairToCheck();
-
+                    }
                     if (pairToCheck != null)
                     {
                         /*
@@ -985,15 +952,10 @@ class ConnectivityCheckClient
                     }
                 }
             }
-            finally
+            catch (InterruptedException e)
             {
-                synchronized (paceMakers)
-                {
-                    synchronized (this)
-                    {
-                        paceMakers.remove(this);
-                    }
-                }
+                logger.log(Level.FINER, "PaceMaker got interrupted",
+                        e);
             }
         }
     }
@@ -1003,22 +965,13 @@ class ConnectivityCheckClient
      */
     public void stop()
     {
-        synchronized (paceMakers)
+        for (Future<?> paceMakerFuture : paceMakerFutures)
         {
-            Iterator<PaceMaker> paceMakersIter = paceMakers.iterator();
-
-            while(paceMakersIter.hasNext())
+            if (!paceMakerFuture.isCancelled())
             {
-                PaceMaker paceMaker = paceMakersIter.next();
-
-                synchronized (paceMaker)
-                {
-                    paceMaker.running = false;
-                    paceMaker.notify();
-                }
-
-                paceMakersIter.remove();
+                paceMakerFuture.cancel(true);
             }
         }
     }
+
 }

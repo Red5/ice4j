@@ -30,7 +30,7 @@ import org.ice4j.security.*;
 
 /**
  * Sample program which first uses ICE to discover UDP connectivity. After that
- * selected cadidates are used by "remote" and "local" pseudoTCP peers to
+ * selected candidates are used by "remote" and "local" pseudoTCP peers to
  * transfer some test data.
  *
  * @author Pawel Domas
@@ -179,8 +179,7 @@ public class IcePseudoTcp
                     logger.log(Level.INFO, "Remote: " + remoteCandidate);
                     try
                     {
-                        localJob = new LocalPseudoTcpJob(
-                            selectedPair.getDatagramSocket());
+                        localJob = new LocalPseudoTcpJob(udpComponent.getSocket());
                     }
                     catch (UnknownHostException ex)
                     {
@@ -263,8 +262,7 @@ public class IcePseudoTcp
                                "Remote: Peer address " + remoteCandidate);
                     try
                     {
-                        remoteJob = new RemotePseudoTcpJob(
-                            usedPair.getDatagramSocket(),
+                        remoteJob = new RemotePseudoTcpJob(udpComponent.getSocket(),
                             remoteCandidate.getTransportAddress());
                     }
                     catch (UnknownHostException ex)

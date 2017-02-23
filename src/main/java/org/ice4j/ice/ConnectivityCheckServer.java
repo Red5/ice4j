@@ -84,7 +84,7 @@ class ConnectivityCheckServer
     /**
      * A flag that determines whether we have received a STUN request or not.
      */
-    private boolean alive = false;
+    private boolean alive;
 
     /**
      * The {@link Logger} used by {@link ConnectivityCheckServer} instances.

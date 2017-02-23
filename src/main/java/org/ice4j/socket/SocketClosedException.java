@@ -25,6 +25,8 @@ import java.net.*;
 public class SocketClosedException
     extends SocketException
 {
+    private static final long serialVersionUID = -2571217415633483512L;
+
     /**
      * Initializes a new {@link SocketClosedException}.
      */

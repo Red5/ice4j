@@ -23,6 +23,9 @@ import java.math.*;
 import java.net.*;
 import java.security.*;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.*;
 
 import org.ice4j.*;
@@ -206,6 +209,11 @@ public class Agent
     private boolean isControlling = true;
 
     /**
+     * Executor for all threads and tasks needed in this agent.
+     */
+    private ExecutorService executor = Executors.newCachedThreadPool();
+
+    /**
      * The entity that will be taking care of outgoing connectivity checks.
      */
     private final ConnectivityCheckClient connCheckClient;
@@ -246,19 +254,15 @@ public class Agent
     private StunStack stunStack;
 
     /**
-     * The thread that we use for moving from COMPLETED into a TERMINATED state.
+     * The future for the thread that is used to move from COMPLETED to 
+     * TERMINATED state.
      */
-    private TerminationThread terminationThread;
+    private Future<?> terminator;
 
     /**
-     * The object used to synchronize access to {@link #terminationThread}.
+     * The future for the thread that we use for STUN keep-alive.
      */
-    private final Object terminationThreadSyncRoot = new Object();
-
-    /**
-     * The thread that we use for STUN keep-alive.
-     */
-    private Thread stunKeepAliveThread;
+    private Future<?> stunKeepAlive;
 
     /**
      * Some protocols, such as XMPP, need to be able to distinguish the separate
@@ -380,6 +384,16 @@ public class Agent
         }
     }
 
+    /**
+     * Submits a runnable task to the executor.
+     * 
+     * @param task
+     * @return Future<?>
+     */
+    public Future<?> submit(Runnable task) {
+        return executor.submit(task);
+    }
+    
     /**
      * Sets the tie breaker value. Note that to this should be set early (before
      * connectivity checks start).
@@ -1891,7 +1905,7 @@ public class Agent
 
         // keep ICE running (answer STUN Binding requests, send STUN Binding
         // indications or requests)
-        if (stunKeepAliveThread == null
+        if (stunKeepAlive == null
                 && !StackProperties.getBoolean(
                         StackProperties.NO_KEEP_ALIVES,
                         false))
@@ -2099,17 +2113,13 @@ public class Agent
     }
 
     /**
-     * Initializes and starts the {@link TerminationThread}
+     * Initializes and starts the {@link Terminator}
      */
     private void scheduleTermination()
     {
-        synchronized (terminationThreadSyncRoot)
+        if (terminator == null)
         {
-            if (terminationThread == null)
-            {
-                terminationThread = new TerminationThread();
-                terminationThread.start();
-            }
+            terminator = submit(new Terminator());
         }
     }
 
@@ -2119,20 +2129,14 @@ public class Agent
      */
     private void scheduleStunKeepAlive()
     {
-        if (stunKeepAliveThread == null)
+        if (stunKeepAlive == null)
         {
-            stunKeepAliveThread
-                = new Thread()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                runInStunKeepAliveThread();
-                            }
-                        };
-            stunKeepAliveThread.setDaemon(true);
-            stunKeepAliveThread.setName("StunKeepAliveThread");
-            stunKeepAliveThread.start();
+            stunKeepAlive = submit(new Runnable() {
+                public void run() {
+                    Thread.currentThread().setName("StunKeepAliveThread");
+                    runInStunKeepAliveThread();
+                }
+            });
         }
     }
 
@@ -2244,8 +2248,10 @@ public class Agent
         shutdown = true;
 
         //stop sending keep alives (STUN Binding Indications).
-        if (stunKeepAliveThread != null)
-            stunKeepAliveThread.interrupt();
+        if (stunKeepAlive != null)
+        {
+            stunKeepAlive.cancel(true);
+        }
 
         //stop responding to STUN Binding Requests.
         connCheckServer.stop();
@@ -2284,9 +2290,13 @@ public class Agent
             }
         }
         if (interrupted)
+        {
             Thread.currentThread().interrupt();
+        }
 
         getStunStack().shutDown();
+
+        executor.shutdownNow();
 
         logger.fine("ICE agent freed");
     }
@@ -2669,26 +2679,16 @@ public class Agent
      * This <tt>TerminationThread</tt> is scheduling such a termination and
      * garbage collection in three seconds.
      */
-    private class TerminationThread
-        extends Thread
+    private class Terminator implements Runnable
     {
-
-        /**
-         * Creates a new termination timer.
-         */
-        private TerminationThread()
-        {
-            super("TerminationThread");
-        }
-
         /**
          * Waits for a period of three seconds (or whatever termination
          * interval the user has specified) and then moves this <tt>Agent</tt>
          * into the terminated state and frees all non-nominated candidates.
          */
-        @Override
-        public synchronized void run()
+        public void run()
         {
+            Thread.currentThread().setName("Terminator");
             long terminationDelay
                 = Integer.getInteger(
                 StackProperties.TERMINATION_DELAY,
@@ -2698,7 +2698,7 @@ public class Agent
             {
                 try
                 {
-                    wait(terminationDelay);
+                    Thread.sleep(terminationDelay);
                 }
                 catch (InterruptedException ie)
                 {
@@ -2707,13 +2707,7 @@ public class Agent
                                ie);
                 }
             }
-
             terminate(IceProcessingState.TERMINATED);
-
-            synchronized (terminationThreadSyncRoot)
-            {
-                terminationThread = null;
-            }
         }
     }
 }
