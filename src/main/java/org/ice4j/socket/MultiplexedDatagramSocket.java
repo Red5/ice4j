@@ -118,6 +118,7 @@ public class MultiplexedDatagramSocket
     public void close()
     {
         multiplexing.close(this);
+        super.close();
     }
 
     /**

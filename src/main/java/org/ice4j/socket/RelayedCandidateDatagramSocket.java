@@ -350,6 +350,7 @@ public class RelayedCandidateDatagramSocket
                 turnCandidateHarvest.hostCandidate.getTransportAddress(),
                 this);
         turnCandidateHarvest.close(this);
+        super.close();
     }
 
     /**
