@@ -446,7 +446,7 @@ public class NetworkConfigurationDiscoveryProcess
      * Runs the discoverer and shows a message dialog with the returned report.
      * @param args args[0] - stun server address, args[1] - port. in the case of
      * no args - defaults are provided.
-     * @throws java.lang.Exception if an exception occurrs during the discovery
+     * @throws java.lang.Exception if an exception occurs during the discovery
      * process.
      */
 /*
