@@ -31,12 +31,12 @@ import org.ice4j.*;
  */
 public class NonceAttributeTest extends TestCase
 {
-    private NonceAttribute nonceAttribute = null;
+    private NonceAttribute nonceAttribute = new NonceAttribute();
     MsgFixture msgFixture = null;
     String nonceValue = "0123456789abcdef";
     byte[] attributeBinValue = new byte[]{
-            (byte)(NonceAttribute.NONCE>>8),
-            (byte)(NonceAttribute.NONCE & 0x00FF),
+            (byte)(nonceAttribute.getAttributeType().type>>8),
+            (byte)(nonceAttribute.getAttributeType().type & 0x00FF),
             0, (byte)nonceValue.length(),
             '0', '1', '2', '3', '4', '5', '6','7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
@@ -114,8 +114,8 @@ public class NonceAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = (char)nonceValue.length();
-        char actualReturn = nonceAttribute.getDataLength();
+        int expectedReturn = (char)nonceValue.length();
+        int actualReturn = nonceAttribute.getDataLength();
         assertEquals("getDataLength - failed", expectedReturn, actualReturn);
     }
 

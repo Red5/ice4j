@@ -63,8 +63,9 @@ public class XorOnlyTest extends TestCase
      */
     public void testEncode()
     {
-        byte[] expectedReturn = new byte[]{Attribute.XOR_ONLY>>8,
-                                           Attribute.XOR_ONLY&0x00FF,
+        byte[] expectedReturn = new byte[]{
+                (byte) (Attribute.Type.XOR_ONLY.type>>8),
+                (byte) (Attribute.Type.XOR_ONLY.type&0x00FF),
                                             0, 0};
         byte[] actualReturn = xorOnly.encode();
         assertTrue("XorOnly failed to encode",
@@ -95,8 +96,8 @@ public class XorOnlyTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = 0;
-        char actualReturn = xorOnly.getDataLength();
+        int expectedReturn = 0;
+        int actualReturn = xorOnly.getDataLength();
         assertEquals("data length was not 0", expectedReturn, actualReturn);
     }
 
@@ -105,7 +106,7 @@ public class XorOnlyTest extends TestCase
      */
     public void testGetName()
     {
-        String expectedReturn = "XOR-ONLY";
+        String expectedReturn = "XOR_ONLY";
         String actualReturn = xorOnly.getName();
         assertEquals("Is name correct", expectedReturn, actualReturn);
     }

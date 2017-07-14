@@ -26,16 +26,12 @@ package org.ice4j.attribute;
  */
 public class SourceAddressAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "SOURCE-ADDRESS";
 
     /**
      * Creates a SOURCE-ADDRESS attribute
      */
     SourceAddressAttribute()
     {
-        super(SOURCE_ADDRESS);
+        super(Attribute.Type.SOURCE_ADDRESS);
     }
 }

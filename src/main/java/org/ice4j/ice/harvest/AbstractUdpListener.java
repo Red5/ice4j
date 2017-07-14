@@ -132,9 +132,7 @@ public abstract class AbstractUdpListener
         try
         {
             Message stunMessage
-                = Message.decode(buf,
-                                 (char) off,
-                                 (char) len);
+                = Message.decode(buf, off, len);
 
             if (stunMessage.getMessageType()
                 != Message.BINDING_REQUEST)
@@ -144,7 +142,8 @@ public abstract class AbstractUdpListener
 
             UsernameAttribute usernameAttribute
                 = (UsernameAttribute)
-                stunMessage.getAttribute(Attribute.USERNAME);
+                stunMessage.getAttribute(Attribute.Type.USERNAME);
+            //logger.info("usernameAttribute: " + usernameAttribute);
             if (usernameAttribute == null)
                 return null;
 
@@ -430,27 +429,33 @@ public abstract class AbstractUdpListener
          */
         public void addBuffer(Buffer buf)
         {
-            synchronized (queue)
+            // Drop the first rather than the current packet, so that
+            // receivers can notice the loss earlier.
+            if (queue.offer(buf))
             {
-                // Drop the first rather than the current packet, so that
-                // receivers can notice the loss earlier.
-                if (queue.size() == QUEUE_SIZE)
-                {
-                    logger.info("Dropping a packet because the queue is full.");
-                    if (queueStatistics != null)
-                    {
-                        queueStatistics.remove(System.currentTimeMillis());
-                    }
-                    queue.poll();
-                }
-
-                queue.offer(buf);
                 if (queueStatistics != null)
                 {
                     queueStatistics.add(System.currentTimeMillis());
                 }
-
-                queue.notifyAll();
+                
+            } 
+            else
+            {
+                logger.info("Dropping a packet because the queue is full.");
+                if (queueStatistics != null)
+                {
+                    queueStatistics.remove(System.currentTimeMillis());
+                }
+                // remove head
+                queue.poll();
+                // try once more to add the buf
+                if (queue.offer(buf))
+                {
+                    if (queueStatistics != null)
+                    {
+                        queueStatistics.add(System.currentTimeMillis());
+                    }
+                }
             }
         }
 
@@ -536,13 +541,7 @@ public abstract class AbstractUdpListener
         public void close()
         {
             closed = true;
-
-            synchronized (queue)
-            {
-                // Wake up any threads still in receive()
-                queue.notifyAll();
-            }
-
+            queue.clear();
             // We could be called by the super-class constructor, in which
             // case this.removeAddress is not initialized yet.
             if (remoteAddress != null)
@@ -568,24 +567,15 @@ public abstract class AbstractUdpListener
                 if (closed)
                     throw new SocketException("Socket closed");
 
-                synchronized (queue)
-                {
-                    if (queue.isEmpty())
-                    {
-                        try
+                    try {
+                        // take will block until there's a buffer
+                        buf = queue.take();
+                        if (queueStatistics != null)
                         {
-                            queue.wait();
+                            queueStatistics.remove(System.currentTimeMillis());
                         }
-                        catch (InterruptedException ie)
-                        {}
+                    } catch (InterruptedException e) {
                     }
-
-                    buf = queue.poll();
-                    if (queueStatistics != null)
-                    {
-                        queueStatistics.remove(System.currentTimeMillis());
-                    }
-                }
             }
 
             byte[] pData = p.getData();

@@ -26,6 +26,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.*;
 
 /**
@@ -90,7 +91,7 @@ public class SinglePortUdpHarvester
      * this harvester. The keys are the local username fragments (ufrags) of
      * the components for which the candidates are harvested.
      */
-    private final Map<String, MyCandidate> candidates
+    private final ConcurrentMap<String, MyCandidate> candidates
             = new ConcurrentHashMap<>();
 
     /**
@@ -220,7 +221,7 @@ public class SinglePortUdpHarvester
          * The flag which indicates that this <tt>MyCandidate</tt> has been
          * freed.
          */
-        private boolean freed = false;
+        private AtomicBoolean freed = new AtomicBoolean(false);
 
         /**
          * The collection of <tt>IceSocketWrapper</tt>s that can potentially
@@ -230,8 +231,8 @@ public class SinglePortUdpHarvester
          * There are wrappers over <tt>MultiplexedDatagramSocket</tt>s over
          * a corresponding socket in {@link #sockets}.
          */
-        private final Map<SocketAddress, IceSocketWrapper> candidateSockets
-            = new HashMap<>();
+        private final ConcurrentMap<SocketAddress, IceSocketWrapper> candidateSockets
+            = new ConcurrentHashMap<>();
 
         /**
          * The collection of <tt>DatagramSocket</tt>s added to this candidate.
@@ -240,8 +241,8 @@ public class SinglePortUdpHarvester
          * These are the "raw" sockets, before any wrappers are added for
          * the STUN stack or the user of ice4j.
          */
-        private final Map<SocketAddress, DatagramSocket> sockets
-            = new HashMap<>();
+        private final ConcurrentMap<SocketAddress, DatagramSocket> sockets
+            = new ConcurrentHashMap<>();
 
         /**
          * Initializes a new <tt>MyCandidate</tt> instance with the given
@@ -266,24 +267,14 @@ public class SinglePortUdpHarvester
         @Override
         public void free()
         {
-            synchronized (this)
+            if (freed.compareAndSet(false, true))
             {
-                if (freed)
-                    return;
-                freed = true;
-            }
-
-            candidates.remove(ufrag);
-
-            synchronized (sockets)
-            {
+                candidates.remove(ufrag);
                 StunStack stunStack = getStunStack();
-
                 for (Map.Entry<SocketAddress, DatagramSocket> e
                     : sockets.entrySet())
                 {
                     DatagramSocket socket = e.getValue();
-
                     if (stunStack != null)
                     {
                         TransportAddress localAddress
@@ -298,23 +289,18 @@ public class SinglePortUdpHarvester
 
                         stunStack.removeSocket(localAddress, remoteAddress);
                     }
-
                     socket.close();
                 }
-
                 sockets.clear();
-            }
 
-            synchronized (candidateSockets)
-            {
                 for (IceSocketWrapper wrapper : candidateSockets.values())
                 {
                     wrapper.close();
                 }
                 candidateSockets.clear();
-            }
 
-            super.free();
+                super.free();
+            }
         }
 
         /**
@@ -324,11 +310,11 @@ public class SinglePortUdpHarvester
          * @param socket the socket to add.
          * @param remoteAddress the remote address for the socket.
          */
-        private synchronized void addSocket(DatagramSocket socket,
+        private void addSocket(DatagramSocket socket,
                                             InetSocketAddress remoteAddress)
             throws IOException
         {
-            if (freed)
+            if (freed.get())
             {
                 throw new IOException("Candidate freed");
             }
@@ -373,24 +359,15 @@ public class SinglePortUdpHarvester
             // TODO: maybe move this code to the candidates.
             component.getComponentSocket().add(multiplexing);
 
-            // XXX is this necessary?
-            synchronized (candidateSockets)
+            IceSocketWrapper oldSocket
+                = candidateSockets.put(remoteAddress, candidateSocket);
+            if (oldSocket != null)
             {
-                IceSocketWrapper oldSocket
-                    = candidateSockets.put(remoteAddress, candidateSocket);
-                if (oldSocket != null)
-                {
-                    logger.warning("Replacing the socket for remote address "
-                                       + remoteAddress);
-                    oldSocket.close();
-                }
+                logger.warning("Replacing the socket for remote address "
+                                   + remoteAddress);
+                oldSocket.close();
             }
-
-            // XXX is this necessary?
-            synchronized (sockets)
-            {
-                sockets.put(remoteAddress, socket);
-            }
+            sockets.put(remoteAddress, socket);
         }
         /**
          * {@inheritDoc}

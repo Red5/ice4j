@@ -60,7 +60,7 @@ public class ErrorCodeAttributeTest extends TestCase {
         errorCodeAttribute = new ErrorCodeAttribute();
 
         assertEquals("ErrorCodeAttribute() constructed an attribute with an invalid type",
-                     Attribute.ERROR_CODE,
+                     Attribute.Type.ERROR_CODE,
                      errorCodeAttribute.getAttributeType());
     }
 
@@ -176,7 +176,7 @@ public class ErrorCodeAttributeTest extends TestCase {
         errorCodeAttribute.setErrorNumber(MsgFixture.ERROR_NUMBER);
         errorCodeAttribute.setReasonPhrase(MsgFixture.REASON_PHRASE);
 
-        char actualReturn = errorCodeAttribute.getDataLength();
+        int actualReturn = errorCodeAttribute.getDataLength();
         assertEquals("data length1", expectedReturn, actualReturn);
     }
 
@@ -202,7 +202,7 @@ public class ErrorCodeAttributeTest extends TestCase {
      * Test whether we get a proper name for that attribute.
      */
     public void testGetName() {
-        String expectedReturn = "ERROR-CODE";
+        String expectedReturn = "ERROR_CODE";
         String actualReturn = errorCodeAttribute.getName();
         assertEquals("return value", expectedReturn, actualReturn);
 

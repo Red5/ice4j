@@ -35,9 +35,19 @@ public class OptionalAttribute
 {
     byte[] attributeValue = null;
 
-    protected OptionalAttribute(char attributeType)
+    int typeOverride = Integer.MIN_VALUE;
+
+    protected OptionalAttribute() 
+    {
+        super(Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE);
+    }
+
+    protected OptionalAttribute(int attributeType)
     {
         super(attributeType);
+        if (attributeType != this.attributeType.type) {
+            typeOverride = attributeType;
+        }
     }
 
     /**
@@ -50,7 +60,7 @@ public class OptionalAttribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         this.attributeValue = new byte[length];
@@ -65,11 +75,10 @@ public class OptionalAttribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
-
         byte binValue[] = new byte[HEADER_LENGTH + attributeValue.length];
 
         //Type
+        int type = typeOverride != Integer.MIN_VALUE ? typeOverride : getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
         //Length
@@ -87,19 +96,9 @@ public class OptionalAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
-        return (char)attributeValue.length;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return "Unknown Attribute";
+        return attributeValue.length;
     }
 
     /**
@@ -113,7 +112,7 @@ public class OptionalAttribute
     }
 
     /**
-     * Copies the speicified byte array segment as the body of this attribute.
+     * Copies the specified byte array segment as the body of this attribute.
      *
      * @param body the body to copy
      * @param offset the position to start

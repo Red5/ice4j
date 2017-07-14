@@ -21,7 +21,6 @@ import java.io.*;
 import java.net.*;
 import java.security.*;
 import java.util.*;
-import java.util.logging.*;
 
 import javax.crypto.*;
 
@@ -30,6 +29,8 @@ import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.security.*;
 import org.ice4j.socket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The entry point to the Stun4J stack. The class is used to start, stop and
@@ -52,8 +53,7 @@ public class StunStack
      * The <tt>Logger</tt> used by the <tt>StunStack</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(StunStack.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(StunStack.class);
 
     /**
      * The indicator which determines whether
@@ -757,7 +757,7 @@ public class StunStack
                                 + "(tid="+ tid.toString() +") "
                                 + "object does not exist.");
         }
-        else if( sTran.isRetransmitting())
+        else if(sTran.isRetransmitting())
         {
             throw new StunException(StunException.TRANSACTION_ALREADY_ANSWERED,
                                     "The transaction specified in the response "
@@ -900,49 +900,54 @@ public class StunStack
     {
         Message msg = ev.getMessage();
 
-        if(logger.isLoggable(Level.FINEST))
+        if(logger.isTraceEnabled())
         {
-            logger.finest(
-                    "Received a message on " + ev.getLocalAddress()
-                        + " of type:" + (int) msg.getMessageType());
+            logger.trace(
+                    "Received a message on {} of type: {}", 
+                    ev.getLocalAddress(), msg.getName());
         }
 
         //request
         if(msg instanceof Request)
         {
-            logger.finest("parsing request");
+            logger.trace("parsing request");
+            // skip badly sized requests
+            UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
+            logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());
+            if (ua.getUsername().length != ua.getDataLength())
+            {
+                logger.warn("Invalid username size, rejecting request");
+                return;
+            }
 
             TransactionID serverTid = ev.getTransactionID();
             StunServerTransaction sTran  = getServerTransaction(serverTid);
 
-            if( sTran != null)
+            if(sTran != null)
             {
                 //requests from this transaction have already been seen
                 //retransmit the response if there was any
-                logger.finest("found an existing transaction");
+                logger.trace("found an existing transaction");
 
                 try
                 {
                     sTran.retransmitResponse();
-                    logger.finest("Response retransmitted");
+                    logger.trace("Response retransmitted");
                 }
                 catch (Exception ex)
                 {
                     //we couldn't really do anything here .. apart from logging
-                    logger.log(Level.WARNING,
-                               "Failed to retransmit a stun response",
-                               ex);
+                    logger.warn("Failed to retransmit a stun response", ex);
                 }
 
-                if(!Boolean.getBoolean(
-                        StackProperties.PROPAGATE_RECEIVED_RETRANSMISSIONS))
+                if(!StackProperties.getBoolean(StackProperties.PROPAGATE_RECEIVED_RETRANSMISSIONS, false))
                 {
                     return;
                 }
             }
             else
             {
-                logger.finest("existing transaction not found");
+                logger.trace("existing transaction not found");
                 sTran
                     = new StunServerTransaction(
                             this,
@@ -960,7 +965,7 @@ public class StunStack
                 }
                 catch(OutOfMemoryError t)
                 {
-                    logger.info("STUN transaction thread start failed:" + t);
+                    logger.warn("STUN transaction thread start failed", t);
                     return;
                 }
                 synchronized (serverTransactions)
@@ -978,7 +983,7 @@ public class StunStack
             catch(Exception exc)
             {
                 //validation failed. log get lost.
-                logger.log(Level.FINE, "Failed to validate msg: " + ev, exc);
+                logger.warn("Failed to validate msg: {}", ev, exc);
                 return;
             }
 
@@ -990,7 +995,7 @@ public class StunStack
             {
                 Response error;
 
-                logger.log(Level.INFO, "Received an invalid request.", t);
+                logger.warn("Received an invalid request.", t);
                 Throwable cause = t.getCause();
 
                 if(((t instanceof StunException)
@@ -1034,9 +1039,7 @@ public class StunStack
                 }
                 catch(Exception exc)
                 {
-                    logger.log(Level.FINE,
-                               "Couldn't send a server error response",
-                               exc);
+                    logger.warn("Couldn't send a server error response", exc);
                 }
             }
         }
@@ -1053,7 +1056,7 @@ public class StunStack
             else
             {
                 //do nothing - just drop the phantom response.
-                logger.fine(
+                logger.debug(
                         "Dropped response - no matching client tran found for"
                             + " tid " + tid + "\n" + "all tids in stock were "
                             + clientTransactions.keySet());
@@ -1138,7 +1141,7 @@ public class StunStack
 
         //assert valid username
         UsernameAttribute unameAttr = (UsernameAttribute)request
-            .getAttribute(Attribute.USERNAME);
+            .getAttribute(Attribute.Type.USERNAME);
         String username = null;
 
         if (unameAttr != null)
@@ -1155,15 +1158,14 @@ public class StunStack
                                 evt.getLocalAddress(),
                                 evt.getRemoteAddress());
 
-                throw new IllegalArgumentException(
-                    "Non-recognized username: " + username);
+                throw new IllegalArgumentException("Non-recognized username: " + username);
             }
         }
 
         //assert Message Integrity
         MessageIntegrityAttribute msgIntAttr
             = (MessageIntegrityAttribute)
-                request.getAttribute(Attribute.MESSAGE_INTEGRITY);
+                request.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
 
         if (msgIntAttr != null)
         {
@@ -1198,11 +1200,10 @@ public class StunStack
                                 evt.getLocalAddress(),
                                 evt.getRemoteAddress());
 
-                throw new IllegalArgumentException(
-                    "Wrong MESSAGE-INTEGRITY value.");
+                throw new IllegalArgumentException("Wrong MESSAGE-INTEGRITY value.");
             }
         }
-        else if(Boolean.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY))
+        else if(StackProperties.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY, false))
         {
             // no message integrity
             Response error = createCorrespondingErrorResponse(
@@ -1213,8 +1214,7 @@ public class StunStack
             sendResponse(request.getTransactionID(), error,
                             evt.getLocalAddress(),
                             evt.getRemoteAddress());
-            throw new IllegalArgumentException(
-                "Missing MESSAGE-INTEGRITY.");
+            throw new IllegalArgumentException("Missing MESSAGE-INTEGRITY.");
         }
 
         //look for unknown attributes.
@@ -1223,8 +1223,8 @@ public class StunStack
         for(Attribute attr : allAttributes)
         {
             if(attr instanceof OptionalAttribute
-                && attr.getAttributeType()
-                    < Attribute.UNKNOWN_OPTIONAL_ATTRIBUTE)
+                && attr.getAttributeType().getType()
+                    < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType())
                 sBuff.append(attr.getAttributeType());
         }
 
@@ -1239,8 +1239,7 @@ public class StunStack
                             evt.getLocalAddress(),
                             evt.getRemoteAddress());
 
-            throw new IllegalArgumentException(
-                "Unknown attribute(s).");
+            throw new IllegalArgumentException("Unknown attribute(s).");
         }
     }
 
@@ -1266,28 +1265,36 @@ public class StunStack
             boolean                   shortTermCredentialMechanism,
             RawMessage                message)
     {
-        int colon = -1;
+        if(logger.isDebugEnabled())
+        {
+            logger.debug("validateMessageIntegrity username: {} short term: {}", username, shortTermCredentialMechanism);
+            logger.debug("MI attr data length: {} hmac content: {}", msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
+            logger.debug("RawMessage: {}\n{}", message.getMessageLength(), toHexString(message.getBytes()));
 
+        }
         if ((username == null)
                 || (username.length() < 1)
-                || (shortTermCredentialMechanism
-                        && ((colon = username.indexOf(":")) < 1)))
+                || (shortTermCredentialMechanism && !username.contains(":")))
         {
-            if(logger.isLoggable(Level.FINE))
+            if(logger.isDebugEnabled())
             {
-                logger.log(Level.FINE, "Received a message with an improperly "
-                        +"formatted username");
+                logger.debug("Received a message with an improperly formatted username");
             }
             return false;
         }
-
+        String[] usernameParts = username.split(":");
         if (shortTermCredentialMechanism)
-            username = username.substring(0, colon); // lfrag
+        {
+            username = usernameParts[0]; // lfrag
+        }
 
         byte[] key = getCredentialsManager().getLocalKey(username);
-
-        if(key == null)
+        if (key == null)
+        {
             return false;
+        }
+        logger.debug("Local key: {}", toHexString(key));
+        logger.debug("Remote key: {}", toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
 
         /*
          * Now check whether the SHA1 matches. Using
@@ -1302,9 +1309,8 @@ public class StunStack
 
         System.arraycopy(message.getBytes(), 0, binMsg, 0, binMsg.length);
 
-        char messageLength
-            = (char)
-                (binMsg.length
+        int messageLength
+            = (binMsg.length
                     + Attribute.HEADER_LENGTH
                     + msgInt.getDataLength()
                     - Message.HEADER_LENGTH);
@@ -1332,13 +1338,10 @@ public class StunStack
                 expectedMsgIntHmacSha1Content,
                 msgIntHmacSha1Content))
         {
-            if(logger.isLoggable(Level.FINE))
+            if(logger.isDebugEnabled())
             {
-                logger.log(
-                        Level.FINE,
-                        "Received a message with a wrong "
-                            +"MESSAGE-INTEGRITY HMAC-SHA1 signature: "
-                            + "expected: "
+                logger.debug("Received a message with a wrong "
+                            + "MESSAGE-INTEGRITY signature expected: "
                             + toHexString(expectedMsgIntHmacSha1Content)
                             + ", received: "
                             + toHexString(msgIntHmacSha1Content));
@@ -1346,8 +1349,8 @@ public class StunStack
             return false;
         }
 
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest("Successfully verified msg integrity");
+        if (logger.isTraceEnabled())
+            logger.trace("Successfully verified msg integrity");
         return true;
     }
 
@@ -1360,7 +1363,7 @@ public class StunStack
      * @return a <tt>String</tt> representation of the specified <tt>byte</tt>
      * array as an unsigned integer in base 16
      */
-    private static String toHexString(byte[] bytes)
+    public static String toHexString(byte[] bytes)
     {
         if (bytes == null)
             return null;
@@ -1400,9 +1403,9 @@ public class StunStack
 
         if ((username.length() < 1) || (colon < 1))
         {
-            if(logger.isLoggable(Level.FINE))
+            if(logger.isDebugEnabled())
             {
-                logger.log(Level.FINE, "Received a message with an improperly "
+                logger.debug("Received a message with an improperly "
                         +"formatted username");
             }
             return false;

@@ -27,16 +27,12 @@ package org.ice4j.attribute;
 
 public class ResponseAddressAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "RESPONSE-ADDRESS";
 
     /**
      * Creates a RESPONSE_ADDRESS attribute
      */
     public ResponseAddressAttribute()
     {
-        super(RESPONSE_ADDRESS);
+        super(Attribute.Type.RESPONSE_ADDRESS);
     }
 }

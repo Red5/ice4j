@@ -33,14 +33,14 @@ public class UseCandidateAttribute
     /**
      * Data length.
      */
-    private static final char DATA_LENGTH_USE_CANDIDATE = 0;
+    private static final int DATA_LENGTH_USE_CANDIDATE = 0;
 
     /**
      * Constructor.
      */
     protected UseCandidateAttribute()
     {
-        super(USE_CANDIDATE);
+        super(Attribute.Type.USE_CANDIDATE);
     }
 
     /**
@@ -53,7 +53,7 @@ public class UseCandidateAttribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
             throws StunException
     {
         // Do nothing, empty attribute body
@@ -66,10 +66,10 @@ public class UseCandidateAttribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte[] binValue = new byte[HEADER_LENGTH + DATA_LENGTH_USE_CANDIDATE];
 
         // Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -108,18 +108,9 @@ public class UseCandidateAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return DATA_LENGTH_USE_CANDIDATE;
     }
 
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return "USE-CANDIDATE";
-    }
 }

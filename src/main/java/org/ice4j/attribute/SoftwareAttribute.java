@@ -44,7 +44,7 @@ public class SoftwareAttribute
      */
     protected SoftwareAttribute ()
     {
-        super(SOFTWARE);
+        super(Attribute.Type.SOFTWARE);
     }
 
     /**
@@ -57,7 +57,7 @@ public class SoftwareAttribute
      * offset is equal to the index of the first byte after length)
      * @param length the length of the binary array.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
     {
         software = new byte[length];
         System.arraycopy(attributeValue, offset, software, 0, length);
@@ -70,12 +70,12 @@ public class SoftwareAttribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()
                                    //add padding
                                    + (4 - getDataLength() % 4) % 4];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -94,19 +94,9 @@ public class SoftwareAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
-        return (char)software.length;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return "SOFTWARE";
+        return software.length;
     }
 
     /**

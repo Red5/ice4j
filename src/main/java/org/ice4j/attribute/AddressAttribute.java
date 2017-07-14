@@ -80,13 +80,13 @@ abstract class AddressAttribute extends Attribute
       * The length of the data contained by this attribute in the case of an
       * IPv6 address.
       */
-     private static final char DATA_LENGTH_FOR_IPV6 = 20;
+     private static final int DATA_LENGTH_FOR_IPV6 = 20;
 
      /**
       * The length of the data contained by this attribute in the case of an
       * IPv4 address.
       */
-     private static final char DATA_LENGTH_FOR_IPV4 = 8;
+     private static final int DATA_LENGTH_FOR_IPV4 = 8;
 
     /**
      * Constructs an address attribute with the specified type.
@@ -97,19 +97,41 @@ abstract class AddressAttribute extends Attribute
     {
         super(attributeType);
     }
+
+    /**
+     * Constructs an address attribute with the specified type.
+     *
+     * @param attributeType the type of the address attribute.
+     */
+    public AddressAttribute(Type attributeType)
+    {
+        super(attributeType);
+    }
+
     /**
      * Verifies that type is a valid address attribute type.
      * @param type the type to test
      * @return true if the type is a valid address attribute type and false
      * otherwise
      */
-    private boolean isTypeValid(char type)
+    private boolean isTypeValid(int type)
     {
-        return (type == MAPPED_ADDRESS || type == RESPONSE_ADDRESS
-                || type == SOURCE_ADDRESS || type == CHANGED_ADDRESS
-                || type == REFLECTED_FROM || type == XOR_MAPPED_ADDRESS
-                || type == ALTERNATE_SERVER || type == XOR_PEER_ADDRESS
-                || type == XOR_RELAYED_ADDRESS || type == DESTINATION_ADDRESS);
+        switch(Attribute.Type.valueOf(type))
+        {
+            case MAPPED_ADDRESS:
+            case RESPONSE_ADDRESS:
+            case SOURCE_ADDRESS:
+            case CHANGED_ADDRESS:
+            case REFLECTED_FROM:
+            case XOR_MAPPED_ADDRESS:
+            case ALTERNATE_SERVER:
+            case XOR_PEER_ADDRESS:
+            case XOR_RELAYED_ADDRESS:
+            case DESTINATION_ADDRESS:
+                return true;
+            default:
+                return false;
+        }
     }
 
     /**
@@ -124,30 +146,6 @@ abstract class AddressAttribute extends Attribute
                                 + "is not a valid address attribute!");
 
         super.setAttributeType(type);
-    }
-
-    /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        switch(getAttributeType())
-        {
-            case MAPPED_ADDRESS:     return MappedAddressAttribute.NAME;
-            case RESPONSE_ADDRESS:   return ResponseAddressAttribute.NAME;
-            case SOURCE_ADDRESS:     return SourceAddressAttribute.NAME;
-            case CHANGED_ADDRESS:    return ChangedAddressAttribute.NAME;
-            case REFLECTED_FROM:     return ReflectedFromAttribute.NAME;
-            case XOR_MAPPED_ADDRESS: return XorMappedAddressAttribute.NAME;
-            case ALTERNATE_SERVER:   return AlternateServerAttribute.NAME;
-            case XOR_PEER_ADDRESS:   return XorPeerAddressAttribute.NAME;
-            case XOR_RELAYED_ADDRESS:return XorRelayedAddressAttribute.NAME;
-        }
-
-        return "UNKNOWN ATTRIBUTE";
     }
 
    /**
@@ -186,7 +184,7 @@ abstract class AddressAttribute extends Attribute
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value (8 bytes).
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         if (getFamily() == ADDRESS_FAMILY_IPV6)
             return DATA_LENGTH_FOR_IPV6;
@@ -200,9 +198,9 @@ abstract class AddressAttribute extends Attribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
+        int type = getAttributeType().getType();
         if (!isTypeValid(type))
-            throw new IllegalStateException(((int)type)
+            throw new IllegalStateException(type
                             + "is not a valid address attribute!");
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
 
@@ -292,7 +290,7 @@ abstract class AddressAttribute extends Attribute
       * @param length the length of the binary array.
       * @throws StunException if attrubteValue contains invalid data.
       */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         //skip through padding

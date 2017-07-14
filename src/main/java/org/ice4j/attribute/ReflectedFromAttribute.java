@@ -31,16 +31,12 @@ package org.ice4j.attribute;
  */
 public class ReflectedFromAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "REFLECTED-FROM";
 
     /**
      * Creates a REFLECTED-FROM attribute
      */
     public ReflectedFromAttribute()
     {
-        super(REFLECTED_FROM);
+        super(Attribute.Type.REFLECTED_FROM);
     }
 }

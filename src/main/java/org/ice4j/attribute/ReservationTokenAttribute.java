@@ -31,10 +31,6 @@ import org.ice4j.*;
 public class ReservationTokenAttribute
     extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "RESERVATION-TOKEN";
 
     /**
      * ReservationToken value.
@@ -57,7 +53,7 @@ public class ReservationTokenAttribute
      */
     protected ReservationTokenAttribute ()
     {
-        super(RESERVATION_TOKEN);
+        super(Attribute.Type.RESERVATION_TOKEN);
         this.reservationToken = new byte[8];
     }
 
@@ -72,7 +68,7 @@ public class ReservationTokenAttribute
      * @throws StunException if attributeValue contains invalid reservationToken.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         if(length != 8)
@@ -91,10 +87,10 @@ public class ReservationTokenAttribute
     @Override
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + 8];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -107,17 +103,6 @@ public class ReservationTokenAttribute
 
         return binValue;
       }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    @Override
-    public String getName()
-    {
-        return NAME;
-    }
 
     /**
      * Returns a (cloned) byte array containing the reservationToken value of
@@ -157,9 +142,9 @@ public class ReservationTokenAttribute
      * @return the length of this attribute's value.
      */
     @Override
-    public char getDataLength()
+    public int getDataLength()
     {
-        return (char)reservationToken.length;
+        return reservationToken.length;
     }
 
     /**

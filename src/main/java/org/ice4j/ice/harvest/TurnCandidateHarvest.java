@@ -236,7 +236,7 @@ public class TurnCandidateHarvest
     private void createRelayedCandidate(Response response)
     {
         Attribute attribute
-            = response.getAttribute(Attribute.XOR_RELAYED_ADDRESS);
+            = response.getAttribute(Attribute.Type.XOR_RELAYED_ADDRESS);
 
         if (attribute instanceof XorRelayedAddressAttribute)
         {
@@ -317,13 +317,13 @@ public class TurnCandidateHarvest
         {
             RequestedTransportAttribute requestedTransportAttribute
                 = (RequestedTransportAttribute)
-                    request.getAttribute(Attribute.REQUESTED_TRANSPORT);
+                    request.getAttribute(Attribute.Type.REQUESTED_TRANSPORT);
             int requestedTransport
                 = (requestedTransportAttribute == null)
                     ? 17 /* User Datagram Protocol */
                     : requestedTransportAttribute.getRequestedTransport();
             EvenPortAttribute evenPortAttribute
-                = (EvenPortAttribute) request.getAttribute(Attribute.EVEN_PORT);
+                = (EvenPortAttribute) request.getAttribute(Attribute.Type.EVEN_PORT);
             boolean rFlag
                 = (evenPortAttribute != null) && evenPortAttribute.isRFlag();
 
@@ -337,11 +337,11 @@ public class TurnCandidateHarvest
         {
             ChannelNumberAttribute channelNumberAttribute
                 = (ChannelNumberAttribute)
-                    request.getAttribute(Attribute.CHANNEL_NUMBER);
+                    request.getAttribute(Attribute.Type.CHANNEL_NUMBER);
             char channelNumber = channelNumberAttribute.getChannelNumber();
             XorPeerAddressAttribute peerAddressAttribute
                 = (XorPeerAddressAttribute)
-                    request.getAttribute(Attribute.XOR_PEER_ADDRESS);
+                    request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
             TransportAddress peerAddress
                 = peerAddressAttribute.getAddress(request.getTransactionID());
             byte[] retryTransactionID
@@ -367,7 +367,7 @@ public class TurnCandidateHarvest
         {
             XorPeerAddressAttribute peerAddressAttribute
                 = (XorPeerAddressAttribute)
-                    request.getAttribute(Attribute.XOR_PEER_ADDRESS);
+                    request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
             TransportAddress peerAddress
                 = peerAddressAttribute.getAddress(request.getTransactionID());
             byte[] retryTransactionID
@@ -392,7 +392,7 @@ public class TurnCandidateHarvest
         case Message.REFRESH_REQUEST:
         {
             LifetimeAttribute lifetimeAttribute
-                = (LifetimeAttribute) request.getAttribute(Attribute.LIFETIME);
+                = (LifetimeAttribute) request.getAttribute(Attribute.Type.LIFETIME);
 
             if (lifetimeAttribute == null)
                 return MessageFactory.createRefreshRequest();
@@ -513,7 +513,7 @@ public class TurnCandidateHarvest
         case Message.ALLOCATE_RESPONSE:
             // The default lifetime of an allocation is 10 minutes.
             lifetimeAttribute
-                = (LifetimeAttribute) response.getAttribute(Attribute.LIFETIME);
+                = (LifetimeAttribute) response.getAttribute(Attribute.Type.LIFETIME);
             lifetime
                 = (lifetimeAttribute == null)
                     ? (10 * 60)
@@ -521,7 +521,7 @@ public class TurnCandidateHarvest
             break;
         case Message.REFRESH_RESPONSE:
             lifetimeAttribute
-                = (LifetimeAttribute) response.getAttribute(Attribute.LIFETIME);
+                = (LifetimeAttribute) response.getAttribute(Attribute.Type.LIFETIME);
             if (lifetimeAttribute != null)
                 lifetime = lifetimeAttribute.getLifetime();
             break;

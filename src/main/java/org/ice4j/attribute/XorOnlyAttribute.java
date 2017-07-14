@@ -40,7 +40,7 @@ public class XorOnlyAttribute
      */
     protected XorOnlyAttribute()
     {
-        super(Attribute.XOR_ONLY);
+        super(Attribute.Type.XOR_ONLY);
     }
 
     /**
@@ -53,7 +53,7 @@ public class XorOnlyAttribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         //nothing to do cause we have 0 length
@@ -66,10 +66,10 @@ public class XorOnlyAttribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -86,19 +86,9 @@ public class XorOnlyAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return 0;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return "XOR-ONLY";
     }
 
     /**

@@ -30,16 +30,12 @@ package org.ice4j.attribute;
 
 public class ChangedAddressAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "CHANGED-ADDRESS";
 
     /**
      * Creates a CHANGED_ADDRESS attribute
      */
     public ChangedAddressAttribute()
     {
-        super(CHANGED_ADDRESS);
+        super(Attribute.Type.CHANGED_ADDRESS);
     }
 }

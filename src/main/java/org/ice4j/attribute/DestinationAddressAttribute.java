@@ -26,16 +26,12 @@ package org.ice4j.attribute;
  */
 public class DestinationAddressAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "DESTINATION-ADDRESS";
 
     /**
      * Constructor.
      */
     DestinationAddressAttribute()
     {
-        super(DESTINATION_ADDRESS);
+        super(Attribute.Type.DESTINATION_ADDRESS);
     }
 }

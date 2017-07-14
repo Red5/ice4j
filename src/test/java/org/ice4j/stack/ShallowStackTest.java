@@ -25,6 +25,7 @@ import junit.framework.*;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
+import org.ice4j.security.CredentialsAuthority;
 import org.ice4j.socket.*;
 
 /**
@@ -114,7 +115,6 @@ public class ShallowStackTest extends TestCase
         msgFixture = null;
         super.tearDown();
     }
-
 
     /**
      * Sends a binding request using the stack to a bare socket, and verifies
@@ -316,6 +316,71 @@ public class ShallowStackTest extends TestCase
                    Arrays.equals(expectedReturn, actualReturn));
     }
 
+    /**
+     * Created to test Edge provided data, which we know has issues.
+     */
+    public void testEdgeControlled()
+            throws Exception
+    {
+        // Addresses
+        //dummyServerAddress = new TransportAddress("10.0.0.12", 57052, Transport.UDP);
+        //localAddress = new TransportAddress("10.0.0.5", 49152, Transport.UDP);
+        // access point
+        //localSock = new IceUdpSocketWrapper(new SafeCloseDatagramSocket(localAddress));
+        //stunStack.addSocket(localSock);
+        // the dummy server
+        //dummyServerSocket = new DatagramSocket(dummyServerAddress);
+
+        // user name
+        final String userName = "7vska1bkv1e9u7:9YVL";
+        // register our dummy credential authority
+        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
+
+            // local key / override the key so our data is valid
+            byte[] localKey = hexStringToByteArray("363734656A3873726272346C6475316C3736636264676F356D73");
+
+            byte[] remoteKey = hexStringToByteArray("364974756553306563335930774959314167714B626A6456");
+
+            @Override
+            public byte[] getLocalKey(String username) {
+                return localKey;
+            }
+
+            @Override
+            public byte[] getRemoteKey(String username, String media) {
+                return remoteKey;
+            }
+
+            @Override
+            public boolean checkLocalUserName(String username) {
+                return username.split(":")[0].equals(username);
+            }
+            
+        });
+
+        // incorrect size for username == 20
+        byte[] req1 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600133776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A0008000000000031822280540001310000008070000400000003000800142C8D92719B35E6AC883576CC430F4540DAEABFA180280004E9CC3B69");
+        // valid sized username == 19
+        byte[] req2 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600143776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A00080000000000318222805400043100000080700004000000030008001446B190015E4C153EBC92E6EEFF7EDD379AECE6C58028000465E68F73");
+
+        Request collectedRequest = null;
+
+        /*
+        SimpleRequestCollector requestCollector = new SimpleRequestCollector();
+        stunStack.addRequestListener(requestCollector);
+        dummyServerSocket.send(new DatagramPacket(req1, req1.length, localAddress));
+        //wait for the packet to arrive
+        requestCollector.waitForRequest();
+        collectedRequest = requestCollector.collectedRequest;
+        assertNotNull("No request has been received", collectedRequest);
+        */
+        collectedRequest = (Request) Message.decode(req1, 0, req1.length);
+        
+        byte actualReturn[]  = collectedRequest.encode(stunStack);
+        assertTrue("Received request was not the same as the one that was sent",
+                   Arrays.equals(req1, actualReturn));
+    }
+
     //--------------------------------------- listener implementations ---------
     /**
      * A simple utility that allows us to asynchronously collect messages.
@@ -433,19 +498,22 @@ public class ShallowStackTest extends TestCase
             }
         }
     }
-/*
-    public static Test suite()
-    {
-        TestSuite suite = new TestSuite();
-        suite.addTest(new ShallowStackTest(
-            "testSendResponse"));
-        suite.addTest(new ShallowStackTest(
-            "testSendResponse"));
-        suite.addTest(new ShallowStackTest(
-            "testSendResponse"));
-        suite.addTest(new ShallowStackTest(
-            "testSendResponse"));
-        return suite;
+
+    /**
+     * Returns a byte array for the given hex encoded string.
+     * 
+     * @param s encoded hex string
+     * @return byte array
+     */
+    public final static byte[] hexStringToByteArray(String s) {
+        // remove all the whitespace first
+        s = s.replaceAll("\\s+","");
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
     }
-*/
+
 }

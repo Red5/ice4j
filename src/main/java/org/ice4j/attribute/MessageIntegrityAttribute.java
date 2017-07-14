@@ -24,6 +24,8 @@ import javax.crypto.spec.*;
 
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The MESSAGE-INTEGRITY attribute contains an HMAC-SHA1 [RFC2104] of
@@ -86,10 +88,8 @@ public class MessageIntegrityAttribute
     extends Attribute
     implements ContentDependentAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "MESSAGE_INTEGRITY";
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
 
     /**
      * The HMAC-SHA1 algorithm.
@@ -99,7 +99,7 @@ public class MessageIntegrityAttribute
     /**
      * The HMAC-SHA1 algorithm.
      */
-    public static final char DATA_LENGTH = (char)20;
+    public static final int DATA_LENGTH = 20;
 
     /**
      * The actual content of the message
@@ -123,7 +123,7 @@ public class MessageIntegrityAttribute
      */
     protected MessageIntegrityAttribute()
     {
-        super(MESSAGE_INTEGRITY);
+        super(Attribute.Type.MESSAGE_INTEGRITY);
     }
 
     /**
@@ -226,9 +226,8 @@ public class MessageIntegrityAttribute
      * @param length the length of the binary array.
      * the start of this attribute.
      */
-    public void decodeAttributeBody( byte[] attributeValue,
-                                     char offset,
-                                     char length)
+    public void decodeAttributeBody(byte[] attributeValue,
+            int offset, int length)
     {
         hmacSha1Content = new byte[length];
         System.arraycopy(attributeValue, offset, hmacSha1Content, 0, length);
@@ -247,7 +246,7 @@ public class MessageIntegrityAttribute
     {
         throw new UnsupportedOperationException(
                         "ContentDependentAttributes should be encoded "
-                        + "through the contend-dependent encode method");
+                        + "through the content-dependent encode method");
     }
 
     /**
@@ -268,10 +267,15 @@ public class MessageIntegrityAttribute
             StunStack stunStack,
             byte[] content, int offset, int length)
     {
-        char type = getAttributeType();
+        if(logger.isDebugEnabled())
+        {
+            logger.debug("encode - offset: {} length: {}\n{}", offset, length, StunStack.toHexString(content));
+        }
+
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -310,19 +314,9 @@ public class MessageIntegrityAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return DATA_LENGTH;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
     }
 
     /**
@@ -343,7 +337,7 @@ public class MessageIntegrityAttribute
         MessageIntegrityAttribute att = (MessageIntegrityAttribute) obj;
         if (att.getAttributeType() != getAttributeType()
                 || att.getDataLength() != getDataLength()
-                || !Arrays.equals( att.hmacSha1Content, hmacSha1Content))
+                || !Arrays.equals(att.hmacSha1Content, hmacSha1Content))
             return false;
 
         return true;

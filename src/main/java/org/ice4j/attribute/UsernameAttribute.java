@@ -19,6 +19,7 @@ package org.ice4j.attribute;
 
 import java.util.*;
 
+
 /**
  * The USERNAME attribute is used for message integrity.
  * The value of USERNAME is a variable length value.
@@ -28,22 +29,19 @@ import java.util.*;
  */
 public class UsernameAttribute extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "USERNAME";
+    //private static final Logger logger = Logger.getLogger(UsernameAttribute.class.getName());
 
     /**
      * Username value.
      */
-    private byte username[] = null;
+    private byte[] username = null;
 
     /**
      * Constructor.
      */
     UsernameAttribute()
     {
-        super(USERNAME);
+        super(Attribute.Type.USERNAME);
     }
 
     /**
@@ -57,17 +55,19 @@ public class UsernameAttribute extends Attribute
      * @param length the length of the binary array.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
     {
         // This works around the following bug in Edge, which effectively adds
         // additional "0" bytes to the end of the USERNAME attribute:
         // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12332457/
-        while (length > 0 && attributeValue[offset + length] == 0)
+        //logger.info("decodeAttributeBody offset: " + (int) offset + " len: " + (int) length + " value: " + new String(attributeValue) + "\n" + javax.xml.bind.DatatypeConverter.printHexBinary(attributeValue) + "\n" + Arrays.toString(attributeValue));
+        while (length > 0 && attributeValue[offset + length - 1] == 0)
         {
             length--;
         }
         username = new byte[length];
         System.arraycopy(attributeValue, offset, username, 0, length);
+        //logger.info("decodeAttributeBody username: " + Arrays.toString(username));
     }
 
     /**
@@ -77,12 +77,12 @@ public class UsernameAttribute extends Attribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()
                                    //add padding
                                    + (4 - getDataLength() % 4) % 4];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -101,19 +101,9 @@ public class UsernameAttribute extends Attribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return (char)username.length;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
     }
 
     /**
@@ -162,11 +152,18 @@ public class UsernameAttribute extends Attribute
             return true;
 
         UsernameAttribute att = (UsernameAttribute) obj;
+        //logger.info("Equality - type: " + att.getAttributeType() + " != " + getAttributeType() + " length: " + att.getDataLength() + " !=  " + getDataLength() + " array equal: " + Arrays.equals(att.username, username));
         if (att.getAttributeType() != getAttributeType()
                 || att.getDataLength() != getDataLength()
-                || !Arrays.equals( att.username, username))
+                || !Arrays.equals(att.username, username))
             return false;
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "UsernameAttribute [username=" + new String(username) + "]";
+    }
+
 }

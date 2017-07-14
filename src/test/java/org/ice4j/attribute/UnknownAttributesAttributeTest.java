@@ -66,8 +66,8 @@ public class UnknownAttributesAttributeTest extends TestCase
 
         assertEquals("UnknownAttributesAttribute() did not properly set the "
                    +"Attribute's type field!",
-                   (int)Attribute.UNKNOWN_ATTRIBUTES,
-                   (int)unknownAttributesAttribute.getAttributeType()
+                   Attribute.Type.UNKNOWN_ATTRIBUTES,
+                   unknownAttributesAttribute.getAttributeType()
                    );
     }
 
@@ -158,9 +158,10 @@ public class UnknownAttributesAttributeTest extends TestCase
         unknownAttributesAttribute.addAttributeID(
             MsgFixture.UNKNOWN_ATTRIBUTES_2ND_ATT);
 
-
-
+        //System.out.println("Unknown type: " + unknownAttributesAttribute.getAttributeType() + "=" + unknownAttributesAttribute.getAttributeType().type);
         byte[] actualReturn = unknownAttributesAttribute.encode();
+        //System.out.println("Expect: " + Arrays.toString(expectedReturn));
+        //System.out.println("Actual: " + Arrays.toString(actualReturn));
         assertTrue("UnknownAttributesAttribute did not encode properly.",
                    Arrays.equals(actualReturn, expectedReturn));
     }
@@ -178,15 +179,15 @@ public class UnknownAttributesAttributeTest extends TestCase
         assertEquals("Equals failed for a null object",
                      expectedReturn, actualReturn);
 
-        unknownAttributesAttribute.addAttributeID((char)25);
-        target.addAttributeID((char)25);
+        unknownAttributesAttribute.addAttributeID(25);
+        target.addAttributeID(25);
 
-        unknownAttributesAttribute.addAttributeID((char)26);
+        unknownAttributesAttribute.addAttributeID(26);
         actualReturn = unknownAttributesAttribute.equals(target);
         assertEquals("Equals failed when comparing different objects.",
                      expectedReturn, actualReturn);
 
-        target.addAttributeID((char)26);
+        target.addAttributeID(26);
         expectedReturn = true;
         actualReturn = unknownAttributesAttribute.equals(target);
         assertEquals("Equals failed to recognize identical objects.",
@@ -200,11 +201,11 @@ public class UnknownAttributesAttributeTest extends TestCase
      */
     public void testGetAttribute()
     {
-        char expectedId1 = 20;
-        char expectedId2 = 21;
+        int expectedId1 = 20;
+        int expectedId2 = 21;
 
-        char actualId1;
-        char actualId2;
+        int actualId1;
+        int actualId2;
 
         unknownAttributesAttribute.addAttributeID(expectedId1);
         unknownAttributesAttribute.addAttributeID(expectedId2);
@@ -242,16 +243,16 @@ public class UnknownAttributesAttributeTest extends TestCase
      */
     public void testGetAttributes()
     {
-        char expectedId1 = 20;
-        char expectedId2 = 21;
+        int expectedId1 = 20;
+        int expectedId2 = 21;
 
-        char actualId1;
-        char actualId2;
+        int actualId1;
+        int actualId2;
 
         unknownAttributesAttribute.addAttributeID(expectedId1);
         unknownAttributesAttribute.addAttributeID(expectedId2);
 
-        Iterator<Character> iterator = unknownAttributesAttribute.getAttributes();
+        Iterator<Integer> iterator = unknownAttributesAttribute.getAttributes();
 
         actualId1 = iterator.next();
         actualId2 = iterator.next();
@@ -269,17 +270,17 @@ public class UnknownAttributesAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = 8;
+        int expectedReturn = 8;
 
-        unknownAttributesAttribute.addAttributeID((char)20);
-        unknownAttributesAttribute.addAttributeID((char)21);
-        unknownAttributesAttribute.addAttributeID((char)22);
+        unknownAttributesAttribute.addAttributeID(20);
+        unknownAttributesAttribute.addAttributeID(21);
+        unknownAttributesAttribute.addAttributeID(22);
 
-        char actualReturn = unknownAttributesAttribute.getDataLength();
+        int actualReturn = unknownAttributesAttribute.getDataLength();
         assertEquals("Incorrect testGetDataLength() return value",
                      expectedReturn, actualReturn);
 
-        unknownAttributesAttribute.addAttributeID((char)23);
+        unknownAttributesAttribute.addAttributeID(23);
 
         actualReturn = unknownAttributesAttribute.getDataLength();
         assertEquals("Incorrect testGetDataLength() return value",
@@ -292,7 +293,7 @@ public class UnknownAttributesAttributeTest extends TestCase
      */
     public void testGetName()
     {
-        String expectedReturn = "UNKNOWN-ATTRIBUTES";
+        String expectedReturn = "UNKNOWN_ATTRIBUTES";
         String actualReturn = unknownAttributesAttribute.getName();
         assertEquals("getName() return", expectedReturn, actualReturn);
     }

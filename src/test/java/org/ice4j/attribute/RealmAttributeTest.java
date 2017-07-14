@@ -35,8 +35,8 @@ public class RealmAttributeTest extends TestCase
     MsgFixture msgFixture = null;
     String realmValue = "domain.org";
     byte[] attributeBinValue = new byte[]{
-            (byte)(RealmAttribute.REALM>>8),
-            (byte)(RealmAttribute.REALM & 0x00FF),
+            (byte)(RealmAttribute.Type.REALM.type>>8),
+            (byte)(RealmAttribute.Type.REALM.type & 0x00FF),
             0, (byte)realmValue.length(),
             'd', 'o', 'm', 'a', 'i', 'n', '.', 'o', 'r', 'g', 0x00, 0x00};
 
@@ -114,8 +114,8 @@ public class RealmAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = (char)realmValue.length();
-        char actualReturn = realmAttribute.getDataLength();
+        int expectedReturn = realmValue.length();
+        int actualReturn = realmAttribute.getDataLength();
         assertEquals("getDataLength - failed", expectedReturn, actualReturn);
     }
 

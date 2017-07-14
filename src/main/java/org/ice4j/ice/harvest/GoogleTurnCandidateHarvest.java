@@ -103,7 +103,7 @@ public class GoogleTurnCandidateHarvest
     private void createRelayedCandidate(Response response)
     {
         Attribute attribute
-            = response.getAttribute(Attribute.MAPPED_ADDRESS);
+            = response.getAttribute(Attribute.Type.MAPPED_ADDRESS);
 
         if(attribute != null)
         {
@@ -369,9 +369,8 @@ public class GoogleTurnCandidateHarvest
         {
         case Message.ALLOCATE_RESPONSE:
             // The default lifetime of an allocation is 10 minutes.
-            // The default lifetime of an allocation is 10 minutes.
             lifetimeAttribute
-                = (LifetimeAttribute) response.getAttribute(Attribute.LIFETIME);
+                = (LifetimeAttribute) response.getAttribute(Attribute.Type.LIFETIME);
             lifetime
                 = (lifetimeAttribute == null)
                     ? (10 * 60)

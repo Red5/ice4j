@@ -26,15 +26,11 @@ import org.ice4j.StunException;
  */
 public class RequestedAddressFamilyAttribute extends Attribute 
 {
-    /**
-     * Attribute Name.
-     */
-    public static final String NAME  = "REQUESTED-ADDRESS-FAMILY";
-    
+
     /**
      * The length of the data contained in this attribute.
      */
-    public static final char DATA_LENGTH = 1;
+    public static final int DATA_LENGTH = 1;
     
     /**
      * The IPv4 family type.
@@ -56,7 +52,7 @@ public class RequestedAddressFamilyAttribute extends Attribute
      */
     protected RequestedAddressFamilyAttribute() 
     {
-		super(REQUESTED_ADDRESS_FAMILY);
+		super(Attribute.Type.REQUESTED_ADDRESS_FAMILY);
     }
 
     /**
@@ -64,21 +60,9 @@ public class RequestedAddressFamilyAttribute extends Attribute
      * @return the length of this attribute's value (1 byte).
      */
     @Override
-    public char getDataLength() 
+    public int getDataLength() 
     {
 		return DATA_LENGTH;
-    }
-
-    /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    @Override
-    public String getName() 
-    {
-	    return NAME;
     }
 
     /**
@@ -119,8 +103,9 @@ public class RequestedAddressFamilyAttribute extends Attribute
         byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
-        binValue[0] = (byte)(getAttributeType() >> 8);
-        binValue[1] = (byte)(getAttributeType() & 0x00FF);
+        int type = getAttributeType().getType();
+        binValue[0] = (byte)(type >> 8);
+        binValue[1] = (byte)(type & 0x00FF);
         //Length
         binValue[2] = (byte)(getDataLength() >> 8);
         binValue[3] = (byte)(getDataLength() & 0x00FF);
@@ -141,7 +126,7 @@ public class RequestedAddressFamilyAttribute extends Attribute
     * @throws StunException if attrubteValue contains invalid data.
     */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length) 
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) 
 	    throws StunException
     {
 	    if(length != DATA_LENGTH)

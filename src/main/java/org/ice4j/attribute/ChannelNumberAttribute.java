@@ -28,15 +28,11 @@ import org.ice4j.*;
  */
 public class ChannelNumberAttribute extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "CHANNEL-NUMBER";
 
     /**
      * The length of the data contained by this attribute.
      */
-    public static final char DATA_LENGTH = 4;
+    public static final int DATA_LENGTH = 4;
 
     /**
      * Channel number.
@@ -48,7 +44,7 @@ public class ChannelNumberAttribute extends Attribute
      */
     ChannelNumberAttribute()
     {
-        super(CHANNEL_NUMBER);
+        super(Attribute.Type.CHANNEL_NUMBER);
     }
 
     /**
@@ -78,23 +74,11 @@ public class ChannelNumberAttribute extends Attribute
     }
 
     /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    @Override
-    public String getName()
-    {
-        return NAME;
-    }
-
-    /**
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value (8 bytes).
      */
     @Override
-    public char getDataLength()
+    public int getDataLength()
     {
         return DATA_LENGTH;
     }
@@ -109,8 +93,9 @@ public class ChannelNumberAttribute extends Attribute
         byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
-        binValue[0] = (byte)(getAttributeType() >> 8);
-        binValue[1] = (byte)(getAttributeType() & 0x00FF);
+        int type = getAttributeType().getType();
+        binValue[0] = (byte)(type >> 8);
+        binValue[1] = (byte)(type & 0x00FF);
         //Length
         binValue[2] = (byte)(getDataLength() >> 8);
         binValue[3] = (byte)(getDataLength() & 0x00FF);
@@ -134,7 +119,7 @@ public class ChannelNumberAttribute extends Attribute
      * @throws StunException if attrubteValue contains invalid data.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         if(length != 4)

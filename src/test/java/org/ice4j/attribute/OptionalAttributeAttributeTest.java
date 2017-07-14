@@ -90,6 +90,9 @@ public class OptionalAttributeAttributeTest extends TestCase
 
         byte[] actualReturn = optionalAttribute.encode();
 
+        //System.out.println("Optional type: " + optionalAttribute.getAttributeType() + "=" + optionalAttribute.getAttributeType().type);
+        //System.out.println("Expect: " + Arrays.toString(msgFixture.unknownOptionalAttribute));
+        //System.out.println("Actual: " + Arrays.toString(actualReturn));
         assertTrue("encode failed",
                   Arrays.equals( msgFixture.unknownOptionalAttribute, actualReturn) );
     }
@@ -126,12 +129,12 @@ public class OptionalAttributeAttributeTest extends TestCase
 
     public void testGetDataLength()
     {
-        char expectedReturn = (char)expectedAttributeValue.length;
+        int expectedReturn = (char)expectedAttributeValue.length;
 
         optionalAttribute.setBody( expectedAttributeValue, 0,
                                    expectedAttributeValue.length);
 
-        char actualReturn = optionalAttribute.getDataLength();
+        int actualReturn = optionalAttribute.getDataLength();
         assertEquals("return value", expectedReturn, actualReturn);
     }
 

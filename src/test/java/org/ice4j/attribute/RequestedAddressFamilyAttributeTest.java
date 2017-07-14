@@ -68,10 +68,10 @@ public class RequestedAddressFamilyAttributeTest
      */
     public void testGetDataLength()
     {
-        char expectedReturn = 1;
+        int expectedReturn = 1;
         this.requestedAddressFamilyAttribute
             .setFamily(MsgFixture.REQUESTED_ADDRESS_FAMILY_ATTRIBUTE_V4);
-        char actualReturn =
+        int actualReturn =
             this.requestedAddressFamilyAttribute.getDataLength();
         assertEquals(
             "Datalength is not properly calculated", expectedReturn,
@@ -92,7 +92,7 @@ public class RequestedAddressFamilyAttributeTest
      */
     public void testGetName()
     {
-        String expectedReturn = "REQUESTED-ADDRESS-FAMILY";
+        String expectedReturn = "REQUESTED_ADDRESS_FAMILY";
         String actualReturn = requestedAddressFamilyAttribute.getName();
         assertEquals(
             "getting name failed", expectedReturn, actualReturn);

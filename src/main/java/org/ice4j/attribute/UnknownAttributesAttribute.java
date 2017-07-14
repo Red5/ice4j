@@ -44,33 +44,18 @@ import org.ice4j.*;
  */
 public class UnknownAttributesAttribute extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static String NAME = "UNKNOWN-ATTRIBUTES";
 
     /**
      * A list of attribute types that were not understood by the server.
      */
-    private ArrayList<Character> unknownAttributes = new ArrayList<>();
+    private List<Integer> unknownAttributes = new LinkedList<>();
 
     /**
      * Constructor.
      */
     UnknownAttributesAttribute()
     {
-        super(UNKNOWN_ATTRIBUTES);
-    }
-
-    /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
+        super(Attribute.Type.UNKNOWN_ATTRIBUTES);
     }
 
    /**
@@ -80,14 +65,14 @@ public class UnknownAttributesAttribute extends Attribute
     * the list is a multiple of 4 bytes.
     * @return the length of this attribute's value (a multiple of 4).
     */
-    public char getDataLength()
+    public int getDataLength()
     {
-        char len = (char)unknownAttributes.size();
+        int len = unknownAttributes.size();
 
         if( (len % 2 ) != 0 )
             len++;
 
-        return (char)(len * 2);
+        return (len * 2);
     }
 
     /**
@@ -95,10 +80,10 @@ public class UnknownAttributesAttribute extends Attribute
      * @param attributeID the id of an attribute to be listed as unknown in this
      * attribute
      */
-    public void addAttributeID(char attributeID)
+    public void addAttributeID(int attributeID)
     {
         //some attributes may be repeated for padding
-        //(packet length should be divisable by 4)
+        //(packet length should be divisible by 4)
         if(!contains(attributeID))
             unknownAttributes.add(attributeID);
     }
@@ -108,7 +93,7 @@ public class UnknownAttributesAttribute extends Attribute
      * @param attributeID the attribute id to look for.
      * @return true if this attribute contains the specified attribute id.
      */
-    public boolean contains(char attributeID)
+    public boolean contains(int attributeID)
     {
         return unknownAttributes.contains(attributeID);
     }
@@ -119,7 +104,7 @@ public class UnknownAttributesAttribute extends Attribute
      * @return an iterator over the list of attribute IDs contained by this
      * attribute.
      */
-    public Iterator<Character> getAttributes()
+    public Iterator<Integer> getAttributes()
     {
         return unknownAttributes.iterator();
     }
@@ -138,7 +123,7 @@ public class UnknownAttributesAttribute extends Attribute
      * @param index the index of the attribute id to return.
      * @return the attribute id with index i.
      */
-    public char getAttribute(int index )
+    public int getAttribute(int index)
     {
         return unknownAttributes.get(index);
     }
@@ -153,18 +138,18 @@ public class UnknownAttributesAttribute extends Attribute
         int  offset     = 0;
 
         //Type
-        binValue[offset++] = (byte) (getAttributeType() >> 8);
-        binValue[offset++] = (byte) (getAttributeType() & 0x00FF);
+        int type = getAttributeType().getType();
+        binValue[offset++] = (byte)(type >> 8);
+        binValue[offset++] = (byte)(type & 0x00FF);
 
         //Length
         binValue[offset++] = (byte) (getDataLength() >> 8);
         binValue[offset++] = (byte) (getDataLength() & 0x00FF);
 
-
-        Iterator<Character> attributes = getAttributes();
+        Iterator<Integer> attributes = getAttributes();
         while (attributes.hasNext())
         {
-            char att = attributes.next();
+            int att = attributes.next();
             binValue[offset++] = (byte)(att >> 8);
             binValue[offset++] = (byte)(att & 0x00FF);
         }
@@ -174,7 +159,7 @@ public class UnknownAttributesAttribute extends Attribute
        // the list is a multiple of 4 bytes.
        if(offset < binValue.length)
        {
-           char att = getAttribute(0);
+           int att = getAttribute(0);
            binValue[offset++] = (byte) (att >> 8);
            binValue[offset++] = (byte) (att & 0x00FF);
        }
@@ -218,17 +203,17 @@ public class UnknownAttributesAttribute extends Attribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
     throws StunException
     {
         if( (length % 2 ) != 0)
             throw new StunException("Attribute IDs are 2 bytes long and the "
                                     + "passed binary array has an odd length " +
                                             "value.");
-        char originalOffset = offset;
+        int originalOffset = offset;
         for(int i = offset; i < originalOffset + length; i += 2)
         {
-            char attributeID = (char) (((attributeValue[offset++] & 0xFF) << 8)
+            int attributeID = (((attributeValue[offset++] & 0xFF) << 8)
                 | (attributeValue[offset++] & 0xFF));
             addAttributeID(attributeID);
         }

@@ -34,8 +34,8 @@ public class SoftwareAttributeTest extends TestCase
     MsgFixture msgFixture = null;
     String softwareValue = "turnserver.org";
     byte[] attributeBinValue = new byte[]{
-            (byte)(SoftwareAttribute.SOFTWARE>>8),
-            (byte)(SoftwareAttribute.SOFTWARE & 0x00FF),
+            (byte)(SoftwareAttribute.Type.SOFTWARE.type>>8),
+            (byte)(SoftwareAttribute.Type.SOFTWARE.type & 0x00FF),
             0, (byte)softwareValue.length(),
             't', 'u', 'r', 'n', 's', 'e', 'r','v', 'e', 'r', '.', 'o', 'r', 'g',
             0x00, 0x00};
@@ -114,8 +114,8 @@ public class SoftwareAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = (char)softwareValue.length();
-        char actualReturn = softwareAttribute.getDataLength();
+        int expectedReturn = (char)softwareValue.length();
+        int actualReturn = softwareAttribute.getDataLength();
         assertEquals("getDataLength - failed", expectedReturn, actualReturn);
     }
 

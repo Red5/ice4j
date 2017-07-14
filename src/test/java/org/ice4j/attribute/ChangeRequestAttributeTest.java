@@ -67,7 +67,7 @@ public class ChangeRequestAttributeTest extends TestCase
             "ChangeRequestAttribute did not construct an attribute with the "
             +"correct type.",
             changeRequestAttribute.getAttributeType(),
-            Attribute.CHANGE_REQUEST);
+            Attribute.Type.CHANGE_REQUEST);
 
     }
 
@@ -186,8 +186,8 @@ public class ChangeRequestAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = 4; // constant 4 bytes of data
-        char actualReturn = changeRequestAttribute.getDataLength();
+        int expectedReturn = 4; // constant 4 bytes of data
+        int actualReturn = changeRequestAttribute.getDataLength();
         assertEquals("data length returned an invalid value",
                      expectedReturn, actualReturn);
     }
@@ -197,7 +197,7 @@ public class ChangeRequestAttributeTest extends TestCase
      */
     public void testGetName()
     {
-        String expectedReturn = "CHANGE-REQUEST";
+        String expectedReturn = "CHANGE_REQUEST";
         String actualReturn = changeRequestAttribute.getName();
         assertEquals("Invalid name", expectedReturn, actualReturn);
     }

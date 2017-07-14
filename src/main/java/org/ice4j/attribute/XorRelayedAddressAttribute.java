@@ -27,16 +27,12 @@ package org.ice4j.attribute;
  */
 public class XorRelayedAddressAttribute extends XorMappedAddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "XOR-RELAYED-ADDRESS";
 
     /**
      * Constructor.
      */
     XorRelayedAddressAttribute()
     {
-        super(XOR_RELAYED_ADDRESS);
+        super(Attribute.Type.XOR_RELAYED_ADDRESS);
     }
 }

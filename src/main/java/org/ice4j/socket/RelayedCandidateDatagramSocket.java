@@ -564,13 +564,13 @@ public class RelayedCandidateDatagramSocket
          */
         XorPeerAddressAttribute peerAddressAttribute
             = (XorPeerAddressAttribute)
-                message.getAttribute(Attribute.XOR_PEER_ADDRESS);
+                message.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
 
         if (peerAddressAttribute == null)
             return;
 
         DataAttribute dataAttribute
-            = (DataAttribute) message.getAttribute(Attribute.DATA);
+            = (DataAttribute) message.getAttribute(Attribute.Type.DATA);
 
         if (dataAttribute == null)
             return;
@@ -1093,7 +1093,7 @@ public class RelayedCandidateDatagramSocket
     {
         XorPeerAddressAttribute peerAddressAttribute
             = (XorPeerAddressAttribute)
-                request.getAttribute(Attribute.XOR_PEER_ADDRESS);
+                request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
         TransportAddress peerAddress
             = peerAddressAttribute.getAddress(transactionID);
@@ -1134,7 +1134,7 @@ public class RelayedCandidateDatagramSocket
     {
         XorPeerAddressAttribute peerAddressAttribute
             = (XorPeerAddressAttribute)
-                request.getAttribute(Attribute.XOR_PEER_ADDRESS);
+                request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
         TransportAddress peerAddress
             = peerAddressAttribute.getAddress(transactionID);

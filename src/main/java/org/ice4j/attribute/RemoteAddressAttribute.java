@@ -26,16 +26,12 @@ package org.ice4j.attribute;
  */
 public class RemoteAddressAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "REMOTE-ADDRESS";
 
     /**
      * Constructor.
      */
     RemoteAddressAttribute()
     {
-        super(REMOTE_ADDRESS);
+        super(Attribute.Type.REMOTE_ADDRESS);
     }
 }

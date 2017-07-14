@@ -35,8 +35,8 @@ public class UsernameAttributeTest extends TestCase
     MsgFixture msgFixture = null;
     String usernameValue = "username";
     byte[] attributeBinValue = new byte[]{
-            (byte)(UsernameAttribute.USERNAME>>8),
-            (byte)(UsernameAttribute.USERNAME & 0x00FF),
+            (byte)(UsernameAttribute.Type.USERNAME.type>>8),
+            (byte)(UsernameAttribute.Type.USERNAME.type & 0x00FF),
             0, (byte)usernameValue.length(),
             'u', 's', 'e', 'r', 'n', 'a', 'm','e'};
 
@@ -114,8 +114,8 @@ public class UsernameAttributeTest extends TestCase
      */
     public void testGetDataLength()
     {
-        char expectedReturn = (char)usernameValue.length();
-        char actualReturn = usernameAttribute.getDataLength();
+        int expectedReturn = (char)usernameValue.length();
+        int actualReturn = usernameAttribute.getDataLength();
         assertEquals("getDataLength - failed", expectedReturn, actualReturn);
     }
 

@@ -31,27 +31,23 @@ import org.ice4j.*;
  */
 public class EvenPortAttribute extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "EVEN-PORT";
 
     /**
      * The length of the data contained by this attribute.
      */
-    public static final char DATA_LENGTH = 1;
+    public static final int DATA_LENGTH = 1;
 
     /**
      * R flag.
      */
-    boolean rFlag = false;
+    boolean rFlag;
 
     /**
      * Constructor.
      */
     EvenPortAttribute()
     {
-        super(EVEN_PORT);
+        super(Attribute.Type.EVEN_PORT);
     }
 
     /**
@@ -80,21 +76,10 @@ public class EvenPortAttribute extends Attribute
     }
 
     /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
-    }
-
-    /**
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value (8 bytes).
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return DATA_LENGTH;
     }
@@ -108,8 +93,9 @@ public class EvenPortAttribute extends Attribute
         byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
-        binValue[0] = (byte)(getAttributeType() >> 8);
-        binValue[1] = (byte)(getAttributeType() & 0x00FF);
+        int type = getAttributeType().getType();
+        binValue[0] = (byte)(type >> 8);
+        binValue[1] = (byte)(type & 0x00FF);
         //Length
         binValue[2] = (byte)(getDataLength() >> 8);
         binValue[3] = (byte)(getDataLength() & 0x00FF);
@@ -129,7 +115,7 @@ public class EvenPortAttribute extends Attribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         if(length != 4)

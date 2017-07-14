@@ -33,7 +33,7 @@ public interface PacketLogger
      * @param destinationAddress the destination address of the packet.
      * @param destinationPort the destination port.
      * @param packetContent the content of the packet.
-     * @param sender whether we are sending or not the packet.
+     * @param sender whether or not we are sending the packet.
      */
     public void logPacket(
             byte[] sourceAddress,

@@ -173,7 +173,7 @@ public class GoogleRelayedCandidateDelegate
          */
         XorPeerAddressAttribute peerAddressAttribute =
             (XorPeerAddressAttribute) message
-                .getAttribute(Attribute.REMOTE_ADDRESS);
+                .getAttribute(Attribute.Type.REMOTE_ADDRESS);
 
         if (peerAddressAttribute == null)
         {
@@ -182,7 +182,7 @@ public class GoogleRelayedCandidateDelegate
         }
 
         DataAttribute dataAttribute =
-            (DataAttribute) message.getAttribute(Attribute.DATA);
+            (DataAttribute) message.getAttribute(Attribute.Type.DATA);
 
         if (dataAttribute == null)
         {

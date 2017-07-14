@@ -61,10 +61,10 @@ public class ConnectionIdAttributeTest
      */
     public void testGetDataLength()
     {
-        char expectedReturn = 4;
+        int expectedReturn = 4;
         this.connectionIdAttribute
             .setConnectionIdValue(MsgFixture.CONNECTION_ID);
-        char actualReturn = this.connectionIdAttribute.getDataLength();
+        int actualReturn = this.connectionIdAttribute.getDataLength();
         assertEquals(
             "Datalength is not properly calculated", expectedReturn,
             actualReturn);
@@ -75,7 +75,7 @@ public class ConnectionIdAttributeTest
      */
     public void testGetName()
     {
-        String expectedReturn = "CONNECTION-ID";
+        String expectedReturn = "CONNECTION_ID";
         String actualReturn = connectionIdAttribute.getName();
         assertEquals(
             "getting name failed", expectedReturn, actualReturn);

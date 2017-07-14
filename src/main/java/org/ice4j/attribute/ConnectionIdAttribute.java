@@ -28,15 +28,11 @@ import org.ice4j.StunException;
 public class ConnectionIdAttribute
     extends Attribute
 {
-   /**
-    * Attribute Name.
-   */
-    public static final String NAME  = "CONNECTION-ID";
-    
+
     /**
      * The length of the data contained in this attribute.
      */
-    public static final char DATA_LENGTH = 4;
+    public static final int DATA_LENGTH = 4;
 
     /**
      * The connection Id value.
@@ -48,7 +44,7 @@ public class ConnectionIdAttribute
      */
     protected ConnectionIdAttribute() 
     {
-	    super(CONNECTION_ID);
+	    super(Attribute.Type.CONNECTION_ID);
     }
 
     /**
@@ -56,21 +52,9 @@ public class ConnectionIdAttribute
      * @return the length of this attribute value (4 bytes).
      */
     @Override
-    public char getDataLength() 
+    public int getDataLength() 
     {
 	    return DATA_LENGTH;
-    }
-
-    /**
-     * Returns the human readable name of this attribute. Attribute names do
-     * not really matter from the protocol point of view. They are only used
-     * for debugging and readability.
-     * @return this attribute's name.
-     */
-    @Override
-    public String getName() 
-    {
-    	return NAME;
     }
 
     /**
@@ -109,8 +93,9 @@ public class ConnectionIdAttribute
 	    byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
-        binValue[0] = (byte)(getAttributeType() >> 8);
-        binValue[1] = (byte)(getAttributeType() & 0x00FF);
+        int type = getAttributeType().getType();
+        binValue[0] = (byte)(type >> 8);
+        binValue[1] = (byte)(type & 0x00FF);
         //Length
         binValue[2] = (byte)(getDataLength() >> 8);
         binValue[3] = (byte)(getDataLength() & 0x00FF);
@@ -134,7 +119,7 @@ public class ConnectionIdAttribute
     * @throws StunException if attributeValue contains invalid data.
     */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length) 
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) 
 	    throws StunException
     {
 	    if(length != DATA_LENGTH)

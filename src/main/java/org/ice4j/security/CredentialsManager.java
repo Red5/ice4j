@@ -19,6 +19,10 @@ package org.ice4j.security;
 
 import java.util.*;
 
+import org.ice4j.stack.StunStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The <tt>CredentialsManager</tt> allows an application to handle verification
  * of incoming <tt>MessageIntegrityAttribute</tt>s by registering a
@@ -37,6 +41,9 @@ import java.util.*;
  */
 public class CredentialsManager
 {
+
+    private final static Logger logger = LoggerFactory.getLogger(CredentialsManager.class);
+
     /**
      * The list of <tt>CredentialsAuthority</tt>s registered with this manager
      * as being able to provide credentials.
@@ -113,12 +120,15 @@ public class CredentialsManager
      */
     public byte[] getLocalKey(String username)
     {
+        logger.debug("getLocalKey username: {}", username);
         for (CredentialsAuthority auth : getAuthorities())
         {
             byte[] passwd = auth.getLocalKey(username);
-
             if (passwd != null)
+            {
+                logger.debug("Local key: {}", StunStack.toHexString(passwd));
                 return passwd;
+            }
         }
         return null;
     }
@@ -139,13 +149,13 @@ public class CredentialsManager
      */
     public byte[] getRemoteKey(String username, String media)
     {
+        logger.debug("getRemoteKey username: {} media: {}", username, media);
         for (CredentialsAuthority auth : getAuthorities())
         {
             byte[] passwd = auth.getRemoteKey(username, media);
-
             if (passwd != null)
             {
-                /** @todo: we should probably add SASLprep here.*/
+                logger.debug("Remote key: {}", StunStack.toHexString(passwd));
                 return passwd;
             }
         }

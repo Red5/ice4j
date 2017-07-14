@@ -60,17 +60,13 @@ import org.ice4j.message.*;
 public class XorMappedAddressAttribute
     extends AddressAttribute
 {
-    /**
-     * The name of this attribute
-     */
-    public static final String NAME = "XOR-MAPPED-ADDRESS";
 
     /**
      * Creates an instance of this attribute
      */
     XorMappedAddressAttribute()
     {
-        super(XOR_MAPPED_ADDRESS);
+        super(Attribute.Type.XOR_MAPPED_ADDRESS);
     }
 
     /**
@@ -78,6 +74,15 @@ public class XorMappedAddressAttribute
      * @param type other type than XOR-MAPPED-ADDRESS
      */
     XorMappedAddressAttribute(char type)
+    {
+      super(type);
+    }
+
+    /**
+     * Constructor.
+     * @param type other type than XOR-MAPPED-ADDRESS
+     */
+    XorMappedAddressAttribute(Attribute.Type type)
     {
       super(type);
     }

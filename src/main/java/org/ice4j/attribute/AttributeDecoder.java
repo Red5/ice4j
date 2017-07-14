@@ -29,6 +29,7 @@ import org.ice4j.*;
  */
 public class AttributeDecoder
 {
+
     /**
      * Decodes the specified binary array and returns the corresponding
      * attribute object.
@@ -42,9 +43,7 @@ public class AttributeDecoder
      *
      * @throws StunException if bytes is not a valid STUN attribute.
      */
-    public static Attribute decode(byte[] bytes,
-                                   char   offset,
-                                   char   length)
+    public static Attribute decode(byte[] bytes, int offset, int length)
         throws StunException
     {
         if(bytes == null || bytes.length < Attribute.HEADER_LENGTH)
@@ -54,9 +53,9 @@ public class AttributeDecoder
         }
 
         //Discover attribute type
-        char attributeType = (char)
-            (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF));
-        char attributeLength = (char)
+        Attribute.Type attributeType = Attribute.Type.valueOf(
+            (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF)));
+        int attributeLength =
             (((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF));
 
         if(attributeLength > bytes.length - offset )
@@ -68,74 +67,106 @@ public class AttributeDecoder
         switch(attributeType)
         {
             /* STUN attributes */
-            case Attribute.CHANGE_REQUEST:
-                decodedAttribute = new ChangeRequestAttribute(); break;
-            case Attribute.CHANGED_ADDRESS:
-                decodedAttribute = new ChangedAddressAttribute(); break;
-            case Attribute.MAPPED_ADDRESS:
-                decodedAttribute = new MappedAddressAttribute(); break;
-            case Attribute.ERROR_CODE:
-                decodedAttribute = new ErrorCodeAttribute(); break;
-            case Attribute.MESSAGE_INTEGRITY:
-                decodedAttribute = new MessageIntegrityAttribute(); break;
-            //case Attribute.PASSWORD: //handle as an unknown attribute
-            case Attribute.REFLECTED_FROM:
-                decodedAttribute = new ReflectedFromAttribute(); break;
-            case Attribute.RESPONSE_ADDRESS:
-                decodedAttribute = new ResponseAddressAttribute(); break;
-            case Attribute.SOURCE_ADDRESS:
-                decodedAttribute = new SourceAddressAttribute(); break;
-            case Attribute.UNKNOWN_ATTRIBUTES:
-                decodedAttribute = new UnknownAttributesAttribute(); break;
-            case Attribute.XOR_MAPPED_ADDRESS:
-                decodedAttribute = new XorMappedAddressAttribute(); break;
-            case Attribute.XOR_ONLY:
-                decodedAttribute = new XorOnlyAttribute(); break;
-            case Attribute.SOFTWARE:
-                decodedAttribute = new SoftwareAttribute(); break;
-            case Attribute.USERNAME:
-                decodedAttribute = new UsernameAttribute(); break;
-            case Attribute.REALM:
-                decodedAttribute = new RealmAttribute(); break;
-            case Attribute.NONCE:
-                decodedAttribute = new NonceAttribute(); break;
-            case Attribute.FINGERPRINT:
-                decodedAttribute = new FingerprintAttribute(); break;
-            case Attribute.ALTERNATE_SERVER:
-                decodedAttribute = new AlternateServerAttribute(); break;
-            case Attribute.CHANNEL_NUMBER:
-                decodedAttribute = new ChannelNumberAttribute(); break;
-            case Attribute.LIFETIME:
-                decodedAttribute = new LifetimeAttribute(); break;
-            case Attribute.XOR_PEER_ADDRESS:
-                decodedAttribute = new XorPeerAddressAttribute(); break;
-            case Attribute.DATA:
-                decodedAttribute = new DataAttribute(); break;
-            case Attribute.XOR_RELAYED_ADDRESS:
-                decodedAttribute = new XorRelayedAddressAttribute(); break;
-            case Attribute.EVEN_PORT:
-                decodedAttribute = new EvenPortAttribute(); break;
-            case Attribute.REQUESTED_TRANSPORT:
-                decodedAttribute = new RequestedTransportAttribute(); break;
-            case Attribute.DONT_FRAGMENT:
-                decodedAttribute = new DontFragmentAttribute(); break;
-            case Attribute.RESERVATION_TOKEN:
-                decodedAttribute = new ReservationTokenAttribute(); break;
-            case Attribute.PRIORITY:
-                decodedAttribute = new PriorityAttribute(); break;
-            case Attribute.ICE_CONTROLLING:
-                decodedAttribute = new IceControllingAttribute(); break;
-            case Attribute.ICE_CONTROLLED:
-                decodedAttribute = new IceControlledAttribute(); break;
-            case Attribute.USE_CANDIDATE:
-                decodedAttribute = new UseCandidateAttribute(); break;
-            case Attribute.REQUESTED_ADDRESS_FAMILY:
-        	    decodedAttribute = new RequestedAddressFamilyAttribute(); break;
-            case Attribute.CONNECTION_ID:
-        	    decodedAttribute = new ConnectionIdAttribute(); break;
-            //According to rfc3489 we should silently ignore unknown attributes.
-            default: decodedAttribute
-                = new OptionalAttribute( Attribute.UNKNOWN_OPTIONAL_ATTRIBUTE);
+            case CHANGE_REQUEST:
+                decodedAttribute = new ChangeRequestAttribute();
+                break;
+            case CHANGED_ADDRESS:
+                decodedAttribute = new ChangedAddressAttribute();
+                break;
+            case MAPPED_ADDRESS:
+                decodedAttribute = new MappedAddressAttribute();
+                break;
+            case ERROR_CODE:
+                decodedAttribute = new ErrorCodeAttribute();
+                break;
+            case MESSAGE_INTEGRITY:
+                decodedAttribute = new MessageIntegrityAttribute();
+                break;
+            //case PASSWORD: //handle as an unknown attribute
+            case REFLECTED_FROM:
+                decodedAttribute = new ReflectedFromAttribute();
+                break;
+            case RESPONSE_ADDRESS:
+                decodedAttribute = new ResponseAddressAttribute();
+                break;
+            case SOURCE_ADDRESS:
+                decodedAttribute = new SourceAddressAttribute();
+                break;
+            case UNKNOWN_ATTRIBUTES:
+                decodedAttribute = new UnknownAttributesAttribute();
+                break;
+            case XOR_MAPPED_ADDRESS:
+                decodedAttribute = new XorMappedAddressAttribute();
+                break;
+            case XOR_ONLY:
+                decodedAttribute = new XorOnlyAttribute();
+                break;
+            case SOFTWARE:
+                decodedAttribute = new SoftwareAttribute();
+                break;
+            case USERNAME:
+                decodedAttribute = new UsernameAttribute();
+                break;
+            case REALM:
+                decodedAttribute = new RealmAttribute();
+                break;
+            case NONCE:
+                decodedAttribute = new NonceAttribute();
+                break;
+            case FINGERPRINT:
+                decodedAttribute = new FingerprintAttribute();
+                break;
+            case ALTERNATE_SERVER:
+                decodedAttribute = new AlternateServerAttribute();
+                break;
+            case CHANNEL_NUMBER:
+                decodedAttribute = new ChannelNumberAttribute();
+                break;
+            case LIFETIME:
+                decodedAttribute = new LifetimeAttribute();
+                break;
+            case XOR_PEER_ADDRESS:
+                decodedAttribute = new XorPeerAddressAttribute();
+                break;
+            case DATA:
+                decodedAttribute = new DataAttribute();
+                break;
+            case XOR_RELAYED_ADDRESS:
+                decodedAttribute = new XorRelayedAddressAttribute();
+                break;
+            case EVEN_PORT:
+                decodedAttribute = new EvenPortAttribute();
+                break;
+            case REQUESTED_TRANSPORT:
+                decodedAttribute = new RequestedTransportAttribute();
+                break;
+            case DONT_FRAGMENT:
+                decodedAttribute = new DontFragmentAttribute();
+                break;
+            case RESERVATION_TOKEN:
+                decodedAttribute = new ReservationTokenAttribute();
+                break;
+            case PRIORITY:
+                decodedAttribute = new PriorityAttribute();
+                break;
+            case ICE_CONTROLLING:
+                decodedAttribute = new IceControllingAttribute();
+                break;
+            case ICE_CONTROLLED:
+                decodedAttribute = new IceControlledAttribute();
+                break;
+            case USE_CANDIDATE:
+                decodedAttribute = new UseCandidateAttribute();
+                break;
+            case REQUESTED_ADDRESS_FAMILY:
+                decodedAttribute = new RequestedAddressFamilyAttribute();
+                break;
+            case CONNECTION_ID:
+                decodedAttribute = new ConnectionIdAttribute();
+                break;
+            default:
+                //According to rfc3489 we should silently ignore unknown attributes.
+                decodedAttribute = new OptionalAttribute();
                 break;
         }
 
@@ -143,7 +174,7 @@ public class AttributeDecoder
         decodedAttribute.setLocationInMessage(offset);
 
         decodedAttribute.decodeAttributeBody(bytes,
-                (char)(Attribute.HEADER_LENGTH + offset), attributeLength);
+                (Attribute.HEADER_LENGTH + offset), attributeLength);
 
         return decodedAttribute;
     }

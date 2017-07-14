@@ -77,200 +77,78 @@ import org.ice4j.*;
  */
 public abstract class Attribute
 {
-    /* STUN attributes */
-    /**
-     * Mapped address attribute.
-     */
-    public static final char MAPPED_ADDRESS = 0x0001;
 
-    /**
-     * Response address attribute.
-     */
-    public static final char RESPONSE_ADDRESS = 0x0002;
+    public enum Type {
+        /* STUN attributes */
+        MAPPED_ADDRESS(0x0001), // Mapped address attribute
+        RESPONSE_ADDRESS(0x0002), // Response address attribute
+        CHANGE_REQUEST(0x0003), // Change request attribute
+        SOURCE_ADDRESS(0x0004), // Source address attribute
+        CHANGED_ADDRESS(0x0005), // Changed address attribute
+        USERNAME(0x0006), // Username attribute
+        PASSWORD(0x0007), // Password attribute
+        MESSAGE_INTEGRITY(0x0008), // Message integrity attribute
+        ERROR_CODE(0x0009), // Error code attribute
+        UNKNOWN_ATTRIBUTES(0x000a), // Unknown attributes attribute
+        REFLECTED_FROM(0x000b), // Reflected from attribute
+        REALM(0x0014), // Realm attribute
+        NONCE(0x0015), // Nonce attribute
+        XOR_MAPPED_ADDRESS(0x0020), // XOR Mapped address attribute
+        XOR_ONLY(0x0021), // XOR only attribute
+        SOFTWARE(0x8022), // Software attribute
+        ALTERNATE_SERVER(0x8023), // Alternate server attribute
+        FINGERPRINT(0x8028), // Fingerprint attribute
+        UNKNOWN_OPTIONAL_ATTRIBUTE(0x8000), // Unknown optional attribute
+        /* TURN attributes */
+        CHANNEL_NUMBER(0x000c), // Channel number attribute
+        LIFETIME(0x000d), // Lifetime attribute
+        XOR_PEER_ADDRESS(0x0012), // XOR peer address attribute
+        DATA(0x0013), // Data attribute
+        XOR_RELAYED_ADDRESS(0x0016), // XOR relayed address attribute
+        REQUESTED_ADDRESS_FAMILY(0X0017), // Requested Address Family attribute
+        EVEN_PORT(0x0018), // Even port attribute
+        REQUESTED_TRANSPORT(0x0019), // Requested transport attribute
+        DONT_FRAGMENT(0x001a), // Don't fragment attribute
+        RESERVATION_TOKEN(0x0022), // Reservation token attribute
+        CONNECTION_ID(0x002a), // Connection Id attribute, support attribute
+        /* Old TURN attributes */
+        MAGIC_COOKIE(0x000f), // Magic cookie attribute
+        DESTINATION_ADDRESS(0x0011), // Destination address attribute
+        REMOTE_ADDRESS(0x0012), // Destination address attribute
+        /* ICE attributes */
+        PRIORITY(0x0024), // Priority attribute
+        USE_CANDIDATE(0x0025), // Use candidate attribute
+        ICE_CONTROLLED(0x8029), // ICE controlled attribute
+        ICE_CONTROLLING(0x802a); // ICE controlling attribute
 
-    /**
-     * Change request attribute.
-     */
-    public static final char CHANGE_REQUEST = 0x0003;
+        int type;
 
-    /**
-     * Source address attribute.
-     */
-    public static final char SOURCE_ADDRESS = 0x0004;
+        Type(int type) {
+            this.type = type;
+        }
 
-    /**
-     * Changed address attribute.
-     */
-    public static final char CHANGED_ADDRESS = 0x0005;
+        public int getType() {
+            return type;
+        }
 
-    /**
-     * Username attribute.
-     */
-    public static final char USERNAME = 0x0006;
-
-    /**
-     * Password attribute.
-     */
-    public static final char PASSWORD = 0x0007;
-
-    /**
-     * Message integrity attribute.
-     */
-    public static final char MESSAGE_INTEGRITY = 0x0008;
-
-    /**
-     * Error code attribute.
-     */
-    public static final char ERROR_CODE = 0x0009;
-
-    /**
-     * Unknown attributes attribute.
-     */
-    public static final char UNKNOWN_ATTRIBUTES = 0x000a;
-
-    /**
-     * Reflected from attribute.
-     */
-    public static final char REFLECTED_FROM = 0x000b;
-
-    /**
-     * Realm attribute.
-     */
-    public static final char REALM = 0x0014;
-
-    /**
-     * Nonce attribute.
-     */
-    public static final char NONCE = 0x0015;
-
-    /**
-     * XOR Mapped address attribute.
-     */
-    public static final char XOR_MAPPED_ADDRESS = 0x0020;
-
-    /**
-     * XOR only attribute.
-     */
-    public static final char XOR_ONLY = 0x0021;
-
-    /**
-     * Software attribute.
-     */
-    public static final char SOFTWARE = 0x8022;
-
-    /**
-     * Alternate server attribute.
-     */
-    public static final char ALTERNATE_SERVER = 0x8023;
-    
-    /**
-     * Fingerprint attribute.
-     */
-    public static final char FINGERPRINT = 0x8028;
-
-    /**
-     * Unknown optional attribute.
-     */
-    public static final char UNKNOWN_OPTIONAL_ATTRIBUTE = 0x8000;
-
-    /* TURN attributes */
-    /**
-     * Channel number attribute.
-     */
-    public static final char CHANNEL_NUMBER = 0x000c;
-
-    /**
-     * Lifetime attribute.
-     */
-    public static final char LIFETIME = 0x000d;
-
-    /**
-     * XOR peer address attribute.
-     */
-    public static final char XOR_PEER_ADDRESS = 0x0012;
-
-    /**
-     * Data attribute.
-     */
-    public static final char DATA = 0x0013;
-
-    /**
-     * XOR relayed address attribute.
-     */
-    public static final char XOR_RELAYED_ADDRESS = 0x0016;
-    
-    /**
-     * Requested Address Family attribute.
-     */
-    public static final char REQUESTED_ADDRESS_FAMILY = 0X0017;
-
-    /**
-     * Even port attribute.
-     */
-    public static final char EVEN_PORT = 0x0018;
-
-    /**
-     * Requested transport attribute.
-     */
-    public static final char REQUESTED_TRANSPORT = 0x0019;
-
-    /**
-     * Don't fragment attribute.
-     */
-    public static final char DONT_FRAGMENT = 0x001a;
-
-    /**
-     * Reservation token attribute.
-     */
-    public static final char RESERVATION_TOKEN = 0x0022;
-   
-    /**
-     * Connection Id attribute.
-     * TURN TCP support attribute
-     */
-    public static final char CONNECTION_ID = 0x002a;
-
-    /* Old TURN attributes */
-    /**
-     * Magic cookie attribute.
-     */
-    public static final char MAGIC_COOKIE = 0x000f;
-
-    /**
-     * Destination address attribute.
-     */
-    public static final char DESTINATION_ADDRESS = 0x0011;
-
-    /**
-     * Destination address attribute.
-     */
-    public static final char REMOTE_ADDRESS = 0x0012;
-
-    /* ICE attributes */
-    /**
-     * Priority attribute.
-     */
-    public static final char PRIORITY = 0x0024;
-
-    /**
-     * Use candidate attribute.
-     */
-    public static final char USE_CANDIDATE = 0x0025;
-
-    /**
-     * ICE controlled attribute.
-     */
-    public static final char ICE_CONTROLLED = 0x8029;
-
-    /**
-     * ICE controlling attribute.
-     */
-    public static final char ICE_CONTROLLING = 0x802a;
+        public static Type valueOf(int type)
+        {
+            for (Type t : values())
+            {
+                if (t.type == type)
+                {
+                    return t;
+                }
+            }
+            // default is unknown optional
+            return UNKNOWN_OPTIONAL_ATTRIBUTE;
+        }
+    }
 
     /**
      * The type of the attribute.
      */
-    protected char attributeType = 0;
+    protected Type attributeType;
 
     /**
      * The size of an attribute header in bytes = len(TYPE) + len(LENGTH) = 4
@@ -278,7 +156,7 @@ public abstract class Attribute
     public static final char HEADER_LENGTH = 4;
 
     /**
-     * For attributes that have arriving in incoming messages, this fiels
+     * For attributes that arrive in incoming messages, this field
      * contains their original location in the binary array so that we could
      * later more easily verify attributes like MESSAGE-INTEGRITY.
      */
@@ -289,9 +167,19 @@ public abstract class Attribute
      *
      * @param attributeType the type of the attribute.
      */
-    protected Attribute(char attributeType)
+    protected Attribute(int attributeType)
     {
         setAttributeType(attributeType);
+    }
+
+    /**
+     * Creates an empty STUN message attribute.
+     *
+     * @param attributeType the type of the attribute.
+     */
+    protected Attribute(Type attributeType)
+    {
+        this.attributeType = attributeType;
     }
 
     /**
@@ -299,7 +187,7 @@ public abstract class Attribute
      *
      * @return the length of this attribute's value.
      */
-    public abstract char getDataLength();
+    public abstract int getDataLength();
 
     /**
      * Returns the human readable name of this attribute. Attribute names do
@@ -308,14 +196,17 @@ public abstract class Attribute
      *
      * @return this attribute's name.
      */
-    public abstract String getName();
+    final public String getName()
+    {
+        return attributeType.name();
+    }
 
     /**
      * Returns the attribute's type.
      *
      * @return the type of this attribute.
      */
-    public char getAttributeType()
+    public Type getAttributeType()
     {
         return attributeType;
     }
@@ -325,7 +216,17 @@ public abstract class Attribute
      *
      * @param type the new type of this attribute
      */
-    protected void setAttributeType(char type)
+    protected void setAttributeType(int type)
+    {
+        this.attributeType = Type.valueOf(type);
+    }
+
+    /**
+     * Sets the attribute's type.
+     *
+     * @param type the new type of this attribute
+     */
+    protected void setAttributeType(Type type)
     {
         this.attributeType = type;
     }
@@ -386,8 +287,8 @@ public abstract class Attribute
      *
      * @throws StunException if attrubteValue contains invalid data.
      */
-    abstract void decodeAttributeBody( byte[] attributeValue,
-                                       char   offset,
-                                       char   length)
+    abstract void decodeAttributeBody(byte[] attributeValue,
+                                      int   offset,
+                                      int   length)
         throws StunException;
 }

@@ -20,10 +20,11 @@ package org.ice4j.stack;
 import java.io.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code StunClientTransaction} class retransmits requests as specified by
@@ -51,8 +52,7 @@ public class StunClientTransaction
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(StunClientTransaction.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(StunClientTransaction.class);
 
     /**
      * The number of times to retransmit a request if no explicit value has been
@@ -316,8 +316,7 @@ public class StunClientTransaction
 
             try
             {
-                logger.fine(
-                        "retrying STUN tid " + transactionID + " from "
+                logger.debug("retrying STUN tid " + transactionID + " from "
                             + localAddress + " to " + requestDestination
                             + " waited " + curWaitInterval + " ms retrans "
                             + (retransmissionCounter + 1) + " of "
@@ -328,10 +327,7 @@ public class StunClientTransaction
             {
                 //I wonder whether we should notify anyone that a retransmission
                 // has failed
-                logger.log(
-                        Level.INFO,
-                        "A client tran retransmission failed",
-                        ex);
+                logger.warn("A client tran retransmission failed", ex);
             }
         }
 
@@ -366,8 +362,7 @@ public class StunClientTransaction
     void sendRequest()
         throws IllegalArgumentException, IOException
     {
-        logger.fine(
-                "sending STUN " + " tid " + transactionID + " from "
+        logger.debug("sending STUN " + " tid " + transactionID + " from "
                     + localAddress + " to " + requestDestination);
         sendRequest0();
 
@@ -387,7 +382,7 @@ public class StunClientTransaction
     {
         if(cancelled)
         {
-            logger.finer("Trying to resend a cancelled transaction.");
+            logger.debug("Trying to resend a cancelled transaction.");
         }
         else
         {
@@ -490,11 +485,11 @@ public class StunClientTransaction
         try
         {
             TransactionID transactionID = getTransactionID();
-
-            logger.log(Level.FINE, "handleResponse tid " + transactionID);
-            if(!Boolean.getBoolean(StackProperties.KEEP_CRANS_AFTER_A_RESPONSE))
+            logger.debug("handleResponse tid {}", transactionID);
+            if(!StackProperties.getBoolean(StackProperties.KEEP_CRANS_AFTER_A_RESPONSE, false))
+            {
                 cancel();
-
+            }
             responseCollector.processResponse(
                     new StunResponseEvent(
                             stackCallback,
@@ -538,9 +533,7 @@ public class StunClientTransaction
             }
             catch (NumberFormatException e)
             {
-                logger.log(Level.FINE,
-                           "Failed to parse MAX_RETRANSMISSIONS",
-                           e);
+                logger.warn("Failed to parse MAX_RETRANSMISSIONS", e);
                 maxRetransmissions = DEFAULT_MAX_RETRANSMISSIONS;
             }
         }
@@ -559,9 +552,7 @@ public class StunClientTransaction
             }
             catch (NumberFormatException e)
             {
-                logger.log(Level.FINE,
-                           "Failed to parse ORIGINAL_WAIT_INTERVAL",
-                           e);
+                logger.warn("Failed to parse ORIGINAL_WAIT_INTERVAL", e);
                 originalWaitInterval = DEFAULT_ORIGINAL_WAIT_INTERVAL;
             }
         }
@@ -579,7 +570,7 @@ public class StunClientTransaction
             }
             catch (NumberFormatException e)
             {
-                logger.log(Level.FINE, "Failed to parse MAX_WAIT_INTERVAL", e);
+                logger.warn("Failed to parse MAX_WAIT_INTERVAL", e);
                 maxWaitInterval = DEFAULT_MAX_WAIT_INTERVAL;
             }
         }

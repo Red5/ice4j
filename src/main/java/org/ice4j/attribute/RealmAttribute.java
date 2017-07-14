@@ -29,10 +29,6 @@ import org.ice4j.*;
  */
 public class RealmAttribute extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "REALM";
 
     /**
      * Realm value.
@@ -44,7 +40,7 @@ public class RealmAttribute extends Attribute
      */
     RealmAttribute()
     {
-        super(REALM);
+        super(Attribute.Type.REALM);
     }
 
     /**
@@ -57,7 +53,7 @@ public class RealmAttribute extends Attribute
      * @param length the length of the binary array.
      * @throws StunException if attributeValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         realm = new byte[length];
@@ -70,11 +66,11 @@ public class RealmAttribute extends Attribute
      */
     public byte[] encode()
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength() +
                                    (getDataLength() % 4)];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
 
@@ -92,18 +88,9 @@ public class RealmAttribute extends Attribute
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
-        return (char)realm.length;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
+        return realm.length;
     }
 
     /**

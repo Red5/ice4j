@@ -20,6 +20,8 @@ package org.ice4j.ice.harvest;
 import java.io.*;
 import java.lang.ref.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.*;
 
 import org.ice4j.*;
@@ -103,7 +105,7 @@ public class StunCandidateHarvest
      * to which a STUN <tt>Response</tt> responds available though it is known
      * in <tt>StunClientTransaction</tt>.
      */
-    private final Map<TransactionID, Request> requests = new HashMap<>();
+    private final ConcurrentMap<TransactionID, Request> requests = new ConcurrentHashMap<>();
 
     /**
      * The interval in milliseconds at which a new STUN keep-alive message is to
@@ -545,7 +547,7 @@ public class StunCandidateHarvest
     protected TransportAddress getMappedAddress(Response response)
     {
         Attribute attribute
-            = response.getAttribute(Attribute.XOR_MAPPED_ADDRESS);
+            = response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
 
         if(attribute instanceof XorMappedAddressAttribute)
         {
@@ -556,7 +558,7 @@ public class StunCandidateHarvest
 
         // old STUN servers (RFC3489) send MAPPED-ADDRESS address
         attribute
-            = response.getAttribute(Attribute.MAPPED_ADDRESS);
+            = response.getAttribute(Attribute.Type.MAPPED_ADDRESS);
 
         if(attribute instanceof MappedAddressAttribute)
         {
@@ -598,7 +600,7 @@ public class StunCandidateHarvest
         throws StunException
     {
         UsernameAttribute usernameAttribute
-            = (UsernameAttribute) request.getAttribute(Attribute.USERNAME);
+            = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
 
         if (usernameAttribute == null)
         {
@@ -732,40 +734,36 @@ public class StunCandidateHarvest
              * The response SHOULD NOT contain a USERNAME or
              * MESSAGE-INTEGRITY attribute.
              */
-            char[] excludedResponseAttributeTypes
-                = new char[]
-                        {
-                            Attribute.USERNAME,
-                            Attribute.MESSAGE_INTEGRITY
-                        };
+            EnumSet<Attribute.Type> excludedResponseAttributeTypes
+            = EnumSet.of(Attribute.Type.USERNAME,
+                            Attribute.Type.MESSAGE_INTEGRITY);
             boolean challenge = true;
-
-            for (char excludedResponseAttributeType
-                    : excludedResponseAttributeTypes)
+            // TODO XXX Paul - possibly where we're failing Edge since it sends a username??
+            if (response.containsNoneAttributes(excludedResponseAttributeTypes))
             {
-                if (response.containsAttribute(excludedResponseAttributeType))
-                {
-                    challenge = false;
-                    break;
-                }
+                challenge = false;
             }
             if (challenge)
             {
                 // This response MUST include a REALM value.
                 RealmAttribute realmAttribute
-                    = (RealmAttribute) response.getAttribute(Attribute.REALM);
+                    = (RealmAttribute) response.getAttribute(Attribute.Type.REALM);
 
                 if (realmAttribute == null)
+                {
                     challenge = false;
+                }
                 else
                 {
                     // The response MUST include a NONCE.
                     NonceAttribute nonceAttribute
                         = (NonceAttribute)
-                            response.getAttribute(Attribute.NONCE);
+                            response.getAttribute(Attribute.Type.NONCE);
 
                     if (nonceAttribute == null)
+                    {
                         challenge = false;
+                    }
                     else
                     {
                         retried
@@ -822,19 +820,13 @@ public class StunCandidateHarvest
     {
         TransactionID transactionID = event.getTransactionID();
 
-        logger.finest("A transaction expired: tranid=" + transactionID);
-        logger.finest("localAddr=" + hostCandidate);
+        logger.finest("A transaction expired: tranid=" + transactionID + " localAddr=" + hostCandidate);
 
         /*
          * Clean up for the purposes of the workaround which determines the STUN
          * Request to which a STUN Response responds.
          */
-        Request request;
-
-        synchronized (requests)
-        {
-            request = requests.remove(transactionID);
-        }
+        Request request = requests.remove(transactionID);
         if (request == null)
         {
             Message message = event.getMessage();
@@ -869,17 +861,13 @@ public class StunCandidateHarvest
     {
         TransactionID transactionID = event.getTransactionID();
 
-        logger.finest("Received a message: tranid= " + transactionID);
-        logger.finest("localCand= " + hostCandidate);
+        logger.finest("Received a message: tranid= " + transactionID + " localCand= " + hostCandidate);
 
         /*
          * Clean up for the purposes of the workaround which determines the STUN
          * Request to which a STUN Response responds.
          */
-        synchronized (requests)
-        {
-            requests.remove(transactionID);
-        }
+        requests.remove(transactionID);
 
         // At long last, do start handling the received STUN Response.
         Response response = event.getResponse();
@@ -890,48 +878,46 @@ public class StunCandidateHarvest
         {
             if (response.isSuccessResponse())
             {
-                // Authentication and Message-Integrity Mechanisms
-                if (request.containsAttribute(Attribute.MESSAGE_INTEGRITY))
+                EnumSet<Attribute.Type> includedRequestAttributeTypes
+                = EnumSet.of(Attribute.Type.USERNAME, Attribute.Type.MESSAGE_INTEGRITY);
+                /*
+                 * For a request or indication message, the agent MUST
+                 * include the USERNAME and MESSAGE-INTEGRITY attributes in
+                 * the message.
+                 */
+                if (request.containsAllAttributes(includedRequestAttributeTypes))
                 {
                     MessageIntegrityAttribute messageIntegrityAttribute
-                        = (MessageIntegrityAttribute)
-                            response.getAttribute(Attribute.MESSAGE_INTEGRITY);
-
+                    = (MessageIntegrityAttribute)
+                        response.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
+                    // Authentication and Message-Integrity Mechanisms
+                    UsernameAttribute usernameAttribute
+                    = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
+                    if (!harvester.getStunStack().validateMessageIntegrity(
+                            messageIntegrityAttribute,
+                            LongTermCredential.toString(usernameAttribute.getUsername()),
+                            request.getAttribute(Attribute.Type.REALM) == null
+                            && request.getAttribute(Attribute.Type.NONCE) == null,
+                            event.getRawMessage()))
+                    {
+                        return;
+                    }
+                }
+                else
+                {
                     /*
                      * RFC 5389: If MESSAGE-INTEGRITY was absent, the response
                      * MUST be discarded, as if it was never received.
                      */
-                    if (messageIntegrityAttribute == null)
-                        return;
-
-                    UsernameAttribute usernameAttribute
-                        = (UsernameAttribute)
-                            request.getAttribute(Attribute.USERNAME);
-
-                    /*
-                     * For a request or indication message, the agent MUST
-                     * include the USERNAME and MESSAGE-INTEGRITY attributes in
-                     * the message.
-                     */
-                    if (usernameAttribute == null)
-                        return;
-                    if (!harvester.getStunStack().validateMessageIntegrity(
-                            messageIntegrityAttribute,
-                            LongTermCredential.toString(
-                                    usernameAttribute.getUsername()),
-                            !request.containsAttribute(Attribute.REALM)
-                                && !request.containsAttribute(Attribute.NONCE),
-                            event.getRawMessage()))
-                        return;
+                    return;
                 }
-
                 processSuccess(response, request, transactionID);
             }
             else
             {
                 ErrorCodeAttribute errorCodeAttr
                     = (ErrorCodeAttribute)
-                        response.getAttribute(Attribute.ERROR_CODE);
+                        response.getAttribute(Attribute.Type.ERROR_CODE);
 
                 if ((errorCodeAttr != null)
                         && (errorCodeAttr.getErrorClass() == 4))
@@ -1003,33 +989,21 @@ public class StunCandidateHarvest
          * The request MUST contain USERNAME, REALM, NONCE and MESSAGE-INTEGRITY
          * attributes.
          */
-        boolean challenge;
+        boolean challenge = false;
 
         if (request.getAttributeCount() > 0)
         {
-            char[] includedRequestAttributeTypes
-                = new char[]
-                        {
-                            Attribute.USERNAME,
-                            Attribute.REALM,
-                            Attribute.NONCE,
-                            Attribute.MESSAGE_INTEGRITY
-                        };
-            challenge = true;
+            EnumSet<Attribute.Type> includedRequestAttributeTypes
+            = EnumSet.of(Attribute.Type.USERNAME,
+                            Attribute.Type.REALM,
+                            Attribute.Type.NONCE,
+                            Attribute.Type.MESSAGE_INTEGRITY);
 
-            for (char includedRequestAttributeType
-                    : includedRequestAttributeTypes)
+            if (request.containsAllAttributes(includedRequestAttributeTypes))
             {
-                if (!request.containsAttribute(includedRequestAttributeType))
-                {
-                    challenge = false;
-                    break;
-                }
+                challenge = true;
             }
         }
-        else
-            challenge = false;
-
         return
             (challenge && processChallenge(response, request, transactionID));
     }
@@ -1091,23 +1065,15 @@ public class StunCandidateHarvest
          */
         if (request.getAttributeCount() > 0)
         {
-            char[] excludedRequestAttributeTypes
-                = new char[]
-                        {
-                            Attribute.USERNAME,
-                            Attribute.MESSAGE_INTEGRITY,
-                            Attribute.REALM,
-                            Attribute.NONCE
-                        };
+            EnumSet<Attribute.Type> excludedRequestAttributeTypes
+                = EnumSet.of(Attribute.Type.USERNAME,
+                            Attribute.Type.MESSAGE_INTEGRITY,
+                            Attribute.Type.REALM,
+                            Attribute.Type.NONCE);
 
-            for (char excludedRequestAttributeType
-                    : excludedRequestAttributeTypes)
+            if (request.containsAnyAttributes(excludedRequestAttributeTypes))
             {
-                if (request.containsAttribute(excludedRequestAttributeType))
-                {
-                    challenge = false;
-                    break;
-                }
+                challenge = false;
             }
         }
 
@@ -1291,56 +1257,53 @@ public class StunCandidateHarvest
                             harvester.getStunStack(),
                             transactionIDAsBytes);
         }
-        synchronized (requests)
+        try
         {
-            try
+            transactionID
+                = stunStack
+                    .sendRequest(
+                        request,
+                        stunServer,
+                        hostCandidateTransportAddress,
+                        this,
+                        transactionID);
+        }
+        catch (IllegalArgumentException iaex)
+        {
+            if (logger.isLoggable(Level.INFO))
             {
-                transactionID
-                    = stunStack
-                        .sendRequest(
-                            request,
-                            stunServer,
-                            hostCandidateTransportAddress,
-                            this,
-                            transactionID);
-            }
-            catch (IllegalArgumentException iaex)
-            {
-                if (logger.isLoggable(Level.INFO))
-                {
-                    logger.log(
-                            Level.INFO,
-                            "Failed to send "
-                                + request
-                                + " through " + hostCandidateTransportAddress
-                                + " to " + stunServer,
-                            iaex);
-                }
-                throw new StunException(
-                        StunException.ILLEGAL_ARGUMENT,
-                        iaex.getMessage(),
+                logger.log(
+                        Level.INFO,
+                        "Failed to send "
+                            + request
+                            + " through " + hostCandidateTransportAddress
+                            + " to " + stunServer,
                         iaex);
             }
-            catch (IOException ioex)
+            throw new StunException(
+                    StunException.ILLEGAL_ARGUMENT,
+                    iaex.getMessage(),
+                    iaex);
+        }
+        catch (IOException ioex)
+        {
+            if (logger.isLoggable(Level.INFO))
             {
-                if (logger.isLoggable(Level.INFO))
-                {
-                    logger.log(
-                            Level.INFO,
-                            "Failed to send "
-                                + request
-                                + " through " + hostCandidateTransportAddress
-                                + " to " + stunServer,
-                            ioex);
-                }
-                throw new StunException(
-                        StunException.NETWORK_ERROR,
-                        ioex.getMessage(),
+                logger.log(
+                        Level.INFO,
+                        "Failed to send "
+                            + request
+                            + " through " + hostCandidateTransportAddress
+                            + " to " + stunServer,
                         ioex);
             }
-
-            requests.put(transactionID, request);
+            throw new StunException(
+                    StunException.NETWORK_ERROR,
+                    ioex.getMessage(),
+                    ioex);
         }
+
+        requests.put(transactionID, request);
         return transactionID;
     }
 

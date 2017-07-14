@@ -34,15 +34,11 @@ import org.ice4j.*;
 public class DataAttribute
     extends Attribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "DATA";
 
     /**
      * Data value.
      */
-    private byte data[] = null;
+    private byte data[];
 
     /**
      * Add padding.
@@ -66,7 +62,7 @@ public class DataAttribute
      */
     protected DataAttribute(boolean padding)
     {
-        super(DATA);
+        super(Attribute.Type.DATA);
 
         this.padding = padding;
     }
@@ -81,7 +77,7 @@ public class DataAttribute
      * @param length the length of the binary array.
      * @throws StunException if attributeValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, char offset, char length)
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
         throws StunException
     {
         data = new byte[length];
@@ -94,8 +90,7 @@ public class DataAttribute
      */
     public byte[] encode()
     {
-        char dataLength = getDataLength();
-        char type = getAttributeType();
+        int dataLength = getDataLength();
         byte binary[]
             = new byte[
                     HEADER_LENGTH
@@ -103,6 +98,7 @@ public class DataAttribute
                         + (padding ? ((4 - dataLength % 4) % 4) : 0)];
 
         //Type
+        int type = getAttributeType().getType();
         binary[0] = (byte)(type >> 8);
         binary[1] = (byte)(type & 0x00FF);
 
@@ -120,19 +116,9 @@ public class DataAttribute
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
-        return (char)data.length;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
+        return data.length;
     }
 
     /**

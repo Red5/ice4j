@@ -43,17 +43,13 @@ package org.ice4j.attribute;
  */
 public class AlternateServerAttribute extends AddressAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "ALTERNATE-SERVER";
 
     /**
      * Constructor.
      */
     AlternateServerAttribute()
     {
-        super(ALTERNATE_SERVER);
+        super(Attribute.Type.ALTERNATE_SERVER);
     }
 }
 

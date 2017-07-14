@@ -18,11 +18,13 @@
 package org.ice4j.message;
 
 import java.util.*;
-import java.util.logging.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.stack.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class represents a STUN message. Messages are TLV (type-length-value)
@@ -42,8 +44,7 @@ public abstract class Message
      * The <tt>Logger</tt> used by the <tt>Message</tt> class and its instances
      * for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(Message.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Message.class);
 
     /* general declaration */
     /**
@@ -335,22 +336,11 @@ public abstract class Message
     public static final byte RFC3489_TRANSACTION_ID_LENGTH = 16;
 
     /**
-     * The list of attributes contained by the message. We are using a Map
-     * rather than a uni-dimensional list, in order to facilitate attribute
-     * search (even though it introduces some redundancies). Order is important
-     * so we'll be using a <tt>LinkedHashMap</tt>
+     * The list of attributes contained by the message. Order is important
+     * so we'll be using a <tt>ConcurrentLinkedDeque</tt>
      */
-    //not sure this is the best solution but I'm trying to keep entry order
-    protected LinkedHashMap<Character, Attribute> attributes
-        = new LinkedHashMap<>();
-
-    /**
-     * Attribute presentity is a thing of RFC 3489 and no longer exists in
-     * 5389. we are not using it any longer and if at some point we decide we
-     * need it in certain situations, then make extend use of the following
-     * field.
-     */
-    private static boolean rfc3489CompatibilityMode = false;
+    protected ConcurrentLinkedDeque<Attribute> attributes
+        = new ConcurrentLinkedDeque<>();
 
     /**
      * Describes which attributes are present in which messages.  An
@@ -565,33 +555,7 @@ public abstract class Message
     public void putAttribute(Attribute attribute)
         throws IllegalArgumentException
     {
-        if (getAttributePresentity(attribute.getAttributeType()) == N_A)
-        {
-            throw new IllegalArgumentException(
-                                    "The attribute "
-                                    + attribute.getName()
-                                    + " is not allowed in a "
-                                    + getName());
-        }
-
-        synchronized(attributes)
-        {
-            attributes.put(attribute.getAttributeType(), attribute);
-        }
-    }
-
-    /**
-     * Returns <tt>true</tt> if the this <tt>Message</tt> contains an attribute
-     * with the specified type or <tt>false</tt> otherwise.
-     *
-     * @param attributeType the type whose presence we need to determine.
-     *
-     * @return <tt>true</tt> if the this <tt>Message</tt> contains an attribute
-     * with the specified type or <tt>false</tt> otherwise.
-     */
-    public boolean containsAttribute(char attributeType)
-    {
-        return attributes.containsKey(attributeType);
+        attributes.add(attribute);
     }
 
     /**
@@ -602,12 +566,16 @@ public abstract class Message
      * @return the attribute with the specified type or null if no such
      * attribute exists
      */
-    public Attribute getAttribute(char attributeType)
+    public Attribute getAttribute(Attribute.Type attributeType)
     {
-        synchronized(attributes)
+        for (Attribute attr : attributes)
         {
-            return attributes.get(attributeType);
+            if (attr.getAttributeType() == attributeType)
+            {
+                return attr;
+            }
         }
+        return null;
     }
 
     /**
@@ -617,10 +585,7 @@ public abstract class Message
      */
     public List<Attribute> getAttributes()
     {
-        synchronized(attributes)
-        {
-            return new LinkedList<>(attributes.values());
-        }
+        return Collections.unmodifiableList(Arrays.asList(attributes.toArray(new Attribute[0])));
     }
 
     /**
@@ -630,12 +595,77 @@ public abstract class Message
      *
      * @return the <tt>Attribute</tt> we've just removed.
      */
-    public Attribute removeAttribute(char attributeType)
+    public Attribute removeAttribute(Attribute.Type attributeType)
     {
-        synchronized(attributes)
+        for (Attribute attr : attributes)
         {
-            return attributes.remove(attributeType);
+            if (attr.getAttributeType() == attributeType)
+            {
+                attributes.remove(attr);
+                return attr;
+            }
         }
+        return null;
+    }
+
+    /**
+     * Returns whether or not any of the given attributes exist in the message.
+     * 
+     * @param attrs Set of <tt>Attribute.Type</tt> to search for
+     * @return true if any attribute types match and false otherwise
+     */
+    public boolean containsAnyAttributes(EnumSet<Attribute.Type> attrs)
+    {
+        for (Attribute attr : attributes)
+        {
+            if (attrs.contains(attr.getAttributeType()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not all of the given attributes exist in the message.
+     * 
+     * @param attrs Set of <tt>Attribute.Type</tt> to search for
+     * @return true if all attribute types match and false otherwise
+     */
+    public boolean containsAllAttributes(EnumSet<Attribute.Type> attrs)
+    {
+        List<Attribute.Type> found = new ArrayList<>();
+        for (Attribute attr : attributes)
+        {
+            Attribute.Type type = attr.getAttributeType();
+            if (attrs.contains(type))
+            {
+                found.add(type);
+            }
+        }
+        if (!found.isEmpty()) {
+            return EnumSet.copyOf(found).containsAll(attrs);
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not none of the given attributes exist in the message.
+     * 
+     * @param attrs Set of <tt>Attribute.Type</tt> to search for
+     * @return true if none attribute types match and false otherwise
+     */
+    public boolean containsNoneAttributes(EnumSet<Attribute.Type> attrs)
+    {
+        boolean contains = true;
+        for (Attribute attr : attributes)
+        {
+            if (attrs.contains(attr.getAttributeType()))
+            {
+                contains = false;
+            }
+        }
+        return contains;
     }
 
     /**
@@ -645,7 +675,7 @@ public abstract class Message
      */
     public int getAttributeCount()
     {
-        return  attributes.size();
+        return attributes.size();
     }
 
     /**
@@ -706,123 +736,6 @@ public abstract class Message
     }
 
     /**
-     * Returns whether an attribute could be present in this message.
-     *
-     * @param attributeType the id of the attribute to check .
-     *
-     * @return Message.N_A - for not applicable <br>
-     *         Message.C   - for case depending <br>
-     *         Message.N_A - for not applicable <br>
-     */
-    protected byte getAttributePresentity(char attributeType)
-    {
-        if(!rfc3489CompatibilityMode)
-            return O;
-
-        byte msgIndex = -1;
-        byte attributeIndex = -1;
-
-        switch (messageType)
-        {
-            case BINDING_REQUEST:
-                msgIndex = BINDING_REQUEST_PRESENTITY_INDEX; break;
-            case BINDING_SUCCESS_RESPONSE:
-                msgIndex = BINDING_RESPONSE_PRESENTITY_INDEX; break;
-            case BINDING_ERROR_RESPONSE:
-                msgIndex = BINDING_ERROR_RESPONSE_PRESENTITY_INDEX; break;
-            case SHARED_SECRET_REQUEST:
-                msgIndex = SHARED_SECRET_REQUEST_PRESENTITY_INDEX; break;
-            case SHARED_SECRET_RESPONSE:
-                msgIndex = SHARED_SECRET_RESPONSE_PRESENTITY_INDEX; break;
-            case SHARED_SECRET_ERROR_RESPONSE:
-                msgIndex = SHARED_SECRET_ERROR_RESPONSE_PRESENTITY_INDEX; break;
-            case ALLOCATE_REQUEST:
-                msgIndex = ALLOCATE_REQUEST_PRESENTITY_INDEX; break;
-            case REFRESH_REQUEST:
-                msgIndex = REFRESH_REQUEST_PRESENTITY_INDEX; break;
-            case CHANNELBIND_REQUEST:
-                msgIndex = CHANNELBIND_REQUEST_PRESENTITY_INDEX; break;
-            case SEND_INDICATION:
-                msgIndex = SEND_INDICATION_PRESENTITY_INDEX; break;
-            case DATA_INDICATION:
-                msgIndex = DATA_INDICATION_PRESENTITY_INDEX; break;
-            default:
-                if (logger.isLoggable(Level.FINE))
-                {
-                    logger.log(
-                            Level.FINE,
-                            "Attribute presentity not defined for STUN " +
-                            "message type: " + ((int) messageType)
-                                + ". Will assume optional.");
-                }
-                return O;
-        }
-
-        switch (attributeType)
-        {
-            case Attribute.MAPPED_ADDRESS:
-                attributeIndex = MAPPED_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.RESPONSE_ADDRESS:
-                attributeIndex = RESPONSE_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.CHANGE_REQUEST:
-                attributeIndex = CHANGE_REQUEST_PRESENTITY_INDEX; break;
-            case Attribute.SOURCE_ADDRESS:
-                attributeIndex = SOURCE_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.CHANGED_ADDRESS:
-                attributeIndex = CHANGED_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.USERNAME:
-                attributeIndex = USERNAME_PRESENTITY_INDEX; break;
-            case Attribute.PASSWORD:
-                attributeIndex = PASSWORD_PRESENTITY_INDEX; break;
-            case Attribute.MESSAGE_INTEGRITY:
-                attributeIndex = MESSAGE_INTEGRITY_PRESENTITY_INDEX; break;
-            case Attribute.ERROR_CODE:
-                attributeIndex = ERROR_CODE_PRESENTITY_INDEX; break;
-            case Attribute.UNKNOWN_ATTRIBUTES:
-                attributeIndex = UNKNOWN_ATTRIBUTES_PRESENTITY_INDEX; break;
-            case Attribute.REFLECTED_FROM:
-                attributeIndex = REFLECTED_FROM_PRESENTITY_INDEX; break;
-            case Attribute.XOR_MAPPED_ADDRESS:
-                attributeIndex = XOR_MAPPED_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.XOR_ONLY:
-                attributeIndex = XOR_ONLY_PRESENTITY_INDEX; break;
-            case Attribute.SOFTWARE:
-                attributeIndex = SOFTWARE_PRESENTITY_INDEX; break;
-            case Attribute.ALTERNATE_SERVER:
-                attributeIndex = ALTERNATE_SERVER_PRESENTITY_INDEX; break;
-            case Attribute.REALM:
-                attributeIndex = REALM_PRESENTITY_INDEX; break;
-            case Attribute.NONCE:
-                attributeIndex = NONCE_PRESENTITY_INDEX; break;
-            case Attribute.FINGERPRINT:
-                attributeIndex = FINGERPRINT_PRESENTITY_INDEX; break;
-            case Attribute.CHANNEL_NUMBER:
-                attributeIndex = CHANNEL_NUMBER_PRESENTITY_INDEX; break;
-            case Attribute.LIFETIME:
-                attributeIndex = LIFETIME_PRESENTITY_INDEX; break;
-            case Attribute.XOR_PEER_ADDRESS:
-                attributeIndex = XOR_PEER_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.DATA:
-                attributeIndex = DATA_PRESENTITY_INDEX; break;
-            case Attribute.XOR_RELAYED_ADDRESS:
-                attributeIndex = XOR_RELAYED_ADDRESS_PRESENTITY_INDEX; break;
-            case Attribute.EVEN_PORT:
-                attributeIndex = EVEN_PORT_PRESENTITY_INDEX; break;
-            case Attribute.REQUESTED_TRANSPORT:
-                attributeIndex = REQUESTED_TRANSPORT_PRESENTITY_INDEX; break;
-            case Attribute.DONT_FRAGMENT:
-                attributeIndex = DONT_FRAGMENT_PRESENTITY_INDEX; break;
-            case Attribute.RESERVATION_TOKEN:
-                attributeIndex = RESERVATION_TOKEN_PRESENTITY_INDEX; break;
-            default:
-                attributeIndex = UNKNOWN_OPTIONAL_ATTRIBUTES_PRESENTITY_INDEX;
-                break;
-        }
-
-        return attributePresentities[ attributeIndex ][ msgIndex ];
-    }
-
-    /**
      * Returns the human readable name of this message. Message names do
      * not really matter from the protocol point of view. They are only used
      * for debugging and readability.
@@ -880,7 +793,7 @@ public abstract class Message
             return false;
 
         //compare attributes
-        for (Attribute localAtt : attributes.values())
+        for (Attribute localAtt : attributes)
         {
             if(!localAtt.equals(msg.getAttribute(localAtt.getAttributeType())))
                 return false;
@@ -903,9 +816,6 @@ public abstract class Message
         throws IllegalStateException
     {
         prepareForEncoding();
-
-        //make sure we have everything necessary to encode a proper message
-        validateAttributePresentity();
 
         final char dataLength;
 
@@ -940,20 +850,10 @@ public abstract class Message
             offset += RFC3489_TRANSACTION_ID_LENGTH;
         }
 
-        Vector<Map.Entry<Character, Attribute>> v = new Vector<>();
-        Iterator<Map.Entry<Character, Attribute>> iter = null;
         char dataLengthForContentDependentAttribute = 0;
 
-        synchronized (attributes)
+        for (Attribute attribute : attributes)
         {
-            v.addAll(attributes.entrySet());
-        }
-
-        iter = v.iterator();
-
-        while (iter.hasNext())
-        {
-            Attribute attribute = iter.next().getValue();
             int attributeLength
                 = attribute.getDataLength() + Attribute.HEADER_LENGTH;
 
@@ -1008,14 +908,14 @@ public abstract class Message
     {
         //remove MESSAGE-INTEGRITY and FINGERPRINT attributes so that we can
         //make sure they are added at the end.
-        Attribute msgIntAttr = removeAttribute(Attribute.MESSAGE_INTEGRITY);
-        Attribute fingerprint = removeAttribute(Attribute.FINGERPRINT);
+        Attribute msgIntAttr = removeAttribute(Attribute.Type.MESSAGE_INTEGRITY);
+        Attribute fingerprint = removeAttribute(Attribute.Type.FINGERPRINT);
 
         //add a SOFTWARE attribute if the user said so, and unless they did it
         //themselves.
         String software = System.getProperty(StackProperties.SOFTWARE);
 
-        if (getAttribute(Attribute.SOFTWARE) == null
+        if (getAttribute(Attribute.Type.SOFTWARE) == null
             && software != null && software.length() > 0)
         {
             putAttribute(AttributeFactory
@@ -1052,11 +952,15 @@ public abstract class Message
      * @throws StunException <tt>ILLEGAL_ARGUMENT</tt> if one or more of the
      * arguments have invalid values.
      */
-    public static Message decode(byte binMessage[], char offset, char arrayLen)
+    public static Message decode(byte[] binMessage, int offset, int arrayLen)
         throws StunException
     {
+        if(logger.isDebugEnabled())
+        {
+            logger.debug("decode - offset: {} length: {}\n{}", offset, arrayLen, StunStack.toHexString(binMessage));
+        }
         int originalOffset = offset;
-        arrayLen = (char)Math.min(binMessage.length, arrayLen);
+        arrayLen = Math.min(binMessage.length, arrayLen);
 
         if(binMessage == null || arrayLen - offset < Message.HEADER_LENGTH)
         {
@@ -1137,7 +1041,7 @@ public abstract class Message
         while(offset - Message.HEADER_LENGTH < length)
         {
             Attribute att = AttributeDecoder.decode(
-                binMessage, offset, (char)(length - offset));
+                binMessage, offset, (length - offset));
 
             performAttributeSpecificActions(att, binMessage,
                 originalOffset, offset);
@@ -1218,9 +1122,9 @@ public abstract class Message
         //CRC validation.
         if ( ! Arrays.equals(incomingCrcBytes, realCrcBytes))
         {
-            if (logger.isLoggable(Level.FINE))
+            if (logger.isDebugEnabled())
             {
-                logger.fine(
+                logger.debug(
                         "An incoming message arrived with a wrong FINGERPRINT "
                         +"attribute value. "
                         +"CRC Was:"  + Arrays.toString(incomingCrcBytes)
@@ -1232,25 +1136,6 @@ public abstract class Message
         }
 
         return true;
-    }
-
-    /**
-     * Verify that the message has all obligatory attributes and throw an
-     * exception if this is not the case.
-     *
-     * @throws IllegalStateException if the message does not have all
-     * required attributes.
-     */
-    protected void validateAttributePresentity()
-        throws IllegalStateException
-    {
-        if(! rfc3489CompatibilityMode )
-            return;
-
-        for(char i = Attribute.MAPPED_ADDRESS; i < Attribute.REFLECTED_FROM;i++)
-            if(getAttributePresentity(i) == M && getAttribute(i) == null)
-                throw new IllegalStateException(
-                    "A mandatory attribute (type=" + (int)i + ") is missing!");
     }
 
     /**
@@ -1288,7 +1173,7 @@ public abstract class Message
     /**
      * Determines if the message type is Indication.
      * @param type type to test
-     * @return true if the type is Indictation, false otherwise
+     * @return true if the type is Indication, false otherwise
      */
     public static boolean isIndicationType(char type)
     {

@@ -179,12 +179,11 @@ public class AttributeDecoderTest extends TestCase
    {
        //unknown attributes
        byte[] bytes = msgFixture.unknownOptionalAttribute;
-       char offset = 0;
-       char length = (char)msgFixture.mappedAddress.length;
+       int offset = 0;
+       int length = msgFixture.mappedAddress.length;
 
        //create the message
-       OptionalAttribute expectedReturn =
-           new OptionalAttribute(Attribute.UNKNOWN_OPTIONAL_ATTRIBUTE);
+       OptionalAttribute expectedReturn = new OptionalAttribute();
        expectedReturn.setBody(expectedAttributeValue, 0,
                               expectedAttributeValue.length);
 

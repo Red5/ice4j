@@ -211,7 +211,7 @@ public class NetworkConfigurationDiscoveryProcess
         {
             TransportAddress mappedAddress
                 =((MappedAddressAttribute)evt.getMessage()
-                  .getAttribute(Attribute.MAPPED_ADDRESS)).getAddress();
+                  .getAttribute(Attribute.Type.MAPPED_ADDRESS)).getAddress();
 
             if(mappedAddress == null)
             {
@@ -227,7 +227,7 @@ public class NetworkConfigurationDiscoveryProcess
 
             TransportAddress backupServerAddress
                 =((ChangedAddressAttribute) evt.getMessage()
-                  .getAttribute(Attribute.CHANGED_ADDRESS)).getAddress();
+                  .getAttribute(Attribute.Type.CHANGED_ADDRESS)).getAddress();
 
             logger.fine("backup server address is="+backupServerAddress
                         + ", name=" + backupServerAddress.getHostAddress());
@@ -265,7 +265,7 @@ public class NetworkConfigurationDiscoveryProcess
                     }
                     TransportAddress mappedAddress2 =
                         ((MappedAddressAttribute)evt.getMessage().
-                            getAttribute(Attribute.MAPPED_ADDRESS))
+                            getAttribute(Attribute.Type.MAPPED_ADDRESS))
                                 .getAddress();
                     if(mappedAddress.equals(mappedAddress2))
                     {

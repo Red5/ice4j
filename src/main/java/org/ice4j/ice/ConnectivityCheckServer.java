@@ -17,14 +17,13 @@
  */
 package org.ice4j.ice;
 
-import java.util.logging.*;
-
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.security.*;
 import org.ice4j.stack.*;
-import org.ice4j.util.Logger; // Disambiguation.
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class that would be handling and responding to incoming connectivity
@@ -44,9 +43,7 @@ class ConnectivityCheckServer
      * {@link ConnectivityCheckServer}, because it doesn't take into account
      * the per-instance log level. Instances should use {@link #logger} instead.
      */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger(
-                ConnectivityCheckServer.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckServer.class);
 
     /**
      * Compares <tt>a</tt> and <tt>b</tt> as unsigned long values. Serves the
@@ -74,7 +71,7 @@ class ConnectivityCheckServer
      * The indicator which determines whether this
      * <tt>ConnectivityCheckServer</tt> is currently started.
      */
-    private boolean started = false;
+    private boolean started;
 
     /**
      * The <tt>StunStack </tt> that we will use for connectivity checks.
@@ -87,11 +84,6 @@ class ConnectivityCheckServer
     private boolean alive;
 
     /**
-     * The {@link Logger} used by {@link ConnectivityCheckServer} instances.
-     */
-    private Logger logger;
-
-    /**
      * Creates a new <tt>ConnectivityCheckServer</tt> setting
      * <tt>parentAgent</tt> as the agent that will be used for retrieving
      * information such as user fragments for example.
@@ -101,7 +93,6 @@ class ConnectivityCheckServer
     public ConnectivityCheckServer(Agent parentAgent)
     {
         this.parentAgent = parentAgent;
-        logger = new Logger(classLogger, parentAgent.getLogger());
 
         stunStack = this.parentAgent.getStunStack();
         stunStack.getCredentialsManager().registerAuthority(this);
@@ -141,9 +132,10 @@ class ConnectivityCheckServer
     public void processRequest(StunMessageEvent evt)
         throws IllegalArgumentException
     {
-        if(logger.isLoggable(Level.FINER))
-            logger.finer("Received request " + evt);
-
+        if(logger.isDebugEnabled())
+        {
+            logger.debug("Received request {}", evt);
+        }
         alive = true;
 
         Request request = (Request)evt.getMessage();
@@ -153,10 +145,10 @@ class ConnectivityCheckServer
         //still see messages not meant for this server if both peers or running
         //on this same instance of the stack.
         UsernameAttribute uname = (UsernameAttribute)request
-            .getAttribute(Attribute.USERNAME);
+            .getAttribute(Attribute.Type.USERNAME);
 
-        if(   uname == null
-           ||  !checkLocalUserName(new String(uname.getUsername())))
+        String username = new String(uname.getUsername());
+        if(!checkLocalUserName(username))
         {
             return;
         }
@@ -165,31 +157,28 @@ class ConnectivityCheckServer
         // role conflict error. This allows us to learn faster, and compensates
         // for a buggy peer that doesn't switch roles when it gets a role
         // conflict error.
-        long priority = 0;
-        boolean useCandidate
-            = request.containsAttribute(Attribute.USE_CANDIDATE);
-        String username = new String(uname.getUsername());
+        long priority = extractPriority(request);
+        boolean useCandidate = (request.getAttribute(Attribute.Type.USE_CANDIDATE) != null);
         //caller gave us the entire username.
-        String remoteUfrag = null;
+        String remoteUfrag = username.split(":")[0];
         String localUFrag = null;
-
-        priority = extractPriority(request);
-        int colon = username.indexOf(":");
-        remoteUfrag = username.substring(0, colon);
 
         //tell our address handler we saw a new remote address;
         parentAgent.incomingCheckReceived(evt.getRemoteAddress(),
                 evt.getLocalAddress(), priority, remoteUfrag, localUFrag,
                 useCandidate);
 
+        boolean controlling = (parentAgent.isControlling()
+                && request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
+        boolean controlled = (!parentAgent.isControlling()
+                && request.getAttribute(Attribute.Type.ICE_CONTROLLED) != null);
         //detect role conflicts
-        if( ( parentAgent.isControlling()
-                && request.containsAttribute(Attribute.ICE_CONTROLLING))
-                || ( ! parentAgent.isControlling()
-                && request.containsAttribute(Attribute.ICE_CONTROLLED)))
+        if(controlling || controlled)
         {
             if (!repairRoleConflict(evt))
+            {
                 return;
+            }
         }
 
         Response response = MessageFactory.createBindingResponse(
@@ -203,10 +192,10 @@ class ConnectivityCheckServer
         Attribute usernameAttribute =
             AttributeFactory.createUsernameAttribute(uname.getUsername());
         response.putAttribute(usernameAttribute);
+        //logger.info("usernameAttribute: " + usernameAttribute);
 
         Attribute messageIntegrityAttribute =
-            AttributeFactory.createMessageIntegrityAttribute(
-                    new String(uname.getUsername()));
+            AttributeFactory.createMessageIntegrityAttribute(username);
         response.putAttribute(messageIntegrityAttribute);
 
         try
@@ -216,11 +205,7 @@ class ConnectivityCheckServer
         }
         catch (Exception e)
         {
-            logger.log(
-                    Level.INFO,
-                    "Failed to send " + response
-                        + " through " + evt.getLocalAddress(),
-                    e);
+            logger.warn("Failed to send {} through {}", response, evt.getLocalAddress(), e);
             //try to trigger a 500 response although if this one failed,
             //then chances are the 500 will fail too.
             throw new RuntimeException("Failed to send a response", e);
@@ -246,16 +231,16 @@ class ConnectivityCheckServer
     {
         //make sure we have a priority attribute and ignore otherwise.
         PriorityAttribute priorityAttr
-            = (PriorityAttribute)request.getAttribute(Attribute.PRIORITY);
+            = (PriorityAttribute)request.getAttribute(Attribute.Type.PRIORITY);
 
         //apply tie-breaking
 
         //extract priority
         if(priorityAttr == null)
         {
-            if(logger.isLoggable(Level.FINE))
+            if(logger.isDebugEnabled())
             {
-                logger.log(Level.FINE, "Received a connectivity check with"
+                logger.debug("Received a connectivity check with"
                             + "no PRIORITY attribute. Discarding.");
             }
 
@@ -284,15 +269,17 @@ class ConnectivityCheckServer
     {
         Message req = evt.getMessage();
         long ourTieBreaker = parentAgent.getTieBreaker();
-
-
+        // attempt to get controlling first
+        IceControlAttribute attr = (IceControlAttribute) req.getAttribute(Attribute.Type.ICE_CONTROLLING);
+        if (attr == null) {
+            // controlled is follow-up
+            attr = (IceControlAttribute) req.getAttribute(Attribute.Type.ICE_CONTROLLED);
+        }
         // If the agent is in the controlling role, and the
         // ICE-CONTROLLING attribute is present in the request:
-        if(parentAgent.isControlling()
-                        && req.containsAttribute(Attribute.ICE_CONTROLLING))
+        if(parentAgent.isControlling() && attr instanceof IceControllingAttribute)
         {
-            IceControllingAttribute controlling = (IceControllingAttribute)
-                req.getAttribute(Attribute.ICE_CONTROLLING);
+            IceControllingAttribute controlling = (IceControllingAttribute) attr;
 
             long theirTieBreaker = controlling.getTieBreaker();
 
@@ -326,7 +313,7 @@ class ConnectivityCheckServer
             //role.
             else
             {
-                logger.finer(
+                logger.debug(
                         "Switching to controlled because theirTieBreaker="
                         + theirTieBreaker + " and ourTieBreaker="
                         + ourTieBreaker);
@@ -336,11 +323,9 @@ class ConnectivityCheckServer
         }
         // If the agent is in the controlled role, and the ICE-CONTROLLED
         // attribute is present in the request:
-        else if(!parentAgent.isControlling()
-                        && req.containsAttribute(Attribute.ICE_CONTROLLED))
+        else if(!parentAgent.isControlling() && attr instanceof IceControlledAttribute)
         {
-            IceControlledAttribute controlled = (IceControlledAttribute)
-                req.getAttribute(Attribute.ICE_CONTROLLED);
+            IceControlledAttribute controlled = (IceControlledAttribute) attr;
 
             long theirTieBreaker = controlled.getTieBreaker();
 
@@ -349,7 +334,7 @@ class ConnectivityCheckServer
             //the controlling role.
             if(compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0)
             {
-                logger.finer(
+                logger.debug(
                         "Switching to controlling because theirTieBreaker="
                         + theirTieBreaker + " and ourTieBreaker="
                         + ourTieBreaker);
@@ -396,21 +381,7 @@ class ConnectivityCheckServer
      */
     public boolean checkLocalUserName(String username)
     {
-        String ufrag = null;
-
-        int colon = username.indexOf(":");
-
-        if (colon < 0)
-        {
-            //caller gave us a ufrag
-            ufrag = username;
-        }
-        else
-        {
-            //caller gave us the entire username.
-            ufrag = username.substring(0, colon);
-        }
-
+        String ufrag = username.split(":")[0];
         return ufrag.equals(parentAgent.getLocalUfrag());
     }
 

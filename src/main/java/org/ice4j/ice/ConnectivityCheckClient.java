@@ -21,14 +21,14 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.socket.*;
 import org.ice4j.stack.*;
-import org.ice4j.util.Logger; //Disambiguation
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class that will be generating our outgoing connectivity checks and that
@@ -47,9 +47,7 @@ class ConnectivityCheckClient
      * {@link ConnectivityCheckClient}, because it doesn't take into account
      * the per-instance log level. Instances should use {@link #logger} instead.
      */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger(
-                ConnectivityCheckClient.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckClient.class);
 
     /**
      * The agent that created us.
@@ -78,11 +76,6 @@ class ConnectivityCheckClient
     private boolean alive;
 
     /**
-     * The {@link Logger} used by {@link ConnectivityCheckClient} instances.
-     */
-    private Logger logger;
-
-    /**
      * Creates a new <tt>ConnectivityCheckClient</tt> setting
      * <tt>parentAgent</tt> as the agent that will be used for retrieving
      * information such as user fragments for example.
@@ -92,8 +85,6 @@ class ConnectivityCheckClient
     public ConnectivityCheckClient(Agent parentAgent)
     {
         this.parentAgent = parentAgent;
-        logger = new Logger(classLogger, parentAgent.getLogger());
-
         stunStack = this.parentAgent.getStunStack();
     }
 
@@ -171,23 +162,18 @@ class ConnectivityCheckClient
                     indication,
                     candidatePair.getRemoteCandidate().getTransportAddress(),
                     localCandidate.getBase().getTransportAddress());
-            if (logger.isLoggable(Level.FINEST))
+            if (logger.isTraceEnabled())
             {
-                logger.finest(
-                        "sending binding indication to pair " + candidatePair);
+                logger.trace(
+                        "sending binding indication to pair {}", candidatePair);
             }
         }
         catch (Exception ex)
         {
             IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
-
             if (stunSocket != null)
             {
-                logger.log(
-                        Level.INFO,
-                        "Failed to send " + indication + " through "
-                            + stunSocket.getLocalSocketAddress(),
-                        ex);
+                logger.warn("Failed to send {} through {}", indication, stunSocket.getLocalSocketAddress(), ex);
             }
         }
     }
@@ -258,11 +244,8 @@ class ConnectivityCheckClient
             //nominated pairs.
             if (candidatePair.isNominated())
             {
-                logger.fine(
-                        "Add USE-CANDIDATE in check for: "
-                            + candidatePair.toShortString());
-                request.putAttribute(
-                        AttributeFactory.createUseCandidateAttribute());
+                logger.debug("Add USE-CANDIDATE in check for: {}", candidatePair.toShortString());
+                request.putAttribute(AttributeFactory.createUseCandidateAttribute());
             }
         }
         else
@@ -295,6 +278,7 @@ class ConnectivityCheckClient
         // generate the HMAC-SHA1 authentication), we need to know the
         // remote key of the current stream, that why we pass the media
         // name.
+        logger.debug("Media: {}", media);
         msgIntegrity.setMedia(media);
         request.putAttribute(msgIntegrity);
 
@@ -302,9 +286,7 @@ class ConnectivityCheckClient
 
         tran.setApplicationData(candidatePair);
 
-        logger.fine(
-                "start check for " + candidatePair.toShortString() + " tid "
-                    + tran);
+        logger.debug("start check for {} tid {}", candidatePair.toShortString(), tran);
         try
         {
             tran
@@ -318,10 +300,9 @@ class ConnectivityCheckClient
                         originalWaitInterval,
                         maxWaitInterval,
                         maxRetransmissions);
-            if (logger.isLoggable(Level.FINEST))
+            if (logger.isTraceEnabled())
             {
-                logger.finest(
-                        "checking pair " + candidatePair + " tid " + tran);
+                logger.trace("checking pair {} tid {}", candidatePair, tran);
             }
         }
         catch (Exception ex)
@@ -343,7 +324,7 @@ class ConnectivityCheckClient
                     msg += " No route to host.";
                     ex = null;
                 }
-                logger.log(Level.INFO, msg, ex);
+                logger.warn(msg, ex);
             }
         }
 
@@ -381,12 +362,11 @@ class ConnectivityCheckClient
             //handle error responses.
             if (messageType == Response.BINDING_ERROR_RESPONSE)
             {
-                if (!response.containsAttribute(Attribute.ERROR_CODE))
+                if (response.getAttribute(Attribute.Type.ERROR_CODE) == null)
                 {
-                    logger.fine("Received a malformed error response.");
+                    logger.debug("Received a malformed error response.");
                     return; //malformed error response
                 }
-
                 processErrorResponse(ev);
             }
             //handle success responses.
@@ -493,20 +473,18 @@ class ConnectivityCheckClient
 
         TransportAddress mappedAddress = null;
 
-        if (!response.containsAttribute(Attribute.XOR_MAPPED_ADDRESS))
+        XorMappedAddressAttribute mappedAddressAttr = (XorMappedAddressAttribute)
+            response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
+        if (mappedAddressAttr == null)
         {
-            logger.fine("Received a success response with no "
-                    + "XOR_MAPPED_ADDRESS attribute.");
+            logger.debug("Received a success response with no {}",
+                    "XOR_MAPPED_ADDRESS attribute.");
             logger.info("Pair failed (no XOR-MAPPED-ADDRESS): "
                     + checkedPair.toShortString() + ". Local ufrag"
                     + parentAgent.getLocalUfrag());
             checkedPair.setStateFailed();
             return; //malformed error response
         }
-
-        XorMappedAddressAttribute mappedAddressAttr
-            = (XorMappedAddressAttribute)
-                response.getAttribute(Attribute.XOR_MAPPED_ADDRESS);
 
         mappedAddress
             = mappedAddressAttr.getAddress(response.getTransactionID());
@@ -542,7 +520,7 @@ class ConnectivityCheckClient
             //  in the Binding request.
             long priority = 0;
             PriorityAttribute prioAttr = (PriorityAttribute)request
-                .getAttribute(Attribute.PRIORITY);
+                .getAttribute(Attribute.Type.PRIORITY);
             priority = prioAttr.getPriority();
 
             LocalCandidate peerReflexiveCandidate
@@ -679,21 +657,19 @@ class ConnectivityCheckClient
                 startChecks(checkList);
             }
         }
-
+        Attribute attr = request.getAttribute(Attribute.Type.USE_CANDIDATE);
         if (validPair.getParentComponent().getSelectedPair() == null)
         {
             logger.info("IsControlling: "  + parentAgent.isControlling() +
                 " USE-CANDIDATE:" +
-                    (request.containsAttribute(Attribute.USE_CANDIDATE) ||
-                        checkedPair.useCandidateSent())
+                    (attr != null || checkedPair.useCandidateSent())
                 + ". Local ufrag " + parentAgent.getLocalUfrag());
         }
 
         //If the agent was a controlling agent, and it had included a USE-
         //CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
-        if (parentAgent.isControlling()
-                && request.containsAttribute(Attribute.USE_CANDIDATE))
+        if (parentAgent.isControlling() && attr != null)
         {
             if (validPair.getParentComponent().getSelectedPair() == null)
             {
@@ -704,8 +680,7 @@ class ConnectivityCheckClient
             }
             else
             {
-                logger.fine(
-                        "Keep alive for pair: " + validPair.toShortString());
+                logger.debug("Keep alive for pair: {}", validPair.toShortString());
             }
         }
         //If the agent is the controlled agent, the response may be the result
@@ -726,8 +701,7 @@ class ConnectivityCheckClient
             }
             else
             {
-                logger.fine(
-                        "Keep alive for pair: " + validPair.toShortString());
+                logger.debug("Keep alive for pair: {}", validPair.toShortString());
             }
         }
 
@@ -785,7 +759,7 @@ class ConnectivityCheckClient
         Request originalRequest = ev.getRequest();
 
         ErrorCodeAttribute errorAttr
-            = (ErrorCodeAttribute) response.getAttribute(Attribute.ERROR_CODE);
+            = (ErrorCodeAttribute) response.getAttribute(Attribute.Type.ERROR_CODE);
         // GTalk error code is not RFC3489/RFC5389 compliant
         // example: 400 becomes 0x01 0x90 with GTalk
         // RFC3489/RFC5389 gives 0x04 0x00
@@ -796,15 +770,15 @@ class ConnectivityCheckClient
         CandidatePair pair
             = (CandidatePair) ev.getTransactionID().getApplicationData();
 
-        logger.finer("Received error code " + ((int) errorCode));
+        logger.debug("Received error code {}", (int) errorCode);
 
         //RESOLVE ROLE_CONFLICTS
         if (errorCode == ErrorCodeAttribute.ROLE_CONFLICT)
         {
             boolean wasControlling
-                = originalRequest.containsAttribute(Attribute.ICE_CONTROLLING);
+                = (originalRequest.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
 
-            logger.finer("Switching to isControlling=" + !wasControlling);
+            logger.debug("Switching to isControlling={}", !wasControlling);
             parentAgent.setControlling(!wasControlling);
 
             pair.getParentComponent().getParentStream().getCheckList()
@@ -931,9 +905,8 @@ class ConnectivityCheckClient
 
                             if (transactionID == null)
                             {
-                                logger.info(
-                                        "Pair failed: "
-                                            + pairToCheck.toShortString());
+                                logger.info("Pair failed: {}",
+                                            pairToCheck.toShortString());
                                 pairToCheck.setStateFailed();
                             }
                             else
@@ -947,15 +920,14 @@ class ConnectivityCheckClient
                          * its final state in either the processResponse(),
                          * processTimeout() or processFailure() method.
                          */
-                        logger.finest("will skip a check beat.");
+                        logger.trace("will skip a check beat.");
                         checkList.fireEndOfOrdinaryChecks();
                     }
                 }
             }
             catch (InterruptedException e)
             {
-                logger.log(Level.FINER, "PaceMaker got interrupted",
-                        e);
+                logger.warn("PaceMaker got interrupted", e);
             }
         }
     }

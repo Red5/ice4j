@@ -55,10 +55,6 @@ public class FingerprintAttribute
     extends Attribute
     implements ContentDependentAttribute
 {
-    /**
-     * Attribute name.
-     */
-    public static final String NAME = "FINGERPRINT";
 
     /**
      * The value that we need to XOR the CRC with. The XOR helps in cases where
@@ -77,7 +73,7 @@ public class FingerprintAttribute
      */
     FingerprintAttribute()
     {
-        super(FINGERPRINT);
+        super(Attribute.Type.FINGERPRINT);
     }
 
     /**
@@ -97,19 +93,9 @@ public class FingerprintAttribute
      *
      * @return the length of this attribute's value.
      */
-    public char getDataLength()
+    public int getDataLength()
     {
         return 4;
-    }
-
-    /**
-     * Returns the human readable name of this attribute.
-     *
-     * @return this attribute's name.
-     */
-    public String getName()
-    {
-        return NAME;
     }
 
     /**
@@ -172,10 +158,10 @@ public class FingerprintAttribute
             StunStack stunStack,
             byte[] content, int offset, int length)
     {
-        char type = getAttributeType();
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
+        int type = getAttributeType().getType();
         binValue[0] = (byte)(type >> 8);
         binValue[1] = (byte)(type & 0x00FF);
         //Length
@@ -208,8 +194,7 @@ public class FingerprintAttribute
      * @throws StunException if attrubteValue contains invalid data.
      */
     public void decodeAttributeBody( byte[] attributeValue,
-                                     char offset,
-                                     char length)
+            int offset, int length)
         throws StunException
     {
         if(length != 4)

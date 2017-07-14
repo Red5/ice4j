@@ -143,7 +143,7 @@ public class SimpleAddressDetector
 
              /* in classic STUN, the response contains a MAPPED-ADDRESS */
              MappedAddressAttribute maAtt = (MappedAddressAttribute)
-                                 res.getAttribute(Attribute.MAPPED_ADDRESS);
+                                 res.getAttribute(Attribute.Type.MAPPED_ADDRESS);
              if(maAtt != null)
              {
                   return maAtt.getAddress();
@@ -151,7 +151,7 @@ public class SimpleAddressDetector
 
              /* in STUN bis, the response contains a XOR-MAPPED-ADDRESS */
              XorMappedAddressAttribute xorAtt = (XorMappedAddressAttribute)res
-                 .getAttribute(Attribute.XOR_MAPPED_ADDRESS);
+                 .getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
              if(xorAtt != null)
              {
                byte xoring[] = new byte[16];

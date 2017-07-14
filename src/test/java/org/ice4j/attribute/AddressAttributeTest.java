@@ -57,155 +57,55 @@ public class AddressAttributeTest extends TestCase {
      * names.
      */
     public void testAddressAttributeDescendants() {
-        char expectedType;
-        char actualType;
-        String expectedName;
-        String actualName;
-
         //MAPPED-ADDRESS
         addressAttribute = new MappedAddressAttribute();
-
-        expectedType = Attribute.MAPPED_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "MAPPED-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("MappedAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("MappedAddressAttribute does not the right name.",
-                     expectedName, actualName);
-
+                Attribute.Type.MAPPED_ADDRESS, addressAttribute.attributeType);
 
         //SOURCE-ADDRESS
         addressAttribute = new SourceAddressAttribute();
-
-        expectedType = Attribute.SOURCE_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "SOURCE-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("SourceAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("SourceAddressAttribute does not the right name.",
-                     expectedName, actualName);
-
+                Attribute.Type.SOURCE_ADDRESS, addressAttribute.attributeType);
 
         //CHANGED-ADDRESS
         addressAttribute = new ChangedAddressAttribute();
-
-        expectedType = Attribute.CHANGED_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "CHANGED-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("ChangedAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("ChangedAddressAttribute does not the right name.",
-                     expectedName, actualName);
-
+                Attribute.Type.CHANGED_ADDRESS, addressAttribute.attributeType);
 
         //RESPONSE-ADDRESS
         addressAttribute = new ResponseAddressAttribute();
-
-        expectedType = Attribute.RESPONSE_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "RESPONSE-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("ResponseAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("ResponseAddressAttribute does not the right name.",
-                     expectedName, actualName);
-
+                Attribute.Type.RESPONSE_ADDRESS, addressAttribute.attributeType);
 
         //REFLECTED-FROM
         addressAttribute = new ReflectedFromAttribute();
-
-        expectedType = Attribute.REFLECTED_FROM;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "REFLECTED-FROM";
-        actualName = addressAttribute.getName();
-
         assertEquals("ReflectedFromAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("ReflectedFromAttribute does not the right name.",
-                     expectedName, actualName);
+                Attribute.Type.REFLECTED_FROM, addressAttribute.attributeType);
 
         //REFLECTED-FROM
         addressAttribute = new ReflectedFromAttribute();
-
-        expectedType = Attribute.REFLECTED_FROM;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "REFLECTED-FROM";
-        actualName = addressAttribute.getName();
-
         assertEquals("ReflectedFromAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("ReflectedFromAttribute does not the right name.",
-                     expectedName, actualName);
+                Attribute.Type.REFLECTED_FROM, addressAttribute.attributeType);
 
         //XOR-MAPPED-ADDRESS
         addressAttribute = new XorMappedAddressAttribute();
-
-        expectedType = Attribute.XOR_MAPPED_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "XOR-MAPPED-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("XorMappedAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("XorMappedAddressAttribute does not the right name.",
-                     expectedName, actualName);
+                Attribute.Type.XOR_MAPPED_ADDRESS, addressAttribute.attributeType);
 
         /* ALTERNATE-SERVER */
         addressAttribute = new AlternateServerAttribute();
-
-        expectedType = Attribute.ALTERNATE_SERVER;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "ALTERNATE-SERVER";
-        actualName = addressAttribute.getName();
-
         assertEquals("AlternateServerAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("AlternateAttribute does not the right name.",
-                     expectedName, actualName);
-
+                Attribute.Type.ALTERNATE_SERVER, addressAttribute.attributeType);
 
         /* XOR-PEER-ADDRESS */
         addressAttribute = new XorPeerAddressAttribute();
-
-        expectedType = Attribute.XOR_PEER_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "XOR-PEER-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("XorPeerAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("XorPeerAddressAttribute does not the right name.",
-                     expectedName, actualName);
+                Attribute.Type.XOR_PEER_ADDRESS, addressAttribute.attributeType);
 
         /* XOR-RELAYED-ADDRESS */
         addressAttribute = new XorRelayedAddressAttribute();
-
-        expectedType = Attribute.XOR_RELAYED_ADDRESS;
-        actualType = addressAttribute.getAttributeType();
-
-        expectedName = "XOR-RELAYED-ADDRESS";
-        actualName = addressAttribute.getName();
-
         assertEquals("XorRelayedAddressAttribute does not the right type.",
-                     expectedType, actualType);
-        assertEquals("XorRelayedAddressAttribute does not the right name.",
-                     expectedName, actualName);
+                Attribute.Type.XOR_RELAYED_ADDRESS, addressAttribute.attributeType);
     }
 
     /**
@@ -327,7 +227,6 @@ public class AddressAttributeTest extends TestCase {
         char length = (char)(attributeValue.length - offset);
 
         addressAttribute.decodeAttributeBody(attributeValue, offset, length);
-
 
         assertEquals(
             "AddressAttribute.decode() did not properly decode the port field.",
@@ -473,14 +372,14 @@ public class AddressAttributeTest extends TestCase {
     public void testGetDataLength()
         throws Exception
     {
-        char expectedReturn = 8;//1-padding + 1-family + 2-port + 4-address
+        int expectedReturn = 8;//1-padding + 1-family + 2-port + 4-address
 
         addressAttribute.setAddress( new TransportAddress(
             MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS,
             MsgFixture.ADDRESS_ATTRIBUTE_PORT,
             Transport.UDP));
 
-        char actualReturn = addressAttribute.getDataLength();
+        int actualReturn = addressAttribute.getDataLength();
 
         assertEquals("Datalength is not propoerly calculated",
                      expectedReturn, actualReturn);
