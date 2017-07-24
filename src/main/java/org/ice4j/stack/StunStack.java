@@ -1161,7 +1161,7 @@ public class StunStack
                 throw new IllegalArgumentException("Non-recognized username: " + username);
             }
         }
-
+        boolean messageIntegrityRequired = StackProperties.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY, false);
         //assert Message Integrity
         MessageIntegrityAttribute msgIntAttr
             = (MessageIntegrityAttribute)
@@ -1184,7 +1184,6 @@ public class StunStack
                 throw new IllegalArgumentException(
                     "Missing USERNAME in the presence of MESSAGE-INTEGRITY: ");
             }
-
             if (!validateMessageIntegrity(
                     msgIntAttr,
                     username,
@@ -1203,7 +1202,7 @@ public class StunStack
                 throw new IllegalArgumentException("Wrong MESSAGE-INTEGRITY value.");
             }
         }
-        else if(StackProperties.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY, false))
+        else if(messageIntegrityRequired)
         {
             // no message integrity
             Response error = createCorrespondingErrorResponse(

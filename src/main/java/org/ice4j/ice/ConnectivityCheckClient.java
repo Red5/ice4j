@@ -927,7 +927,11 @@ class ConnectivityCheckClient
             }
             catch (InterruptedException e)
             {
-                logger.warn("PaceMaker got interrupted", e);
+                // message isn't all that important generally
+                if (logger.isDebugEnabled())
+                {
+                    logger.warn("PaceMaker got interrupted", e);
+                }
             }
         }
     }

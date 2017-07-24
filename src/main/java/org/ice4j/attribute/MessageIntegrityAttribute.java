@@ -286,8 +286,8 @@ public class MessageIntegrityAttribute
         byte[] key = null;
         char msgType =
             (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
-
-        if(Message.isRequestType(msgType))
+        // PR124
+        if(Message.isRequestType(msgType) || Message.isIndicationType(msgType))
         {
             /* attribute part of a request, use the remote key */
             key = stunStack.getCredentialsManager().getRemoteKey(username,
