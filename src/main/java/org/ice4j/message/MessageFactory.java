@@ -18,10 +18,11 @@
 package org.ice4j.message;
 
 import java.io.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class provides factory methods to allow an application to create STUN
@@ -39,8 +40,7 @@ public class MessageFactory
      * The <tt>Logger</tt> used by the <tt>MessageFactory</tt> class and its
      * instances.
      */
-    private static final Logger logger
-        = Logger.getLogger(MessageFactory.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(MessageFactory.class);
 
     /**
      * Creates a default binding request. The request DOES NOT contains a
@@ -57,7 +57,7 @@ public class MessageFactory
         } catch (IllegalArgumentException ex)
         {
             // there should be no exc here since we're the creators.
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type", ex);
         }
 
         /* do not add this by default */
@@ -359,7 +359,7 @@ public class MessageFactory
         } catch (IllegalArgumentException ex)
         {
             // there should be no exc here since we're the creators.
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
         return allocateRequest;
     }
@@ -399,7 +399,7 @@ public class MessageFactory
         }
         catch (StunException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
         return allocateRequest;
     }
@@ -646,7 +646,7 @@ public class MessageFactory
              * We don't actually expect the exception to happen so we're
              * ignoring it.
              */
-            logger.log(Level.FINE, "Failed to set message type.", iaex);
+            logger.warn("Failed to set message type.", iaex);
         }
         return refreshRequest;
     }
@@ -671,7 +671,7 @@ public class MessageFactory
             refreshRequest.putAttribute(lifetimeReq);
         } catch (IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
 
         return refreshRequest;
@@ -700,7 +700,7 @@ public class MessageFactory
         }
         catch(IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
         return refreshSuccessResponse;
     }
@@ -741,7 +741,7 @@ public class MessageFactory
         }
         catch(IllegalArgumentException ex)
         {
-             logger.log(Level.FINE, "Failed to set message type.", ex);
+             logger.warn("Failed to set message type.", ex);
         }
         return refreshErrorResponse;
     }
@@ -778,7 +778,7 @@ public class MessageFactory
         }
         catch (IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
 
         return channelBindRequest;
@@ -858,7 +858,7 @@ public class MessageFactory
         catch (IllegalArgumentException iaex)
         {
             // Expected to not happen because we are the creators.
-            logger.log(Level.FINE, "Failed to set message type.", iaex);
+            logger.warn("Failed to set message type.", iaex);
         }
         createPermissionRequest.putAttribute(
                 AttributeFactory.createXorPeerAddressAttribute(
@@ -951,7 +951,7 @@ public class MessageFactory
             }
         } catch (IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
 
         return sendIndication;
@@ -992,7 +992,7 @@ public class MessageFactory
         }
         catch (IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
 
         return dataIndication;
@@ -1037,7 +1037,7 @@ public class MessageFactory
         }
         catch (IllegalArgumentException ex)
         {
-            logger.log(Level.FINE, "Failed to set message type.", ex);
+            logger.warn("Failed to set message type.", ex);
         }
 
         return sendRequest;

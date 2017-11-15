@@ -34,14 +34,12 @@ import org.ice4j.socket.*;
  *
  * @author Emil Ivov
  */
-class Connector
-    implements Runnable
+class Connector implements Runnable
 {
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(Connector.class.getName());
+    private static final Logger logger = Logger.getLogger(Connector.class.getName());
 
     /**
      * The message queue is where incoming messages are added.

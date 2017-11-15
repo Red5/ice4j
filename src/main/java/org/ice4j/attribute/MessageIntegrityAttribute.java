@@ -284,14 +284,12 @@ public class MessageIntegrityAttribute
         binValue[3] = (byte)(getDataLength() & 0x00FF);
 
         byte[] key = null;
-        char msgType =
-            (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
+        char msgType = (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
         // PR124
         if(Message.isRequestType(msgType) || Message.isIndicationType(msgType))
         {
             /* attribute part of a request, use the remote key */
-            key = stunStack.getCredentialsManager().getRemoteKey(username,
-                    media);
+            key = stunStack.getCredentialsManager().getRemoteKey(username, media);
         }
         else if(Message.isSuccessResponseType(msgType) ||
                 Message.isErrorResponseType(msgType))

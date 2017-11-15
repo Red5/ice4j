@@ -65,8 +65,7 @@ class ConnectivityCheckClient
     private final CopyOnWriteArraySet<Future<?>> paceMakerFutures = new CopyOnWriteArraySet<>();
 
     /**
-     * Timer that is used to let some seconds before a CheckList is considered
-     * as FAILED.
+     * Timer that is used to let some seconds before a CheckList is considered as FAILED.
      */
     private Map<String, Future<?>> timerFutures = new HashMap<>();
 
@@ -117,18 +116,13 @@ class ConnectivityCheckClient
         List<IceMediaStream> streamsWithPendingConnectivityEstablishment
             = parentAgent.getStreamsWithPendingConnectivityEstablishment();
 
-        if (streamsWithPendingConnectivityEstablishment.size() > 0)
-        {
-            logger.info("Start connectivity checks. Local ufrag "
-                            + parentAgent.getLocalUfrag());
-            startChecks(
-                    streamsWithPendingConnectivityEstablishment
-                        .get(0).getCheckList());
+        if (streamsWithPendingConnectivityEstablishment.size() > 0) {
+            logger.info("Start connectivity checks. Local ufrag " + parentAgent.getLocalUfrag());
+            startChecks(streamsWithPendingConnectivityEstablishment.get(0).getCheckList());
         }
         else
         {
-            logger.info("Not starting any checks, because there are no pending "
-                                + "streams.");
+            logger.info("Not starting any checks, because there are no pending streams.");
         }
     }
 
@@ -164,8 +158,7 @@ class ConnectivityCheckClient
                     localCandidate.getBase().getTransportAddress());
             if (logger.isTraceEnabled())
             {
-                logger.trace(
-                        "sending binding indication to pair {}", candidatePair);
+                logger.trace("sending binding indication to pair {}", candidatePair);
             }
         }
         catch (Exception ex)
@@ -218,14 +211,11 @@ class ConnectivityCheckClient
             int maxRetransmissions)
     {
         LocalCandidate localCandidate = candidatePair.getLocalCandidate();
-        //we don't need to do a canReach() verification here as it has been
-        //already verified during the gathering process.
+        //we don't need to do a canReach() verification here as it has been already verified during the gathering process.
 
         Request request = MessageFactory.createBindingRequest();
 
-        //the priority we'd like the remote party to use for a peer
-        //reflexive candidate if one is discovered as a consequence of this
-        //check.
+        //the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check.
         PriorityAttribute priority
             = AttributeFactory.createPriorityAttribute(
                     localCandidate.computePriorityForType(
@@ -240,8 +230,7 @@ class ConnectivityCheckClient
                     AttributeFactory.createIceControllingAttribute(
                             parentAgent.getTieBreaker()));
 
-            //if we are the controlling agent then we need to indicate our
-            //nominated pairs.
+            //if we are the controlling agent then we need to indicate our nominated pairs.
             if (candidatePair.isNominated())
             {
                 logger.debug("Add USE-CANDIDATE in check for: {}", candidatePair.toShortString());
@@ -350,8 +339,7 @@ class ConnectivityCheckClient
         //make sure that the response came from the right place.
         if (!checkSymmetricAddresses(ev))
         {
-            logger.info("Received a non-symmetric response for pair: "
-                                + checkedPair.toShortString() + ". Failing.");
+            logger.info("Received a non-symmetric response for pair: " + checkedPair.toShortString() + ". Failing.");
             checkedPair.setStateFailed();
         }
         else
@@ -410,9 +398,7 @@ class ConnectivityCheckClient
                 Future<?> future = timerFutures.get(streamName);
                 if (future == null)
                 {
-                    logger.info("CheckList will failed in a few seconds if no" +
-                            "succeeded checks come");
-
+                    logger.info("CheckList will failed in a few seconds if no succeeded checks come");
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run()
                         {
@@ -420,9 +406,7 @@ class ConnectivityCheckClient
                                 Thread.sleep(5000l);
                                 if (checkList.getState() != CheckListState.COMPLETED)
                                 {
-                                    logger.info("CheckList for stream " +
-                                        streamName + " FAILED");
-
+                                    logger.info("CheckList for stream " + streamName + " FAILED");
                                     checkList.setState(CheckListState.FAILED);
                                     parentAgent.checkListStatesUpdated();
                                 }
@@ -814,11 +798,9 @@ class ConnectivityCheckClient
     }
 
     /**
-     * The thread that actually sends the checks for a particular check list
-     * in the pace defined in RFC 5245.
+     * The thread that actually sends the checks for a particular check list in the pace defined in RFC 5245.
      */
-    private class PaceMaker
-        implements Runnable
+    private class PaceMaker implements Runnable
     {
         /**
          * The {@link CheckList} that this <tt>PaceMaker</tt> will be running
@@ -900,13 +882,9 @@ class ConnectivityCheckClient
                          */
                         synchronized (pairToCheck)
                         {
-                            TransactionID transactionID
-                                = startCheckForPair(pairToCheck);
-
-                            if (transactionID == null)
-                            {
-                                logger.info("Pair failed: {}",
-                                            pairToCheck.toShortString());
+                            TransactionID transactionID = startCheckForPair(pairToCheck);
+                            if (transactionID == null) {
+                                logger.info("Pair failed: {}", pairToCheck.toShortString());
                                 pairToCheck.setStateFailed();
                             }
                             else

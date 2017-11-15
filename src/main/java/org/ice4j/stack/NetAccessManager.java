@@ -21,11 +21,12 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
 import org.ice4j.socket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages <tt>Connector</tt>s and <tt>MessageProcessor</tt> pooling. This class
@@ -38,14 +39,12 @@ import org.ice4j.socket.*;
  * @author Aakash Garg
  * @author Boris Grozev
  */
-class NetAccessManager
-    implements ErrorHandler
+class NetAccessManager implements ErrorHandler
 {
     /**
      * Our class logger
      */
-    private static final Logger logger
-        = Logger.getLogger(NetAccessManager.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(NetAccessManager.class);
 
     /**
      * All <tt>Connectors</tt> currently in use with UDP. The table maps a local
@@ -59,8 +58,7 @@ class NetAccessManager
      * because InetSocketAddress does not take into account transport).
      */
     private final Map<TransportAddress, Map<TransportAddress, Connector>>
-        udpConnectors
-            = new HashMap<>();
+        udpConnectors = new HashMap<>();
 
     /**
      * All <tt>Connectors</tt> currently in use with TCP. The table maps a local
@@ -74,8 +72,7 @@ class NetAccessManager
      * because InetSocketAddress does not take into account transport).
      */
     private final Map<TransportAddress, Map<TransportAddress, Connector>>
-        tcpConnectors
-            = new HashMap<>();
+        tcpConnectors = new HashMap<>();
 
     /**
      * A synchronized FIFO where incoming messages are stocked for processing.
@@ -83,9 +80,9 @@ class NetAccessManager
     private final BlockingQueue<RawMessage> messageQueue = new LinkedBlockingQueue<>();
 
     /**
-     * A thread pool of message processors.
+     * A thread executor for message processors.
      */
-    private final Vector<MessageProcessor> messageProcessors = new Vector<>();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     /**
      * The instance that should be notified when an incoming message has been
@@ -104,11 +101,6 @@ class NetAccessManager
      * has been processed and ready for delivery
      */
     private final ChannelDataEventHandler channelDataEventHandler;
-
-    /**
-     * The size of the thread pool to start with.
-     */
-    private int initialThreadPoolSize = StunStack.DEFAULT_THREAD_POOL_SIZE;
 
     /**
      * The <tt>StunStack</tt> which has created this instance, is its owner and
@@ -150,7 +142,10 @@ class NetAccessManager
         this.messageEventHandler = stunStack;
         this.peerUdpMessageEventHandler = peerUdpMessageEventHandler;
         this.channelDataEventHandler = channelDataEventHandler;
-        initThreadPool();
+        // start off with 3 message processors
+        for (int i = 0; i < 3; i++) {
+            executor.submit(new MessageProcessor(this));
+        }
     }
 
     /**
@@ -231,10 +226,7 @@ class NetAccessManager
         /**
          * apart from logging, i am not sure what else we could do here.
          */
-        logger.log( Level.FINE,
-                        "The following error occurred with "
-                        +"an incoming message:",
-                        error);
+        logger.warn("The following error occurred with an incoming message: {}", message, error);
     }
 
     /**
@@ -251,35 +243,28 @@ class NetAccessManager
     {
         if (callingThread instanceof Connector)
         {
-            Connector connector = (Connector)callingThread;
-
+            Connector connector = (Connector) callingThread;
             //make sure nothing's left and notify user
-            removeSocket(connector.getListenAddress(),
-                         connector.getRemoteAddress());
+            removeSocket(connector.getListenAddress(), connector.getRemoteAddress());
             if (error != null)
             {
-                logger.log(Level.WARNING, "Removing connector:" + connector,
-                           error);
-            } else if (logger.isLoggable(Level.FINE))
+                logger.warn("Removing connector: {}", connector, error);
+            } else if (logger.isDebugEnabled())
             {
-                logger.fine("Removing connector " + connector);
+                logger.debug("Removing connector {}", connector);
             }
         }
         else if( callingThread instanceof MessageProcessor )
         {
-            MessageProcessor mp = (MessageProcessor)callingThread;
-            logger.log( Level.WARNING, "A message processor has unexpectedly "
-                    + "stopped. AP:" + mp, error);
-
+            MessageProcessor mp = (MessageProcessor) callingThread;
+            logger.warn("A message processor has unexpectedly stopped. AP: {}", mp, error);
             //make sure the guy's dead.
             mp.stop();
-            messageProcessors.remove(mp);
-
+            // create a new message processor
             mp = new MessageProcessor(this);
-            messageProcessors.add(mp);
-            mp.start();
-            logger.fine("A message processor has been relaunched because "
-                        + "of an error.");
+            Future<?> future = executor.submit(mp);
+            mp.setFutureRef(future);
+            logger.debug("A message processor has been relaunched because of an error");
         }
     }
 
@@ -411,11 +396,7 @@ class NetAccessManager
     @SuppressWarnings("unchecked")
     public void stop()
     {
-        for(MessageProcessor mp : messageProcessors)
-        {
-            mp.stop();
-        }
-
+        executor.shutdownNow();
         for (Object o : new Object[]{udpConnectors, tcpConnectors})
         {
             Map<TransportAddress, Map<TransportAddress, Connector>>
@@ -474,83 +455,6 @@ class NetAccessManager
         }
 
         return connector;
-    }
-
-    //---------------thread pool implementation --------------------------------
-    /**
-     * Adjusts the number of concurrently running MessageProcessors.
-     * If the number is smaller or bigger than the number of threads
-     * currently running, then message processors are created/deleted so that
-     * their count matches the new value.
-     *
-     * @param threadPoolSize the number of MessageProcessors that should be
-     * running concurrently
-     * @throws IllegalArgumentException if threadPoolSize is not a valid size.
-     */
-    void setThreadPoolSize(int threadPoolSize)
-        throws IllegalArgumentException
-    {
-        if(threadPoolSize < 1)
-        {
-            throw new IllegalArgumentException(
-                    threadPoolSize + " is not a legal thread pool size value.");
-        }
-
-        //if we are not running just record the size
-        //so that we could init later.
-        if(messageProcessors.size() < threadPoolSize)
-        {
-            //create additional processors
-            fillUpThreadPool(threadPoolSize);
-        }
-        else
-        {
-            //delete extra processors
-            shrinkThreadPool(threadPoolSize);
-        }
-    }
-
-    /**
-     * Fills the thread pool with the initially specified number of message
-     * processors.
-     */
-    private void initThreadPool()
-    {
-        //create additional processors
-        fillUpThreadPool(initialThreadPoolSize);
-    }
-
-    /**
-     * Starts all message processors
-     *
-     * @param newSize the new thread pool size
-     */
-    private void fillUpThreadPool(int newSize)
-    {
-        //make sure we don't resize more than once
-        messageProcessors.ensureCapacity(newSize);
-
-        for (int i = messageProcessors.size(); i < newSize; i++)
-        {
-            MessageProcessor mp = new MessageProcessor(this);
-
-            messageProcessors.add(mp);
-            mp.start();
-        }
-    }
-
-    /**
-     * Stops message processors until processors count equals newSize.
-     *
-     * @param newSize the new thread pool size
-     */
-    private void shrinkThreadPool(int newSize)
-    {
-        while(messageProcessors.size() > newSize)
-        {
-            MessageProcessor mp = messageProcessors.remove(0);
-            mp.stop();
-        }
     }
 
     //--------------- SENDING MESSAGES -----------------------------------------
@@ -623,8 +527,7 @@ class NetAccessManager
         Connector ap = getConnector(srcAddr, remoteAddr);
         if (ap == null)
         {
-            throw new IllegalArgumentException(
-                    "No socket found for " + srcAddr + "->" + remoteAddr);
+            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
         }
 
         ap.sendMessage(bytes, remoteAddr);

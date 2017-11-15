@@ -17,13 +17,19 @@
  */
 package org.ice4j.ice;
 
-import org.ice4j.*;
-import org.ice4j.socket.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.net.DatagramPacket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.HashSet;
+import java.util.Set;
 
-import java.beans.*;
-import java.net.*;
-import java.util.*;
-import org.ice4j.util.*; //Disambiguation
+import org.ice4j.TransportAddress;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.MergingDatagramSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extends {@link MergingDatagramSocket} with functionality specific to
@@ -33,13 +39,6 @@ public class ComponentSocket
     extends MergingDatagramSocket
     implements PropertyChangeListener
 {
-    /**
-     * The {@link Logger} used by the {@link MergingDatagramSocket} class and
-     * its instances for logging output.
-     */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger
-                (MergingDatagramSocket.class.getName());
 
     /**
      * Controls access to {@link #authorizedAddresses}.
@@ -71,19 +70,17 @@ public class ComponentSocket
     /**
      * The {@link Logger} used by {@link MergingDatagramSocket} instances.
      */
-    private final Logger logger;
+    private final static Logger logger = LoggerFactory.getLogger(ComponentSocket.class);
 
     /**
      * Initializes a new {@link MergingDatagramSocket} instance.
      * @throws SocketException
      */
-    ComponentSocket(Component component, Logger levelDelegate)
+    ComponentSocket(Component component)
         throws SocketException
     {
-        super(levelDelegate);
-
+        super();
         this.component = component;
-        this.logger = new Logger(classLogger, levelDelegate);
         component.getParentStream().addPairChangeListener(this);
     }
 

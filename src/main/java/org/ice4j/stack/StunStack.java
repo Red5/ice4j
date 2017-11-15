@@ -17,18 +17,39 @@
  */
 package org.ice4j.stack;
 
-import java.io.*;
-import java.net.*;
-import java.security.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import javax.crypto.*;
+import javax.crypto.Mac;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.security.*;
-import org.ice4j.socket.*;
+import org.ice4j.ResponseCollector;
+import org.ice4j.StackProperties;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.MessageIntegrityAttribute;
+import org.ice4j.attribute.OptionalAttribute;
+import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.message.ChannelData;
+import org.ice4j.message.Indication;
+import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.message.Response;
+import org.ice4j.security.CredentialsManager;
+import org.ice4j.security.LongTermCredential;
+import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,23 +66,17 @@ public class StunStack
 {
 
     /**
-     * The number of threads to split our flow in.
-     */
-    public static final int DEFAULT_THREAD_POOL_SIZE = 3;
-
-    /**
-     * The <tt>Logger</tt> used by the <tt>StunStack</tt> class and its
-     * instances for logging output.
+     * The <tt>Logger</tt> used by the <tt>StunStack</tt> class and its instances for logging output.
      */
     private static final Logger logger = LoggerFactory.getLogger(StunStack.class);
 
     /**
-     * The indicator which determines whether
-     * <code>Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM)</code>
+     * The indicator which determines whether <code>Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM)</code>
      * has been called.
      *
      * @see #StunStack()
      */
+    @SuppressWarnings("unused")
     private static Mac mac;
 
     /**
@@ -73,30 +88,23 @@ public class StunStack
      * The {@link CredentialsManager} that we are using for retrieving
      * passwords.
      */
-    private final CredentialsManager credentialsManager
-        = new CredentialsManager();
+    private final CredentialsManager credentialsManager = new CredentialsManager();
 
     /**
      * Stores active client transactions mapped against TransactionID-s.
      */
-    private final Hashtable<TransactionID, StunClientTransaction>
-        clientTransactions
-            = new Hashtable<>();
+    private final ConcurrentMap<TransactionID, StunClientTransaction> clientTransactions = new ConcurrentHashMap<>();
 
     /**
-     * The <tt>Thread</tt> which expires the <tt>StunServerTransaction</tt>s of
-     * this <tt>StunStack</tt> and removes them from
+     * The <tt>Thread</tt> which expires the <tt>StunServerTransaction</tt>s of this <tt>StunStack</tt> and removes them from
      * {@link #serverTransactions}.
      */
     private Thread serverTransactionExpireThread;
 
     /**
-     * Currently open server transactions. The vector contains transaction ids
-     * for transactions corresponding to all non-answered received requests.
+     * Currently open server transactions. The vector contains transaction ids for transactions corresponding to all non-answered received requests.
      */
-    private final Hashtable<TransactionID, StunServerTransaction>
-        serverTransactions
-            = new Hashtable<>();
+    private final ConcurrentMap<TransactionID, StunServerTransaction> serverTransactions = new ConcurrentHashMap<>();
 
     /**
      * A dispatcher for incoming requests event;
@@ -108,16 +116,23 @@ public class StunStack
      */
     private static PacketLogger packetLogger;
 
-    /**
-     * Sets the number of Message processors running in the same time.
-     *
-     * @param threadPoolSize the number of message process threads to run.
-     * @throws IllegalArgumentException if threadPoolSize is not a valid size.
-     */
-    public void setThreadPoolSize(int threadPoolSize)
-        throws IllegalArgumentException
-    {
-        netAccessManager.setThreadPoolSize(threadPoolSize);
+    static {
+        /*
+         * The Mac instantiation used in MessageIntegrityAttribute could take
+         * several hundred milliseconds so we don't want it instantiated only
+         * after we get a response because the delay may cause the transaction
+         * to fail.
+         */
+        try
+        {
+            mac
+                = Mac.getInstance(
+                        MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
+        }
+        catch (NoSuchAlgorithmException nsaex)
+        {
+            nsaex.printStackTrace();
+        }
     }
 
     /**
@@ -175,59 +190,51 @@ public class StunStack
         netAccessManager.removeSocket(localAddr, remoteAddr);
     }
 
-    /**
-     * Returns the transaction with the specified <tt>transactionID</tt> or
-     * <tt>null</tt> if no such transaction exists.
-     *
-     * @param transactionID the ID of the transaction we are looking for.
-     *
-     * @return the {@link StunClientTransaction} we are looking for.
-     */
-    protected StunClientTransaction getClientTransaction(byte[] transactionID)
-    {
-        synchronized (clientTransactions)
-        {
-            Collection<StunClientTransaction> cTrans
-                = clientTransactions.values();
-
-            for (StunClientTransaction tran : cTrans)
-            {
-                if (tran.getTransactionID().equals(transactionID))
-                    return tran;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns the transaction with the specified <tt>transactionID</tt> or
-     * <tt>null</tt> if no such transaction exists.
-     *
-     * @param transactionID the ID of the transaction we are looking for.
-     *
-     * @return the {@link StunClientTransaction} we are looking for.
-     */
-    protected StunServerTransaction getServerTransaction(byte[] transactionID)
-    {
-        synchronized (serverTransactions)
-        {
-            long now = System.currentTimeMillis();
-
-            for (Iterator<StunServerTransaction> i
-                        = serverTransactions.values().iterator();
-                    i.hasNext();)
-            {
-                StunServerTransaction serverTransaction = i.next();
-
-                if (serverTransaction.isExpired(now))
-                    i.remove();
-                else if (serverTransaction.getTransactionID().equals(
-                        transactionID))
-                    return serverTransaction;
-            }
-        }
-        return null;
-    }
+//    /**
+//     * Returns the transaction with the specified <tt>transactionID</tt> or
+//     * <tt>null</tt> if no such transaction exists.
+//     *
+//     * @param transactionID the ID of the transaction we are looking for.
+//     *
+//     * @return the {@link StunClientTransaction} we are looking for.
+//     */
+//    protected StunClientTransaction getClientTransaction(byte[] transactionID)
+//    {
+//        for (StunClientTransaction tran : clientTransactions.values())
+//        {
+//            if (tran.getTransactionID().equals(transactionID)) {
+//                return tran;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    /**
+//     * Returns the transaction with the specified <tt>transactionID</tt> or
+//     * <tt>null</tt> if no such transaction exists.
+//     *
+//     * @param transactionID the ID of the transaction we are looking for.
+//     *
+//     * @return the {@link StunClientTransaction} we are looking for.
+//     */
+//    protected StunServerTransaction getServerTransaction(byte[] transactionID)
+//    {
+//        long now = System.currentTimeMillis();
+//
+//        for (Iterator<StunServerTransaction> i
+//                    = serverTransactions.values().iterator();
+//                i.hasNext();)
+//        {
+//            StunServerTransaction serverTransaction = i.next();
+//
+//            if (serverTransaction.isExpired(now))
+//                i.remove();
+//            else if (serverTransaction.getTransactionID().equals(
+//                    transactionID))
+//                return serverTransaction;
+//        }
+//        return null;
+//    }
 
     /**
      * Returns the transaction with the specified <tt>transactionID</tt> or
@@ -240,18 +247,14 @@ public class StunStack
     protected StunServerTransaction getServerTransaction(
             TransactionID transactionID)
     {
-        StunServerTransaction serverTransaction;
-
-        synchronized (serverTransactions)
-        {
-            serverTransaction = serverTransactions.get(transactionID);
-        }
+        StunServerTransaction serverTransaction = serverTransactions.get(transactionID);
         /*
          * If a StunServerTransaction is expired, do not return it. It will be
          * removed from serverTransactions soon.
          */
-        if ((serverTransaction != null) && serverTransaction.isExpired())
+        if (serverTransaction != null && serverTransaction.isExpired()) {
             serverTransaction = null;
+        }
         return serverTransaction;
     }
 
@@ -289,82 +292,33 @@ public class StunStack
     private void cancelTransactionsForAddress(TransportAddress localAddr,
                                               TransportAddress remoteAddr)
     {
-        List<StunClientTransaction> clientTransactionsToCancel = null;
 
-        synchronized (clientTransactions)
+        for (StunClientTransaction tran : clientTransactions.values()) 
         {
-            Iterator<StunClientTransaction> clientTransactionsIter
-                = clientTransactions.values().iterator();
-
-            while (clientTransactionsIter.hasNext())
+            if (tran.getLocalAddress().equals(localAddr)
+                    && (remoteAddr == null
+                            || remoteAddr.equals(tran.getRemoteAddress())))
             {
-                StunClientTransaction tran = clientTransactionsIter.next();
-
-                if (tran.getLocalAddress().equals(localAddr)
-                        && (remoteAddr == null
-                                || remoteAddr.equals(tran.getRemoteAddress())))
-                {
-                    clientTransactionsIter.remove();
-
-                    /*
-                     * Invoke StunClientTransaction.cancel() outside the
-                     * clientTransactions-synchronized block in order to avoid a
-                     * deadlock. Reported by Carl Hasselskog.
-                     */
-                    if (clientTransactionsToCancel == null)
-                    {
-                        clientTransactionsToCancel = new LinkedList<>();
-                    }
-                    clientTransactionsToCancel.add(tran);
-                }
-            }
-        }
-        /*
-         * Invoke StunClientTransaction.cancel() outside the
-         * clientTransactions-synchronized block in order to avoid a deadlock.
-         * Reported by Carl Hasselskog.
-         */
-        if (clientTransactionsToCancel != null)
-        {
-            for (StunClientTransaction tran : clientTransactionsToCancel)
+                clientTransactions.remove(tran);
                 tran.cancel();
-        }
-
-        List<StunServerTransaction> serverTransactionsToExpire = null;
-
-        synchronized (serverTransactions)
-        {
-            Iterator<StunServerTransaction> serverTransactionsIter
-                = serverTransactions.values().iterator();
-
-            while (serverTransactionsIter.hasNext())
-            {
-                StunServerTransaction tran = serverTransactionsIter.next();
-                TransportAddress listenAddr = tran.getLocalListeningAddress();
-                TransportAddress sendingAddr = tran.getSendingAddress();
-
-                if (listenAddr.equals(localAddr)
-                        || (sendingAddr != null
-                                && sendingAddr.equals(localAddr)))
-                {
-                    if (remoteAddr == null
-                          || remoteAddr.equals(tran.getRequestSourceAddress()))
-                    {
-                        serverTransactionsIter.remove();
-
-                        if (serverTransactionsToExpire == null)
-                        {
-                            serverTransactionsToExpire = new LinkedList<>();
-                        }
-                        serverTransactionsToExpire.add(tran);
-                    }
-                }
             }
         }
-        if (serverTransactionsToExpire != null)
+        for (StunServerTransaction tran : serverTransactions.values()) 
         {
-            for (StunServerTransaction tran : serverTransactionsToExpire)
-                tran.expire();
+            TransportAddress listenAddr = tran.getLocalListeningAddress();
+            TransportAddress sendingAddr = tran.getSendingAddress();
+
+            if (listenAddr.equals(localAddr)
+                    || (sendingAddr != null
+                            && sendingAddr.equals(localAddr)))
+            {
+                if (remoteAddr == null
+                      || remoteAddr.equals(tran.getRequestSourceAddress()))
+                {
+                    serverTransactions.remove(tran);
+                    tran.expire();
+                }
+            }
         }
     }
 
@@ -382,28 +336,6 @@ public class StunStack
     public StunStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler,
             ChannelDataEventHandler channelDataEventHandler)
     {
-        /*
-         * The Mac instantiation used in MessageIntegrityAttribute could take
-         * several hundred milliseconds so we don't want it instantiated only
-         * after we get a response because the delay may cause the transaction
-         * to fail.
-         */
-        synchronized (StunStack.class)
-        {
-            if (mac == null)
-            {
-                try
-                {
-                    mac
-                        = Mac.getInstance(
-                                MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
-                }
-                catch (NoSuchAlgorithmException nsaex)
-                {
-                    nsaex.printStackTrace();
-                }
-            }
-        }
         netAccessManager =
             new NetAccessManager(this, peerUdpMessageEventHandler,
                 channelDataEventHandler);
@@ -814,7 +746,7 @@ public class StunStack
      */
     public void addRequestListener(RequestListener requestListener)
     {
-        this.eventDispatcher.addRequestListener( requestListener );
+        eventDispatcher.addRequestListener( requestListener );
     }
 
     /**
@@ -843,7 +775,7 @@ public class StunStack
      */
     public void removeRequestListener(RequestListener listener)
     {
-        this.eventDispatcher.removeRequestListener(listener);
+        eventDispatcher.removeRequestListener(listener);
     }
 
     /**
@@ -858,7 +790,7 @@ public class StunStack
     public void addRequestListener( TransportAddress localAddress,
                                     RequestListener  listener)
     {
-            eventDispatcher.addRequestListener(localAddress, listener);
+        eventDispatcher.addRequestListener(localAddress, listener);
     }
 
     /**
@@ -870,10 +802,7 @@ public class StunStack
      */
     void removeClientTransaction(StunClientTransaction tran)
     {
-        synchronized (clientTransactions)
-        {
-            clientTransactions.remove(tran.getTransactionID());
-        }
+        clientTransactions.remove(tran.getTransactionID());
     }
 
     /**
@@ -884,10 +813,7 @@ public class StunStack
      */
     void removeServerTransaction(StunServerTransaction tran)
     {
-        synchronized (serverTransactions)
-        {
-            serverTransactions.remove(tran.getTransactionID());
-        }
+        serverTransactions.remove(tran.getTransactionID());
     }
 
     /**
@@ -899,36 +825,41 @@ public class StunStack
     public void handleMessageEvent(StunMessageEvent ev)
     {
         Message msg = ev.getMessage();
-
-        if(logger.isTraceEnabled())
+        if (logger.isTraceEnabled())
         {
-            logger.trace(
-                    "Received a message on {} of type: {}", 
-                    ev.getLocalAddress(), msg.getName());
+            logger.trace("Received a message on {} of type: {}", ev.getLocalAddress(), msg.getName());
         }
-
         //request
-        if(msg instanceof Request)
+        if (msg instanceof Request)
         {
             logger.trace("parsing request");
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
-            logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());
-            if (ua.getUsername().length != ua.getDataLength())
+            if (ua != null)
             {
-                logger.warn("Invalid username size, rejecting request");
-                return;
+                logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());
+                if (ua.getUsername().length != ua.getDataLength())
+                {
+                    logger.warn("Invalid username size, rejecting request");
+                    return;
+                }
+                logger.warn("Username: {}", ua.getUsername());
             }
-
-            TransactionID serverTid = ev.getTransactionID();
-            StunServerTransaction sTran  = getServerTransaction(serverTid);
-
-            if(sTran != null)
+            else
             {
+                logger.debug("Username was null");
+            }
+            TransactionID serverTid = ev.getTransactionID();
+            // set the username attribute length
+            serverTid.setUaLength(ua.getDataLength());
+            logger.warn("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
+            StunServerTransaction sTran  = getServerTransaction(serverTid);
+            if (sTran != null)
+            {
+                logger.warn("Stored server transaction id: {} rfc3489: {}", sTran.getTransactionID().toString(), sTran.getTransactionID().isRFC3489Compatible());
                 //requests from this transaction have already been seen
                 //retransmit the response if there was any
                 logger.trace("found an existing transaction");
-
                 try
                 {
                     sTran.retransmitResponse();
@@ -968,11 +899,8 @@ public class StunStack
                     logger.warn("STUN transaction thread start failed", t);
                     return;
                 }
-                synchronized (serverTransactions)
-                {
-                    serverTransactions.put(serverTid, sTran);
-                    maybeStartServerTransactionExpireThread();
-                }
+                serverTransactions.put(serverTid, sTran);
+                maybeStartServerTransactionExpireThread();
             }
 
             //validate attributes that need validation.
@@ -984,6 +912,8 @@ public class StunStack
             {
                 //validation failed. log get lost.
                 logger.warn("Failed to validate msg: {}", ev, exc);
+                // remove failed transaction to account for Edge
+                removeServerTransaction(sTran);
                 return;
             }
 
@@ -993,11 +923,8 @@ public class StunStack
             }
             catch (Throwable t)
             {
-                Response error;
-
                 logger.warn("Received an invalid request.", t);
                 Throwable cause = t.getCause();
-
                 if(((t instanceof StunException)
                             && ((StunException) t).getID()
                                     == StunException
@@ -1011,7 +938,7 @@ public class StunStack
                     // get another TRANSACTION_ALREADY_ANSWERED
                     return;
                 }
-
+                Response error;
                 if(t instanceof IllegalArgumentException)
                 {
                     error
@@ -1045,10 +972,18 @@ public class StunStack
         }
         //response
         else if(msg instanceof Response)
-        {
+        {            
+            logger.trace("parsing response");
             TransactionID tid = ev.getTransactionID();
+            // skip badly sized requests
+            UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
+            if (ua != null)
+            {
+                logger.debug("Username: {}", ua.getUsername());
+                // set the username attribute length
+                tid.setUaLength(ua.getDataLength());
+            }
             StunClientTransaction tran = clientTransactions.remove(tid);
-
             if(tran != null)
             {
                 tran.handleResponse(ev);
@@ -1087,36 +1022,16 @@ public class StunStack
     public void shutDown()
     {
         eventDispatcher.removeAllListeners();
-
         // clientTransactions
-        Collection<StunClientTransaction> clientTransactionsToCancel;
-
-        synchronized (clientTransactions)
-        {
-            clientTransactionsToCancel
-                = new ArrayList<>(clientTransactions.values());
-            clientTransactions.clear();
-        }
-        /*
-         * Invoke StunClientTransaction.cancel() outside the
-         * clientTransactions-synchronized block in order to avoid a deadlock.
-         * Reported by Carl Hasselskog.
-         */
-        for (StunClientTransaction tran : clientTransactionsToCancel)
+        for (StunClientTransaction tran : clientTransactions.values()) {
             tran.cancel();
-
-        // serverTransactions
-        Collection<StunServerTransaction> serverTransactionsToExpire;
-
-        synchronized (serverTransactions)
-        {
-            serverTransactionsToExpire
-                = new ArrayList<>(serverTransactions.values());
-            serverTransactions.clear();
         }
-        for (StunServerTransaction tran : serverTransactionsToExpire)
+        clientTransactions.clear();
+        // serverTransactions
+        for (StunServerTransaction tran : serverTransactions.values()) {
             tran.expire();
-
+        }
+        serverTransactions.clear();
         netAccessManager.stop();
     }
 
@@ -1266,8 +1181,7 @@ public class StunStack
     {
         if(logger.isDebugEnabled())
         {
-            logger.debug("validateMessageIntegrity username: {} short term: {}", username, shortTermCredentialMechanism);
-            logger.debug("MI attr data length: {} hmac content: {}", msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
+            logger.debug("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
             logger.debug("RawMessage: {}\n{}", message.getMessageLength(), toHexString(message.getBytes()));
 
         }
@@ -1275,10 +1189,7 @@ public class StunStack
                 || (username.length() < 1)
                 || (shortTermCredentialMechanism && !username.contains(":")))
         {
-            if(logger.isDebugEnabled())
-            {
-                logger.debug("Received a message with an improperly formatted username");
-            }
+            logger.debug("Received a message with an improperly formatted username");
             return false;
         }
         String[] usernameParts = username.split(":");
@@ -1290,19 +1201,16 @@ public class StunStack
         byte[] key = getCredentialsManager().getLocalKey(username);
         if (key == null)
         {
+            logger.warn("Local key was not found for {}", username);
             return false;
         }
-        logger.debug("Local key: {}", toHexString(key));
-        logger.debug("Remote key: {}", toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
+        logger.debug("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
 
         /*
-         * Now check whether the SHA1 matches. Using
-         * MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the
-         * RawMessage will be incorrect if there are other Attributes after the
-         * MessageIntegrityAttribute because the value of the
-         * MessageIntegrityAttribute is calculated on a STUN "Message Length"
-         * upto and including the MESSAGE-INTEGRITY and excluding any Attributes
-         * after it.
+         * Now check whether the SHA1 matches. Using MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the
+         * RawMessage will be incorrect if there are other Attributes after the MessageIntegrityAttribute because the value of the
+         * MessageIntegrityAttribute is calculated on a STUN "Message Length" up to and including the MESSAGE-INTEGRITY and excluding
+         * any Attributes after it.
          */
         byte[] binMsg = new byte[msgInt.getLocationInMessage()];
 
@@ -1318,7 +1226,6 @@ public class StunStack
         binMsg[3] = (byte) (messageLength & 0xFF);
 
         byte[] expectedMsgIntHmacSha1Content;
-
         try
         {
             expectedMsgIntHmacSha1Content
@@ -1337,19 +1244,10 @@ public class StunStack
                 expectedMsgIntHmacSha1Content,
                 msgIntHmacSha1Content))
         {
-            if(logger.isDebugEnabled())
-            {
-                logger.debug("Received a message with a wrong "
-                            + "MESSAGE-INTEGRITY signature expected: "
-                            + toHexString(expectedMsgIntHmacSha1Content)
-                            + ", received: "
-                            + toHexString(msgIntHmacSha1Content));
-            }
+            logger.warn("Received a message with a wrong MESSAGE-INTEGRITY signature expected:\n{}\nreceived:\n{}", toHexString(expectedMsgIntHmacSha1Content), toHexString(msgIntHmacSha1Content));
             return false;
         }
-
-        if (logger.isTraceEnabled())
-            logger.trace("Successfully verified msg integrity");
+        logger.trace("Successfully verified msg integrity");
         return true;
     }
 
@@ -1449,39 +1347,36 @@ public class StunStack
      */
     private void maybeStartServerTransactionExpireThread()
     {
-        synchronized (serverTransactions)
+        if (!serverTransactions.isEmpty()
+                && (serverTransactionExpireThread == null))
         {
-            if (!serverTransactions.isEmpty()
-                    && (serverTransactionExpireThread == null))
-            {
-                Thread t
-                    = new Thread()
+            Thread t
+                = new Thread()
+                        {
+                            @Override
+                            public void run()
                             {
-                                @Override
-                                public void run()
-                                {
-                                    runInServerTransactionExpireThread();
-                                }
-                            };
+                                runInServerTransactionExpireThread();
+                            }
+                        };
 
-                t.setDaemon(true);
-                t.setName(
-                        getClass().getName()
-                            + ".serverTransactionExpireThread");
+            t.setDaemon(true);
+            t.setName(
+                    getClass().getName()
+                        + ".serverTransactionExpireThread");
 
-                boolean started = false;
+            boolean started = false;
 
-                serverTransactionExpireThread = t;
-                try
-                {
-                    t.start();
-                    started = true;
-                }
-                finally
-                {
-                    if (!started && (serverTransactionExpireThread == t))
-                        serverTransactionExpireThread = null;
-                }
+            serverTransactionExpireThread = t;
+            try
+            {
+                t.start();
+                started = true;
+            }
+            finally
+            {
+                if (!started && (serverTransactionExpireThread == t))
+                    serverTransactionExpireThread = null;
             }
         }
     }
@@ -1499,57 +1394,54 @@ public class StunStack
 
             do
             {
-                synchronized (serverTransactions)
+                try
                 {
-                    try
-                    {
-                        serverTransactions.wait(StunServerTransaction.LIFETIME);
-                    }
-                    catch (InterruptedException ie)
-                    {
-                    }
+                    Thread.sleep(StunServerTransaction.LIFETIME);
+                }
+                catch (InterruptedException ie)
+                {
+                }
 
-                    /*
-                     * Is the current Thread still designated to expire the
-                     * StunServerTransactions of this StunStack?
-                     */
-                    if (Thread.currentThread() != serverTransactionExpireThread)
+                /*
+                 * Is the current Thread still designated to expire the
+                 * StunServerTransactions of this StunStack?
+                 */
+                if (Thread.currentThread() != serverTransactionExpireThread)
+                    break;
+
+                long now = System.currentTimeMillis();
+
+                /*
+                 * Has the current Thread been idle long enough to merit
+                 * disposing of it?
+                 */
+                if (serverTransactions.isEmpty())
+                {
+                    if (idleStartTime == -1)
+                        idleStartTime = now;
+                    else if (now - idleStartTime > 60 * 1000)
                         break;
+                }
+                else
+                {
+                    // Expire the StunServerTransactions of this StunStack.
 
-                    long now = System.currentTimeMillis();
+                    idleStartTime = -1;
 
-                    /*
-                     * Has the current Thread been idle long enough to merit
-                     * disposing of it?
-                     */
-                    if (serverTransactions.isEmpty())
+                    for (Iterator<StunServerTransaction> i
+                                = serverTransactions.values().iterator();
+                            i.hasNext();)
                     {
-                        if (idleStartTime == -1)
-                            idleStartTime = now;
-                        else if (now - idleStartTime > 60 * 1000)
-                            break;
-                    }
-                    else
-                    {
-                        // Expire the StunServerTransactions of this StunStack.
+                        StunServerTransaction serverTransaction = i.next();
 
-                        idleStartTime = -1;
-
-                        for (Iterator<StunServerTransaction> i
-                                    = serverTransactions.values().iterator();
-                                i.hasNext();)
+                        if (serverTransaction == null)
                         {
-                            StunServerTransaction serverTransaction = i.next();
-
-                            if (serverTransaction == null)
-                            {
-                                i.remove();
-                            }
-                            else if (serverTransaction.isExpired(now))
-                            {
-                                i.remove();
-                                serverTransaction.expire();
-                            }
+                            i.remove();
+                        }
+                        else if (serverTransaction.isExpired(now))
+                        {
+                            i.remove();
+                            serverTransaction.expire();
                         }
                     }
                 }
@@ -1558,17 +1450,14 @@ public class StunStack
         }
         finally
         {
-            synchronized (serverTransactions)
-            {
-                if (serverTransactionExpireThread == Thread.currentThread())
-                    serverTransactionExpireThread = null;
-                /*
-                 * If serverTransactionExpireThread dies unexpectedly and yet it
-                 * is still necessary, resurrect it.
-                 */
-                if (serverTransactionExpireThread == null)
-                    maybeStartServerTransactionExpireThread();
-            }
+            if (serverTransactionExpireThread == Thread.currentThread())
+                serverTransactionExpireThread = null;
+            /*
+             * If serverTransactionExpireThread dies unexpectedly and yet it
+             * is still necessary, resurrect it.
+             */
+            if (serverTransactionExpireThread == null)
+                maybeStartServerTransactionExpireThread();
         }
     }
     

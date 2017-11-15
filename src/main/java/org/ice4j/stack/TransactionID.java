@@ -46,7 +46,7 @@ public class TransactionID
     /**
      * Any object that the application would like to correlate to a transaction.
      */
-    private Object applicationData = null;
+    private Object applicationData;
 
     /**
      * The object to use to generate the rightmost 8 bytes of the id.
@@ -58,6 +58,11 @@ public class TransactionID
      * A hashcode for hashtable storage.
      */
     private int hashCode = 0;
+
+    /**
+     * Username attribute length (used to separate Edge dupes)
+     */
+    private int uaLength = 0;
 
     /**
      * Limits access to <tt>TransactionID</tt> instantiation.
@@ -95,7 +100,7 @@ public class TransactionID
     {
         TransactionID tid = new TransactionID();
 
-        generateTransactionID(tid, 12);
+        generateTransactionID(tid, RFC5389_TRANSACTION_ID_LENGTH);
         return tid;
     }
 
@@ -113,7 +118,7 @@ public class TransactionID
     {
         TransactionID tid = new TransactionID(true);
 
-        generateTransactionID(tid, 16);
+        generateTransactionID(tid, RFC3489_TRANSACTION_ID_LENGTH);
         return tid;
     }
 
@@ -134,12 +139,6 @@ public class TransactionID
             tid.transactionID[i]   = (byte)((left  >> (i * 8)) & 0xFFL);
             tid.transactionID[i + b] = (byte)((right >> (i * 8)) & 0xFFL);
         }
-
-        //calculate hashcode for Hashtable storage.
-        tid.hashCode =   (tid.transactionID[3] << 24 & 0xFF000000)
-                       | (tid.transactionID[2] << 16 & 0x00FF0000)
-                       | (tid.transactionID[1] << 8  & 0x0000FF00)
-                       | (tid.transactionID[0]       & 0x000000FF);
     }
 
     /**
@@ -176,17 +175,10 @@ public class TransactionID
             return serTran.getTransactionID();
 
         //seems that the caller really wants a new ID
-        TransactionID tid = null;
-        tid = new TransactionID((transactionID.length == 16));
+        TransactionID tid = new TransactionID((transactionID.length == 16));
 
         System.arraycopy(transactionID, 0, tid.transactionID, 0,
                 tid.transactionID.length);
-
-        //calculate hashcode for Hashtable storage.
-        tid.hashCode =   (tid.transactionID[3] << 24 & 0xFF000000)
-                       | (tid.transactionID[2] << 16 & 0x00FF0000)
-                       | (tid.transactionID[1] << 8  & 0x0000FF00)
-                       | (tid.transactionID[0]       & 0x000000FF);
 
         return tid;
     }
@@ -224,9 +216,7 @@ public class TransactionID
         if(!(obj instanceof TransactionID))
             return false;
 
-        byte targetBytes[] = ((TransactionID)obj).transactionID;
-
-        return Arrays.equals(transactionID, targetBytes);
+        return Arrays.equals(transactionID, ((TransactionID)obj).transactionID);
     }
 
     /**
@@ -247,6 +237,15 @@ public class TransactionID
      */
     public int hashCode()
     {
+        //if (hashCode == 0) {
+            //calculate hashcode for Hashtable storage
+            hashCode =   (transactionID[3] << 24 & 0xFF000000)
+                       | (transactionID[2] << 16 & 0x00FF0000)
+                       | (transactionID[1] << 8  & 0x0000FF00)
+                       | (transactionID[0] & 0x000000FF);
+            // add ua length 
+            hashCode += uaLength;
+        //}
         return hashCode;
     }
 
@@ -309,5 +308,13 @@ public class TransactionID
     public Object getApplicationData()
     {
         return applicationData;
+    }
+
+    public int getUaLength() {
+        return uaLength;
+    }
+
+    public void setUaLength(int uaLength) {
+        this.uaLength = uaLength;
     }
 }

@@ -18,10 +18,11 @@
 package org.ice4j.stack;
 
 import java.util.concurrent.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class is used to parse and dispatch incoming messages in a multi-thread
@@ -29,14 +30,12 @@ import org.ice4j.message.*;
  *
  * @author Emil Ivov
  */
-class MessageProcessor
-    implements Runnable
+class MessageProcessor implements Runnable
 {
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(MessageProcessor.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(MessageProcessor.class);
 
     /**
      * The listener that will be collecting error notifications.
@@ -60,14 +59,9 @@ class MessageProcessor
     private final NetAccessManager netAccessManager;
 
     /**
-     * The flag that indicates whether we are still running.
+     * A reference to the future that we use to execute ourselves.
      */
-    private boolean running = false;
-
-    /**
-     * A reference to the thread that we use to execute ourselves.
-     */
-    private Thread runningThread = null;
+    private Future<?> future;
 
     /**
      * Creates a Message processor.
@@ -114,60 +108,43 @@ class MessageProcessor
      */
     public void run()
     {
-        //add an extra try/catch block that handles uncatched errors and helps
+        //add an extra try/catch block that handles uncaught errors and helps
         //avoid having dead threads in our pools.
         try
         {
             StunStack stunStack = netAccessManager.getStunStack();
 
-            while (running)
+            while (true)
             {
                 RawMessage rawMessage;
-
                 try
                 {
                     rawMessage = messageQueue.take();
                 }
                 catch (InterruptedException ex)
                 {
-                    if(isRunning())
-                        logger.log(Level.WARNING,
-                                "A net access point has gone useless: ", ex);
-                    //nothing to do here since we test whether we are running
-                    //just beneath ...
+                    if (logger.isDebugEnabled()) {
+                        logger.warn("A net access point has gone useless", ex);
+                    }
+                    //nothing to do here since we test whether we are running just beneath ...
                     rawMessage = null;
                 }
-
-                // were we asked to stop?
-                if (!isRunning())
-                    return;
                 //anything to parse?
-                if (rawMessage == null)
+                if (rawMessage == null) {
                     continue;
-
+                }
                 Message stunMessage = null;
                 try
                 {
-                    stunMessage
-                        = Message.decode(rawMessage.getBytes(),
-                                         (char) 0,
-                                         (char) rawMessage.getMessageLength());
+                    stunMessage = Message.decode(rawMessage.getBytes(), 0, rawMessage.getMessageLength());
                 }
                 catch (StunException ex)
                 {
-                    errorHandler.handleError(
-                            "Failed to decode a stun message!",
-                            ex);
-
+                    errorHandler.handleError("Failed to decode a stun message!", ex);
                     continue; //let this one go and for better luck next time.
                 }
-
-                logger.finest("Dispatching a StunMessageEvent.");
-
-                StunMessageEvent stunMessageEvent
-                    = new StunMessageEvent(stunStack, rawMessage,
-                            stunMessage);
-
+                logger.trace("Dispatching a StunMessageEvent");
+                StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, rawMessage, stunMessage);
                 messageEventHandler.handleMessageEvent(stunMessageEvent);
             }
         }
@@ -179,34 +156,14 @@ class MessageProcessor
     }
 
     /**
-     * Start the message processing thread.
-     */
-    void start()
-    {
-        this.running = true;
-
-        runningThread = new Thread(this, "Stun4J Message Processor");
-        runningThread.setDaemon(true);
-        runningThread.start();
-    }
-
-    /**
      * Shut down the message processor.
      */
     void stop()
     {
-        this.running = false;
-        runningThread.interrupt();
+        future.cancel(true);
     }
 
-    /**
-     * Determines whether the processor is still running;
-     *
-     * @return true if the processor is still authorized to run, and false
-     * otherwise.
-     */
-    boolean isRunning()
-    {
-        return running;
+    public void setFutureRef(Future<?> future) {
+        this.future = future;
     }
 }

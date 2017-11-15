@@ -17,21 +17,35 @@
  */
 package org.ice4j.ice;
 
-import java.beans.*;
-import java.io.*;
-import java.math.*;
-import java.net.*;
-import java.security.*;
-import java.util.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.net.BindException;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.logging.*;
 
-import org.ice4j.*;
-import org.ice4j.ice.harvest.*;
-import org.ice4j.stack.*;
-import org.ice4j.util.Logger; // Disambiguation.
+import org.ice4j.StackProperties;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.harvest.CandidateHarvester;
+import org.ice4j.ice.harvest.CandidateHarvesterSet;
+import org.ice4j.ice.harvest.HostCandidateHarvester;
+import org.ice4j.ice.harvest.MappingCandidateHarvester;
+import org.ice4j.ice.harvest.MappingCandidateHarvesters;
+import org.ice4j.ice.harvest.TrickleCallback;
+import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An <tt>Agent</tt> could be described as the main class (i.e. the chef
@@ -102,15 +116,6 @@ public class Agent
         = new PropertyChangeListener[0];
 
     /**
-     * The {@link Logger} used by the {@link Agent} class for logging output.
-     * Note that this shouldn't be used directly by instances of {@link Agent},
-     * because it doesn't take into account the per-instance log level.
-     * Instances should use {@link #logger} instead.
-     */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger(Agent.class.getName());
-
-    /**
      * The name of the {@link PropertyChangeEvent} that we use to deliver
      * events on changes in the state of ICE processing in this agent.
      */
@@ -121,8 +126,7 @@ public class Agent
      * The LinkedHashMap used to store the media streams
      * This map preserves the insertion order of the media streams.
      */
-    private final Map<String, IceMediaStream> mediaStreams
-        = new LinkedHashMap<>();
+    private final Map<String, IceMediaStream> mediaStreams = new LinkedHashMap<>();
 
     /**
      * The candidate harvester that we use to gather candidate on the local
@@ -251,7 +255,7 @@ public class Agent
     /**
      * The <tt>StunStack</tt> used by this <tt>Agent</tt>.
      */
-    private StunStack stunStack;
+    private final StunStack stunStack = new StunStack();
 
     /**
      * The future for the thread that is used to move from COMPLETED to 
@@ -306,46 +310,23 @@ public class Agent
     /**
      * The {@link Logger} used by {@link Agent} instances.
      */
-    private final Logger logger;
+    private final static Logger logger = LoggerFactory.getLogger(Agent.class);
 
     /**
      * Creates an empty <tt>Agent</tt> with no streams, and no address.
      */
     public Agent()
     {
-        this(Level.INFO, null);
+        this(null);
     }
 
     /**
      * Creates an empty <tt>Agent</tt> with no streams, and no address.
-     * @param ufragPrefix an optional prefix to the generated local ICE username
-     * fragment.
+     * 
+     * @param ufragPrefix an optional prefix to the generated local ICE usernamefragment.
      */
     public Agent(String ufragPrefix)
     {
-        this(Level.INFO, ufragPrefix);
-    }
-
-    /**
-     * Creates an empty <tt>Agent</tt> with no streams, and no address.
-     * @param loggingLevel the logging level to be used by the agent and all of
-     * its components.
-     */
-    public Agent(Level loggingLevel)
-    {
-        this(loggingLevel, null);
-    }
-
-    /**
-     * Creates an empty <tt>Agent</tt> with no streams, and no address.
-     * @param loggingLevel the logging level to be used by the agent and all of
-     * its components.
-     * @param ufragPrefix an optional prefix to the generated local ICE username
-     * fragment.
-     */
-    public Agent(Level loggingLevel, String ufragPrefix)
-    {
-        logger = new Logger(classLogger, loggingLevel);
         SecureRandom random = new SecureRandom();
 
         connCheckServer = new ConnectivityCheckServer(this);
@@ -378,10 +359,7 @@ public class Agent
             addCandidateHarvester(harvester);
         }
 
-        if (logger.isLoggable(Level.FINE))
-        {
-            logger.fine("Created a new Agent, ufrag=" + ufrag);
-        }
+        logger.debug("Created a new Agent, ufrag={}", ufrag);
     }
 
     /**
@@ -600,7 +578,7 @@ public class Agent
         else
         {
             if (hostHarvesters.isEmpty())
-                logger.warning("No host harvesters available!");
+                logger.warn("No host harvesters available!");
         }
 
         for (CandidateHarvester harvester : hostHarvesters)
@@ -609,7 +587,7 @@ public class Agent
         }
 
         if (component.getLocalCandidateCount() == 0)
-            logger.warning("Failed to gather any host candidates!");
+            logger.warn("Failed to gather any host candidates!");
 
         //in case we are not trickling, apply other harvesters here
         if (!isTrickling())
@@ -618,16 +596,7 @@ public class Agent
             harvesters.harvest(component);
         }
 
-        logger.fine("Candidate count in first harvest: " +
-            component.getLocalCandidateCount());
-
-        // Emil: Because of trickle, we now assign foundations, compute
-        // priorities, and eliminate redundancies while adding candidates on a
-        // component. This means that we no longer need to do it here, where we
-        // did before.
-        //computeFoundations(component);
-        //component.prioritizeCandidates();
-        //component.eliminateRedundantCandidates();
+        logger.debug("Candidate count in first harvest: {}", component.getLocalCandidateCount());
 
         //select the candidate to put in the media line.
         component.selectDefaultCandidate();
@@ -654,8 +623,7 @@ public class Agent
 
         if (harvestingStarted)
         {
-            logger.warning(
-                "Hmmm ... why are you harvesting twice? You shouldn't be!");
+            logger.warn("Hmmm ... why are you harvesting twice? You shouldn't be!");
         }
 
         //create a list of components and start harvesting
@@ -934,19 +902,6 @@ public class Agent
     }
 
     /**
-     * Computes and sets the foundations foundation for all <tt>Candidate</tt>s
-     * currently found in <tt>component</tt>.
-     *
-     * @param component the component whose candidate foundations we'd like to
-     * compute and assign.
-     */
-//    private void computeFoundations(Component component)
-//    {
-//        for (Candidate<?> localCandidate : component.getLocalCandidates())
-//            foundationsRegistry.assignFoundation(localCandidate);
-//    }
-
-    /**
      * Adds <tt>harvester</tt> to the list of harvesters that this agent will
      * use when gathering <tt>Candidate</tt>s.
      *
@@ -1023,9 +978,7 @@ public class Agent
         if (stream == null)
         {
             ret = null;
-            logger.warning(
-                    "Agent contains no IceMediaStream with name " + media
-                        + "!");
+            logger.warn("Agent contains no IceMediaStream with name {}", media);
         }
         else
         {
@@ -1034,9 +987,7 @@ public class Agent
             if (remoteUfrag == null)
             {
                 ret = null;
-                logger.warning(
-                        "Remote ufrag of IceMediaStream with name " + media
-                            + " is null!");
+                logger.warn("Remote ufrag of IceMediaStream with name {} is null", media);
             }
             else
             {
@@ -1253,22 +1204,9 @@ public class Agent
      *
      * @return the <tt>StunStack</tt> used by this <tt>Agent</tt>
      */
-    public synchronized StunStack getStunStack()
+    public StunStack getStunStack()
     {
-        if (stunStack == null)
-            stunStack = new StunStack();
         return stunStack;
-    }
-    
-    /**
-     * Sets the <tt>StunStack</tt> used by this <tt>Agent</tt>.
-     * 
-     * @param stunStack the stunStack to be used by this Agent.
-     * 
-     */
-    public void setStunStack(StunStack stunStack)
-    {
-        this.stunStack = stunStack;
     }
 
     /**
@@ -1581,7 +1519,7 @@ public class Agent
         CandidatePair triggeredPair
             = createCandidatePair(localCandidate, remoteCandidate);
 
-        logger.fine("set use-candidate " + useCandidate + " for pair " +
+        logger.debug("set use-candidate " + useCandidate + " for pair " +
             triggeredPair.toShortString());
         if (useCandidate)
         {
@@ -1592,7 +1530,7 @@ public class Agent
         {
             if (state == IceProcessingState.WAITING)
             {
-                logger.fine("Receive STUN checks before our ICE has started");
+                logger.debug("Receive STUN checks before our ICE has started");
                 //we are not started yet so we'd better wait until we get the
                 //remote candidates in case we are holding to a new PR one.
                 this.preDiscoveredPairsQueue.add(triggeredPair);
@@ -1603,7 +1541,7 @@ public class Agent
             }
             else //Running, Connected or Terminated.
             {
-                if (logger.isLoggable(Level.FINE))
+                if (logger.isDebugEnabled())
                 {
                     logger.debug("Received check from "
                         + triggeredPair.toShortString() + " triggered a check. "
@@ -1651,12 +1589,12 @@ public class Agent
             //we already know about the remote address so we only need to
             //trigger a check for the existing pair
 
-            if (knownPair.getState() == CandidatePairState.SUCCEEDED )
+            if (knownPair.getState() == CandidatePairState.SUCCEEDED)
             {
                 //7.2.1.5. Updating the Nominated Flag
                 if (!isControlling() && useCand)
                 {
-                    logger.fine("update nominated flag");
+                    logger.debug("update nominated flag");
                     // If the Binding request received by the agent had the
                     // USE-CANDIDATE attribute set, and the agent is in the
                     // controlled role, the agent looks at the state of the
@@ -1697,8 +1635,7 @@ public class Agent
             // triggered check queue.
             //
             if (triggerPair.getParentComponent().getSelectedPair() == null)
-                logger.info("Add peer CandidatePair with new reflexive " +
-                        "address to checkList: " + triggerPair);
+                logger.info("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
             parentStream.addToCheckList(triggerPair);
         }
 
@@ -1864,13 +1801,12 @@ public class Agent
         if (!atLeastOneListSucceeded)
         {
             //all lists ended but none succeeded. No love today ;(
-            if (logger.isLoggable(Level.INFO))
+            if (logger.isInfoEnabled())
             {
                 if (connCheckClient.isAlive()
                     || connCheckServer.isAlive())
                 {
-                    logger.info("Suspicious ICE connectivity failure. Checks" +
-                        " failed but the remote end was able to reach us.");
+                    logger.info("Suspicious ICE connectivity failure. Checks failed but the remote end was able to reach us.");
                 }
 
                 logger.info("ICE state is FAILED");
@@ -2236,7 +2172,7 @@ public class Agent
      */
     public void free()
     {
-        logger.fine("Free ICE agent");
+        logger.debug("Free ICE agent");
 
         shutdown = true;
 
@@ -2264,17 +2200,17 @@ public class Agent
         // Free its IceMediaStreams, Components and Candidates.
         boolean interrupted = false;
 
-        logger.fine("remove streams");
+        logger.debug("remove streams");
         for (IceMediaStream stream : getStreams())
         {
             try
             {
                 removeStream(stream);
-                logger.fine("remove stream " + stream.getName());
+                logger.debug("remove stream " + stream.getName());
             }
             catch (Throwable t)
             {
-                logger.fine(
+                logger.debug(
                         "remove stream " + stream.getName() + " failed: " + t);
                 if (t instanceof InterruptedException)
                     interrupted = true;
@@ -2291,7 +2227,7 @@ public class Agent
 
         executor.shutdownNow();
 
-        logger.fine("ICE agent freed");
+        logger.debug("ICE agent freed");
     }
 
     /**
@@ -2638,31 +2574,6 @@ public class Agent
     }
 
     /**
-     * Sets the logging level for this {@link Agent} and its components.
-     * @param level the level to set.
-     */
-    public void setLoggingLevel(Level level)
-    {
-        logger.setLevel(level);
-    }
-
-    /**
-     * Gets the logging level for this {@link Agent} and its components.
-     */
-    public Level getLoggingLevel()
-    {
-        return logger.getLevel();
-    }
-
-    /**
-     * @return this {@link Agent}'s {@link Logger}.
-     */
-    protected Logger getLogger()
-    {
-        return logger;
-    }
-
-    /**
      * RFC 5245 says: Once ICE processing has reached the Completed state for
      * all peers for media streams using those candidates, the agent SHOULD
      * wait an additional three seconds, and then it MAY cease responding to
@@ -2695,9 +2606,7 @@ public class Agent
                 }
                 catch (InterruptedException ie)
                 {
-                    logger.log(Level.FINEST, "Interrupted while waiting. Will "
-                                   + "speed up termination",
-                               ie);
+                    logger.warn("Interrupted while waiting. Will speed up termination", ie);
                 }
             }
             terminate(IceProcessingState.TERMINATED);

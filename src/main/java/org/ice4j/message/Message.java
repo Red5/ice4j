@@ -318,22 +318,12 @@ public abstract class Message
     /**
      * The transaction ID is used to correlate requests and responses.
      */
-    protected byte[] transactionID = null;
+    protected byte[] transactionID;
 
     /**
      * The magic cookie (0x2112A442).
      */
-    public static final byte[] MAGIC_COOKIE = { 0x21, 0x12, (byte)0xA4, 0x42 };
-
-    /**
-     * The length of the transaction id (in bytes).
-     */
-    public static final byte TRANSACTION_ID_LENGTH = 12;
-
-    /**
-     * The length of the RFC3489 transaction id (in bytes).
-     */
-    public static final byte RFC3489_TRANSACTION_ID_LENGTH = 16;
+    public static final byte[] MAGIC_COOKIE = { 0x21, 0x12, (byte) 0xA4, 0x42 };
 
     /**
      * The list of attributes contained by the message. Order is important
@@ -713,16 +703,15 @@ public abstract class Message
         throws StunException
     {
         if(tranID == null
-           || (tranID.length != TRANSACTION_ID_LENGTH &&
-                   tranID.length != RFC3489_TRANSACTION_ID_LENGTH))
+           || (tranID.length != TransactionID.RFC5389_TRANSACTION_ID_LENGTH &&
+                   tranID.length != TransactionID.RFC3489_TRANSACTION_ID_LENGTH))
             throw new StunException(StunException.ILLEGAL_ARGUMENT,
                                     "Invalid transaction id length");
 
         int tranIDLength = tranID.length;
 
-        this.transactionID = new byte[tranIDLength];
-        System.arraycopy(tranID, 0,
-                         this.transactionID, 0, tranIDLength);
+        transactionID = new byte[tranIDLength];
+        System.arraycopy(tranID, 0, transactionID, 0, tranIDLength);
     }
 
     /**
@@ -732,7 +721,7 @@ public abstract class Message
      */
     public byte[] getTransactionID()
     {
-        return this.transactionID;
+        return transactionID;
     }
 
     /**
@@ -809,8 +798,7 @@ public abstract class Message
      * request to encode this <tt>Message</tt> is being made
      * @return a binary representation of this message.
      *
-     * @throws IllegalStateException if the message does not have all
-     * required attributes.
+     * @throws IllegalStateException if the message does not have all required attributes.
      */
     public byte[] encode(StunStack stunStack)
         throws IllegalStateException
@@ -835,19 +823,18 @@ public abstract class Message
 
         byte tranID[] = getTransactionID();
 
-        if(tranID.length == 12)
+        if (tranID.length == TransactionID.RFC5389_TRANSACTION_ID_LENGTH)
         {
             System.arraycopy(MAGIC_COOKIE, 0, binMsg, offset, 4);
             offset += 4;
-            System.arraycopy(tranID, 0, binMsg, offset, TRANSACTION_ID_LENGTH);
-            offset += TRANSACTION_ID_LENGTH;
+            System.arraycopy(tranID, 0, binMsg, offset, TransactionID.RFC5389_TRANSACTION_ID_LENGTH);
+            offset += TransactionID.RFC5389_TRANSACTION_ID_LENGTH;
         }
         else
         {
-            /* RFC3489 behavior */
-            System.arraycopy(tranID, 0, binMsg, offset,
-                RFC3489_TRANSACTION_ID_LENGTH);
-            offset += RFC3489_TRANSACTION_ID_LENGTH;
+            // RFC3489 behavior - transaction id is 4 bytes longer
+            System.arraycopy(tranID, 0, binMsg, offset, TransactionID.RFC3489_TRANSACTION_ID_LENGTH);
+            offset += TransactionID.RFC3489_TRANSACTION_ID_LENGTH;
         }
 
         char dataLengthForContentDependentAttribute = 0;
@@ -983,60 +970,50 @@ public abstract class Message
 
         message.setMessageType(messageType);
 
-        int length = (char)((binMessage[offset++] << 8)
-                          | (binMessage[offset++]  & 0xFF));
+        int length = (binMessage[offset++] << 8) | (binMessage[offset++]  & 0xFF);
 
         /* copy the cookie */
         byte cookie[] = new byte[4];
         System.arraycopy(binMessage, offset, cookie, 0, 4);
         offset += 4;
 
-        boolean rfc3489Compat = false;
+        boolean rfc3489Compat = !Arrays.equals(MAGIC_COOKIE, cookie);
+        int transactionIdLength = rfc3489Compat ? TransactionID.RFC3489_TRANSACTION_ID_LENGTH : TransactionID.RFC5389_TRANSACTION_ID_LENGTH;
 
-        if(!Arrays.equals(MAGIC_COOKIE, cookie))
-        {
-            rfc3489Compat = true;
-        }
-
-        if(arrayLen - offset - TRANSACTION_ID_LENGTH < length)
+        if(arrayLen - offset - transactionIdLength < length)
         {
             throw
                 new StunException(
                         StunException.ILLEGAL_ARGUMENT,
                         "The given binary array does not seem to contain"
                             + " a whole StunMessage: given "
-                            + ((int) arrayLen)
+                            + arrayLen
                             + " bytes of "
                             + message.getName()
                             + " but expecting "
-                            + (offset + TRANSACTION_ID_LENGTH + length));
+                            + (offset + transactionIdLength + length));
         }
 
-        byte tranID[] = new byte[TRANSACTION_ID_LENGTH];
-        System.arraycopy(binMessage, offset, tranID, 0, TRANSACTION_ID_LENGTH);
         try
         {
-            if(rfc3489Compat)
+            byte[] tranID = new byte[transactionIdLength];
+            if (!rfc3489Compat)
             {
-                byte rfc3489TranID[] = new byte[TRANSACTION_ID_LENGTH + 4];
-                System.arraycopy(cookie, 0, rfc3489TranID, 0, 4);
-                System.arraycopy(tranID, 0, rfc3489TranID, 4,
-                        TRANSACTION_ID_LENGTH);
-                message.setTransactionID(rfc3489TranID);
+                System.arraycopy(binMessage, offset, tranID, 0, transactionIdLength);
             }
             else
             {
-                message.setTransactionID(tranID);
+                System.arraycopy(binMessage, 0, tranID, 0, transactionIdLength);
             }
+            message.setTransactionID(tranID);
         }
         catch (StunException exc)
         {
             throw new StunException( StunException.ILLEGAL_ARGUMENT,
-                            "The given binary array does not seem to "
-                            + "contain a whole StunMessage", exc);
+                            "The given binary array does not seem to contain a whole StunMessage", exc);
         }
-
-        offset += TRANSACTION_ID_LENGTH;
+        // update offset to just beyond transaction id
+        offset += transactionIdLength;
 
         while(offset - Message.HEADER_LENGTH < length)
         {

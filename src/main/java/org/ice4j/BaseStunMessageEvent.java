@@ -21,6 +21,8 @@ import java.util.*;
 
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents an <tt>EventObject</tt> which notifies of an event associated with
@@ -31,6 +33,9 @@ import org.ice4j.stack.*;
 public class BaseStunMessageEvent
     extends EventObject
 {
+
+    private static final Logger logger = LoggerFactory.getLogger(BaseStunMessageEvent.class);
+
     /**
      * A dummy version UID to suppress warnings.
      */
@@ -111,6 +116,7 @@ public class BaseStunMessageEvent
      */
     public TransactionID getTransactionID()
     {
+        logger.debug("getTransactionID: {} rfc3489: {}", String.valueOf(transactionID), (transactionID != null ? transactionID.isRFC3489Compatible() : null));
         if (transactionID == null)
         {
             transactionID
@@ -129,6 +135,7 @@ public class BaseStunMessageEvent
      */
     protected void setTransactionID(TransactionID tranID)
     {
+        logger.debug("setTransactionID: {} rfc3489: {}", String.valueOf(tranID), (tranID != null ? tranID.isRFC3489Compatible() : null));
         this.transactionID = tranID;
     }
 }

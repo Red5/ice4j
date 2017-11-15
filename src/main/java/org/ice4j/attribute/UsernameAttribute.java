@@ -17,9 +17,7 @@
  */
 package org.ice4j.attribute;
 
-import java.util.*;
-
-import org.ice4j.StackProperties;
+import java.util.Arrays;
 
 
 /**
@@ -37,8 +35,6 @@ public class UsernameAttribute extends Attribute
      * Username value.
      */
     private byte[] username;
-
-    private boolean stripTrailingZeroes = StackProperties.getBoolean("UsernameAttribute.STRIP_TRAILING_ZEROES", true);
 
     /**
      * Constructor.
@@ -61,17 +57,7 @@ public class UsernameAttribute extends Attribute
     @Override
     void decodeAttributeBody(byte[] attributeValue, int offset, int length)
     {
-        // This works around the following bug in Edge, which effectively adds
-        // additional "0" bytes to the end of the USERNAME attribute:
-        // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12332457/
         //logger.info("decodeAttributeBody offset: " + (int) offset + " len: " + (int) length + " value: " + new String(attributeValue) + "\n" + javax.xml.bind.DatatypeConverter.printHexBinary(attributeValue) + "\n" + Arrays.toString(attributeValue));
-        if (stripTrailingZeroes)
-        {
-            while (length > 0 && attributeValue[offset + length - 1] == 0)
-            {
-                length--;
-            }
-        }
         username = new byte[length];
         System.arraycopy(attributeValue, offset, username, 0, length);
         //logger.info("decodeAttributeBody username: " + Arrays.toString(username));

@@ -17,11 +17,20 @@
  */
 package org.ice4j.ice;
 
-import java.beans.*;
-import java.util.*;
-import java.util.logging.Logger;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
 
-import org.ice4j.*;
+import org.ice4j.TransportAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class represents a media stream from the ICE perspective, i.e. a
@@ -32,14 +41,6 @@ import org.ice4j.*;
  */
 public class IceMediaStream
 {
-    /**
-     * Our class logger
-     * Note that this shouldn't be used directly by instances of
-     * {@link IceMediaStream}, because it doesn't take into account the
-     * per-instance log level. Instances should use {@link #logger} instead.
-     */
-    private static final Logger classLogger =
-        Logger.getLogger(IceMediaStream.class.getName());
 
     /**
      * The property name that we use when delivering events notifying listeners
@@ -150,7 +151,7 @@ public class IceMediaStream
     /**
      * The {@link Logger} used by {@link IceMediaStream} instances.
      */
-    private org.ice4j.util.Logger logger;
+    private final static Logger logger = LoggerFactory.getLogger(IceMediaStream.class);
 
     /**
      * Initializes a new <tt>IceMediaStream</tt> object.
@@ -161,7 +162,6 @@ public class IceMediaStream
      */
     protected IceMediaStream(Agent parentAgent, String name)
     {
-        logger = new org.ice4j.util.Logger(classLogger, parentAgent.getLogger());
         this.name = name;
         this.parentAgent = parentAgent;
         checkList = new CheckList(this);
@@ -359,7 +359,7 @@ public class IceMediaStream
 
             orderCheckList();
             pruneCheckList(checkList);
-            logger.finest("Checklist initialized.");
+            logger.trace("Checklist initialized.");
         }
     }
 

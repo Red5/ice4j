@@ -17,10 +17,17 @@
  */
 package org.ice4j.ice;
 
-import java.beans.*;
-import java.util.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
-import org.ice4j.util.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A check list is a list of <tt>CandidatePair</tt>s with a state (i.e. a
@@ -35,14 +42,6 @@ import org.ice4j.util.Logger;
 public class CheckList
     extends Vector<CandidatePair>
 {
-    /**
-     * The class logger.
-     * Note that this shouldn't be used directly by instances of
-     * {@link CheckList}, because it doesn't take into account the per-instance
-     * log level. Instances should use {@link #logger} instead.
-     */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger(CheckList.class.getName());
 
     /**
      * A dummy serialization id.
@@ -96,7 +95,7 @@ public class CheckList
     /**
      * The {@link Logger} used by {@link CheckList} instances.
      */
-    private Logger logger;
+    private final static Logger logger = LoggerFactory.getLogger(CheckList.class);
 
     /**
      * Creates a check list with the specified name.
@@ -107,8 +106,6 @@ public class CheckList
     protected CheckList(IceMediaStream parentStream)
     {
         this.parentStream = parentStream;
-        logger
-            = new Logger(classLogger, parentStream.getParentAgent().getLogger());
     }
 
     /**

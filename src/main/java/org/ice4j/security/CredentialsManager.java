@@ -17,7 +17,7 @@
  */
 package org.ice4j.security;
 
-import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -48,16 +48,7 @@ public class CredentialsManager
      * The list of <tt>CredentialsAuthority</tt>s registered with this manager
      * as being able to provide credentials.
      */
-    private final List<CredentialsAuthority> authorities = new LinkedList<>();
-
-    /**
-     * The list of <tt>CredentialsAuthority</tt>s registered with this manager
-     * as being able to provide credentials. If non-<tt>null</tt>, represents
-     * an unmodifiable view of {@link #authorities}. The field was introduced in
-     * order to reduce the scopes of the synchronization blocks of
-     * <tt>CredentialsManager</tt> and to thus reduce the risks of deadlocks.
-     */
-    private CredentialsAuthority[] unmodifiableAuthorities;
+    private final CopyOnWriteArraySet<CredentialsAuthority> authorities = new CopyOnWriteArraySet<>();
 
     /**
      * Verifies whether <tt>username</tt> is currently known to any of the
@@ -72,37 +63,13 @@ public class CredentialsManager
      */
     public boolean checkLocalUserName(String username)
     {
-        for (CredentialsAuthority auth : getAuthorities())
+        for (CredentialsAuthority auth : authorities)
         {
-            if (auth.checkLocalUserName(username))
+            if (auth.checkLocalUserName(username)) {
                 return true;
+            }
         }
         return false;
-    }
-
-    /**
-     * Gets the list of <tt>CredentialsAuthority</tt>s registered with this
-     * manager as being able to provide credentials. <b>Warning</b>: the
-     * returned value is an internal state of this instance and is to be
-     * considered unmodifiable.
-     *
-     * @return the list of <tt>CredentialsAuthority</tt>s registered with this
-     * manager as being able to provide credentials. <b>Warning</b>: the
-     * returned value is an internal state of this instance and is to be
-     * considered unmodifiable.
-     */
-    private CredentialsAuthority[] getAuthorities()
-    {
-        synchronized (authorities)
-        {
-            if (unmodifiableAuthorities == null)
-            {
-                unmodifiableAuthorities
-                    = authorities.toArray(
-                            new CredentialsAuthority[authorities.size()]);
-            }
-            return unmodifiableAuthorities;
-        }
     }
 
     /**
@@ -121,7 +88,7 @@ public class CredentialsManager
     public byte[] getLocalKey(String username)
     {
         logger.debug("getLocalKey username: {}", username);
-        for (CredentialsAuthority auth : getAuthorities())
+        for (CredentialsAuthority auth : authorities)
         {
             byte[] passwd = auth.getLocalKey(username);
             if (passwd != null)
@@ -150,7 +117,7 @@ public class CredentialsManager
     public byte[] getRemoteKey(String username, String media)
     {
         logger.debug("getRemoteKey username: {} media: {}", username, media);
-        for (CredentialsAuthority auth : getAuthorities())
+        for (CredentialsAuthority auth : authorities)
         {
             byte[] passwd = auth.getRemoteKey(username, media);
             if (passwd != null)
@@ -170,11 +137,7 @@ public class CredentialsManager
      */
     public void registerAuthority(CredentialsAuthority authority)
     {
-        synchronized (authorities)
-        {
-            if (!authorities.contains(authority) && authorities.add(authority))
-                unmodifiableAuthorities = null;
-        }
+        authorities.add(authority);
     }
 
     /**
@@ -186,10 +149,6 @@ public class CredentialsManager
      */
     public void unregisterAuthority(CredentialsAuthority authority)
     {
-        synchronized (authorities)
-        {
-            if (authorities.remove(authority))
-                unmodifiableAuthorities = null;
-        }
+        authorities.remove(authority);
     }
 }

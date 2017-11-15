@@ -132,24 +132,23 @@ class ConnectivityCheckServer
     public void processRequest(StunMessageEvent evt)
         throws IllegalArgumentException
     {
-        if(logger.isDebugEnabled())
-        {
+        if (logger.isDebugEnabled()) {
             logger.debug("Received request {}", evt);
         }
         alive = true;
 
-        Request request = (Request)evt.getMessage();
+        Request request = (Request) evt.getMessage();
 
-        //ignore incoming requests that are not meant for the local user.
-        //normally the stack will get rid of faulty user names but we could
-        //still see messages not meant for this server if both peers or running
-        //on this same instance of the stack.
-        UsernameAttribute uname = (UsernameAttribute)request
-            .getAttribute(Attribute.Type.USERNAME);
+        //ignore incoming requests that are not meant for the local user. normally the stack will get rid of faulty user names but we could
+        //still see messages not meant for this server if both peers are running on this same instance of the stack.
+        UsernameAttribute uname = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Username: {}", uname);
+        }
 
         String username = new String(uname.getUsername());
-        if(!checkLocalUserName(username))
-        {
+        if (!checkLocalUserName(username)) {
+            logger.debug("Username is not known: {}", username);
             return;
         }
 
@@ -164,50 +163,38 @@ class ConnectivityCheckServer
         String localUFrag = null;
 
         //tell our address handler we saw a new remote address;
-        parentAgent.incomingCheckReceived(evt.getRemoteAddress(),
-                evt.getLocalAddress(), priority, remoteUfrag, localUFrag,
-                useCandidate);
+        parentAgent.incomingCheckReceived(evt.getRemoteAddress(), evt.getLocalAddress(), priority, remoteUfrag, localUFrag, useCandidate);
 
-        boolean controlling = (parentAgent.isControlling()
-                && request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
-        boolean controlled = (!parentAgent.isControlling()
-                && request.getAttribute(Attribute.Type.ICE_CONTROLLED) != null);
+        boolean controlling = (parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
+        boolean controlled = (!parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLED) != null);
         //detect role conflicts
-        if(controlling || controlled)
-        {
-            if (!repairRoleConflict(evt))
-            {
+        if (controlling || controlled) {
+            if (!repairRoleConflict(evt)) {
+                logger.debug("Role conflict not repaired: {}", username);
                 return;
             }
         }
 
-        Response response = MessageFactory.createBindingResponse(
-                        request, evt.getRemoteAddress());
+        Response response = MessageFactory.createBindingResponse(request, evt.getRemoteAddress());
 
         /* add USERNAME and MESSAGE-INTEGRITY attribute in the response */
 
-        /* The responses utilize the same usernames and passwords as the
-         * requests
-         */
-        Attribute usernameAttribute =
-            AttributeFactory.createUsernameAttribute(uname.getUsername());
+        /* The responses utilize the same usernames and passwords as the requests */
+        Attribute usernameAttribute = AttributeFactory.createUsernameAttribute(uname.getUsername());
         response.putAttribute(usernameAttribute);
-        //logger.info("usernameAttribute: " + usernameAttribute);
+        logger.debug("usernameAttribute: {}", usernameAttribute);
 
-        Attribute messageIntegrityAttribute =
-            AttributeFactory.createMessageIntegrityAttribute(username);
+        Attribute messageIntegrityAttribute = AttributeFactory.createMessageIntegrityAttribute(username);
         response.putAttribute(messageIntegrityAttribute);
 
         try
         {
-            stunStack.sendResponse(evt.getTransactionID().getBytes(),
-                    response, evt.getLocalAddress(), evt.getRemoteAddress());
+            stunStack.sendResponse(evt.getTransactionID().getBytes(), response, evt.getLocalAddress(), evt.getRemoteAddress());
         }
         catch (Exception e)
         {
             logger.warn("Failed to send {} through {}", response, evt.getLocalAddress(), e);
-            //try to trigger a 500 response although if this one failed,
-            //then chances are the 500 will fail too.
+            //try to trigger a 500 response although if this one failed, then chances are the 500 will fail too.
             throw new RuntimeException("Failed to send a response", e);
         }
     }
@@ -240,8 +227,7 @@ class ConnectivityCheckServer
         {
             if(logger.isDebugEnabled())
             {
-                logger.debug("Received a connectivity check with"
-                            + "no PRIORITY attribute. Discarding.");
+                logger.debug("Received a connectivity check with no PRIORITY attribute. Discarding.");
             }
 
             throw new IllegalArgumentException("Missing PRIORITY attribute!");
@@ -277,8 +263,7 @@ class ConnectivityCheckServer
         }
         // If the agent is in the controlling role, and the
         // ICE-CONTROLLING attribute is present in the request:
-        if(parentAgent.isControlling() && attr instanceof IceControllingAttribute)
-        {
+        if (parentAgent.isControlling() && attr instanceof IceControllingAttribute) {
             IceControllingAttribute controlling = (IceControllingAttribute) attr;
 
             long theirTieBreaker = controlling.getTieBreaker();

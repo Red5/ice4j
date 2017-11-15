@@ -184,7 +184,7 @@ public class StunDatagramPacketFilter
 
         // All STUN messages MUST start with a 20-byte header followed by zero
         // or more Attributes.
-        if(length >= 20)
+        if (length >= 20)
         {
             // If the MAGIC COOKIE is present this is a STUN packet (RFC5389
             // compliant).
@@ -205,7 +205,6 @@ public class StunDatagramPacketFilter
                 // on the same port.
                 byte b0 = data[offset];
                 boolean areFirstTwoBitsValid = ((b0 & 0xC0) == 0);
-
                 // Checks if the length of the data correspond to the length
                 // field of the STUN header. The message length field of the
                 // STUN header does not include the 20-byte of the STUN header.
@@ -214,7 +213,6 @@ public class StunDatagramPacketFilter
                     + (((int) data[3]) & 0xff)
                     + 20;
                 boolean isHeaderLengthValid = (length == total_header_length);
-
                 isStunPacket = areFirstTwoBitsValid && isHeaderLengthValid;
             }
         }

@@ -17,14 +17,19 @@
  */
 package org.ice4j.socket;
 
-import org.ice4j.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
-import org.ice4j.util.Logger; //Disambiguation
+import org.ice4j.TransportAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link DatagramSocket} implementation which merges a set of sockets.
@@ -44,13 +49,6 @@ import org.ice4j.util.Logger; //Disambiguation
 public class MergingDatagramSocket
     extends DatagramSocket
 {
-    /**
-     * The {@link Logger} used by the {@link MergingDatagramSocket} class and
-     * its instances for logging output.
-     */
-    private static final java.util.logging.Logger classLogger
-        = java.util.logging.Logger.getLogger(
-                MergingDatagramSocket.class.getName());
 
     /**
      * Used to control access to {@link #socketContainers}.
@@ -97,7 +95,7 @@ public class MergingDatagramSocket
     /**
      * The {@link Logger} used by {@link MergingDatagramSocket} instances.
      */
-    private final Logger logger;
+    private final static Logger logger = LoggerFactory.getLogger(MergingDatagramSocket.class);
 
     /**
      * Initializes a new {@link MergingDatagramSocket} instance.
@@ -106,19 +104,6 @@ public class MergingDatagramSocket
     public MergingDatagramSocket()
             throws SocketException
     {
-        this(null);
-    }
-
-    /**
-     * Initializes a new {@link MergingDatagramSocket} instance.
-     * @param levelDelegate the {@link Logger} instance which dictates the
-     * logging level for the new {@link MergingDatagramSocket} instance.
-     * @throws SocketException
-     */
-    public MergingDatagramSocket(Logger levelDelegate)
-            throws SocketException
-    {
-        logger = new Logger(classLogger, levelDelegate);
     }
 
     /**
@@ -220,10 +205,9 @@ public class MergingDatagramSocket
     public void add(DelegatingSocket socket)
     {
         Objects.requireNonNull(socket, "socket");
-        if (logger.isLoggable(Level.FINE))
+        if (logger.isDebugEnabled())
         {
-            logger.fine("Adding a DelegatingSocket instance: "
-                            + socket.getLocalAddress());
+            logger.debug("Adding a DelegatingSocket instance: {}", socket.getLocalAddress());
         }
         doAdd(socket);
     }
@@ -251,10 +235,9 @@ public class MergingDatagramSocket
     public void add(DatagramSocket socket)
     {
         Objects.requireNonNull(socket, "socket");
-        if (logger.isLoggable(Level.FINE))
+        if (logger.isDebugEnabled())
         {
-            logger.fine("Adding a DatagramSocket instance: "
-                            + socket.getLocalAddress());
+            logger.debug("Adding a DatagramSocket instance: {}", socket.getLocalAddress());
         }
         doAdd(socket);
     }
@@ -280,7 +263,7 @@ public class MergingDatagramSocket
         {
             if (indexOf(socketContainers, socket) != -1)
             {
-                logger.warning("Socket already added.");
+                logger.warn("Socket already added.");
                 return;
             }
 
@@ -361,21 +344,19 @@ public class MergingDatagramSocket
                 if (socketContainer == active)
                 {
                     // TODO: proper selection of a new active socket
-                    logger.warning(
-                        "Removing the active socket. Won't be able to send "
-                        + "until a new one is elected.");
+                    logger.warn("Removing the active socket. Won't be able to send until a new one is elected.");
                     active = null;
                 }
             }
             else
             {
-                logger.severe("Cannot find socket to remove.");
+                logger.warn("Cannot find socket to remove.");
             }
         }
 
-        if (logger.isLoggable(Level.FINE))
+        if (logger.isDebugEnabled())
         {
-            logger.fine("Removed: " + socketContainer);
+            logger.debug("Removed: {}", socketContainer);
         }
         if (socketContainer != null)
         {
@@ -595,9 +576,9 @@ public class MergingDatagramSocket
             socket = socketWrapper.getUDPSocket();
         }
 
-        if (logger.isLoggable(Level.FINE))
+        if (logger.isDebugEnabled())
         {
-            logger.fine("Initializing the active container, socket=" + socket
+            logger.debug("Initializing the active container, socket=" + socket
                         + "; remote address=" + remoteAddress);
         }
 
@@ -611,7 +592,7 @@ public class MergingDatagramSocket
                 // is not necessarily incorrect.
                 // Still, go on and replace the active socket with whatever
                 // ICE selected.
-                logger.warning("Active socket already initialized.");
+                logger.warn("Active socket already initialized.");
             }
 
             SocketContainer newActive = null;
@@ -627,7 +608,7 @@ public class MergingDatagramSocket
 
             if (newActive == null)
             {
-                logger.severe("No SocketContainer found!");
+                logger.warn("No SocketContainer found!");
                 return;
             }
 
@@ -742,9 +723,9 @@ public class MergingDatagramSocket
                                + getLocalSocketAddress() + " -> "
                                + getRemoteSocketAddress());
 
-            if (logger.isLoggable(Level.FINE))
+            if (logger.isDebugEnabled())
             {
-                logger.fine("Starting the thread for socket "
+                logger.debug("Starting the thread for socket "
                                 + getLocalSocketAddress() + " -> "
                                 + getRemoteSocketAddress());
             }
@@ -810,9 +791,9 @@ public class MergingDatagramSocket
             // container anymore.
             close(true);
 
-            if (logger.isLoggable(Level.FINE))
+            if (logger.isDebugEnabled())
             {
-                logger.fine("Finished: " + toString());
+                logger.debug("Finished: {}", toString());
             }
         }
 
@@ -874,10 +855,9 @@ public class MergingDatagramSocket
                 synchronized (socketContainersSyncRoot)
                 {
                     MergingDatagramSocket.this.active = this;
-                    if (logger.isLoggable(Level.FINE))
+                    if (logger.isDebugEnabled())
                     {
-                        logger.fine("Switching to new active socket: "
-                                           + this);
+                        logger.debug("Switching to new active socket: {}", this);
                     }
                 }
             }
