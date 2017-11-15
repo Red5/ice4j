@@ -544,9 +544,9 @@ public abstract class AbstractUdpListener
             queue.clear();
             // We could be called by the super-class constructor, in which
             // case this.removeAddress is not initialized yet.
-            if (remoteAddress != null)
+            if (remoteAddress != null) {
                 AbstractUdpListener.this.sockets.remove(remoteAddress);
-
+            }
             super.close();
         }
 
@@ -564,26 +564,26 @@ public abstract class AbstractUdpListener
 
             while (buf == null)
             {
-                if (closed)
+                if (closed) {
                     throw new SocketException("Socket closed");
-
-                    try {
-                        // take will block until there's a buffer
-                        buf = queue.take();
-                        if (queueStatistics != null)
-                        {
-                            queueStatistics.remove(System.currentTimeMillis());
-                        }
-                    } catch (InterruptedException e) {
+                }
+                try {
+                    // take will block until there's a buffer
+                    buf = queue.take();
+                    if (queueStatistics != null)
+                    {
+                        queueStatistics.remove(System.currentTimeMillis());
                     }
+                } catch (InterruptedException e) {
+                }
             }
 
             byte[] pData = p.getData();
 
             // XXX Should we use p.setData() here with a buffer of our own?
-            if (pData == null || pData.length < buf.len)
+            if (pData == null || pData.length < buf.len) {
                 throw new IOException("packet buffer not available");
-
+            }
             System.arraycopy(buf.buffer, 0, pData, 0, buf.len);
             p.setLength(buf.len);
             p.setSocketAddress(remoteAddress);
