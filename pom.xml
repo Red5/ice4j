@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>ice4j</artifactId>
-    <version>2.5-SNAPSHOT</version>
+    <version>3.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>ice4j</name>
@@ -225,4 +225,6 @@
             </build>
         </profile>
     </profiles>
+    <description>This is a fork maintained by Paul Gregoire (mondain@gmail.com)
+</description>
 </project>

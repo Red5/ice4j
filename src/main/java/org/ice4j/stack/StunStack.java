@@ -91,7 +91,7 @@ public class StunStack
     private final CredentialsManager credentialsManager = new CredentialsManager();
 
     /**
-     * Stores active client transactions mapped against TransactionID-s.
+     * Stores active client transactions mapped against transaction id's.
      */
     private final ConcurrentMap<TransactionID, StunClientTransaction> clientTransactions = new ConcurrentHashMap<>();
 
@@ -102,7 +102,7 @@ public class StunStack
     private Thread serverTransactionExpireThread;
 
     /**
-     * Currently open server transactions. The vector contains transaction ids for transactions corresponding to all non-answered received requests.
+     * Currently open server transactions. Contains transaction id's for transactions corresponding to all non-answered received requests.
      */
     private final ConcurrentMap<TransactionID, StunServerTransaction> serverTransactions = new ConcurrentHashMap<>();
 
@@ -123,14 +123,9 @@ public class StunStack
          * after we get a response because the delay may cause the transaction
          * to fail.
          */
-        try
-        {
-            mac
-                = Mac.getInstance(
-                        MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
-        }
-        catch (NoSuchAlgorithmException nsaex)
-        {
+        try {
+            mac = Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
+        } catch (NoSuchAlgorithmException nsaex) {
             nsaex.printStackTrace();
         }
     }
@@ -141,8 +136,7 @@ public class StunStack
      *
      * @param sock The socket that the new access point should represent.
      */
-    public void addSocket(IceSocketWrapper sock)
-    {
+    public void addSocket(IceSocketWrapper sock) {
         netAccessManager.addSocket(sock);
     }
 
@@ -155,8 +149,7 @@ public class StunStack
      * {@link Connector} to be created if it is a TCP socket, or null if it
      * is UDP.
      */
-    public void addSocket(IceSocketWrapper sock, TransportAddress remoteAddress)
-    {
+    public void addSocket(IceSocketWrapper sock, TransportAddress remoteAddress) {
         netAccessManager.addSocket(sock, remoteAddress);
     }
 
@@ -168,8 +161,7 @@ public class StunStack
      *
      * @param localAddr the local address of the socket to remove.
      */
-    public void removeSocket(TransportAddress localAddr)
-    {
+    public void removeSocket(TransportAddress localAddr) {
         removeSocket(localAddr, null);
     }
 
@@ -181,60 +173,11 @@ public class StunStack
      * @param remoteAddr the remote address of the socket to remove. Use
      * <tt>null</tt> for UDP.
      */
-    public void removeSocket(TransportAddress localAddr,
-                             TransportAddress remoteAddr)
-    {
+    public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
         //first cancel all transactions using this address.
         cancelTransactionsForAddress(localAddr, remoteAddr);
-
         netAccessManager.removeSocket(localAddr, remoteAddr);
     }
-
-//    /**
-//     * Returns the transaction with the specified <tt>transactionID</tt> or
-//     * <tt>null</tt> if no such transaction exists.
-//     *
-//     * @param transactionID the ID of the transaction we are looking for.
-//     *
-//     * @return the {@link StunClientTransaction} we are looking for.
-//     */
-//    protected StunClientTransaction getClientTransaction(byte[] transactionID)
-//    {
-//        for (StunClientTransaction tran : clientTransactions.values())
-//        {
-//            if (tran.getTransactionID().equals(transactionID)) {
-//                return tran;
-//            }
-//        }
-//        return null;
-//    }
-//
-//    /**
-//     * Returns the transaction with the specified <tt>transactionID</tt> or
-//     * <tt>null</tt> if no such transaction exists.
-//     *
-//     * @param transactionID the ID of the transaction we are looking for.
-//     *
-//     * @return the {@link StunClientTransaction} we are looking for.
-//     */
-//    protected StunServerTransaction getServerTransaction(byte[] transactionID)
-//    {
-//        long now = System.currentTimeMillis();
-//
-//        for (Iterator<StunServerTransaction> i
-//                    = serverTransactions.values().iterator();
-//                i.hasNext();)
-//        {
-//            StunServerTransaction serverTransaction = i.next();
-//
-//            if (serverTransaction.isExpired(now))
-//                i.remove();
-//            else if (serverTransaction.getTransactionID().equals(
-//                    transactionID))
-//                return serverTransaction;
-//        }
-//        return null;
-//    }
 
     /**
      * Returns the transaction with the specified <tt>transactionID</tt> or
@@ -244,9 +187,20 @@ public class StunStack
      *
      * @return the {@link StunClientTransaction} we are looking for.
      */
-    protected StunServerTransaction getServerTransaction(
-            TransactionID transactionID)
-    {
+    protected StunClientTransaction getClientTransaction(TransactionID transactionID) {
+        StunClientTransaction clientTransaction = clientTransactions.get(transactionID);
+        return clientTransaction;
+    }
+
+    /**
+     * Returns the transaction with the specified <tt>transactionID</tt> or
+     * <tt>null</tt> if no such transaction exists.
+     *
+     * @param transactionID the ID of the transaction we are looking for.
+     *
+     * @return the {@link StunServerTransaction} we are looking for.
+     */
+    protected StunServerTransaction getServerTransaction(TransactionID transactionID) {
         StunServerTransaction serverTransaction = serverTransactions.get(transactionID);
         /*
          * If a StunServerTransaction is expired, do not return it. It will be
@@ -268,13 +222,11 @@ public class StunStack
      * @param transactionID the {@link TransactionID} of the
      * {@link StunClientTransaction} to cancel
      */
-    public void cancelTransaction(TransactionID transactionID)
-    {
-        StunClientTransaction clientTransaction
-            = clientTransactions.get(transactionID);
-
-        if(clientTransaction != null)
+    public void cancelTransaction(TransactionID transactionID) {
+        StunClientTransaction clientTransaction = clientTransactions.get(transactionID);
+        if (clientTransaction != null) {
             clientTransaction.cancel();
+        }
     }
 
     /**

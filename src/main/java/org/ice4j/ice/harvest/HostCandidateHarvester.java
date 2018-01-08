@@ -20,11 +20,12 @@ package org.ice4j.ice.harvest;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.ice.*;
 import org.ice4j.socket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A <tt>HostCandidateHarvester</tt> gathers host <tt>Candidate</tt>s for a
@@ -42,8 +43,7 @@ public class HostCandidateHarvester
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(HostCandidateHarvester.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(HostCandidateHarvester.class);
 
     /**
      * Manages statistics about harvesting time.
@@ -98,8 +98,7 @@ public class HostCandidateHarvester
             }
             catch (Exception e)
             {
-                logger.log(Level.WARNING, "There were errors during host " +
-                        "candidate interface filters initialization.", e);
+                logger.warn("There were errors during host candidate interface filters initialization.", e);
             }
         }
 
@@ -120,8 +119,7 @@ public class HostCandidateHarvester
             }
             catch (Exception e)
             {
-                logger.log(Level.WARNING, "There were errors during host " +
-                        "candidate interface filters initialization.", e);
+                logger.warn("There were errors during host candidate interface filters initialization.", e);
             }
         }
 
@@ -183,8 +181,7 @@ public class HostCandidateHarvester
                 }
                 catch (Exception e)
                 {
-                    logger.warning("Failed to add an allowed address: "
-                        + addressStr);
+                    logger.warn("Failed to add an allowed address: ", addressStr, e);
                     continue;
                 }
 
@@ -209,8 +206,7 @@ public class HostCandidateHarvester
                 }
                 catch (Exception e)
                 {
-                    logger.warning("Failed to add a blocked address: "
-                                           + addressStr);
+                    logger.warn("Failed to add a blocked address: ", addressStr, e);
                     continue;
                 }
 
@@ -386,17 +382,13 @@ public class HostCandidateHarvester
                         // There seems to be a problem with this particular
                         // address let's just move on for now and hope we will
                         // find better
-                        if (logger.isLoggable(Level.WARNING))
-                        {
-                            logger.warning(
-                                    "Failed to create a socket for:"
+                        logger.warn("Failed to create a socket for:"
                                         +"\naddr:" + addr
                                         +"\npreferredPort:" + preferredPort
                                         +"\nminPort:" + minPort
                                         +"\nmaxPort:" + maxPort
                                         +"\nprotocol:" + transport
                                         +"\nContinuing with next address");
-                        }
                         continue;
                     }
 
@@ -574,23 +566,16 @@ public class HostCandidateHarvester
                             new DelegatingServerSocket(sock),
                             component);
 
-                if(logger.isLoggable(Level.FINEST))
+                if(logger.isTraceEnabled())
                 {
-                    logger.log(
-                            Level.FINEST,
-                            "just bound to: " + sock.getLocalSocketAddress());
+                    logger.trace("just bound to: ", sock.getLocalSocketAddress());
                 }
                 return socket;
             }
             catch (SocketException se)
             {
-                logger.log(
-                        Level.INFO,
-                        "Retrying a bind because of a failure to bind to"
-                            + " address " + laddr
-                            + " and port " + port
-                            + " (" + se.getMessage() +")");
-                logger.log(Level.INFO, "", se);
+                logger.warn("Retrying a bind because of a failure to bind to"
+                            + " address " + laddr + " and port " + port, se);
             }
 
             port ++;
@@ -657,23 +642,16 @@ public class HostCandidateHarvester
                                 = new IceUdpSocketWrapper(new
                                     MultiplexingDatagramSocket(port, laddr));
 
-                if(logger.isLoggable(Level.FINEST))
+                if(logger.isTraceEnabled())
                 {
-                    logger.log(
-                            Level.FINEST,
-                            "just bound to: " + sock.getLocalSocketAddress());
+                    logger.trace("just bound to: ", sock.getLocalSocketAddress());
                 }
                 return sock;
             }
             catch (SocketException se)
             {
-                logger.log(
-                        Level.INFO,
-                        "Retrying a bind because of a failure to bind to"
-                            + " address " + laddr
-                            + " and port " + port
-                            + " (" + se.getMessage() +")");
-                logger.log(Level.FINEST, "", se);
+                logger.warn("Retrying a bind because of a failure to bind to"
+                            + " address " + laddr + " and port " + port, se);
             }
 
             port ++;

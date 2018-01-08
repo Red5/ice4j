@@ -156,30 +156,31 @@ public class TransactionID
      * <tt>TransactionID</tt> corresponding to the value of
      * <tt>transactionID</tt>
      */
-    public static TransactionID createTransactionID(
-            StunStack stunStack,
-            byte[] transactionID)
-    {
-        //first check whether we can find a client or a server tran with the
-        //specified id.
-        StunClientTransaction cliTran
-            = stunStack.getClientTransaction(transactionID);
+    public static TransactionID createTransactionID(StunStack stunStack, byte[] transactionID) {
+        TransactionID tid = TransactionID.build(transactionID);
+        //first check whether we can find a client or a server tran with the specified id.
+        StunClientTransaction cliTran = stunStack.getClientTransaction(tid);
+        if (cliTran != null) {
+            tid = cliTran.getTransactionID();
+        } else {
+            StunServerTransaction serTran = stunStack.getServerTransaction(tid);
+            if (serTran != null) {
+                tid = serTran.getTransactionID();
+            }
+        }
+        return tid;
+    }
 
-        if(cliTran != null)
-            return cliTran.getTransactionID();
-
-        StunServerTransaction serTran
-            = stunStack.getServerTransaction(transactionID);
-
-        if(serTran != null)
-            return serTran.getTransactionID();
-
-        //seems that the caller really wants a new ID
-        TransactionID tid = new TransactionID((transactionID.length == 16));
-
-        System.arraycopy(transactionID, 0, tid.transactionID, 0,
-                tid.transactionID.length);
-
+    /**
+     * Create a TransactionID from supplied byte array.
+     * 
+     * @param transactionID
+     * @return tid
+     */
+    public final static TransactionID build(byte[] transactionID) {
+        //seems that the caller really wants a new ID, we flag for RFC3489 but we actually prefer RFC5389
+        TransactionID tid = new TransactionID((transactionID.length == RFC3489_TRANSACTION_ID_LENGTH));
+        System.arraycopy(transactionID, 0, tid.transactionID, 0, tid.transactionID.length);
         return tid;
     }
 
@@ -189,8 +190,7 @@ public class TransactionID
      *
      * @return the transaction ID byte array.
      */
-    public byte[] getBytes()
-    {
+    public byte[] getBytes() {
         return transactionID;
     }
 
