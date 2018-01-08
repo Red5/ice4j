@@ -1,3 +1,5 @@
+![TravisCI](https://travis-ci.org/Red5/ice4j.svg?branch=master) 
+
 ice4j
 =====
 The Interactive Connectivity Establishment (ICE) protocol combines various NAT traversal utilities such as the STUN and TURN protocols in order to offer a powerful mechanism that allows Offer/Answer based protocols such as SIP and XMPP to traverse NATs.
