@@ -21,7 +21,7 @@ import org.ice4j.*;
 
 /**
  * The class is used to deliver results from a STUN Discovery Process. It
- * contains information about the NAT Server (or firewall )this client is behind,
+ * contains information about the NAT Server (or firewall) this client is behind,
  * and a mapped address value (if discovered)
  *
  * @author Emil Ivov
@@ -72,7 +72,6 @@ public class StunDiscoveryReport
 
     private String natType = UNKNOWN;
 
-
     private TransportAddress publicAddress = null;
 
     /**
@@ -119,7 +118,6 @@ public class StunDiscoveryReport
         this.publicAddress = stunAddress;
     }
 
-
     /**
      * Compares this object with obj. Two reports are considered equal if and
      * only if both have the same nat type and their public addresses are
@@ -151,6 +149,5 @@ public class StunDiscoveryReport
         return   "The detected network configuration is: " + getNatType() + "\n"
                + "Your mapped public address is: " + getPublicAddress();
     }
-
 
 }

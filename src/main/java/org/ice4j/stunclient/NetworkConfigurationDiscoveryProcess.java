@@ -319,14 +319,6 @@ public class NetworkConfigurationDiscoveryProcess
         throws IOException, StunException
     {
         Request request = MessageFactory.createBindingRequest();
-
-/*
-        ChangeRequestAttribute changeRequest
-            = (ChangeRequestAttribute)request
-                .getAttribute(Attribute.CHANGE_REQUEST);
-        changeRequest.setChangeIpFlag(false);
-        changeRequest.setChangePortFlag(false);
-*/
         /* add a change request attribute */
         ChangeRequestAttribute changeRequest
             = AttributeFactory.createChangeRequestAttribute();
@@ -372,10 +364,6 @@ public class NetworkConfigurationDiscoveryProcess
         throws StunException, IOException
     {
         Request request = MessageFactory.createBindingRequest();
-
-        /* ChangeRequestAttribute changeRequest
-         *  = (ChangeRequestAttribute)request
-         *   .getAttribute(Attribute.CHANGE_REQUEST); */
         /* add a change request attribute */
         ChangeRequestAttribute changeRequest = AttributeFactory.createChangeRequestAttribute();
         changeRequest.setChangeIpFlag(true);
@@ -408,8 +396,6 @@ public class NetworkConfigurationDiscoveryProcess
         throws StunException, IOException
     {
         Request request = MessageFactory.createBindingRequest();
-
-        /* ChangeRequestAttribute changeRequest = (ChangeRequestAttribute)request.getAttribute(Attribute.CHANGE_REQUEST); */
         /* add a change request attribute */
         ChangeRequestAttribute changeRequest = AttributeFactory.createChangeRequestAttribute();
         changeRequest.setChangeIpFlag(false);
@@ -428,7 +414,7 @@ public class NetworkConfigurationDiscoveryProcess
     }
 
     /**
-     * Makes shure the discoverer is operational and throws an
+     * Makes sure the discoverer is operational and throws an
      * StunException.ILLEGAL_STATE if that is not the case.
      * @throws StunException ILLEGAL_STATE if the discoverer is not operational.
      */

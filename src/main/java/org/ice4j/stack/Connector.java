@@ -158,18 +158,6 @@ class Connector implements Runnable
                  * account including after it gets changed.
                  */
                 int receiveBufferSize = 1500;
-                /*
-                if(localSock.getTCPSocket() != null)
-                {
-                    receiveBufferSize = localSock.getTCPSocket().
-                        getReceiveBufferSize();
-                }
-                else if(localSock.getUDPSocket() != null)
-                {
-                    receiveBufferSize = localSock.getUDPSocket().
-                        getReceiveBufferSize();
-                }
-                */
 
                 if (packet == null)
                 {
@@ -319,9 +307,7 @@ class Connector implements Runnable
     void sendMessage(byte[] message, TransportAddress address)
         throws IOException
     {
-        DatagramPacket datagramPacket
-            = new DatagramPacket(message, 0, message.length, address);
-
+        DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
         sock.send(datagramPacket);
     }
 

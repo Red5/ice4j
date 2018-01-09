@@ -43,6 +43,7 @@ import java.util.logging.Logger;
  */
 public abstract class AbstractUdpListener
 {
+
     /**
      * Our class logger.
      */
@@ -204,7 +205,23 @@ public abstract class AbstractUdpListener
     protected AbstractUdpListener(TransportAddress localAddress)
         throws IOException
     {
-        this.localAddress = localAddress;
+        boolean bindWildcard = !StackProperties.getBoolean(
+                StackProperties.BIND_WILDCARD,
+                false);
+
+        if (bindWildcard)
+        {
+            this.localAddress = new TransportAddress(
+                                        (InetAddress) null,
+                                        localAddress.getPort(),
+                                        localAddress.getTransport()
+                                );
+        }
+        else
+        {
+            this.localAddress = localAddress;
+        }
+
         socket = new DatagramSocket(localAddress);
 
         int receiveBufferSize = StackProperties.getInt(SO_RCVBUF_PNAME, -1);
