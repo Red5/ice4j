@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -32,10 +21,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
-class ConnectivityCheckServer
-    implements RequestListener,
-               CredentialsAuthority
-{
+class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     /**
      * The <tt>Logger</tt> used by the <tt>ConnectivityCheckServer</tt>
      * class and its instances for logging output.
@@ -52,8 +38,7 @@ class ConnectivityCheckServer
      * @return <tt>-1</tt> if <tt>a</tt> is less than <tt>b</tt>, <tt>0</tt> if
      * they are equal and <tt>1</tt> if <tt>a</tt> is bigger.
      */
-    private static int compareUnsignedLong(long a, long b)
-    {
+    private static int compareUnsignedLong(long a, long b) {
         if (a == b)
             return 0;
         else if ((a + Long.MIN_VALUE) < (b + Long.MIN_VALUE))
@@ -90,8 +75,7 @@ class ConnectivityCheckServer
      *
      * @param parentAgent the <tt>Agent</tt> that is creating this instance.
      */
-    public ConnectivityCheckServer(Agent parentAgent)
-    {
+    public ConnectivityCheckServer(Agent parentAgent) {
         this.parentAgent = parentAgent;
 
         stunStack = this.parentAgent.getStunStack();
@@ -113,8 +97,7 @@ class ConnectivityCheckServer
      * @return a boolean value indicating whether we have received a STUN
      * request or not.
      */
-    boolean isAlive()
-    {
+    boolean isAlive() {
         return alive;
     }
 
@@ -129,9 +112,7 @@ class ConnectivityCheckServer
      * @throws IllegalArgumentException if the request is malformed and the
      * stack needs to reply with a 400 Bad Request response.
      */
-    public void processRequest(StunMessageEvent evt)
-        throws IllegalArgumentException
-    {
+    public void processRequest(StunMessageEvent evt) throws IllegalArgumentException {
         if (logger.isDebugEnabled()) {
             logger.debug("Received request {}", evt);
         }
@@ -187,12 +168,9 @@ class ConnectivityCheckServer
         Attribute messageIntegrityAttribute = AttributeFactory.createMessageIntegrityAttribute(username);
         response.putAttribute(messageIntegrityAttribute);
 
-        try
-        {
+        try {
             stunStack.sendResponse(evt.getTransactionID().getBytes(), response, evt.getLocalAddress(), evt.getRemoteAddress());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.warn("Failed to send {} through {}", response, evt.getLocalAddress(), e);
             //try to trigger a 500 response although if this one failed, then chances are the 500 will fail too.
             throw new RuntimeException("Failed to send a response", e);
@@ -213,20 +191,15 @@ class ConnectivityCheckServer
      * PRIORITY attribute and the stack needs to respond with a 400 Bad Request
      * {@link Response}.
      */
-    private long extractPriority(Request request)
-        throws IllegalArgumentException
-    {
+    private long extractPriority(Request request) throws IllegalArgumentException {
         //make sure we have a priority attribute and ignore otherwise.
-        PriorityAttribute priorityAttr
-            = (PriorityAttribute)request.getAttribute(Attribute.Type.PRIORITY);
+        PriorityAttribute priorityAttr = (PriorityAttribute) request.getAttribute(Attribute.Type.PRIORITY);
 
         //apply tie-breaking
 
         //extract priority
-        if(priorityAttr == null)
-        {
-            if(logger.isDebugEnabled())
-            {
+        if (priorityAttr == null) {
+            if (logger.isDebugEnabled()) {
                 logger.debug("Received a connectivity check with no PRIORITY attribute. Discarding.");
             }
 
@@ -251,8 +224,7 @@ class ConnectivityCheckServer
      * @return <tt>true</tt> if the role conflict is silently resolved and
      * processing can continue and <tt>false</tt> otherwise.
      */
-    private boolean repairRoleConflict(StunMessageEvent evt)
-    {
+    private boolean repairRoleConflict(StunMessageEvent evt) {
         Message req = evt.getMessage();
         long ourTieBreaker = parentAgent.getTieBreaker();
         // attempt to get controlling first
@@ -272,23 +244,14 @@ class ConnectivityCheckServer
             // contents of the ICE-CONTROLLING attribute, the agent generates
             // a Binding error response and includes an ERROR-CODE attribute
             // with a value of 487 (Role Conflict) but retains its role.
-            if(compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0)
-            {
-                Response response = MessageFactory.createBindingErrorResponse(
-                                ErrorCodeAttribute.ROLE_CONFLICT);
+            if (compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0) {
+                Response response = MessageFactory.createBindingErrorResponse(ErrorCodeAttribute.ROLE_CONFLICT);
 
-                try
-                {
-                    stunStack.sendResponse(
-                            evt.getTransactionID().getBytes(),
-                            response,
-                            evt.getLocalAddress(),
-                            evt.getRemoteAddress());
+                try {
+                    stunStack.sendResponse(evt.getTransactionID().getBytes(), response, evt.getLocalAddress(), evt.getRemoteAddress());
 
                     return false;
-                }
-                catch(Exception exc)
-                {
+                } catch (Exception exc) {
                     //rethrow so that we would send a 500 response instead.
                     throw new RuntimeException("Failed to send a 487", exc);
                 }
@@ -296,20 +259,15 @@ class ConnectivityCheckServer
             //If the agent's tie-breaker is less than the contents of the
             //ICE-CONTROLLING attribute, the agent switches to the controlled
             //role.
-            else
-            {
-                logger.debug(
-                        "Switching to controlled because theirTieBreaker="
-                        + theirTieBreaker + " and ourTieBreaker="
-                        + ourTieBreaker);
+            else {
+                logger.debug("Switching to controlled because theirTieBreaker=" + theirTieBreaker + " and ourTieBreaker=" + ourTieBreaker);
                 parentAgent.setControlling(false);
                 return true;
             }
         }
         // If the agent is in the controlled role, and the ICE-CONTROLLED
         // attribute is present in the request:
-        else if(!parentAgent.isControlling() && attr instanceof IceControlledAttribute)
-        {
+        else if (!parentAgent.isControlling() && attr instanceof IceControlledAttribute) {
             IceControlledAttribute controlled = (IceControlledAttribute) attr;
 
             long theirTieBreaker = controlled.getTieBreaker();
@@ -317,12 +275,8 @@ class ConnectivityCheckServer
             //If the agent's tie-breaker is larger than or equal to the
             //contents of the ICE-CONTROLLED attribute, the agent switches to
             //the controlling role.
-            if(compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0)
-            {
-                logger.debug(
-                        "Switching to controlling because theirTieBreaker="
-                        + theirTieBreaker + " and ourTieBreaker="
-                        + ourTieBreaker);
+            if (compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0) {
+                logger.debug("Switching to controlling because theirTieBreaker=" + theirTieBreaker + " and ourTieBreaker=" + ourTieBreaker);
                 parentAgent.setControlling(true);
                 return true;
             }
@@ -330,23 +284,14 @@ class ConnectivityCheckServer
             // ICE-CONTROLLED attribute, the agent generates a Binding error
             // response and includes an ERROR-CODE attribute with a value of
             // 487 (Role Conflict) but retains its role.
-            else
-            {
-                Response response = MessageFactory.createBindingErrorResponse(
-                            ErrorCodeAttribute.ROLE_CONFLICT);
+            else {
+                Response response = MessageFactory.createBindingErrorResponse(ErrorCodeAttribute.ROLE_CONFLICT);
 
-                try
-                {
-                    stunStack.sendResponse(
-                            evt.getTransactionID().getBytes(),
-                            response,
-                            evt.getLocalAddress(),
-                            evt.getRemoteAddress());
+                try {
+                    stunStack.sendResponse(evt.getTransactionID().getBytes(), response, evt.getLocalAddress(), evt.getRemoteAddress());
 
                     return false;
-                }
-                catch(Exception exc)
-                {
+                } catch (Exception exc) {
                     //rethrow so that we would send a 500 response instead.
                     throw new RuntimeException("Failed to send a 487", exc);
                 }
@@ -364,8 +309,7 @@ class ConnectivityCheckServer
      * @return <tt>true</tt> if <tt>username</tt> is known to this
      * <tt>ConnectivityCheckServer</tt> and <tt>false</tt> otherwise.
      */
-    public boolean checkLocalUserName(String username)
-    {
+    public boolean checkLocalUserName(String username) {
         String ufrag = username.split(":")[0];
         return ufrag.equals(parentAgent.getLocalUfrag());
     }
@@ -381,12 +325,8 @@ class ConnectivityCheckServer
      * @return this handler's parent agent local password if <tt>username</tt>
      * equals the local ufrag and <tt>null</tt> otherwise.
      */
-    public byte[] getLocalKey(String username)
-    {
-        return
-            checkLocalUserName(username)
-                ? parentAgent.getLocalPassword().getBytes()
-                : null;
+    public byte[] getLocalKey(String username) {
+        return checkLocalUserName(username) ? parentAgent.getLocalPassword().getBytes() : null;
     }
 
     /**
@@ -401,11 +341,9 @@ class ConnectivityCheckServer
      * @return this handler's parent agent remote password if <tt>username</tt>
      * equals the remote ufrag and <tt>null</tt> otherwise.
      */
-    public byte[] getRemoteKey(String username, String media)
-    {
+    public byte[] getRemoteKey(String username, String media) {
         IceMediaStream stream = parentAgent.getStream(media);
-        if(stream == null)
-        {
+        if (stream == null) {
             return null;
         }
 
@@ -413,18 +351,14 @@ class ConnectivityCheckServer
         //entire user name.
         int colon = username.indexOf(":");
 
-        if (colon < 0)
-        {
+        if (colon < 0) {
             //caller gave us a ufrag
             if (username.equals(stream.getRemoteUfrag()))
                 return stream.getRemotePassword().getBytes();
-        }
-        else
-        {
+        } else {
             //caller gave us the entire username.
-            if (username.equals(parentAgent.generateLocalUserName(media)))
-            {
-                if(stream.getRemotePassword() != null)
+            if (username.equals(parentAgent.generateLocalUserName(media))) {
+                if (stream.getRemotePassword() != null)
                     return stream.getRemotePassword().getBytes();
             }
         }
@@ -435,10 +369,8 @@ class ConnectivityCheckServer
      * Starts this <tt>ConnectivityCheckServer</tt>. If it is not currently
      * running, does nothing.
      */
-    public void start()
-    {
-        if (!started)
-        {
+    public void start() {
+        if (!started) {
             stunStack.addRequestListener(this);
             started = true;
         }
@@ -449,8 +381,7 @@ class ConnectivityCheckServer
      * <tt>ConnectivityCheckServer</tt> can be restarted by calling
      * {@link #start()} on it.
      */
-    public void stop()
-    {
+    public void stop() {
         stunStack.removeRequestListener(this);
         started = false;
     }

@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stunclient;
 
@@ -45,14 +34,11 @@ import org.ice4j.stack.*;
  * @author Lubomir Marinov
  * @author Aakash Garg
  */
-public class BlockingRequestSender
-    extends AbstractResponseCollector
-{
+public class BlockingRequestSender extends AbstractResponseCollector {
     /**
      * Our class logger
      */
-    private static final Logger logger
-        = Logger.getLogger(BlockingRequestSender.class.getName());
+    private static final Logger logger = Logger.getLogger(BlockingRequestSender.class.getName());
 
     /**
      * The stack that we are using to send requests through.
@@ -87,9 +73,7 @@ public class BlockingRequestSender
      * @param localAddress the <tt>TransportAddress</tt> that requests should be
      * leaving from.
      */
-    public BlockingRequestSender(StunStack stunStack,
-                          TransportAddress localAddress)
-    {
+    public BlockingRequestSender(StunStack stunStack, TransportAddress localAddress) {
         this.stunStack = stunStack;
         this.localAddress = localAddress;
     }
@@ -100,8 +84,7 @@ public class BlockingRequestSender
      *
      * @return the localAddress of this RequestSender.
      */
-    public TransportAddress getLocalAddress()
-    {
+    public TransportAddress getLocalAddress() {
         return localAddress;
     }
 
@@ -116,10 +99,8 @@ public class BlockingRequestSender
      * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
      */
     @Override
-    protected synchronized void processFailure(BaseStunMessageEvent event)
-    {
-        synchronized(sendLock)
-        {
+    protected synchronized void processFailure(BaseStunMessageEvent event) {
+        synchronized (sendLock) {
             ended = true;
             notifyAll();
         }
@@ -131,10 +112,8 @@ public class BlockingRequestSender
      * @param evt the newly arrived message event.
      */
     @Override
-    public synchronized void processResponse(StunResponseEvent evt)
-    {
-        synchronized(sendLock)
-        {
+    public synchronized void processResponse(StunResponseEvent evt) {
+        synchronized (sendLock) {
             this.responseEvent = evt;
             ended = true;
             notifyAll();
@@ -155,27 +134,16 @@ public class BlockingRequestSender
      * access point that had not been installed,
      * @throws StunException if message encoding fails,
      */
-    public synchronized StunMessageEvent sendRequestAndWaitForResponse(
-                                                Request request,
-                                                TransportAddress serverAddress)
-            throws StunException,
-                   IOException
-    {
-        synchronized(sendLock)
-        {
-            stunStack.sendRequest(request, serverAddress, localAddress,
-                                     BlockingRequestSender.this);
+    public synchronized StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress) throws StunException, IOException {
+        synchronized (sendLock) {
+            stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this);
         }
 
         ended = false;
-        while(!ended)
-        {
-            try
-            {
+        while (!ended) {
+            try {
                 wait();
-            }
-            catch (InterruptedException ex)
-            {
+            } catch (InterruptedException ex) {
                 logger.log(Level.WARNING, "Interrupted", ex);
             }
         }
@@ -184,7 +152,6 @@ public class BlockingRequestSender
 
         return res;
     }
-    
 
     /**
      * Sends the specified request and blocks until a response has been
@@ -202,28 +169,16 @@ public class BlockingRequestSender
      * access point that had not been installed,
      * @throws StunException if message encoding fails,
      */
-    public synchronized StunMessageEvent sendRequestAndWaitForResponse(
-                                                Request request,
-                                                TransportAddress serverAddress,
-                                                TransactionID tranID)
-            throws StunException,
-                   IOException
-    {
-        synchronized(sendLock)
-        {
-            stunStack.sendRequest(request, serverAddress, localAddress,
-                                     BlockingRequestSender.this,tranID);
+    public synchronized StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress, TransactionID tranID) throws StunException, IOException {
+        synchronized (sendLock) {
+            stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this, tranID);
         }
 
         ended = false;
-        while(!ended)
-        {
-            try
-            {
+        while (!ended) {
+            try {
                 wait();
-            }
-            catch (InterruptedException ex)
-            {
+            } catch (InterruptedException ex) {
                 logger.log(Level.WARNING, "Interrupted", ex);
             }
         }

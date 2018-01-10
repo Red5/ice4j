@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -61,9 +50,7 @@ import org.slf4j.LoggerFactory;
  * @author Lyubomir Marinov
  * @author Aakash Garg.
  */
-public class StunStack
-    implements MessageEventHandler
-{
+public class StunStack implements MessageEventHandler {
 
     /**
      * The <tt>Logger</tt> used by the <tt>StunStack</tt> class and its instances for logging output.
@@ -118,10 +105,8 @@ public class StunStack
 
     static {
         /*
-         * The Mac instantiation used in MessageIntegrityAttribute could take
-         * several hundred milliseconds so we don't want it instantiated only
-         * after we get a response because the delay may cause the transaction
-         * to fail.
+         * The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after we get a response because the
+         * delay may cause the transaction to fail.
          */
         try {
             mac = Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
@@ -203,8 +188,7 @@ public class StunStack
     protected StunServerTransaction getServerTransaction(TransactionID transactionID) {
         StunServerTransaction serverTransaction = serverTransactions.get(transactionID);
         /*
-         * If a StunServerTransaction is expired, do not return it. It will be
-         * removed from serverTransactions soon.
+         * If a StunServerTransaction is expired, do not return it. It will be removed from serverTransactions soon.
          */
         if (serverTransaction != null && serverTransaction.isExpired()) {
             serverTransaction = null;
@@ -241,32 +225,20 @@ public class StunStack
      * into account (that is, all transactions with for <tt>localAddr</tt> will
      * be cancelled).
      */
-    private void cancelTransactionsForAddress(TransportAddress localAddr,
-                                              TransportAddress remoteAddr)
-    {
+    private void cancelTransactionsForAddress(TransportAddress localAddr, TransportAddress remoteAddr) {
 
-        for (StunClientTransaction tran : clientTransactions.values()) 
-        {
-            if (tran.getLocalAddress().equals(localAddr)
-                    && (remoteAddr == null
-                            || remoteAddr.equals(tran.getRemoteAddress())))
-            {
+        for (StunClientTransaction tran : clientTransactions.values()) {
+            if (tran.getLocalAddress().equals(localAddr) && (remoteAddr == null || remoteAddr.equals(tran.getRemoteAddress()))) {
                 clientTransactions.remove(tran);
                 tran.cancel();
             }
         }
-        for (StunServerTransaction tran : serverTransactions.values()) 
-        {
+        for (StunServerTransaction tran : serverTransactions.values()) {
             TransportAddress listenAddr = tran.getLocalListeningAddress();
             TransportAddress sendingAddr = tran.getSendingAddress();
 
-            if (listenAddr.equals(localAddr)
-                    || (sendingAddr != null
-                            && sendingAddr.equals(localAddr)))
-            {
-                if (remoteAddr == null
-                      || remoteAddr.equals(tran.getRequestSourceAddress()))
-                {
+            if (listenAddr.equals(localAddr) || (sendingAddr != null && sendingAddr.equals(localAddr))) {
+                if (remoteAddr == null || remoteAddr.equals(tran.getRequestSourceAddress())) {
                     serverTransactions.remove(tran);
                     tran.expire();
                 }
@@ -285,28 +257,22 @@ public class StunStack
      *            will handle incoming UDP messages which are ChannelData
      *            messages.
      */
-    public StunStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler,
-            ChannelDataEventHandler channelDataEventHandler)
-    {
-        netAccessManager =
-            new NetAccessManager(this, peerUdpMessageEventHandler,
-                channelDataEventHandler);
+    public StunStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler, ChannelDataEventHandler channelDataEventHandler) {
+        netAccessManager = new NetAccessManager(this, peerUdpMessageEventHandler, channelDataEventHandler);
     }
-    
+
     /**
      * Initializes a new <tt>StunStack</tt> instance.
      */
-    public StunStack()
-    {
-        this(null,null);
+    public StunStack() {
+        this(null, null);
     }
-    
+
     /**
      * Returns the currently active instance of NetAccessManager.
      * @return the currently active instance of NetAccessManager.
      */
-    NetAccessManager getNetAccessManager()
-    {
+    NetAccessManager getNetAccessManager() {
         return netAccessManager;
     }
 
@@ -327,36 +293,17 @@ public class StunStack
      * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
      * identified by <tt>sendThrough</tt>
      */
-    public void sendChannelData(
-            ChannelData channelData,
-            TransportAddress sendTo,
-            TransportAddress sendThrough)
-        throws StunException
-    {
-        try
-        {
+    public void sendChannelData(ChannelData channelData, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+        try {
             getNetAccessManager().sendMessage(channelData, sendThrough, sendTo);
-        }
-        catch (StunException stex)
-        {
+        } catch (StunException stex) {
             throw stex;
-        }
-        catch (IllegalArgumentException iaex)
-        {
-            throw new StunException(
-                    StunException.ILLEGAL_ARGUMENT,
-                    "Failed to send STUN indication: " + channelData,
-                    iaex);
-        }
-        catch (IOException ioex)
-        {
-            throw new StunException(
-                    StunException.NETWORK_ERROR,
-                    "Failed to send STUN indication: " + channelData,
-                    ioex);
+        } catch (IllegalArgumentException iaex) {
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + channelData, iaex);
+        } catch (IOException ioex) {
+            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + channelData, ioex);
         }
     }
-    
 
     /**
      * Sends a specific STUN <tt>Indication</tt> to a specific destination
@@ -375,31 +322,14 @@ public class StunStack
      * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
      * identified by <tt>sendThrough</tt>
      */
-    public void sendUdpMessage(
-            RawMessage udpMessage,
-            TransportAddress sendTo,
-            TransportAddress sendThrough)
-        throws StunException
-    {
-        
-        try
-        {
-            getNetAccessManager().sendMessage(
-                udpMessage.getBytes(), sendThrough, sendTo);
-        }
-        catch (IllegalArgumentException iaex)
-        {
-            throw new StunException(
-                    StunException.ILLEGAL_ARGUMENT,
-                    "Failed to send STUN indication: " + udpMessage,
-                    iaex);
-        }
-        catch (IOException ioex)
-        {
-            throw new StunException(
-                    StunException.NETWORK_ERROR,
-                    "Failed to send STUN indication: " + udpMessage,
-                    ioex);
+    public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+
+        try {
+            getNetAccessManager().sendMessage(udpMessage.getBytes(), sendThrough, sendTo);
+        } catch (IllegalArgumentException iaex) {
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + udpMessage, iaex);
+        } catch (IOException ioex) {
+            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + udpMessage, ioex);
         }
     }
 
@@ -420,35 +350,17 @@ public class StunStack
      * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
      * identified by <tt>sendThrough</tt>
      */
-    public void sendIndication(
-            Indication indication,
-            TransportAddress sendTo,
-            TransportAddress sendThrough)
-        throws StunException
-    {
-        if (indication.getTransactionID() == null)
-        {
-            indication.setTransactionID(
-                    TransactionID.createNewTransactionID().getBytes());
+    public void sendIndication(Indication indication, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+        if (indication.getTransactionID() == null) {
+            indication.setTransactionID(TransactionID.createNewTransactionID().getBytes());
         }
 
-        try
-        {
+        try {
             getNetAccessManager().sendMessage(indication, sendThrough, sendTo);
-        }
-        catch (IllegalArgumentException iaex)
-        {
-            throw new StunException(
-                    StunException.ILLEGAL_ARGUMENT,
-                    "Failed to send STUN indication: " + indication,
-                    iaex);
-        }
-        catch (IOException ioex)
-        {
-            throw new StunException(
-                    StunException.NETWORK_ERROR,
-                    "Failed to send STUN indication: " + indication,
-                    ioex);
+        } catch (IllegalArgumentException iaex) {
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + indication, iaex);
+        } catch (IOException ioex) {
+            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + indication, ioex);
         }
     }
 
@@ -469,14 +381,8 @@ public class StunStack
      * @throws IllegalArgumentException if the apDescriptor references an
      * access point that had not been installed,
      */
-    public TransactionID sendRequest(  Request           request,
-                                       TransportAddress  sendTo,
-                                       TransportAddress  sendThrough,
-                                       ResponseCollector collector)
-        throws IOException, IllegalArgumentException
-    {
-        return sendRequest(request, sendTo, sendThrough, collector,
-                        TransactionID.createNewTransactionID());
+    public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
+        return sendRequest(request, sendTo, sendThrough, collector, TransactionID.createNewTransactionID());
     }
 
     /**
@@ -499,18 +405,8 @@ public class StunStack
      * @throws IOException  if an error occurs while sending message bytes
      * through the network socket.
      */
-    public TransactionID sendRequest(Request           request,
-                                     TransportAddress  sendTo,
-                                     TransportAddress  sendThrough,
-                                     ResponseCollector collector,
-                                     TransactionID     transactionID)
-        throws IllegalArgumentException,
-               IOException
-    {
-        return
-            sendRequest(
-                    request, sendTo, sendThrough, collector, transactionID,
-                    -1, -1, -1);
+    public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID) throws IllegalArgumentException, IOException {
+        return sendRequest(request, sendTo, sendThrough, collector, transactionID, -1, -1, -1);
     }
 
     /**
@@ -539,25 +435,8 @@ public class StunStack
      * @throws IOException  if an error occurs while sending message bytes
      * through the network socket.
      */
-    public TransactionID sendRequest(Request           request,
-                                     TransportAddress  sendTo,
-                                     TransportAddress  sendThrough,
-                                     ResponseCollector collector,
-                                     TransactionID     transactionID,
-                                     int               originalWaitInterval,
-                                     int               maxWaitInterval,
-                                     int               maxRetransmissions)
-        throws IllegalArgumentException,
-               IOException
-    {
-        StunClientTransaction clientTransaction
-            = new StunClientTransaction(
-                    this,
-                    request,
-                    sendTo,
-                    sendThrough,
-                    collector,
-                    transactionID);
+    public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) throws IllegalArgumentException, IOException {
+        StunClientTransaction clientTransaction = new StunClientTransaction(this, request, sendTo, sendThrough, collector, transactionID);
 
         if (originalWaitInterval > 0)
             clientTransaction.originalWaitInterval = originalWaitInterval;
@@ -566,9 +445,7 @@ public class StunStack
         if (maxRetransmissions >= 0)
             clientTransaction.maxRetransmissions = maxRetransmissions;
 
-        clientTransactions.put(
-                clientTransaction.getTransactionID(),
-                clientTransaction);
+        clientTransactions.put(clientTransaction.getTransactionID(), clientTransaction);
 
         clientTransaction.sendRequest();
 
@@ -592,15 +469,8 @@ public class StunStack
      * @throws IllegalArgumentException if the apDescriptor references an
      * access point that had not been installed,
      */
-    public TransactionID sendRequest( Request           request,
-                                      TransportAddress  sendTo,
-                                      DatagramSocket    sendThrough,
-                                      ResponseCollector collector )
-        throws IOException, IllegalArgumentException
-    {
-        TransportAddress sendThroughAddr = new TransportAddress(
-            sendThrough.getLocalAddress(), sendThrough.getLocalPort(),
-                Transport.UDP);
+    public TransactionID sendRequest(Request request, TransportAddress sendTo, DatagramSocket sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
+        TransportAddress sendThroughAddr = new TransportAddress(sendThrough.getLocalAddress(), sendThrough.getLocalPort(), Transport.UDP);
 
         return sendRequest(request, sendTo, sendThroughAddr, collector);
     }
@@ -622,36 +492,15 @@ public class StunStack
      * access point that had not been installed,
      * @throws StunException if message encoding fails
      */
-    public void sendResponse(byte[]           transactionID,
-                             Response         response,
-                             TransportAddress sendThrough,
-                             TransportAddress sendTo)
-        throws StunException,
-               IOException,
-               IllegalArgumentException
-    {
-        TransactionID tid
-            = TransactionID.createTransactionID(this, transactionID);
+    public void sendResponse(byte[] transactionID, Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
+        TransactionID tid = TransactionID.createTransactionID(this, transactionID);
         StunServerTransaction sTran = getServerTransaction(tid);
 
-        if(sTran == null)
-        {
-            throw new StunException(StunException.TRANSACTION_DOES_NOT_EXIST,
-                                "The transaction specified in the response "
-                                + "(tid="+ tid.toString() +") "
-                                + "object does not exist.");
-        }
-        else if(sTran.isRetransmitting())
-        {
-            throw new StunException(StunException.TRANSACTION_ALREADY_ANSWERED,
-                                    "The transaction specified in the response "
-                                    + "(tid="+ tid.toString() +") "
-                                    + "has already seen a previous response. "
-                                    + "Response was:\n"
-                                    + sTran.getResponse());
-        }
-        else
-        {
+        if (sTran == null) {
+            throw new StunException(StunException.TRANSACTION_DOES_NOT_EXIST, "The transaction specified in the response " + "(tid=" + tid.toString() + ") " + "object does not exist.");
+        } else if (sTran.isRetransmitting()) {
+            throw new StunException(StunException.TRANSACTION_ALREADY_ANSWERED, "The transaction specified in the response " + "(tid=" + tid.toString() + ") " + "has already seen a previous response. " + "Response was:\n" + sTran.getResponse());
+        } else {
             sTran.sendResponse(response, sendThrough, sendTo);
         }
     }
@@ -667,10 +516,7 @@ public class StunStack
      * registered for notifications about STUN indications received at the
      * specified local <tt>TransportAddress</tt>
      */
-    public void addIndicationListener(
-            TransportAddress localAddr,
-            MessageEventHandler indicationListener)
-    {
+    public void addIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
         eventDispatcher.addIndicationListener(localAddr, indicationListener);
     }
 
@@ -685,10 +531,7 @@ public class StunStack
      * registered for notifications about old indications received at the
      * specified local <tt>TransportAddress</tt>
      */
-    public void addOldIndicationListener(
-            TransportAddress localAddr,
-            MessageEventHandler indicationListener)
-    {
+    public void addOldIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
         eventDispatcher.addOldIndicationListener(localAddr, indicationListener);
     }
 
@@ -696,9 +539,8 @@ public class StunStack
      * Sets the listener that should be notified when a new Request is received.
      * @param requestListener the listener interested in incoming requests.
      */
-    public void addRequestListener(RequestListener requestListener)
-    {
-        eventDispatcher.addRequestListener( requestListener );
+    public void addRequestListener(RequestListener requestListener) {
+        eventDispatcher.addRequestListener(requestListener);
     }
 
     /**
@@ -713,10 +555,7 @@ public class StunStack
      * unregistered for notifications about STUN indications received at the
      * specified local <tt>TransportAddress</tt>
      */
-    public void removeIndicationListener(
-            TransportAddress localAddr,
-            MessageEventHandler indicationListener)
-    {
+    public void removeIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
     }
 
     /**
@@ -725,8 +564,7 @@ public class StunStack
      * access point, they will not be removed).
      * @param listener the RequestListener listener to unregister
      */
-    public void removeRequestListener(RequestListener listener)
-    {
+    public void removeRequestListener(RequestListener listener) {
         eventDispatcher.removeRequestListener(listener);
     }
 
@@ -739,9 +577,7 @@ public class StunStack
      * like to listen on.
      * @param listener The ConfigurationChangeListener to be added
      */
-    public void addRequestListener( TransportAddress localAddress,
-                                    RequestListener  listener)
-    {
+    public void addRequestListener(TransportAddress localAddress, RequestListener listener) {
         eventDispatcher.addRequestListener(localAddress, listener);
     }
 
@@ -752,8 +588,7 @@ public class StunStack
      *
      * @param tran the transaction to remove.
      */
-    void removeClientTransaction(StunClientTransaction tran)
-    {
+    void removeClientTransaction(StunClientTransaction tran) {
         clientTransactions.remove(tran.getTransactionID());
     }
 
@@ -763,8 +598,7 @@ public class StunStack
      * Method is used by StunServerTransaction-s themselves when they expire.
      * @param tran the transaction to remove.
      */
-    void removeServerTransaction(StunServerTransaction tran)
-    {
+    void removeServerTransaction(StunServerTransaction tran) {
         serverTransactions.remove(tran.getTransactionID());
     }
 
@@ -774,80 +608,58 @@ public class StunStack
      * @param ev the event object that contains the new message.
      */
     @Override
-    public void handleMessageEvent(StunMessageEvent ev)
-    {
+    public void handleMessageEvent(StunMessageEvent ev) {
         Message msg = ev.getMessage();
-        if (logger.isTraceEnabled())
-        {
+        if (logger.isTraceEnabled()) {
             logger.trace("Received a message on {} of type: {}", ev.getLocalAddress(), msg.getName());
         }
         //request
-        if (msg instanceof Request)
-        {
+        if (msg instanceof Request) {
             logger.trace("parsing request");
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
-            if (ua != null)
-            {
+            if (ua != null) {
                 logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());
-                if (ua.getUsername().length != ua.getDataLength())
-                {
+                if (ua.getUsername().length != ua.getDataLength()) {
                     logger.warn("Invalid username size, rejecting request");
                     return;
                 }
                 logger.warn("Username: {}", ua.getUsername());
-            }
-            else
-            {
+            } else {
                 logger.debug("Username was null");
             }
             TransactionID serverTid = ev.getTransactionID();
             // set the username attribute length
             serverTid.setUaLength(ua.getDataLength());
             logger.warn("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
-            StunServerTransaction sTran  = getServerTransaction(serverTid);
-            if (sTran != null)
-            {
+            StunServerTransaction sTran = getServerTransaction(serverTid);
+            if (sTran != null) {
                 logger.warn("Stored server transaction id: {} rfc3489: {}", sTran.getTransactionID().toString(), sTran.getTransactionID().isRFC3489Compatible());
                 //requests from this transaction have already been seen
                 //retransmit the response if there was any
                 logger.trace("found an existing transaction");
-                try
-                {
+                try {
                     sTran.retransmitResponse();
                     logger.trace("Response retransmitted");
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     //we couldn't really do anything here .. apart from logging
                     logger.warn("Failed to retransmit a stun response", ex);
                 }
 
-                if(!StackProperties.getBoolean(StackProperties.PROPAGATE_RECEIVED_RETRANSMISSIONS, false))
-                {
+                if (!StackProperties.getBoolean(StackProperties.PROPAGATE_RECEIVED_RETRANSMISSIONS, false)) {
                     return;
                 }
-            }
-            else
-            {
+            } else {
                 logger.trace("existing transaction not found");
-                sTran
-                    = new StunServerTransaction(
-                            this,
-                            serverTid,
-                            ev.getLocalAddress(),
-                            ev.getRemoteAddress());
+                sTran = new StunServerTransaction(this, serverTid, ev.getLocalAddress(), ev.getRemoteAddress());
 
                 // if there is an OOM error here, it will lead to
                 // NetAccessManager.handleFatalError that will stop the
                 // MessageProcessor thread and restart it that will lead again
                 // to an OOM error and so on... So stop here right now
-                try
-                {
+                try {
                     sTran.start();
-                }
-                catch(OutOfMemoryError t)
-                {
+                } catch (OutOfMemoryError t) {
                     logger.warn("STUN transaction thread start failed", t);
                     return;
                 }
@@ -856,12 +668,9 @@ public class StunStack
             }
 
             //validate attributes that need validation.
-            try
-            {
+            try {
                 validateRequestAttributes(ev);
-            }
-            catch(Exception exc)
-            {
+            } catch (Exception exc) {
                 //validation failed. log get lost.
                 logger.warn("Failed to validate msg: {}", ev, exc);
                 // remove failed transaction to account for Edge
@@ -869,89 +678,51 @@ public class StunStack
                 return;
             }
 
-            try
-            {
+            try {
                 eventDispatcher.fireMessageEvent(ev);
-            }
-            catch (Throwable t)
-            {
+            } catch (Throwable t) {
                 logger.warn("Received an invalid request.", t);
                 Throwable cause = t.getCause();
-                if(((t instanceof StunException)
-                            && ((StunException) t).getID()
-                                    == StunException
-                                        .TRANSACTION_ALREADY_ANSWERED)
-                        || ((cause instanceof StunException)
-                                && ((StunException) cause).getID()
-                                        == StunException
-                                            .TRANSACTION_ALREADY_ANSWERED))
-                {
+                if (((t instanceof StunException) && ((StunException) t).getID() == StunException.TRANSACTION_ALREADY_ANSWERED) || ((cause instanceof StunException) && ((StunException) cause).getID() == StunException.TRANSACTION_ALREADY_ANSWERED)) {
                     // do not try to send an error response since we will
                     // get another TRANSACTION_ALREADY_ANSWERED
                     return;
                 }
                 Response error;
-                if(t instanceof IllegalArgumentException)
-                {
-                    error
-                        = createCorrespondingErrorResponse(
-                                msg.getMessageType(),
-                                ErrorCodeAttribute.BAD_REQUEST,
-                                t.getMessage());
-                }
-                else
-                {
-                    error
-                        = createCorrespondingErrorResponse(
-                                msg.getMessageType(),
-                                ErrorCodeAttribute.SERVER_ERROR,
-                                "Oops! Something went wrong on our side :(");
+                if (t instanceof IllegalArgumentException) {
+                    error = createCorrespondingErrorResponse(msg.getMessageType(), ErrorCodeAttribute.BAD_REQUEST, t.getMessage());
+                } else {
+                    error = createCorrespondingErrorResponse(msg.getMessageType(), ErrorCodeAttribute.SERVER_ERROR, "Oops! Something went wrong on our side :(");
                 }
 
-                try
-                {
-                    sendResponse(
-                            serverTid.getBytes(),
-                            error,
-                            ev.getLocalAddress(),
-                            ev.getRemoteAddress());
-                }
-                catch(Exception exc)
-                {
+                try {
+                    sendResponse(serverTid.getBytes(), error, ev.getLocalAddress(), ev.getRemoteAddress());
+                } catch (Exception exc) {
                     logger.warn("Couldn't send a server error response", exc);
                 }
             }
         }
         //response
-        else if(msg instanceof Response)
-        {            
+        else if (msg instanceof Response) {
             logger.trace("parsing response");
             TransactionID tid = ev.getTransactionID();
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
-            if (ua != null)
-            {
+            if (ua != null) {
                 logger.debug("Username: {}", ua.getUsername());
                 // set the username attribute length
                 tid.setUaLength(ua.getDataLength());
             }
             StunClientTransaction tran = clientTransactions.remove(tid);
-            if(tran != null)
-            {
+            if (tran != null) {
                 tran.handleResponse(ev);
-            }
-            else
-            {
+            } else {
                 //do nothing - just drop the phantom response.
-                logger.debug(
-                        "Dropped response - no matching client tran found for"
-                            + " tid " + tid + "\n" + "all tids in stock were "
-                            + clientTransactions.keySet());
+                logger.debug("Dropped response - no matching client tran found for" + " tid " + tid + "\n" + "all tids in stock were " + clientTransactions.keySet());
             }
         }
         // indication
-        else if (msg instanceof Indication)
-        {
+        else if (msg instanceof Indication) {
             eventDispatcher.fireMessageEvent(ev);
         }
     }
@@ -963,16 +734,14 @@ public class StunStack
      * @return the {@link CredentialsManager} that this stack is using for
      * verification of {@link MessageIntegrityAttribute}s.
      */
-    public CredentialsManager getCredentialsManager()
-    {
+    public CredentialsManager getCredentialsManager() {
         return credentialsManager;
     }
 
     /**
      * Cancels all running transactions and prepares for garbage collection
      */
-    public void shutDown()
-    {
+    public void shutDown() {
         eventDispatcher.removeAllListeners();
         // clientTransactions
         for (StunClientTransaction tran : clientTransactions.values()) {
@@ -1001,109 +770,63 @@ public class StunStack
      * @throws StunException if we fail while sending an error response.
      * @throws IOException if we fail while sending an error response.
      */
-    private void validateRequestAttributes(StunMessageEvent evt)
-        throws IllegalArgumentException, StunException, IOException
-    {
+    private void validateRequestAttributes(StunMessageEvent evt) throws IllegalArgumentException, StunException, IOException {
         Message request = evt.getMessage();
 
         //assert valid username
-        UsernameAttribute unameAttr = (UsernameAttribute)request
-            .getAttribute(Attribute.Type.USERNAME);
+        UsernameAttribute unameAttr = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
         String username = null;
 
-        if (unameAttr != null)
-        {
+        if (unameAttr != null) {
             username = LongTermCredential.toString(unameAttr.getUsername());
-            if (!validateUsername(username))
-            {
-                Response error = createCorrespondingErrorResponse(
-                                request.getMessageType(),
-                                ErrorCodeAttribute.UNAUTHORIZED,
-                                "unknown user " + username);
+            if (!validateUsername(username)) {
+                Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "unknown user " + username);
 
-                sendResponse(request.getTransactionID(), error,
-                                evt.getLocalAddress(),
-                                evt.getRemoteAddress());
+                sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
 
                 throw new IllegalArgumentException("Non-recognized username: " + username);
             }
         }
         boolean messageIntegrityRequired = StackProperties.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY, false);
         //assert Message Integrity
-        MessageIntegrityAttribute msgIntAttr
-            = (MessageIntegrityAttribute)
-                request.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
+        MessageIntegrityAttribute msgIntAttr = (MessageIntegrityAttribute) request.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
 
-        if (msgIntAttr != null)
-        {
+        if (msgIntAttr != null) {
             //we should complain if we have msg integrity and no username.
-            if (unameAttr == null)
-            {
-                Response error = createCorrespondingErrorResponse(
-                                request.getMessageType(),
-                                ErrorCodeAttribute.BAD_REQUEST,
-                                "missing username");
+            if (unameAttr == null) {
+                Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.BAD_REQUEST, "missing username");
 
-                sendResponse(request.getTransactionID(), error,
-                                evt.getLocalAddress(),
-                                evt.getRemoteAddress());
+                sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
 
-                throw new IllegalArgumentException(
-                    "Missing USERNAME in the presence of MESSAGE-INTEGRITY: ");
+                throw new IllegalArgumentException("Missing USERNAME in the presence of MESSAGE-INTEGRITY: ");
             }
-            if (!validateMessageIntegrity(
-                    msgIntAttr,
-                    username,
-                    true,
-                    evt.getRawMessage()))
-            {
-                Response error = createCorrespondingErrorResponse(
-                                request.getMessageType(),
-                                ErrorCodeAttribute.UNAUTHORIZED,
-                                "Wrong MESSAGE-INTEGRITY value");
+            if (!validateMessageIntegrity(msgIntAttr, username, true, evt.getRawMessage())) {
+                Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "Wrong MESSAGE-INTEGRITY value");
 
-                sendResponse(request.getTransactionID(), error,
-                                evt.getLocalAddress(),
-                                evt.getRemoteAddress());
+                sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
 
                 throw new IllegalArgumentException("Wrong MESSAGE-INTEGRITY value.");
             }
-        }
-        else if(messageIntegrityRequired)
-        {
+        } else if (messageIntegrityRequired) {
             // no message integrity
-            Response error = createCorrespondingErrorResponse(
-                            request.getMessageType(),
-                            ErrorCodeAttribute.UNAUTHORIZED,
-                            "Missing MESSAGE-INTEGRITY.");
+            Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "Missing MESSAGE-INTEGRITY.");
 
-            sendResponse(request.getTransactionID(), error,
-                            evt.getLocalAddress(),
-                            evt.getRemoteAddress());
+            sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
             throw new IllegalArgumentException("Missing MESSAGE-INTEGRITY.");
         }
 
         //look for unknown attributes.
         List<Attribute> allAttributes = request.getAttributes();
         StringBuffer sBuff = new StringBuffer();
-        for(Attribute attr : allAttributes)
-        {
-            if(attr instanceof OptionalAttribute
-                && attr.getAttributeType().getType()
-                    < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType())
+        for (Attribute attr : allAttributes) {
+            if (attr instanceof OptionalAttribute && attr.getAttributeType().getType() < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType())
                 sBuff.append(attr.getAttributeType());
         }
 
-        if (sBuff.length() > 0)
-        {
-            Response error = createCorrespondingErrorResponse(
-                    request.getMessageType(),
-                    ErrorCodeAttribute.UNKNOWN_ATTRIBUTE,
-                    "unknown attribute ", sBuff.toString().toCharArray());
+        if (sBuff.length() > 0) {
+            Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNKNOWN_ATTRIBUTE, "unknown attribute ", sBuff.toString().toCharArray());
 
-            sendResponse(request.getTransactionID(), error,
-                            evt.getLocalAddress(),
-                            evt.getRemoteAddress());
+            sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
 
             throw new IllegalArgumentException("Unknown attribute(s).");
         }
@@ -1125,77 +848,52 @@ public class StunStack
      * @return <tt>true</tt> if <tt>msgInt</tt> contains a valid SHA1 value and
      * <tt>false</tt> otherwise.
      */
-    public boolean validateMessageIntegrity(
-            MessageIntegrityAttribute msgInt,
-            String                    username,
-            boolean                   shortTermCredentialMechanism,
-            RawMessage                message)
-    {
-        if(logger.isDebugEnabled())
-        {
+    public boolean validateMessageIntegrity(MessageIntegrityAttribute msgInt, String username, boolean shortTermCredentialMechanism, RawMessage message) {
+        if (logger.isDebugEnabled()) {
             logger.debug("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
             logger.debug("RawMessage: {}\n{}", message.getMessageLength(), toHexString(message.getBytes()));
 
         }
-        if ((username == null)
-                || (username.length() < 1)
-                || (shortTermCredentialMechanism && !username.contains(":")))
-        {
+        if ((username == null) || (username.length() < 1) || (shortTermCredentialMechanism && !username.contains(":"))) {
             logger.debug("Received a message with an improperly formatted username");
             return false;
         }
         String[] usernameParts = username.split(":");
-        if (shortTermCredentialMechanism)
-        {
+        if (shortTermCredentialMechanism) {
             username = usernameParts[0]; // lfrag
         }
 
         byte[] key = getCredentialsManager().getLocalKey(username);
-        if (key == null)
-        {
+        if (key == null) {
             logger.warn("Local key was not found for {}", username);
             return false;
         }
         logger.debug("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
 
         /*
-         * Now check whether the SHA1 matches. Using MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the
-         * RawMessage will be incorrect if there are other Attributes after the MessageIntegrityAttribute because the value of the
-         * MessageIntegrityAttribute is calculated on a STUN "Message Length" up to and including the MESSAGE-INTEGRITY and excluding
-         * any Attributes after it.
+         * Now check whether the SHA1 matches. Using MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the RawMessage will be incorrect if there are other Attributes
+         * after the MessageIntegrityAttribute because the value of the MessageIntegrityAttribute is calculated on a STUN "Message Length" up to and including the MESSAGE-INTEGRITY
+         * and excluding any Attributes after it.
          */
         byte[] binMsg = new byte[msgInt.getLocationInMessage()];
 
         System.arraycopy(message.getBytes(), 0, binMsg, 0, binMsg.length);
 
-        int messageLength
-            = (binMsg.length
-                    + Attribute.HEADER_LENGTH
-                    + msgInt.getDataLength()
-                    - Message.HEADER_LENGTH);
+        int messageLength = (binMsg.length + Attribute.HEADER_LENGTH + msgInt.getDataLength() - Message.HEADER_LENGTH);
 
         binMsg[2] = (byte) (messageLength >> 8);
         binMsg[3] = (byte) (messageLength & 0xFF);
 
         byte[] expectedMsgIntHmacSha1Content;
-        try
-        {
-            expectedMsgIntHmacSha1Content
-                = MessageIntegrityAttribute.calculateHmacSha1(
-                        binMsg, 0, binMsg.length,
-                        key);
-        }
-        catch (IllegalArgumentException iaex)
-        {
+        try {
+            expectedMsgIntHmacSha1Content = MessageIntegrityAttribute.calculateHmacSha1(binMsg, 0, binMsg.length, key);
+        } catch (IllegalArgumentException iaex) {
             expectedMsgIntHmacSha1Content = null;
         }
 
         byte[] msgIntHmacSha1Content = msgInt.getHmacSha1Content();
 
-        if (!Arrays.equals(
-                expectedMsgIntHmacSha1Content,
-                msgIntHmacSha1Content))
-        {
+        if (!Arrays.equals(expectedMsgIntHmacSha1Content, msgIntHmacSha1Content)) {
             logger.warn("Received a message with a wrong MESSAGE-INTEGRITY signature expected:\n{}\nreceived:\n{}", toHexString(expectedMsgIntHmacSha1Content), toHexString(msgIntHmacSha1Content));
             return false;
         }
@@ -1212,23 +910,14 @@ public class StunStack
      * @return a <tt>String</tt> representation of the specified <tt>byte</tt>
      * array as an unsigned integer in base 16
      */
-    public static String toHexString(byte[] bytes)
-    {
+    public static String toHexString(byte[] bytes) {
         if (bytes == null)
             return null;
-        else
-        {
-            StringBuilder hexStringBuilder
-                = new StringBuilder(2 * bytes.length);
-            char[] hexes
-                = new char[]
-                            {
-                                '0', '1', '2', '3', '4', '5', '6', '7', '8',
-                                '9', 'A', 'B', 'C', 'D', 'E', 'F'
-                            };
+        else {
+            StringBuilder hexStringBuilder = new StringBuilder(2 * bytes.length);
+            char[] hexes = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
-            for (int i = 0; i < bytes.length; i++)
-            {
+            for (int i = 0; i < bytes.length; i++) {
                 byte b = bytes[i];
 
                 hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
@@ -1246,16 +935,12 @@ public class StunStack
      * @return <tt>true</tt> if <tt>username</tt> contains a valid username;
      * <tt>false</tt>, otherwise
      */
-    private boolean validateUsername(String username)
-    {
+    private boolean validateUsername(String username) {
         int colon = username.indexOf(":");
 
-        if ((username.length() < 1) || (colon < 1))
-        {
-            if(logger.isDebugEnabled())
-            {
-                logger.debug("Received a message with an improperly "
-                        +"formatted username");
+        if ((username.length() < 1) || (colon < 1)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Received a message with an improperly " + "formatted username");
             }
             return false;
         }
@@ -1269,8 +954,7 @@ public class StunStack
      * Returns the currently set packet logger.
      * @return the currently available packet logger.
      */
-    public static PacketLogger getPacketLogger()
-    {
+    public static PacketLogger getPacketLogger() {
         return packetLogger;
     }
 
@@ -1278,8 +962,7 @@ public class StunStack
      * Setting a packet logger for the stack.
      * @param packetLogger the packet logger to use.
      */
-    public static void setPacketLogger(PacketLogger packetLogger)
-    {
+    public static void setPacketLogger(PacketLogger packetLogger) {
         StunStack.packetLogger = packetLogger;
     }
 
@@ -1288,8 +971,7 @@ public class StunStack
      * @return <tt>true</tt> if we have a packet logger instance and
      *  it is enabled.
      */
-    public static boolean isPacketLoggerEnabled()
-    {
+    public static boolean isPacketLoggerEnabled() {
         return packetLogger != null && packetLogger.isEnabled();
     }
 
@@ -1297,36 +979,25 @@ public class StunStack
      * Initializes and starts {@link #serverTransactionExpireThread} if
      * necessary.
      */
-    private void maybeStartServerTransactionExpireThread()
-    {
-        if (!serverTransactions.isEmpty()
-                && (serverTransactionExpireThread == null))
-        {
-            Thread t
-                = new Thread()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                runInServerTransactionExpireThread();
-                            }
-                        };
+    private void maybeStartServerTransactionExpireThread() {
+        if (!serverTransactions.isEmpty() && (serverTransactionExpireThread == null)) {
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+                    runInServerTransactionExpireThread();
+                }
+            };
 
             t.setDaemon(true);
-            t.setName(
-                    getClass().getName()
-                        + ".serverTransactionExpireThread");
+            t.setName(getClass().getName() + ".serverTransactionExpireThread");
 
             boolean started = false;
 
             serverTransactionExpireThread = t;
-            try
-            {
+            try {
                 t.start();
                 started = true;
-            }
-            finally
-            {
+            } finally {
                 if (!started && (serverTransactionExpireThread == t))
                     serverTransactionExpireThread = null;
             }
@@ -1338,25 +1009,18 @@ public class StunStack
      * <tt>StunServerTransaction</tt>s of this <tt>StunStack</tt> and removes
      * them from {@link #serverTransactions}.
      */
-    private void runInServerTransactionExpireThread()
-    {
-        try
-        {
+    private void runInServerTransactionExpireThread() {
+        try {
             long idleStartTime = -1;
 
-            do
-            {
-                try
-                {
+            do {
+                try {
                     Thread.sleep(StunServerTransaction.LIFETIME);
-                }
-                catch (InterruptedException ie)
-                {
+                } catch (InterruptedException ie) {
                 }
 
                 /*
-                 * Is the current Thread still designated to expire the
-                 * StunServerTransactions of this StunStack?
+                 * Is the current Thread still designated to expire the StunServerTransactions of this StunStack?
                  */
                 if (Thread.currentThread() != serverTransactionExpireThread)
                     break;
@@ -1364,55 +1028,41 @@ public class StunStack
                 long now = System.currentTimeMillis();
 
                 /*
-                 * Has the current Thread been idle long enough to merit
-                 * disposing of it?
+                 * Has the current Thread been idle long enough to merit disposing of it?
                  */
-                if (serverTransactions.isEmpty())
-                {
+                if (serverTransactions.isEmpty()) {
                     if (idleStartTime == -1)
                         idleStartTime = now;
                     else if (now - idleStartTime > 60 * 1000)
                         break;
-                }
-                else
-                {
+                } else {
                     // Expire the StunServerTransactions of this StunStack.
 
                     idleStartTime = -1;
 
-                    for (Iterator<StunServerTransaction> i
-                                = serverTransactions.values().iterator();
-                            i.hasNext();)
-                    {
+                    for (Iterator<StunServerTransaction> i = serverTransactions.values().iterator(); i.hasNext();) {
                         StunServerTransaction serverTransaction = i.next();
 
-                        if (serverTransaction == null)
-                        {
+                        if (serverTransaction == null) {
                             i.remove();
-                        }
-                        else if (serverTransaction.isExpired(now))
-                        {
+                        } else if (serverTransaction.isExpired(now)) {
                             i.remove();
                             serverTransaction.expire();
                         }
                     }
                 }
-            }
-            while (true);
-        }
-        finally
-        {
+            } while (true);
+        } finally {
             if (serverTransactionExpireThread == Thread.currentThread())
                 serverTransactionExpireThread = null;
             /*
-             * If serverTransactionExpireThread dies unexpectedly and yet it
-             * is still necessary, resurrect it.
+             * If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
              */
             if (serverTransactionExpireThread == null)
                 maybeStartServerTransactionExpireThread();
         }
     }
-    
+
     /**
      * Returns the Error Response object with specified errorCode and
      * reasonPhrase corresponding to input type.
@@ -1424,24 +1074,14 @@ public class StunStack
      *            attributes that had not been recognized.
      * @return corresponding Error Response object.
      */
-    public Response createCorrespondingErrorResponse(char requestType,
-        char errorCode, String reasonPhrase,char... unknownAttributes)
-    {
-        if (requestType == Message.BINDING_REQUEST)
-        {
-            if (unknownAttributes != null)
-            {
-                return MessageFactory.createBindingErrorResponse(
-                    errorCode, reasonPhrase, unknownAttributes);
+    public Response createCorrespondingErrorResponse(char requestType, char errorCode, String reasonPhrase, char... unknownAttributes) {
+        if (requestType == Message.BINDING_REQUEST) {
+            if (unknownAttributes != null) {
+                return MessageFactory.createBindingErrorResponse(errorCode, reasonPhrase, unknownAttributes);
+            } else {
+                return MessageFactory.createBindingErrorResponse(errorCode, reasonPhrase);
             }
-            else
-            {
-                return MessageFactory.createBindingErrorResponse(
-                    errorCode, reasonPhrase);
-            }
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
@@ -1458,26 +1098,14 @@ public class StunStack
      * @param interfacePort The port to use as source (if the packet was sent)
      * or destination (if the packet was received).
      */
-    public static void logPacketToPcap(
-            DatagramPacket p,
-            boolean isSent,
-            InetAddress interfaceAddress,
-            int interfacePort)
-    {
-        if (interfaceAddress != null && isPacketLoggerEnabled())
-        {
-            InetAddress[] addr = {interfaceAddress, p.getAddress()};
-            int[] port = {interfacePort, p.getPort()};
+    public static void logPacketToPcap(DatagramPacket p, boolean isSent, InetAddress interfaceAddress, int interfacePort) {
+        if (interfaceAddress != null && isPacketLoggerEnabled()) {
+            InetAddress[] addr = { interfaceAddress, p.getAddress() };
+            int[] port = { interfacePort, p.getPort() };
             int fromIndex = isSent ? 0 : 1;
             int toIndex = isSent ? 1 : 0;
 
-            getPacketLogger().logPacket(
-                    addr[fromIndex].getAddress(),
-                    port[fromIndex],
-                    addr[toIndex].getAddress(),
-                    port[toIndex],
-                    p.getData(),
-                    isSent);
+            getPacketLogger().logPacket(addr[fromIndex].getAddress(), port[fromIndex], addr[toIndex].getAddress(), port[toIndex], p.getData(), isSent);
         }
     }
 

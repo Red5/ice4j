@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -34,8 +23,7 @@ import org.ice4j.socket.*;
  *
  * @author Emil Ivov
  */
-class Connector implements Runnable
-{
+class Connector implements Runnable {
     /**
      * Our class logger.
      */
@@ -88,30 +76,21 @@ class Connector implements Runnable
      * @param messageQueue the Queue where incoming messages should be queued
      * @param errorHandler the instance to notify when errors occur.
      */
-    protected Connector(IceSocketWrapper socket,
-                        TransportAddress remoteAddress,
-                        BlockingQueue<RawMessage> messageQueue,
-                        ErrorHandler   errorHandler)
-    {
+    protected Connector(IceSocketWrapper socket, TransportAddress remoteAddress, BlockingQueue<RawMessage> messageQueue, ErrorHandler errorHandler) {
         this.sock = socket;
         this.messageQueue = messageQueue;
         this.errorHandler = errorHandler;
         this.remoteAddress = remoteAddress;
 
-        Transport transport
-            = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
+        Transport transport = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
 
-        listenAddress
-            = new TransportAddress(socket.getLocalAddress(),
-                                   socket.getLocalPort(),
-                                   transport);
+        listenAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport);
     }
 
     /**
      * Start the network listening thread.
      */
-    void start()
-    {
+    void start() {
         this.running = true;
 
         Thread thread = new Thread(this, "IceConnector@" + hashCode());
@@ -126,8 +105,7 @@ class Connector implements Runnable
      *
      * @return the <tt>DatagramSocket</tt> associated with this AP.
      */
-    protected IceSocketWrapper getSocket()
-    {
+    protected IceSocketWrapper getSocket() {
         return sock;
     }
 
@@ -135,18 +113,14 @@ class Connector implements Runnable
      * The listening thread's run method.
      */
     @Override
-    public void run()
-    {
+    public void run() {
         DatagramPacket packet = null;
 
-        while (this.running)
-        {
-            try
-            {
+        while (this.running) {
+            try {
                 IceSocketWrapper localSock;
 
-                synchronized (sockLock)
-                {
+                synchronized (sockLock) {
                     if (!running)
                         return;
 
@@ -154,36 +128,21 @@ class Connector implements Runnable
                 }
 
                 /*
-                 * Make sure localSock's receiveBufferSize is taken into
-                 * account including after it gets changed.
+                 * Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
                  */
                 int receiveBufferSize = 1500;
 
-                if (packet == null)
-                {
-                    packet
-                        = new DatagramPacket(
-                                new byte[receiveBufferSize],
-                                receiveBufferSize);
-                }
-                else
-                {
+                if (packet == null) {
+                    packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
+                } else {
                     byte[] packetData = packet.getData();
 
-                    if ((packetData == null)
-                            || (packetData.length < receiveBufferSize))
-                    {
-                        packet.setData(
-                                new byte[receiveBufferSize],
-                                0,
-                                receiveBufferSize);
-                    }
-                    else
-                    {
+                    if ((packetData == null) || (packetData.length < receiveBufferSize)) {
+                        packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
+                    } else {
                         /*
-                         * XXX Tell the packet it is large enough because the
-                         * socket will not look at the length of the data array
-                         * property and will just respect the length property.
+                         * XXX Tell the packet it is large enough because the socket will not look at the length of the data array property and will just respect the length
+                         * property.
                          */
                         packet.setLength(receiveBufferSize);
                     }
@@ -195,87 +154,49 @@ class Connector implements Runnable
                 if (!running)
                     return;
 
-                if (logger.isLoggable(Level.FINEST)){
-                    logger.finest("received datagram packet - addr: "
-                            + packet.getAddress() + " port: " + packet.getPort());
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.finest("received datagram packet - addr: " + packet.getAddress() + " port: " + packet.getPort());
                 }
-                if (packet.getPort() < 0)
-                {
+                if (packet.getPort() < 0) {
                     logger.warning("Out of range packet port, resetting to 0");
                     // force a minimum port of 0 to prevent out of range errors
                     packet.setPort(0);
                 }
 
-                RawMessage rawMessage
-                    = new RawMessage(
-                            packet.getData(),
-                            packet.getLength(),
-                            new TransportAddress(
-                                    packet.getAddress(),
-                                    packet.getPort(),
-                                    listenAddress.getTransport()),
-                            listenAddress);
+                RawMessage rawMessage = new RawMessage(packet.getData(), packet.getLength(), new TransportAddress(packet.getAddress(), packet.getPort(), listenAddress.getTransport()), listenAddress);
 
                 messageQueue.add(rawMessage);
-            }
-            catch (SocketException ex)
-            {
-                if (running)
-                {
-                    logger.log(
-                            Level.WARNING,
-                            "Connector died: " + listenAddress + " -> "
-                                    + remoteAddress,
-                            ex);
+            } catch (SocketException ex) {
+                if (running) {
+                    logger.log(Level.WARNING, "Connector died: " + listenAddress + " -> " + remoteAddress, ex);
 
                     stop();
                     //Something wrong has happened
-                    errorHandler.handleFatalError(
-                            this,
-                            "A socket exception was thrown"
-                                + " while trying to receive a message.",
-                            ex);
-                }
-                else
-                {
+                    errorHandler.handleFatalError(this, "A socket exception was thrown" + " while trying to receive a message.", ex);
+                } else {
                     //The exception was most probably caused by calling
                     //this.stop().
                 }
-            }
-            catch (ClosedChannelException cce)
-            {
+            } catch (ClosedChannelException cce) {
                 // The socket was closed, possibly by the remote peer.
                 // If we were already stopped, just ignore it.
-                if (running)
-                {
+                if (running) {
                     // We could be the first thread to realize that the socket
                     // was closed. But that's normal operation, so don't
                     // complain too much.
                     stop();
-                    errorHandler.handleFatalError(
-                        this,
-                        "The socket was closed:",
-                        null);
+                    errorHandler.handleFatalError(this, "The socket was closed:", null);
                 }
-            }
-            catch (IOException ex)
-            {
-                logger.log(Level.WARNING,
-                           "A net access point has gone useless:", ex);
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "A net access point has gone useless:", ex);
 
                 errorHandler.handleError(ex.getMessage(), ex);
                 //do not stop the thread;
-            }
-            catch (Throwable ex)
-            {
-                logger.log(Level.WARNING,
-                           "A net access point has gone useless:", ex);
+            } catch (Throwable ex) {
+                logger.log(Level.WARNING, "A net access point has gone useless:", ex);
 
                 stop();
-                errorHandler.handleFatalError(
-                        this,
-                        "Unknown error occurred while listening for messages!",
-                        ex);
+                errorHandler.handleFatalError(this, "Unknown error occurred while listening for messages!", ex);
             }
         }
     }
@@ -283,13 +204,10 @@ class Connector implements Runnable
     /**
      * Makes the access point stop listening on its socket.
      */
-    protected void stop()
-    {
-        synchronized(sockLock)
-        {
+    protected void stop() {
+        synchronized (sockLock) {
             this.running = false;
-            if (this.sock != null)
-            {
+            if (this.sock != null) {
                 this.sock.close();
                 this.sock = null;
             }
@@ -304,9 +222,7 @@ class Connector implements Runnable
      *
      * @throws IOException if an exception occurs while sending the message.
      */
-    void sendMessage(byte[] message, TransportAddress address)
-        throws IOException
-    {
+    void sendMessage(byte[] message, TransportAddress address) throws IOException {
         DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
         sock.send(datagramPacket);
     }
@@ -316,23 +232,19 @@ class Connector implements Runnable
      * @return a String representation of the object.
      */
     @Override
-    public String toString()
-    {
-        return
-            "ice4j.Connector@" + listenAddress
-                + " status: " + (running ? "not" : "") +" running";
-     }
+    public String toString() {
+        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not" : "") + " running";
+    }
 
-     /**
-      * Returns the <tt>TransportAddress</tt> that this access point is bound
-      * on.
-      *
-      * @return the <tt>TransportAddress</tt> associated with this AP.
-      */
-     TransportAddress getListenAddress()
-     {
-         return listenAddress;
-     }
+    /**
+     * Returns the <tt>TransportAddress</tt> that this access point is bound
+     * on.
+     *
+     * @return the <tt>TransportAddress</tt> associated with this AP.
+     */
+    TransportAddress getListenAddress() {
+        return listenAddress;
+    }
 
     /**
      * Returns the remote <tt>TransportAddress</tt> or <tt>null</tt> if none
@@ -341,8 +253,7 @@ class Connector implements Runnable
      * @return the remote <tt>TransportAddress</tt> or <tt>null</tt> if none
      * is specified.
      */
-    TransportAddress getRemoteAddress()
-    {
+    TransportAddress getRemoteAddress() {
         return remoteAddress;
     }
 }

@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -31,15 +20,12 @@ import java.util.logging.*;
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
  */
-public class MultiplexingSocket
-    extends DelegatingSocket
-{
+public class MultiplexingSocket extends DelegatingSocket {
     /**
      * The <tt>Logger</tt> used by the <tt>MultiplexingSocket</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(MultiplexingSocket.class.getName());
+    private static final Logger logger = Logger.getLogger(MultiplexingSocket.class.getName());
 
     /**
      * Custom <tt>InputStream</tt> for this <tt>Socket</tt>.
@@ -51,62 +37,47 @@ public class MultiplexingSocket
      * common to TCP and UDP sockets in order to facilitate implementers such as
      * this instance.
      */
-    private final MultiplexingXXXSocketSupport<MultiplexedSocket>
-        multiplexingXXXSocketSupport
-            = new MultiplexingXXXSocketSupport<MultiplexedSocket>()
-            {
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected MultiplexedSocket createSocket(
-                        DatagramPacketFilter filter)
-                    throws SocketException
-                {
-                    return
-                        new MultiplexedSocket(MultiplexingSocket.this, filter);
-                }
+    private final MultiplexingXXXSocketSupport<MultiplexedSocket> multiplexingXXXSocketSupport = new MultiplexingXXXSocketSupport<MultiplexedSocket>() {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected MultiplexedSocket createSocket(DatagramPacketFilter filter) throws SocketException {
+            return new MultiplexedSocket(MultiplexingSocket.this, filter);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected void doReceive(DatagramPacket p)
-                    throws IOException
-                {
-                    multiplexingXXXSocketSupportDoReceive(p);
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void doReceive(DatagramPacket p) throws IOException {
+            multiplexingXXXSocketSupportDoReceive(p);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected void doSetReceiveBufferSize(int receiveBufferSize)
-                    throws SocketException
-                {
-                    multiplexingXXXSocketSupportDoSetReceiveBufferSize(
-                            receiveBufferSize);
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void doSetReceiveBufferSize(int receiveBufferSize) throws SocketException {
+            multiplexingXXXSocketSupportDoSetReceiveBufferSize(receiveBufferSize);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected List<DatagramPacket> getReceived()
-                {
-                    return received;
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected List<DatagramPacket> getReceived() {
+            return received;
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected List<DatagramPacket> getReceived(
-                        MultiplexedSocket socket)
-                {
-                    return socket.received;
-                }
-            };
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected List<DatagramPacket> getReceived(MultiplexedSocket socket) {
+            return socket.received;
+        }
+    };
 
     /**
      * Custom <tt>OutputStream</tt> for this <tt>Socket</tt>.
@@ -118,19 +89,14 @@ public class MultiplexingSocket
      * <tt>Socket</tt> i.e. not accepted by the <tt>DatagramFilter</tt>s of
      * {@link #sockets} at the time of the reading from the network.
      */
-    private final List<DatagramPacket> received
-        = new SocketReceiveBuffer()
-        {
-            private static final long serialVersionUID
-                = 4097024214973676873L;
+    private final List<DatagramPacket> received = new SocketReceiveBuffer() {
+        private static final long serialVersionUID = 4097024214973676873L;
 
-            @Override
-            public int getReceiveBufferSize()
-                throws SocketException
-            {
-                return MultiplexingSocket.this.getReceiveBufferSize();
-            }
-        };
+        @Override
+        public int getReceiveBufferSize() throws SocketException {
+            return MultiplexingSocket.this.getReceiveBufferSize();
+        }
+    };
 
     /**
      * Buffer variable for storing the SO_TIMEOUT value set by the last
@@ -146,8 +112,7 @@ public class MultiplexingSocket
      *
      * @see Socket#Socket()
      */
-    public MultiplexingSocket()
-    {
+    public MultiplexingSocket() {
         this((Socket) null);
     }
 
@@ -158,8 +123,7 @@ public class MultiplexingSocket
      * @param port not used
      * @see Socket#Socket(InetAddress, int)
      */
-    public MultiplexingSocket(InetAddress address, int port)
-    {
+    public MultiplexingSocket(InetAddress address, int port) {
         this((Socket) null);
     }
 
@@ -172,10 +136,7 @@ public class MultiplexingSocket
      * @param localPort not used
      * @see Socket#Socket(InetAddress, int, InetAddress, int)
      */
-    public MultiplexingSocket(
-            InetAddress address, int port,
-            InetAddress localAddr, int localPort)
-    {
+    public MultiplexingSocket(InetAddress address, int port, InetAddress localAddr, int localPort) {
         this((Socket) null);
     }
 
@@ -185,8 +146,7 @@ public class MultiplexingSocket
      * @param proxy not used
      * @see Socket#Socket(Proxy)
      */
-    public MultiplexingSocket(Proxy proxy)
-    {
+    public MultiplexingSocket(Proxy proxy) {
         this((Socket) null);
     }
 
@@ -195,16 +155,12 @@ public class MultiplexingSocket
      *
      * @param socket delegate socket
      */
-    public MultiplexingSocket(Socket socket)
-    {
+    public MultiplexingSocket(Socket socket) {
         super(socket);
 
-        try
-        {
+        try {
             setTcpNoDelay(true);
-        }
-        catch (SocketException ex)
-        {
+        } catch (SocketException ex) {
             logger.info("Cannot SO_TCPNODELAY");
         }
     }
@@ -215,8 +171,7 @@ public class MultiplexingSocket
      * @param impl not used
      * @see Socket#Socket(SocketImpl)
      */
-    protected MultiplexingSocket(SocketImpl impl)
-    {
+    protected MultiplexingSocket(SocketImpl impl) {
         this((Socket) null);
     }
 
@@ -227,8 +182,7 @@ public class MultiplexingSocket
      * @param port not used
      * @see Socket#Socket(String, int)
      */
-    public MultiplexingSocket(String host, int port)
-    {
+    public MultiplexingSocket(String host, int port) {
         this((Socket) null);
     }
 
@@ -241,10 +195,7 @@ public class MultiplexingSocket
      * @param localPort not used
      * @see Socket#Socket(String, int, InetAddress, int)
      */
-    public MultiplexingSocket(
-            String host, int port,
-            InetAddress localAddr, int localPort)
-    {
+    public MultiplexingSocket(String host, int port, InetAddress localAddr, int localPort) {
         this((Socket) null);
     }
 
@@ -254,8 +205,7 @@ public class MultiplexingSocket
      *
      * @param multiplexed the <tt>MultiplexedSocket</tt> to close
      */
-    void close(MultiplexedSocket multiplexed)
-    {
+    void close(MultiplexedSocket multiplexed) {
         multiplexingXXXSocketSupport.close(multiplexed);
     }
 
@@ -263,9 +213,7 @@ public class MultiplexingSocket
      * {@inheritDoc}
      */
     @Override
-    public InputStream getInputStream()
-        throws IOException
-    {
+    public InputStream getInputStream() throws IOException {
         return inputStream;
     }
 
@@ -275,9 +223,7 @@ public class MultiplexingSocket
      * @return original <tt>InputStream</tt>
      * @throws IOException if something goes wrong
      */
-    public InputStream getOriginalInputStream()
-        throws IOException
-    {
+    public InputStream getOriginalInputStream() throws IOException {
         return super.getInputStream();
     }
 
@@ -287,9 +233,7 @@ public class MultiplexingSocket
      * @return original <tt>OutputStream</tt>
      * @throws IOException if something goes wrong
      */
-    public OutputStream getOriginalOutputStream()
-        throws IOException
-    {
+    public OutputStream getOriginalOutputStream() throws IOException {
         return super.getOutputStream();
     }
 
@@ -297,9 +241,7 @@ public class MultiplexingSocket
      * {@inheritDoc}
      */
     @Override
-    public OutputStream getOutputStream()
-        throws IOException
-    {
+    public OutputStream getOutputStream() throws IOException {
         if (outputStream == null)
             outputStream = new TCPOutputStream(super.getOutputStream());
         return outputStream;
@@ -321,9 +263,7 @@ public class MultiplexingSocket
      * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
      * fails
      */
-    public MultiplexedSocket getSocket(DatagramPacketFilter filter)
-        throws SocketException
-    {
+    public MultiplexedSocket getSocket(DatagramPacketFilter filter) throws SocketException {
         return multiplexingXXXSocketSupport.getSocket(filter);
     }
 
@@ -331,9 +271,8 @@ public class MultiplexingSocket
      * {@inheritDoc}
      */
     @Override
-    public int getSoTimeout()
-    {
-    	return soTimeout;
+    public int getSoTimeout() {
+        return soTimeout;
     }
 
     /**
@@ -344,9 +283,7 @@ public class MultiplexingSocket
      * @param p the {@code DatagramPacket} into which to place the incoming data
      * @throws IOException if an I/O error occurs
      */
-    private void multiplexingXXXSocketSupportDoReceive(DatagramPacket p)
-        throws IOException
-    {
+    private void multiplexingXXXSocketSupportDoReceive(DatagramPacket p) throws IOException {
         super.receive(p);
     }
 
@@ -365,10 +302,7 @@ public class MultiplexingSocket
      * @throws SocketException if there is an error in the underlying protocol,
      * such as a TCP error
      */
-    private void multiplexingXXXSocketSupportDoSetReceiveBufferSize(
-            int receiveBufferSize)
-        throws SocketException
-    {
+    private void multiplexingXXXSocketSupportDoSetReceiveBufferSize(int receiveBufferSize) throws SocketException {
         super.setReceiveBufferSize(receiveBufferSize);
     }
 
@@ -393,15 +327,10 @@ public class MultiplexingSocket
      * @see DelegatingSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
-        try
-        {
+    public void receive(DatagramPacket p) throws IOException {
+        try {
             setOriginalInputStream(super.getInputStream());
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
         }
 
         multiplexingXXXSocketSupport.receive(received, p, soTimeout);
@@ -416,32 +345,22 @@ public class MultiplexingSocket
      * @param p the <tt>DatagramPacket</tt> to receive the data from the network
      * @throws IOException if an I/O error occurs
      */
-    void receive(MultiplexedSocket multiplexed, DatagramPacket p)
-        throws IOException
-    {
-        try
-        {
+    void receive(MultiplexedSocket multiplexed, DatagramPacket p) throws IOException {
+        try {
             setOriginalInputStream(super.getInputStream());
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
         }
 
-        multiplexingXXXSocketSupport.receive(
-                multiplexed.received,
-                p,
-                multiplexed.getSoTimeout());
+        multiplexingXXXSocketSupport.receive(multiplexed.received, p, multiplexed.getSoTimeout());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setSoTimeout(int timeout)
-    	throws SocketException
-    {
-    	super.setSoTimeout(timeout);
+    public void setSoTimeout(int timeout) throws SocketException {
+        super.setSoTimeout(timeout);
 
-    	soTimeout = timeout;
+        soTimeout = timeout;
     }
 }

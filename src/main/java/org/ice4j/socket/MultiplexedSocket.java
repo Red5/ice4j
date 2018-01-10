@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -33,16 +22,12 @@ import java.util.logging.*;
  *
  * @author Sebastien Vincent
  */
-public class MultiplexedSocket
-    extends DelegatingSocket
-    implements MultiplexedXXXSocket
-{
+public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXXXSocket {
     /**
      * The <tt>Logger</tt> used by the <tt>MultiplexedSocket</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(MultiplexedSocket.class.getName());
+    private static final Logger logger = Logger.getLogger(MultiplexedSocket.class.getName());
 
     /**
      * The <tt>DatagramPacketFilter</tt> which determines which
@@ -67,19 +52,14 @@ public class MultiplexedSocket
      * The list of <tt>DatagramPacket</tt>s to be received through this
      * <tt>Socket</tt> i.e. accepted by {@link #filter}.
      */
-    final List<DatagramPacket> received
-        = new SocketReceiveBuffer()
-        {
-            private static final long serialVersionUID
-                = 678744096057601141L;
+    final List<DatagramPacket> received = new SocketReceiveBuffer() {
+        private static final long serialVersionUID = 678744096057601141L;
 
-            @Override
-            public int getReceiveBufferSize()
-                throws SocketException
-            {
-                return MultiplexedSocket.this.getReceiveBufferSize();
-            }
-        };
+        @Override
+        public int getReceiveBufferSize() throws SocketException {
+            return MultiplexedSocket.this.getReceiveBufferSize();
+        }
+    };
 
     /**
      * Initializes a new <tt>MultiplexedSocket</tt> which is unbound and filters
@@ -94,17 +74,10 @@ public class MultiplexedSocket
      * <tt>multiplexing</tt> are to be received through the new instance
      * @throws SocketException if the socket could not be opened
      */
-    MultiplexedSocket(
-            MultiplexingSocket multiplexing,
-            DatagramPacketFilter filter)
-        throws SocketException
-    {
+    MultiplexedSocket(MultiplexingSocket multiplexing, DatagramPacketFilter filter) throws SocketException {
         /*
-         * Even if MultiplexingSocket allows MultiplexedSocket to perform bind,
-         * binding in the super will not execute correctly this early in the
-         * construction because the multiplexing field is not set yet. That is
-         * why MultiplexedSocket does not currently support bind at construction
-         * time.
+         * Even if MultiplexingSocket allows MultiplexedSocket to perform bind, binding in the super will not execute correctly this early in the construction because the
+         * multiplexing field is not set yet. That is why MultiplexedSocket does not currently support bind at construction time.
          */
         super(multiplexing);
 
@@ -125,8 +98,7 @@ public class MultiplexedSocket
      * @see Socket#close()
      */
     @Override
-    public void close()
-    {
+    public void close() {
         multiplexing.close(this);
     }
 
@@ -134,8 +106,7 @@ public class MultiplexedSocket
      * {@inheritDoc}
      */
     @Override
-    public DatagramPacketFilter getFilter()
-    {
+    public DatagramPacketFilter getFilter() {
         return filter;
     }
 
@@ -143,8 +114,7 @@ public class MultiplexedSocket
      * {@inheritDoc}
      */
     @Override
-    public InputStream getInputStream()
-    {
+    public InputStream getInputStream() {
         return inputStream;
     }
 
@@ -166,9 +136,7 @@ public class MultiplexedSocket
      * @see MultiplexingSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
+    public void receive(DatagramPacket p) throws IOException {
         multiplexing.receive(this, p);
     }
 
@@ -176,9 +144,7 @@ public class MultiplexedSocket
      * Implements an <tt>InputStream</tt> for this <tt>MultiplexedSocket</tt>,
      * reading data using {@link #receive(java.net.DatagramPacket)}.
      */
-    private class InputStreamImpl
-        extends InputStream
-    {
+    private class InputStreamImpl extends InputStream {
         /**
          * A buffer to receive data into.
          */
@@ -192,16 +158,14 @@ public class MultiplexedSocket
         /**
          * Initializes a new <tt>TCPInputStream</tt>.
          */
-        public InputStreamImpl()
-        {
+        public InputStreamImpl() {
         }
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public int available()
-        {
+        public int available() {
             return 0;
         }
 
@@ -209,8 +173,7 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public boolean markSupported()
-        {
+        public boolean markSupported() {
             return false;
         }
 
@@ -218,9 +181,7 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public int read()
-            throws IOException
-        {
+        public int read() throws IOException {
             // We don't support reading a single byte
             return 0;
         }
@@ -229,9 +190,7 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public int read(byte[] b)
-            throws IOException
-        {
+        public int read(byte[] b) throws IOException {
             return read(b, 0, b.length);
         }
 
@@ -239,9 +198,7 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public int read(byte[] b, int off, int len)
-            throws IOException
-        {
+        public int read(byte[] b, int off, int len) throws IOException {
             if (off == 0) // optimization: avoid copy to b
             {
                 packet.setData(b);
@@ -249,17 +206,10 @@ public class MultiplexedSocket
 
                 int lengthRead = packet.getLength();
 
-                if (packet.getData() == b && lengthRead <= len)
-                {
+                if (packet.getData() == b && lengthRead <= len) {
                     return lengthRead;
-                }
-                else
-                {
-                    logger.warning(
-                            "Failed to read directly into the provided buffer,"
-                                + " len=" + len + " lengthRead=" + lengthRead
-                                + " (packet.getData() == b)="
-                                + (packet.getData() == b));
+                } else {
+                    logger.warning("Failed to read directly into the provided buffer," + " len=" + len + " lengthRead=" + lengthRead + " (packet.getData() == b)=" + (packet.getData() == b));
                 }
             }
 
@@ -272,10 +222,7 @@ public class MultiplexedSocket
             int packetLen = packet.getLength();
             int lengthRead = Math.min(len, packetLen);
 
-            System.arraycopy(
-                    packet.getData(), packet.getOffset(),
-                    b, off,
-                    lengthRead);
+            System.arraycopy(packet.getData(), packet.getOffset(), b, off, lengthRead);
 
             return lengthRead;
         }
@@ -284,13 +231,9 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public void reset()
-            throws IOException
-        {
-            if(!markSupported())
-            {
-                throw new IOException(
-                        "InputStreamImpl does not support reset()");
+        public void reset() throws IOException {
+            if (!markSupported()) {
+                throw new IOException("InputStreamImpl does not support reset()");
             }
         }
 
@@ -298,9 +241,7 @@ public class MultiplexedSocket
          * {@inheritDoc}
          */
         @Override
-        public long skip(long n)
-            throws IOException
-        {
+        public long skip(long n) throws IOException {
             throw new IOException("InputStreamImpl does not support skip.");
         }
     }

@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -33,10 +22,7 @@ import java.util.*;
  *
  * @author Lyubomir Marinov
  */
-public class MultiplexedDatagramSocket
-    extends DelegatingDatagramSocket
-    implements MultiplexedXXXSocket
-{
+public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implements MultiplexedXXXSocket {
     /**
      * The <tt>DatagramPacketFilter</tt> which determines which
      * <tt>DatagramPacket</tt>s read from the network by {@link #multiplexing}
@@ -55,19 +41,14 @@ public class MultiplexedDatagramSocket
      * The list of <tt>DatagramPacket</tt>s to be received through this
      * <tt>DatagramSocket</tt> i.e. accepted by {@link #filter}.
      */
-    final List<DatagramPacket> received
-        = new SocketReceiveBuffer()
-        {
-            private static final long serialVersionUID
-                = -5763976093759762087L;
+    final List<DatagramPacket> received = new SocketReceiveBuffer() {
+        private static final long serialVersionUID = -5763976093759762087L;
 
-            @Override
-            public int getReceiveBufferSize()
-                throws SocketException
-            {
-                return MultiplexedDatagramSocket.this.getReceiveBufferSize();
-            }
-        };
+        @Override
+        public int getReceiveBufferSize() throws SocketException {
+            return MultiplexedDatagramSocket.this.getReceiveBufferSize();
+        }
+    };
 
     /**
      * Initializes a new <tt>MultiplexedDatagramSocket</tt> which is unbound and
@@ -84,17 +65,10 @@ public class MultiplexedDatagramSocket
      * <tt>multiplexing</tt> are to be received through the new instance
      * @throws SocketException if the socket could not be opened
      */
-    MultiplexedDatagramSocket(
-            MultiplexingDatagramSocket multiplexing,
-            DatagramPacketFilter filter)
-        throws SocketException
-    {
+    MultiplexedDatagramSocket(MultiplexingDatagramSocket multiplexing, DatagramPacketFilter filter) throws SocketException {
         /*
-         * Even if MultiplexingDatagramSocket allows MultiplexedDatagramSocket
-         * to perform bind, binding in the super will not execute correctly this
-         * early in the construction because the multiplexing field is not set
-         * yet. That is why MultiplexedDatagramSocket does not currently support
-         * bind at construction time.
+         * Even if MultiplexingDatagramSocket allows MultiplexedDatagramSocket to perform bind, binding in the super will not execute correctly this early in the construction
+         * because the multiplexing field is not set yet. That is why MultiplexedDatagramSocket does not currently support bind at construction time.
          */
         super(multiplexing);
 
@@ -115,8 +89,7 @@ public class MultiplexedDatagramSocket
      * @see DatagramSocket#close()
      */
     @Override
-    public void close()
-    {
+    public void close() {
         multiplexing.close(this);
         super.close();
     }
@@ -125,8 +98,7 @@ public class MultiplexedDatagramSocket
      * {@inheritDoc}
      */
     @Override
-    public DatagramPacketFilter getFilter()
-    {
+    public DatagramPacketFilter getFilter() {
         return filter;
     }
 
@@ -152,9 +124,7 @@ public class MultiplexedDatagramSocket
      * @see DatagramSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
+    public void receive(DatagramPacket p) throws IOException {
         multiplexing.receive(this, p);
     }
 }

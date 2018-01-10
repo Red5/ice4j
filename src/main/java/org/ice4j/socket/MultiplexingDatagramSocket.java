@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -30,91 +19,67 @@ import java.util.*;
  *
  * @author Lyubomir Marinov
  */
-public class MultiplexingDatagramSocket
-    extends SafeCloseDatagramSocket
-{
+public class MultiplexingDatagramSocket extends SafeCloseDatagramSocket {
     /**
      * The {@code MultiplexingXXXSocketSupport} which implements functionality
      * common to TCP and UDP sockets in order to facilitate implementers such as
      * this instance.
      */
-    private final MultiplexingXXXSocketSupport<MultiplexedDatagramSocket>
-        multiplexingXXXSocketSupport
-            = new MultiplexingXXXSocketSupport<MultiplexedDatagramSocket>()
-            {
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected MultiplexedDatagramSocket createSocket(
-                        DatagramPacketFilter filter)
-                    throws SocketException
-                {
-                    return
-                        new MultiplexedDatagramSocket(
-                                MultiplexingDatagramSocket.this,
-                                filter);
-                }
+    private final MultiplexingXXXSocketSupport<MultiplexedDatagramSocket> multiplexingXXXSocketSupport = new MultiplexingXXXSocketSupport<MultiplexedDatagramSocket>() {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected MultiplexedDatagramSocket createSocket(DatagramPacketFilter filter) throws SocketException {
+            return new MultiplexedDatagramSocket(MultiplexingDatagramSocket.this, filter);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected void doReceive(DatagramPacket p)
-                    throws IOException
-                {
-                    multiplexingXXXSocketSupportDoReceive(p);
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void doReceive(DatagramPacket p) throws IOException {
+            multiplexingXXXSocketSupportDoReceive(p);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected void doSetReceiveBufferSize(int receiveBufferSize)
-                    throws SocketException
-                {
-                    multiplexingXXXSocketSupportDoSetReceiveBufferSize(
-                            receiveBufferSize);
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void doSetReceiveBufferSize(int receiveBufferSize) throws SocketException {
+            multiplexingXXXSocketSupportDoSetReceiveBufferSize(receiveBufferSize);
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected List<DatagramPacket> getReceived()
-                {
-                    return received;
-                }
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected List<DatagramPacket> getReceived() {
+            return received;
+        }
 
-                /**
-                 * {@inheritDoc}
-                 */
-                @Override
-                protected List<DatagramPacket> getReceived(
-                        MultiplexedDatagramSocket socket)
-                {
-                    return socket.received;
-                }
-            };
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected List<DatagramPacket> getReceived(MultiplexedDatagramSocket socket) {
+            return socket.received;
+        }
+    };
 
     /**
      * The list of <tt>DatagramPacket</tt>s to be received through this
      * <tt>DatagramSocket</tt> i.e. not accepted by the <tt>DatagramFilter</tt>s
      * of {@link #sockets} at the time of the reading from the network.
      */
-    private final List<DatagramPacket> received
-        = new SocketReceiveBuffer()
-        {
-            private static final long serialVersionUID
-                = 3125772367019091216L;
+    private final List<DatagramPacket> received = new SocketReceiveBuffer() {
+        private static final long serialVersionUID = 3125772367019091216L;
 
-            @Override
-            public int getReceiveBufferSize()
-                throws SocketException
-            {
-                return MultiplexingDatagramSocket.this.getReceiveBufferSize();
-            }
-        };
+        @Override
+        public int getReceiveBufferSize() throws SocketException {
+            return MultiplexingDatagramSocket.this.getReceiveBufferSize();
+        }
+    };
 
     /**
      * Buffer variable for storing the SO_TIMEOUT value set by the
@@ -135,9 +100,7 @@ public class MultiplexingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket()
      */
-    public MultiplexingDatagramSocket()
-        throws SocketException
-    {
+    public MultiplexingDatagramSocket() throws SocketException {
     }
 
     /**
@@ -150,9 +113,7 @@ public class MultiplexingDatagramSocket
      * @throws SocketException if anything goes wrong while initializing the new
      * instance
      */
-    public MultiplexingDatagramSocket(DatagramSocket delegate)
-        throws SocketException
-    {
+    public MultiplexingDatagramSocket(DatagramSocket delegate) throws SocketException {
         super(delegate);
     }
 
@@ -167,9 +128,7 @@ public class MultiplexingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket(int)
      */
-    public MultiplexingDatagramSocket(int port)
-        throws SocketException
-    {
+    public MultiplexingDatagramSocket(int port) throws SocketException {
         super(port);
     }
 
@@ -186,9 +145,7 @@ public class MultiplexingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket(int, InetAddress)
      */
-    public MultiplexingDatagramSocket(int port, InetAddress laddr)
-        throws SocketException
-    {
+    public MultiplexingDatagramSocket(int port, InetAddress laddr) throws SocketException {
         super(port, laddr);
     }
 
@@ -207,9 +164,7 @@ public class MultiplexingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket(SocketAddress)
      */
-    public MultiplexingDatagramSocket(SocketAddress bindaddr)
-        throws SocketException
-    {
+    public MultiplexingDatagramSocket(SocketAddress bindaddr) throws SocketException {
         super(bindaddr);
     }
 
@@ -219,8 +174,7 @@ public class MultiplexingDatagramSocket
      *
      * @param multiplexed the <tt>MultiplexedDatagramSocket</tt> to close
      */
-    void close(MultiplexedDatagramSocket multiplexed)
-    {
+    void close(MultiplexedDatagramSocket multiplexed) {
         multiplexingXXXSocketSupport.close(multiplexed);
     }
 
@@ -240,10 +194,8 @@ public class MultiplexingDatagramSocket
      * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
      * fails
      */
-    public MultiplexedDatagramSocket getSocket(DatagramPacketFilter filter)
-        throws SocketException
-    {
-        return getSocket(filter, /* create */ true);
+    public MultiplexedDatagramSocket getSocket(DatagramPacketFilter filter) throws SocketException {
+        return getSocket(filter, /* create */true);
     }
 
     /**
@@ -265,11 +217,7 @@ public class MultiplexingDatagramSocket
      * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
      * fails.
      */
-    public MultiplexedDatagramSocket getSocket(
-            DatagramPacketFilter filter,
-            boolean create)
-        throws SocketException
-    {
+    public MultiplexedDatagramSocket getSocket(DatagramPacketFilter filter, boolean create) throws SocketException {
         return multiplexingXXXSocketSupport.getSocket(filter, create);
     }
 
@@ -277,8 +225,7 @@ public class MultiplexingDatagramSocket
      * {@inheritDoc}
      */
     @Override
-    public int getSoTimeout()
-    {
+    public int getSoTimeout() {
         return soTimeout;
     }
 
@@ -290,9 +237,7 @@ public class MultiplexingDatagramSocket
      * @param p the {@code DatagramPacket} into which to place the incoming data
      * @throws IOException if an I/O error occurs
      */
-    private void multiplexingXXXSocketSupportDoReceive(DatagramPacket p)
-        throws IOException
-    {
+    private void multiplexingXXXSocketSupportDoReceive(DatagramPacket p) throws IOException {
         super.receive(p);
     }
 
@@ -311,10 +256,7 @@ public class MultiplexingDatagramSocket
      * @throws SocketException if there is an error in the underlying protocol,
      * such as a UDP error
      */
-    private void multiplexingXXXSocketSupportDoSetReceiveBufferSize(
-            int receiveBufferSize)
-        throws SocketException
-    {
+    private void multiplexingXXXSocketSupportDoSetReceiveBufferSize(int receiveBufferSize) throws SocketException {
         super.setReceiveBufferSize(receiveBufferSize);
     }
 
@@ -341,9 +283,7 @@ public class MultiplexingDatagramSocket
      * @see DatagramSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
+    public void receive(DatagramPacket p) throws IOException {
         multiplexingXXXSocketSupport.receive(received, p, soTimeout);
     }
 
@@ -358,22 +298,15 @@ public class MultiplexingDatagramSocket
      * @throws SocketTimeoutException if <tt>setSoTimeout(int)</tt> was
      * previously called on <tt>multiplexed</tt> and the timeout has expired
      */
-    void receive(MultiplexedDatagramSocket multiplexed, DatagramPacket p)
-        throws IOException
-    {
-        multiplexingXXXSocketSupport.receive(
-                multiplexed.received,
-                p,
-                multiplexed.getSoTimeout());
+    void receive(MultiplexedDatagramSocket multiplexed, DatagramPacket p) throws IOException {
+        multiplexingXXXSocketSupport.receive(multiplexed.received, p, multiplexed.getSoTimeout());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setReceiveBufferSize(int receiveBufferSize)
-        throws SocketException
-    {
+    public void setReceiveBufferSize(int receiveBufferSize) throws SocketException {
         multiplexingXXXSocketSupport.setReceiveBufferSize(receiveBufferSize);
     }
 
@@ -381,9 +314,7 @@ public class MultiplexingDatagramSocket
      * {@inheritDoc}
      */
     @Override
-    public void setSoTimeout(int timeout)
-        throws SocketException
-    {
+    public void setSoTimeout(int timeout) throws SocketException {
         super.setSoTimeout(timeout);
 
         soTimeout = timeout;

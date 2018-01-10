@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -29,15 +18,12 @@ import org.ice4j.ice.*;
  *
  * @author Sebastien Vincent
  */
-public class IceTcpServerSocketWrapper
-    extends IceSocketWrapper
-{
+public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     /**
      * The <tt>Logger</tt> used by the <tt>LocalCandidate</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(IceTcpServerSocketWrapper.class.getName());
+    private static final Logger logger = Logger.getLogger(IceTcpServerSocketWrapper.class.getName());
 
     /**
      * Thread that will wait new connections.
@@ -70,9 +56,7 @@ public class IceTcpServerSocketWrapper
      * @param serverSocket TCP <tt>ServerSocket</tt>
      * @param component related <tt>Component</tt>
      */
-    public IceTcpServerSocketWrapper(ServerSocket serverSocket,
-        Component component)
-    {
+    public IceTcpServerSocketWrapper(ServerSocket serverSocket, Component component) {
         this.serverSocket = serverSocket;
         this.component = component;
         acceptThread = new ThreadAccept();
@@ -83,8 +67,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void send(DatagramPacket p) throws IOException
-    {
+    public void send(DatagramPacket p) throws IOException {
         /* Do nothing for the moment */
     }
 
@@ -92,8 +75,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void receive(DatagramPacket p) throws IOException
-    {
+    public void receive(DatagramPacket p) throws IOException {
         /* Do nothing for the moment */
     }
 
@@ -101,19 +83,14 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void close()
-    {
-        try
-        {
+    public void close() {
+        try {
             isRun = false;
             serverSocket.close();
-            for(Socket s : sockets)
-            {
+            for (Socket s : sockets) {
                 s.close();
             }
-        }
-        catch(IOException e)
-        {
+        } catch (IOException e) {
         }
     }
 
@@ -121,8 +98,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public InetAddress getLocalAddress()
-    {
+    public InetAddress getLocalAddress() {
         return serverSocket.getInetAddress();
     }
 
@@ -130,8 +106,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public int getLocalPort()
-    {
+    public int getLocalPort() {
         return serverSocket.getLocalPort();
     }
 
@@ -139,8 +114,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public SocketAddress getLocalSocketAddress()
-    {
+    public SocketAddress getLocalSocketAddress() {
         return serverSocket.getLocalSocketAddress();
     }
 
@@ -148,10 +122,8 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public Socket getTCPSocket()
-    {
-        if(sockets.size() > 0)
-        {
+    public Socket getTCPSocket() {
+        if (sockets.size() > 0) {
             return sockets.get(0);
         }
 
@@ -162,8 +134,7 @@ public class IceTcpServerSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public DatagramSocket getUDPSocket()
-    {
+    public DatagramSocket getUDPSocket() {
         return null;
     }
 
@@ -172,36 +143,23 @@ public class IceTcpServerSocketWrapper
      *
      * @author Sebastien Vincent
      */
-    private class ThreadAccept extends Thread
-    {
+    private class ThreadAccept extends Thread {
         /**
          * Thread entry point.
          */
         @Override
-        public void run()
-        {
+        public void run() {
             isRun = true;
-
-            while(isRun)
-            {
-                try
-                {
+            while (isRun) {
+                try {
                     Socket tcpSocket = serverSocket.accept();
-
-                    if(tcpSocket != null)
-                    {
-                        MultiplexingSocket multiplexingSocket =
-                            new MultiplexingSocket(tcpSocket);
-                        component.getParentStream().getParentAgent().
-                            getStunStack().addSocket(
-                                new IceTcpSocketWrapper(multiplexingSocket));
+                    if (tcpSocket != null) {
+                        MultiplexingSocket multiplexingSocket = new MultiplexingSocket(tcpSocket);
+                        component.getParentStream().getParentAgent().getStunStack().addSocket(new IceTcpSocketWrapper(multiplexingSocket));
                         component.getComponentSocket().add(multiplexingSocket);
-
                         sockets.add(multiplexingSocket);
                     }
-                }
-                catch(IOException e)
-                {
+                } catch (IOException e) {
                     logger.info("Failed to accept TCP socket " + e);
                 }
             }

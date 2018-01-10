@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -25,9 +14,7 @@ import java.net.*;
  *
  * @author Sebastien Vincent
  */
-public class IceTcpSocketWrapper
-    extends IceSocketWrapper
-{
+public class IceTcpSocketWrapper extends IceSocketWrapper {
     /**
      * InputStream for this socket.
      */
@@ -56,19 +43,14 @@ public class IceTcpSocketWrapper
      *
      * @throws IOException if something goes wrong during initialization
      */
-    public IceTcpSocketWrapper(Socket delegate)
-        throws IOException
-    {
+    public IceTcpSocketWrapper(Socket delegate) throws IOException {
         socket = delegate;
 
-        if (delegate instanceof DelegatingSocket)
-        {
+        if (delegate instanceof DelegatingSocket) {
             inputStream = null;
             outputStream = null;
             socketAsDelegatingSocket = (DelegatingSocket) delegate;
-        }
-        else
-        {
+        } else {
             inputStream = delegate.getInputStream();
             outputStream = delegate.getOutputStream();
             socketAsDelegatingSocket = null;
@@ -79,14 +61,10 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void close()
-    {
-        try
-        {
+    public void close() {
+        try {
             socket.close();
-        }
-        catch(IOException e)
-        {
+        } catch (IOException e) {
         }
     }
 
@@ -94,8 +72,7 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public InetAddress getLocalAddress()
-    {
+    public InetAddress getLocalAddress() {
         return socket.getLocalAddress();
     }
 
@@ -103,8 +80,7 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public int getLocalPort()
-    {
+    public int getLocalPort() {
         return socket.getLocalPort();
     }
 
@@ -112,8 +88,7 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public SocketAddress getLocalSocketAddress()
-    {
+    public SocketAddress getLocalSocketAddress() {
         return socket.getLocalSocketAddress();
     }
 
@@ -121,8 +96,7 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public Socket getTCPSocket()
-    {
+    public Socket getTCPSocket() {
         return socket;
     }
 
@@ -130,8 +104,7 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public DatagramSocket getUDPSocket()
-    {
+    public DatagramSocket getUDPSocket() {
         return null;
     }
 
@@ -139,18 +112,11 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void receive(DatagramPacket p) throws IOException
-    {
-        if (socketAsDelegatingSocket != null)
-        {
+    public void receive(DatagramPacket p) throws IOException {
+        if (socketAsDelegatingSocket != null) {
             socketAsDelegatingSocket.receive(p);
-        }
-        else
-        {
-            DelegatingSocket.receiveFromInputStream(
-                    p,
-                    inputStream,
-                    getLocalAddress(), getLocalPort());
+        } else {
+            DelegatingSocket.receiveFromInputStream(p, inputStream, getLocalAddress(), getLocalPort());
         }
     }
 
@@ -158,21 +124,16 @@ public class IceTcpSocketWrapper
      * {@inheritDoc}
      */
     @Override
-    public void send(DatagramPacket p)
-        throws IOException
-    {
-        if (socketAsDelegatingSocket != null)
-        {
+    public void send(DatagramPacket p) throws IOException {
+        if (socketAsDelegatingSocket != null) {
             socketAsDelegatingSocket.send(p);
-        }
-        else
-        {
+        } else {
             int len = p.getLength();
             int off = p.getOffset();
             byte data[] = new byte[len + 2];
 
-            data[0] = (byte)((len >> 8) & 0xff);
-            data[1] = (byte)(len & 0xff);
+            data[0] = (byte) ((len >> 8) & 0xff);
+            data[1] = (byte) (len & 0xff);
             System.arraycopy(p.getData(), off, data, 2, len);
             outputStream.write(data, 0, len + 2);
         }
