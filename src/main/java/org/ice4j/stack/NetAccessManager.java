@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -29,50 +18,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manages <tt>Connector</tt>s and <tt>MessageProcessor</tt> pooling. This class
- * serves as a layer that masks network primitives and provides equivalent STUN
- * abstractions. Instances that operate with the NetAccessManager are only
- * supposed to understand STUN talk and shouldn't be aware of datagrams sockets,
- * and etc.
+ * Manages <tt>Connector</tt>s and <tt>MessageProcessor</tt> pooling. This class serves as a layer that masks network primitives and provides equivalent STUN
+ * abstractions. Instances that operate with the NetAccessManager are only supposed to understand STUN talk and shouldn't be aware of datagrams sockets, etc.
  * 
  * @author Emil Ivov
  * @author Aakash Garg
  * @author Boris Grozev
  */
-class NetAccessManager implements ErrorHandler
-{
+class NetAccessManager implements ErrorHandler {
     /**
      * Our class logger
      */
     private static final Logger logger = LoggerFactory.getLogger(NetAccessManager.class);
 
     /**
-     * All <tt>Connectors</tt> currently in use with UDP. The table maps a local
-     * <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
-     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without
-     * a specified remote address, under the <tt>null</tt> key.
+     * All <tt>Connectors</tt> currently in use with UDP. The table maps a local <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
+     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without a specified remote address, under the <tt>null</tt> key.
      *
-     * Due to the final hashCode() method of InetSocketAddress, TransportAddress
-     * cannot override and it causes problem to store both UDP and TCP address
-     * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp
-     * because InetSocketAddress does not take into account transport).
+     * Due to the final hashCode() method of InetSocketAddress, TransportAddress cannot override and it causes problem to store both UDP and TCP address
+     * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp because InetSocketAddress does not take into account transport).
      */
-    private final Map<TransportAddress, Map<TransportAddress, Connector>>
-        udpConnectors = new HashMap<>();
+    private final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> udpConnectors = new ConcurrentHashMap<>();
 
     /**
-     * All <tt>Connectors</tt> currently in use with TCP. The table maps a local
-     * <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
-     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without
-     * a specified remote address, under the <tt>null</tt> key.
+     * All <tt>Connectors</tt> currently in use with TCP. The table maps a local <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
+     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without a specified remote address, under the <tt>null</tt> key.
      *
-     * Due to the final hashCode() method of InetSocketAddress, TransportAddress
-     * cannot override and it causes problem to store both UDP and TCP address
-     * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp
-     * because InetSocketAddress does not take into account transport).
+     * Due to the final hashCode() method of InetSocketAddress, TransportAddress cannot override and it causes problem to store both UDP and TCP address
+     * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp because InetSocketAddress does not take into account transport).
      */
-    private final Map<TransportAddress, Map<TransportAddress, Connector>>
-        tcpConnectors = new HashMap<>();
+    private final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> tcpConnectors = new ConcurrentHashMap<>();
 
     /**
      * A synchronized FIFO where incoming messages are stocked for processing.
@@ -85,44 +60,37 @@ class NetAccessManager implements ErrorHandler
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     /**
-     * The instance that should be notified when an incoming message has been
-     * processed and ready for delivery
+     * The instance that should be notified when an incoming message has been processed and ready for delivery
      */
     private final MessageEventHandler messageEventHandler;
 
     /**
-     * The instance that should be notified when an incoming UDP message has
-     * been processed and ready for delivery
+     * The instance that should be notified when an incoming UDP message has been processed and ready for delivery
      */
     private final PeerUdpMessageEventHandler peerUdpMessageEventHandler;
 
     /**
-     * The instance that should be notified when an incoming ChannelData message
-     * has been processed and ready for delivery
+     * The instance that should be notified when an incoming ChannelData message has been processed and ready for delivery
      */
     private final ChannelDataEventHandler channelDataEventHandler;
 
     /**
-     * The <tt>StunStack</tt> which has created this instance, is its owner and
-     * is the handler that incoming message requests should be passed to.
+     * The <tt>StunStack</tt> which has created this instance, is its owner and is the handler that incoming message requests should be passed to.
      */
     private final StunStack stunStack;
 
     /**
      * Constructs a NetAccessManager.
      *
-     * @param stunStack the <tt>StunStack</tt> which is creating the new
-     * instance, is going to be its owner and is the handler that incoming
+     * @param stunStack the <tt>StunStack</tt> which is creating the new instance, is going to be its owner and is the handler that incoming
      * message requests should be passed to
      */
-    NetAccessManager(StunStack stunStack)
-    {
+    NetAccessManager(StunStack stunStack) {
         this(stunStack, null, null);
     }
 
     /**
-     * Constructs a NetAccessManager with given peerUdpMessageEventHandler and
-     * channelDataEventHandler.
+     * Constructs a NetAccessManager with given peerUdpMessageEventHandler and channelDataEventHandler.
      * 
      * @param stunStack the <tt>StunStack</tt> which is creating the new
      *            instance, is going to be its owner and is the handler that
@@ -134,10 +102,7 @@ class NetAccessManager implements ErrorHandler
      *            will handle incoming UDP messages which are ChannelData
      *            messages.
      */
-    NetAccessManager(StunStack stunStack,
-        PeerUdpMessageEventHandler peerUdpMessageEventHandler,
-        ChannelDataEventHandler channelDataEventHandler)
-    {
+    NetAccessManager(StunStack stunStack, PeerUdpMessageEventHandler peerUdpMessageEventHandler, ChannelDataEventHandler channelDataEventHandler) {
         this.stunStack = stunStack;
         this.messageEventHandler = stunStack;
         this.peerUdpMessageEventHandler = peerUdpMessageEventHandler;
@@ -157,8 +122,7 @@ class NetAccessManager implements ErrorHandler
      * <tt>NetAccessManager</tt> which is to be notified when incoming messages
      * have been processed and are ready for delivery
      */
-    MessageEventHandler getMessageEventHandler()
-    {
+    MessageEventHandler getMessageEventHandler() {
         return messageEventHandler;
     }
 
@@ -171,8 +135,7 @@ class NetAccessManager implements ErrorHandler
      *         <tt>NetAccessManager</tt> which is to be notified when incoming
      *         UDP messages have been processed and are ready for delivery
      */
-    public PeerUdpMessageEventHandler getUdpMessageEventHandler()
-    {
+    public PeerUdpMessageEventHandler getUdpMessageEventHandler() {
         return peerUdpMessageEventHandler;
     }
 
@@ -186,8 +149,7 @@ class NetAccessManager implements ErrorHandler
      *         ChannelData messages have been processed and are ready for
      *         delivery
      */
-    public ChannelDataEventHandler getChannelDataMessageEventHandler()
-    {
+    public ChannelDataEventHandler getChannelDataMessageEventHandler() {
         return channelDataEventHandler;
     }
 
@@ -198,8 +160,7 @@ class NetAccessManager implements ErrorHandler
      * @return the <tt>BlockingQueue</tt> of this <tt>NetAccessManager</tt> in
      * which incoming messages are stocked for processing
      */
-    BlockingQueue<RawMessage> getMessageQueue()
-    {
+    BlockingQueue<RawMessage> getMessageQueue() {
         return messageQueue;
     }
 
@@ -210,8 +171,7 @@ class NetAccessManager implements ErrorHandler
      * @return the <tt>StunStack</tt> which has created this instance and is its
      * owner
      */
-    StunStack getStunStack()
-    {
+    StunStack getStunStack() {
         return stunStack;
     }
 
@@ -221,8 +181,7 @@ class NetAccessManager implements ErrorHandler
      * @param error   the error that has occurred
      */
     @Override
-    public void handleError(String message, Throwable error)
-    {
+    public void handleError(String message, Throwable error) {
         /**
          * apart from logging, i am not sure what else we could do here.
          */
@@ -237,25 +196,17 @@ class NetAccessManager implements ErrorHandler
      * @param error         The error itself
      */
     @Override
-    public void handleFatalError(Runnable callingThread,
-                                 String message,
-                                 Throwable error)
-    {
-        if (callingThread instanceof Connector)
-        {
+    public void handleFatalError(Runnable callingThread, String message, Throwable error) {
+        if (callingThread instanceof Connector) {
             Connector connector = (Connector) callingThread;
             //make sure nothing's left and notify user
             removeSocket(connector.getListenAddress(), connector.getRemoteAddress());
-            if (error != null)
-            {
+            if (error != null) {
                 logger.warn("Removing connector: {}", connector, error);
-            } else if (logger.isDebugEnabled())
-            {
+            } else if (logger.isDebugEnabled()) {
                 logger.debug("Removing connector {}", connector);
             }
-        }
-        else if( callingThread instanceof MessageProcessor )
-        {
+        } else if (callingThread instanceof MessageProcessor) {
             MessageProcessor mp = (MessageProcessor) callingThread;
             logger.warn("A message processor has unexpectedly stopped. AP: {}", mp, error);
             //make sure the guy's dead.
@@ -275,78 +226,44 @@ class NetAccessManager implements ErrorHandler
      *
      * @param  socket   the socket that the access point should use.
      */
-    protected void addSocket(IceSocketWrapper socket)
-    {
+    protected void addSocket(IceSocketWrapper socket) {
         //no null check - let it through as a NullPointerException
-        Socket tcpSocket  = socket.getTCPSocket();
-
+        Socket tcpSocket = socket.getTCPSocket();
         TransportAddress remoteAddress = null;
-        if (tcpSocket != null)
-        {
-            // In case of TCP we can extract the remote address from the actual
-            // Socket.
-            remoteAddress
-                = new TransportAddress(tcpSocket.getInetAddress(),
-                                       tcpSocket.getPort(),
-                                       Transport.TCP);
+        if (tcpSocket != null) {
+            // In case of TCP we can extract the remote address from the actual Socket.
+            remoteAddress = new TransportAddress(tcpSocket.getInetAddress(), tcpSocket.getPort(), Transport.TCP);
         }
-
         addSocket(socket, remoteAddress);
     }
 
     /**
      * Creates and starts a new access point based on the specified socket.
-     * If the specified access point has already been installed the method
-     * has no effect.
+     * If the specified access point has already been installed the method has no effect.
      *
      * @param  socket   the socket that the access point should use.
      * @param remoteAddress the remote address of the socket of the
-     * {@link Connector} to be created if it is a TCP socket, or null if it
-     * is UDP.
+     * {@link Connector} to be created if it is a TCP socket, or null if it is UDP.
      */
-    protected void addSocket(IceSocketWrapper socket,
-                             TransportAddress remoteAddress)
-    {
-        Transport transport
-            = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
-        TransportAddress localAddress
-            = new TransportAddress(
-                    socket.getLocalAddress(),
-                    socket.getLocalPort(),
-                    transport);
-
-        final Map<TransportAddress, Map<TransportAddress, Connector>>
-            connectorsMap
-                = (transport == Transport.UDP)
-                ? udpConnectors
-                : tcpConnectors;
-
-        synchronized (connectorsMap)
-        {
-            Map<TransportAddress, Connector> connectorsForLocalAddress
-                = connectorsMap.get(localAddress);
-
-            if (connectorsForLocalAddress == null)
-            {
-                connectorsForLocalAddress = new HashMap<>();
-                connectorsMap.put(localAddress, connectorsForLocalAddress);
-            }
-
-            if (!connectorsForLocalAddress.containsKey(remoteAddress))
-            {
-                Connector connector
-                    = new Connector(socket, remoteAddress, messageQueue, this);
-
-                connectorsForLocalAddress.put(remoteAddress, connector);
-                connector.start();
-            }
-            else
-            {
-                logger.info("Not creating a new Connector, because we already "
-                            + "have one for the given address pair: "
-                            + localAddress + " -> " + remoteAddress);
-            }
+    protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
+        logger.info("addSocket: {}", socket.getUDPSocket().getLocalSocketAddress());
+        Transport transport = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
+        TransportAddress localAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport);
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (transport.equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
+        Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
+        if (connectorsForLocalAddress == null) {
+            connectorsForLocalAddress = new HashMap<>();
+            connectorsMap.put(localAddress, connectorsForLocalAddress);
+            Connector connector = new Connector(socket, remoteAddress, messageQueue, this);
+            connectorsForLocalAddress.put(remoteAddress, connector);
+            executor.submit(connector);
+        } else if (connectorsForLocalAddress.containsKey(remoteAddress)) {
+            logger.info("Not creating a new Connector, because we already have one for the given address pair: {} -> {}", localAddress, remoteAddress);
+        } else {
+            Connector connector = new Connector(socket, remoteAddress, messageQueue, this);
+            executor.submit(connectorsForLocalAddress.put(remoteAddress, connector));
         }
+        logger.info("Local connectors (add): {}", connectorsForLocalAddress);
     }
 
     /**
@@ -354,106 +271,62 @@ class NetAccessManager implements ErrorHandler
      *
      * @param localAddress the local address of the connector to remove.
      * @param remoteAddress the remote address of the connector to remote. Use
-     * <tt>null</tt> to match the <tt>Connector</tt> with no specified remote
-     * address.
+     * <tt>null</tt> to match the <tt>Connector</tt> with no specified remote address.
      */
-    protected void removeSocket(TransportAddress localAddress,
-                                TransportAddress remoteAddress)
-    {
-        Connector connector = null;
-
-        final Map<TransportAddress, Map<TransportAddress, Connector>>
-                connectorsMap
-                = (localAddress.getTransport() == Transport.UDP)
-                ? udpConnectors
-                : tcpConnectors;
-
-        synchronized (connectorsMap)
-        {
-            Map<TransportAddress, Connector> connectorsForLocalAddress
-                    = connectorsMap.get(localAddress);
-
-            if (connectorsForLocalAddress != null)
-            {
-                connector = connectorsForLocalAddress.get(remoteAddress);
-
-                if (connector != null)
-                {
-                    connectorsForLocalAddress.remove(remoteAddress);
-                    if (connectorsForLocalAddress.isEmpty())
-                        connectorsMap.remove(localAddress);
-                }
+    protected void removeSocket(TransportAddress localAddress, TransportAddress remoteAddress) {
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
+        Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
+        if (connectorsForLocalAddress != null) {
+            Connector connector = connectorsForLocalAddress.remove(remoteAddress);
+            if (connector != null) {
+                connector.stop();
+            }
+            if (connectorsForLocalAddress.isEmpty()) {
+                connectorsMap.remove(localAddress);
             }
         }
-
-        if(connector != null)
-            connector.stop();
     }
 
     /**
      * Stops <tt>NetAccessManager</tt> and all of its <tt>MessageProcessor</tt>.
      */
-    @SuppressWarnings("unchecked")
-    public void stop()
-    {
+    public void stop() {
         executor.shutdownNow();
-        for (Object o : new Object[]{udpConnectors, tcpConnectors})
-        {
-            Map<TransportAddress, Map<TransportAddress, Connector>>
-                connectorsMap
-                    = (Map<TransportAddress, Map<TransportAddress, Connector>>)o;
-
-            synchronized (connectorsMap)
-            {
-                for (Map<TransportAddress, Connector> connectorsForLocalAddress
-                        : connectorsMap.values())
-                {
-                    for (Connector connector : connectorsForLocalAddress.values())
-                    {
-                        connector.stop();
-                    }
-                }
+        // close all udp
+        for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
+            for (Connector connector : map.values()) {
+                connector.stop();
             }
-
+        }
+        // close all tcp
+        for (Map<TransportAddress, Connector> map : tcpConnectors.values()) {
+            for (Connector connector : map.values()) {
+                connector.stop();
+            }
         }
     }
 
     /**
-     * Returns the <tt>Connector</tt> responsible for a particular source
-     * address and a particular destination address.
+     * Returns the <tt>Connector</tt> responsible for a particular source address and a particular destination address.
      *
      * @param localAddress the source address.
      * @param remoteAddress the destination address.
-     * Returns the <tt>Connector</tt> responsible for a particular source
-     * address and a particular destination address, or <tt>null</tt> if there's
-     * none.
+     * Returns the <tt>Connector</tt> responsible for a particular source address and a particular destination address,
+     * or <tt>null</tt> if there's none.
      */
-    private Connector getConnector(TransportAddress localAddress,
-                                   TransportAddress remoteAddress)
-    {
+    private Connector getConnector(TransportAddress localAddress, TransportAddress remoteAddress) {
         boolean udp = localAddress.getTransport() == Transport.UDP;
-        final Map<TransportAddress, Map<TransportAddress, Connector>>
-                connectorsMap
-                = udp
-                ? udpConnectors
-                : tcpConnectors;
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
         Connector connector = null;
-
-        synchronized (connectorsMap)
-        {
-            Map<TransportAddress, Connector> connectorsForLocalAddress
-                    = connectorsMap.get(localAddress);
-
-            if (connectorsForLocalAddress != null)
-            {
-                connector = connectorsForLocalAddress.get(remoteAddress);
-
-                // Fallback to the socket with no specific remote address
-                if (udp && connector == null)
-                    connector = connectorsForLocalAddress.get(null);
+        Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
+        logger.info("Local connectors: {}", connectorsForLocalAddress);
+        if (connectorsForLocalAddress != null) {
+            connector = connectorsForLocalAddress.get(remoteAddress);
+            // Fallback to the socket with no specific remote address
+            if (udp && connector == null) {
+                connector = connectorsForLocalAddress.get(null);
             }
         }
-
         return connector;
     }
 
@@ -470,16 +343,10 @@ class NetAccessManager implements ErrorHandler
      * @throws IOException  if an error occurs while sending message bytes
      * through the network socket.
      */
-    void sendMessage(
-            Message stunMessage,
-            TransportAddress srcAddr,
-            TransportAddress remoteAddr)
-        throws IllegalArgumentException,
-               IOException
-    {
+    void sendMessage(Message stunMessage, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
         sendMessage(stunMessage.encode(stunStack), srcAddr, remoteAddr);
     }
-    
+
     /**
      * Sends the specified stun message through the specified access point.
      *
@@ -493,15 +360,8 @@ class NetAccessManager implements ErrorHandler
      * through the network socket.
      * @throws StunException 
      */
-    void sendMessage(
-            ChannelData channelData,
-            TransportAddress srcAddr,
-            TransportAddress remoteAddr)
-        throws IllegalArgumentException,
-               IOException, StunException
-    {
-        boolean pad = srcAddr.getTransport() == Transport.TCP
-            || srcAddr.getTransport() == Transport.TLS;
+    void sendMessage(ChannelData channelData, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException, StunException {
+        boolean pad = srcAddr.getTransport() == Transport.TCP || srcAddr.getTransport() == Transport.TLS;
         sendMessage(channelData.encode(pad), srcAddr, remoteAddr);
     }
 
@@ -517,19 +377,11 @@ class NetAccessManager implements ErrorHandler
      * @throws IOException  if an error occurs while sending message bytes
      * through the network socket.
      */
-    void sendMessage(
-            byte[] bytes,
-            TransportAddress srcAddr,
-            TransportAddress remoteAddr)
-        throws IllegalArgumentException,
-               IOException
-    {
+    void sendMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
         Connector ap = getConnector(srcAddr, remoteAddr);
-        if (ap == null)
-        {
+        if (ap == null) {
             throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
         }
-
         ap.sendMessage(bytes, remoteAddr);
     }
 }

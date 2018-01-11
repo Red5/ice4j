@@ -362,7 +362,7 @@ public class StunClientTransaction
     void sendRequest()
         throws IllegalArgumentException, IOException
     {
-        logger.debug("sending STUN " + " tid " + transactionID + " from "
+        logger.debug("sending STUN  tid " + transactionID + " from "
                     + localAddress + " to " + requestDestination);
         sendRequest0();
 

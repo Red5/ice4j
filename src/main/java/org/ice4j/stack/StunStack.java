@@ -323,7 +323,6 @@ public class StunStack implements MessageEventHandler {
      * identified by <tt>sendThrough</tt>
      */
     public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
-
         try {
             getNetAccessManager().sendMessage(udpMessage.getBytes(), sendThrough, sendTo);
         } catch (IllegalArgumentException iaex) {
@@ -354,7 +353,6 @@ public class StunStack implements MessageEventHandler {
         if (indication.getTransactionID() == null) {
             indication.setTransactionID(TransactionID.createNewTransactionID().getBytes());
         }
-
         try {
             getNetAccessManager().sendMessage(indication, sendThrough, sendTo);
         } catch (IllegalArgumentException iaex) {
@@ -471,7 +469,6 @@ public class StunStack implements MessageEventHandler {
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, DatagramSocket sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
         TransportAddress sendThroughAddr = new TransportAddress(sendThrough.getLocalAddress(), sendThrough.getLocalPort(), Transport.UDP);
-
         return sendRequest(request, sendTo, sendThroughAddr, collector);
     }
 
@@ -495,11 +492,10 @@ public class StunStack implements MessageEventHandler {
     public void sendResponse(byte[] transactionID, Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
         TransactionID tid = TransactionID.createTransactionID(this, transactionID);
         StunServerTransaction sTran = getServerTransaction(tid);
-
         if (sTran == null) {
-            throw new StunException(StunException.TRANSACTION_DOES_NOT_EXIST, "The transaction specified in the response " + "(tid=" + tid.toString() + ") " + "object does not exist.");
+            throw new StunException(StunException.TRANSACTION_DOES_NOT_EXIST, "The transaction specified in the response (tid=" + tid.toString() + ") object does not exist.");
         } else if (sTran.isRetransmitting()) {
-            throw new StunException(StunException.TRANSACTION_ALREADY_ANSWERED, "The transaction specified in the response " + "(tid=" + tid.toString() + ") " + "has already seen a previous response. " + "Response was:\n" + sTran.getResponse());
+            throw new StunException(StunException.TRANSACTION_ALREADY_ANSWERED, "The transaction specified in the response (tid=" + tid.toString() + ") has already seen a previous response. Response was:\n" + sTran.getResponse());
         } else {
             sTran.sendResponse(response, sendThrough, sendTo);
         }
@@ -629,8 +625,6 @@ public class StunStack implements MessageEventHandler {
                 logger.debug("Username was null");
             }
             TransactionID serverTid = ev.getTransactionID();
-            // set the username attribute length
-            serverTid.setUaLength(ua.getDataLength());
             logger.warn("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
             StunServerTransaction sTran = getServerTransaction(serverTid);
             if (sTran != null) {
@@ -710,15 +704,13 @@ public class StunStack implements MessageEventHandler {
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
             if (ua != null) {
                 logger.debug("Username: {}", ua.getUsername());
-                // set the username attribute length
-                tid.setUaLength(ua.getDataLength());
             }
             StunClientTransaction tran = clientTransactions.remove(tid);
             if (tran != null) {
                 tran.handleResponse(ev);
             } else {
                 //do nothing - just drop the phantom response.
-                logger.debug("Dropped response - no matching client tran found for" + " tid " + tid + "\n" + "all tids in stock were " + clientTransactions.keySet());
+                logger.debug("Dropped response - no matching client tran found for tid " + tid + "\nall tids in stock were " + clientTransactions.keySet());
             }
         }
         // indication
@@ -940,7 +932,7 @@ public class StunStack implements MessageEventHandler {
 
         if ((username.length() < 1) || (colon < 1)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Received a message with an improperly " + "formatted username");
+                logger.debug("Received a message with an improperly formatted username");
             }
             return false;
         }

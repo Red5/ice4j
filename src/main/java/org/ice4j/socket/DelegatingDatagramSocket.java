@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
@@ -29,9 +18,7 @@ import org.ice4j.stack.*;
  *
  * @author Lyubomir Marinov
  */
-public class DelegatingDatagramSocket
-    extends DatagramSocket
-{
+public class DelegatingDatagramSocket extends DatagramSocket {
     /**
      * Assigns a factory to generate custom DatagramSocket to replace classical
      * "java" DatagramSocket. This way external applications can define the
@@ -63,8 +50,7 @@ public class DelegatingDatagramSocket
      * @param factory The factory assigned to generates the new DatagramSocket
      * for each new DelegatingDatagramSocket which do not use a delegate socket.
      */
-    public static void setDefaultDelegateFactory(DatagramSocketFactory factory)
-    {
+    public static void setDefaultDelegateFactory(DatagramSocketFactory factory) {
         delegateFactory = factory;
     }
 
@@ -79,8 +65,7 @@ public class DelegatingDatagramSocket
      * @param size the size to which to set the receive buffer size. This value
      * must be greater than 0.
      */
-    public static void setDefaultReceiveBufferSize(int size)
-    {
+    public static void setDefaultReceiveBufferSize(int size) {
         defaultReceiveBufferSize = size;
     }
 
@@ -90,13 +75,8 @@ public class DelegatingDatagramSocket
      *
      * @param numOfPacket the number of packets sent or received.
      */
-    static boolean logNonStun(long numOfPacket)
-    {
-        return (numOfPacket == 1)
-                || (numOfPacket == 300)
-                || (numOfPacket == 500)
-                || (numOfPacket == 1000)
-                || ((numOfPacket % 5000) == 0);
+    static boolean logNonStun(long numOfPacket) {
+        return (numOfPacket == 1) || (numOfPacket == 300) || (numOfPacket == 500) || (numOfPacket == 1000) || ((numOfPacket % 5000) == 0);
     }
 
     /**
@@ -129,9 +109,7 @@ public class DelegatingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket()
      */
-    public DelegatingDatagramSocket()
-        throws SocketException
-    {
+    public DelegatingDatagramSocket() throws SocketException {
         this(null, new InetSocketAddress(0));
     }
 
@@ -145,9 +123,7 @@ public class DelegatingDatagramSocket
      * @throws SocketException if anything goes wrong while initializing the new
      * <tt>DelegatingDatagramSocket</tt> instance
      */
-    public DelegatingDatagramSocket(DatagramSocket delegate)
-        throws SocketException
-    {
+    public DelegatingDatagramSocket(DatagramSocket delegate) throws SocketException {
         this(delegate, null);
     }
 
@@ -161,9 +137,7 @@ public class DelegatingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket(int)
      */
-    public DelegatingDatagramSocket(int port)
-        throws SocketException
-    {
+    public DelegatingDatagramSocket(int port) throws SocketException {
         this(null, new InetSocketAddress(port));
     }
 
@@ -179,9 +153,7 @@ public class DelegatingDatagramSocket
      * could not bind to the specified local port
      * @see DatagramSocket#DatagramSocket(int, InetAddress)
      */
-    public DelegatingDatagramSocket(int port, InetAddress laddr)
-        throws SocketException
-    {
+    public DelegatingDatagramSocket(int port, InetAddress laddr) throws SocketException {
         this(null, new InetSocketAddress(laddr, port));
     }
 
@@ -196,9 +168,7 @@ public class DelegatingDatagramSocket
      * @throws SocketException if the socket could not be opened, or the socket
      * could not bind to the specified local port
      */
-    public DelegatingDatagramSocket(SocketAddress bindaddr)
-        throws SocketException
-    {
+    public DelegatingDatagramSocket(SocketAddress bindaddr) throws SocketException {
         this(null, bindaddr);
     }
 
@@ -216,30 +186,21 @@ public class DelegatingDatagramSocket
      * @throws SocketException if the socket could not be opened, or the socket
      * could not bind to the specified local port.
      */
-    public DelegatingDatagramSocket(
-            DatagramSocket delegate,
-            SocketAddress address)
-        throws SocketException
-    {
+    public DelegatingDatagramSocket(DatagramSocket delegate, SocketAddress address) throws SocketException {
         super((SocketAddress) null);
 
         // Delegates the DatagramSocket functionality to the DatagramSocket
         // given in parameter.
-        if(delegate != null)
-        {
+        if (delegate != null) {
             this.delegate = delegate;
-        }
-        else
-        {
+        } else {
             // Creates a custom DatagramSocket to replace classical "java"
             // DatagramSocket and set it as a delegate Socket
-            if(delegateFactory != null)
-            {
+            if (delegateFactory != null) {
                 this.delegate = delegateFactory.createUnboundDatagramSocket();
             }
             // Creates a socket directly connected to the network stack.
-            else
-            {
+            else {
                 this.delegate = null;
                 initReceiveBufferSize();
             }
@@ -266,9 +227,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#bind(SocketAddress)
      */
     @Override
-    public void bind(SocketAddress addr)
-            throws SocketException
-    {
+    public void bind(SocketAddress addr) throws SocketException {
         if (delegate == null)
             super.bind(addr);
         else
@@ -285,8 +244,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#close()
      */
     @Override
-    public void close()
-    {
+    public void close() {
         // We want both #delegate and super to actually get closed (and release
         // the FDs which they hold). But super will not close unless isClosed()
         // returns false. So we update the #closed flag last.
@@ -319,8 +277,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#connect(InetAddress, int)
      */
     @Override
-    public void connect(InetAddress address, int port)
-    {
+    public void connect(InetAddress address, int port) {
         if (delegate == null)
             super.connect(address, port);
         else
@@ -337,9 +294,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#connect(SocketAddress)
      */
     @Override
-    public void connect(SocketAddress addr)
-        throws SocketException
-    {
+    public void connect(SocketAddress addr) throws SocketException {
         if (delegate == null)
             super.connect(addr);
         else
@@ -352,8 +307,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#disconnect()
      */
     @Override
-    public void disconnect()
-    {
+    public void disconnect() {
         if (delegate == null)
             super.disconnect();
         else
@@ -370,11 +324,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getBroadcast()
      */
     @Override
-    public boolean getBroadcast()
-        throws SocketException
-    {
-        return
-            (delegate == null) ? super.getBroadcast() : delegate.getBroadcast();
+    public boolean getBroadcast() throws SocketException {
+        return (delegate == null) ? super.getBroadcast() : delegate.getBroadcast();
     }
 
     /**
@@ -390,8 +341,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getChannel()
      */
     @Override
-    public DatagramChannel getChannel()
-    {
+    public DatagramChannel getChannel() {
         return (delegate == null) ? super.getChannel() : delegate.getChannel();
     }
 
@@ -403,12 +353,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getInetAddress()
      */
     @Override
-    public InetAddress getInetAddress()
-    {
-        return
-            (delegate == null)
-                ? super.getInetAddress()
-                : delegate.getInetAddress();
+    public InetAddress getInetAddress() {
+        return (delegate == null) ? super.getInetAddress() : delegate.getInetAddress();
     }
 
     /**
@@ -425,12 +371,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getLocalAddress()
      */
     @Override
-    public InetAddress getLocalAddress()
-    {
-        return
-            (delegate == null)
-                ? super.getLocalAddress()
-                : delegate.getLocalAddress();
+    public InetAddress getLocalAddress() {
+        return (delegate == null) ? super.getLocalAddress() : delegate.getLocalAddress();
     }
 
     /**
@@ -440,10 +382,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getLocalPort()
      */
     @Override
-    public int getLocalPort()
-    {
-        return
-            (delegate == null) ? super.getLocalPort() : delegate.getLocalPort();
+    public int getLocalPort() {
+        return (delegate == null) ? super.getLocalPort() : delegate.getLocalPort();
     }
 
     /**
@@ -455,12 +395,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getLocalSocketAddress()
      */
     @Override
-    public SocketAddress getLocalSocketAddress()
-    {
-        return
-            (delegate == null)
-                ? super.getLocalSocketAddress()
-                : delegate.getLocalSocketAddress();
+    public SocketAddress getLocalSocketAddress() {
+        return (delegate == null) ? super.getLocalSocketAddress() : delegate.getLocalSocketAddress();
     }
 
     /**
@@ -471,8 +407,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getPort()
      */
     @Override
-    public int getPort()
-    {
+    public int getPort() {
         return (delegate == null) ? super.getPort() : delegate.getPort();
     }
 
@@ -488,13 +423,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getReceiveBufferSize()
      */
     @Override
-    public int getReceiveBufferSize()
-        throws SocketException
-    {
-        return
-            (delegate == null)
-                ? super.getReceiveBufferSize()
-                : delegate.getReceiveBufferSize();
+    public int getReceiveBufferSize() throws SocketException {
+        return (delegate == null) ? super.getReceiveBufferSize() : delegate.getReceiveBufferSize();
     }
 
     /**
@@ -506,12 +436,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getRemoteSocketAddress()
      */
     @Override
-    public SocketAddress getRemoteSocketAddress()
-    {
-        return
-            (delegate == null)
-                ? super.getRemoteSocketAddress()
-                : delegate.getRemoteSocketAddress();
+    public SocketAddress getRemoteSocketAddress() {
+        return (delegate == null) ? super.getRemoteSocketAddress() : delegate.getRemoteSocketAddress();
     }
 
     /**
@@ -524,13 +450,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getReuseAddress()
      */
     @Override
-    public boolean getReuseAddress()
-        throws SocketException
-    {
-        return
-            (delegate == null)
-                ? super.getReuseAddress()
-                : delegate.getReuseAddress();
+    public boolean getReuseAddress() throws SocketException {
+        return (delegate == null) ? super.getReuseAddress() : delegate.getReuseAddress();
     }
 
     /**
@@ -545,13 +466,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getSendBufferSize()
      */
     @Override
-    public int getSendBufferSize()
-        throws SocketException
-    {
-        return
-            (delegate == null)
-                ? super.getSendBufferSize()
-                : delegate.getSendBufferSize();
+    public int getSendBufferSize() throws SocketException {
+        return (delegate == null) ? super.getSendBufferSize() : delegate.getSendBufferSize();
     }
 
     /**
@@ -564,11 +480,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getSoTimeout()
      */
     @Override
-    public int getSoTimeout()
-        throws SocketException
-    {
-        return
-            (delegate == null) ? super.getSoTimeout() : delegate.getSoTimeout();
+    public int getSoTimeout() throws SocketException {
+        return (delegate == null) ? super.getSoTimeout() : delegate.getSoTimeout();
     }
 
     /**
@@ -587,13 +500,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#getTrafficClass()
      */
     @Override
-    public int getTrafficClass()
-        throws SocketException
-    {
-        return
-            (delegate == null)
-                ? super.getTrafficClass()
-                : delegate.getTrafficClass();
+    public int getTrafficClass() throws SocketException {
+        return (delegate == null) ? super.getTrafficClass() : delegate.getTrafficClass();
     }
 
     /**
@@ -604,8 +512,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#isBound()
      */
     @Override
-    public boolean isBound()
-    {
+    public boolean isBound() {
         return (delegate == null) ? super.isBound() : delegate.isBound();
     }
 
@@ -617,8 +524,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#isClosed()
      */
     @Override
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         return closed;
     }
 
@@ -630,10 +536,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#isConnected()
      */
     @Override
-    public boolean isConnected()
-    {
-        return (delegate == null) ? super.isConnected() :
-            delegate.isConnected();
+    public boolean isConnected() {
+        return (delegate == null) ? super.isConnected() : delegate.isConnected();
     }
 
     /**
@@ -658,11 +562,8 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
-        if (delegate == null)
-        {
+    public void receive(DatagramPacket p) throws IOException {
+        if (delegate == null) {
             // If the packet length is too small, then the
             // DatagramSocket.receive function will truncate the received
             // datagram. This problem appears when reusing the same
@@ -683,18 +584,10 @@ public class DelegatingDatagramSocket
 
             super.receive(p);
 
-            if (StunDatagramPacketFilter.isStunPacket(p)
-                    || logNonStun(++nbReceivedPackets))
-            {
-                StunStack.logPacketToPcap(
-                        p,
-                        false,
-                        getLocalAddress(),
-                        getLocalPort());
+            if (StunDatagramPacketFilter.isStunPacket(p) || logNonStun(++nbReceivedPackets)) {
+                StunStack.logPacketToPcap(p, false, getLocalAddress(), getLocalPort());
             }
-        }
-        else
-        {
+        } else {
             delegate.receive(p);
         }
     }
@@ -721,14 +614,10 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#send(DatagramPacket)
      */
     @Override
-    public void send(DatagramPacket p)
-        throws IOException
-    {
+    public void send(DatagramPacket p) throws IOException {
         // Sends the packet to the final DatagramSocket
-        if (delegate == null)
-        {
-            try
-            {
+        if (delegate == null) {
+            try {
                 super.send(p);
             }
             // DIRTY, DIRTY, DIRTY!!!
@@ -738,41 +627,25 @@ public class DelegatingDatagramSocket
             // i.e.  "fe80::1%en1".  This correction (the whole "catch") is to
             // be removed as soon as java under MAC OSX implements a real ipv6
             // network stack.
-            catch(Exception ex)
-            {
+            catch (Exception ex) {
                 InetAddress tmpAddr = p.getAddress();
-                if(((ex instanceof NoRouteToHostException)
-                            || (ex.getMessage() != null
-                                && ex.getMessage().equals("No route to host")))
-                        && (tmpAddr instanceof Inet6Address)
-                        && (tmpAddr.isLinkLocalAddress()))
-                {
-                    Inet6Address newAddr = Inet6Address.getByAddress(
-                            "",
-                            tmpAddr.getAddress(),
-                            ((Inet6Address) super.getLocalAddress())
-                            .getScopeId());
+                if (((ex instanceof NoRouteToHostException) || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) && (tmpAddr instanceof Inet6Address) && (tmpAddr.isLinkLocalAddress())) {
+                    Inet6Address newAddr = Inet6Address.getByAddress("", tmpAddr.getAddress(), ((Inet6Address) super.getLocalAddress()).getScopeId());
                     p.setAddress(newAddr);
 
                     super.send(p);
 
                 } else if (ex instanceof IOException) {
-                	throw((IOException)ex);
+                    throw ((IOException) ex);
                 }
-           }
+            }
 
-            if (logNonStun(++nbSentPackets))
-            {
-                StunStack.logPacketToPcap(
-                        p,
-                        true,
-                        getLocalAddress(),
-                        getLocalPort());
+            if (logNonStun(++nbSentPackets)) {
+                StunStack.logPacketToPcap(p, true, getLocalAddress(), getLocalPort());
             }
         }
         // Else, the delegate socket will encapsulate the packet.
-        else
-        {
+        else {
             delegate.send(p);
         }
     }
@@ -786,9 +659,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setBroadcast(boolean)
      */
     @Override
-    public void setBroadcast(boolean on)
-        throws SocketException
-    {
+    public void setBroadcast(boolean on) throws SocketException {
         if (delegate == null)
             super.setBroadcast(on);
         else
@@ -816,9 +687,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setReceiveBufferSize(int)
      */
     @Override
-    public void setReceiveBufferSize(int size)
-        throws SocketException
-    {
+    public void setReceiveBufferSize(int size) throws SocketException {
         if (delegate == null)
             super.setReceiveBufferSize(size);
         else
@@ -835,9 +704,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setReuseAddress(boolean)
      */
     @Override
-    public void setReuseAddress(boolean on)
-        throws SocketException
-    {
+    public void setReuseAddress(boolean on) throws SocketException {
         if (delegate == null)
             super.setReuseAddress(on);
         else
@@ -868,9 +735,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setSendBufferSize(int)
      */
     @Override
-    public void setSendBufferSize(int size)
-        throws SocketException
-    {
+    public void setSendBufferSize(int size) throws SocketException {
         if (delegate == null)
             super.setSendBufferSize(size);
         else
@@ -894,9 +759,7 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setSoTimeout(int)
      */
     @Override
-    public void setSoTimeout(int timeout)
-        throws SocketException
-    {
+    public void setSoTimeout(int timeout) throws SocketException {
         if (delegate == null)
             super.setSoTimeout(timeout);
         else
@@ -915,15 +778,12 @@ public class DelegatingDatagramSocket
      * @see DatagramSocket#setTrafficClass(int)
      */
     @Override
-    public void setTrafficClass(int tc)
-        throws SocketException
-    {
+    public void setTrafficClass(int tc) throws SocketException {
         if (delegate == null)
             super.setTrafficClass(tc);
         else
             delegate.setTrafficClass(tc);
     }
-
 
     /**
      * A utility method used by the constructors to ensure the receive buffer
@@ -936,12 +796,9 @@ public class DelegatingDatagramSocket
      * @throws SocketException if there is an error in the underlying protocol,
      * such as an UDP error.
      */
-    private void initReceiveBufferSize()
-        throws SocketException
-    {
+    private void initReceiveBufferSize() throws SocketException {
         // Only change the buffer size on the real underlying DatagramSocket.
-        if(delegate == null && defaultReceiveBufferSize > 0)
-        {
+        if (delegate == null && defaultReceiveBufferSize > 0) {
             super.setReceiveBufferSize(defaultReceiveBufferSize);
         }
     }

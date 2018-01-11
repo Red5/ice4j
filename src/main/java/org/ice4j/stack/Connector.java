@@ -88,18 +88,6 @@ class Connector implements Runnable {
     }
 
     /**
-     * Start the network listening thread.
-     */
-    void start() {
-        this.running = true;
-
-        Thread thread = new Thread(this, "IceConnector@" + hashCode());
-
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    /**
      * Returns the <tt>DatagramSocket</tt> that contains the port and address
      * associated with this access point.
      *
@@ -114,6 +102,8 @@ class Connector implements Runnable {
      */
     @Override
     public void run() {
+        this.running = true;
+        Thread.currentThread().setName("IceConnector@" + hashCode());
         DatagramPacket packet = null;
 
         while (this.running) {
@@ -172,7 +162,7 @@ class Connector implements Runnable {
 
                     stop();
                     //Something wrong has happened
-                    errorHandler.handleFatalError(this, "A socket exception was thrown" + " while trying to receive a message.", ex);
+                    errorHandler.handleFatalError(this, "A socket exception was thrown while trying to receive a message.", ex);
                 } else {
                     //The exception was most probably caused by calling
                     //this.stop().
@@ -181,8 +171,7 @@ class Connector implements Runnable {
                 // The socket was closed, possibly by the remote peer.
                 // If we were already stopped, just ignore it.
                 if (running) {
-                    // We could be the first thread to realize that the socket
-                    // was closed. But that's normal operation, so don't
+                    // We could be the first thread to realize that the socket was closed. But that's normal operation, so don't
                     // complain too much.
                     stop();
                     errorHandler.handleFatalError(this, "The socket was closed:", null);
@@ -206,10 +195,10 @@ class Connector implements Runnable {
      */
     protected void stop() {
         synchronized (sockLock) {
-            this.running = false;
-            if (this.sock != null) {
-                this.sock.close();
-                this.sock = null;
+            running = false;
+            if (sock != null) {
+                sock.close();
+                sock = null;
             }
         }
     }

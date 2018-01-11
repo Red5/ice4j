@@ -81,14 +81,6 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      * {@inheritDoc}
      */
     @Override
-    public Socket getTCPSocket() {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public DatagramSocket getUDPSocket() {
         return socket;
     }

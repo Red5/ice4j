@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -26,8 +15,7 @@ import java.util.*;
  *
  * @author Emil Ivov
  */
-public class TransactionID
-{
+public class TransactionID {
     /**
      * RFC5289 Transaction ID length.
      */
@@ -51,8 +39,7 @@ public class TransactionID
     /**
      * The object to use to generate the rightmost 8 bytes of the id.
      */
-    private static final Random random
-        = new Random(System.currentTimeMillis());
+    private static final Random random = new Random(System.currentTimeMillis());
 
     /**
      * A hashcode for hashtable storage.
@@ -60,15 +47,9 @@ public class TransactionID
     private int hashCode = 0;
 
     /**
-     * Username attribute length (used to separate Edge dupes)
-     */
-    private int uaLength = 0;
-
-    /**
      * Limits access to <tt>TransactionID</tt> instantiation.
      */
-    private TransactionID()
-    {
+    private TransactionID() {
         this(false);
     }
 
@@ -77,13 +58,8 @@ public class TransactionID
      *
      * @param rfc3489Compatibility true to create a RFC3489 transaction ID
      */
-    private TransactionID(boolean rfc3489Compatibility)
-    {
-        transactionID
-            = new byte[
-                    rfc3489Compatibility
-                        ? RFC3489_TRANSACTION_ID_LENGTH
-                        : RFC5389_TRANSACTION_ID_LENGTH];
+    private TransactionID(boolean rfc3489Compatibility) {
+        transactionID = new byte[rfc3489Compatibility ? RFC3489_TRANSACTION_ID_LENGTH : RFC5389_TRANSACTION_ID_LENGTH];
     }
 
     /**
@@ -96,8 +72,7 @@ public class TransactionID
      *
      * @return A <tt>TransactionID</tt> object with a unique transaction id.
      */
-    public static TransactionID createNewTransactionID()
-    {
+    public static TransactionID createNewTransactionID() {
         TransactionID tid = new TransactionID();
 
         generateTransactionID(tid, RFC5389_TRANSACTION_ID_LENGTH);
@@ -114,8 +89,7 @@ public class TransactionID
      *
      * @return A <tt>TransactionID</tt> object with a unique transaction id.
      */
-    public static TransactionID createNewRFC3489TransactionID()
-    {
+    public static TransactionID createNewRFC3489TransactionID() {
         TransactionID tid = new TransactionID(true);
 
         generateTransactionID(tid, RFC3489_TRANSACTION_ID_LENGTH);
@@ -128,16 +102,14 @@ public class TransactionID
      * @param tid transaction ID
      * @param nb number of bytes to generate
      */
-    private static void generateTransactionID(TransactionID tid, int nb)
-    {
-        long left  = System.currentTimeMillis();//the first nb/2 bytes of the id
+    private static void generateTransactionID(TransactionID tid, int nb) {
+        long left = System.currentTimeMillis();//the first nb/2 bytes of the id
         long right = random.nextLong();//the last nb/2 bytes of the id
         int b = nb / 2;
 
-        for(int i = 0; i < b; i++)
-        {
-            tid.transactionID[i]   = (byte)((left  >> (i * 8)) & 0xFFL);
-            tid.transactionID[i + b] = (byte)((right >> (i * 8)) & 0xFFL);
+        for (int i = 0; i < b; i++) {
+            tid.transactionID[i] = (byte) ((left >> (i * 8)) & 0xFFL);
+            tid.transactionID[i + b] = (byte) ((right >> (i * 8)) & 0xFFL);
         }
     }
 
@@ -199,8 +171,7 @@ public class TransactionID
      *
      * @return true if transaction ID is compatible with RFC3489
      */
-    public boolean isRFC3489Compatible()
-    {
+    public boolean isRFC3489Compatible() {
         return (transactionID.length == 16);
     }
 
@@ -209,14 +180,13 @@ public class TransactionID
      * @param obj the object to compare with.
      * @return true if the objects are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if(this == obj)
+    public boolean equals(Object obj) {
+        if (this == obj)
             return true;
-        if(!(obj instanceof TransactionID))
+        if (!(obj instanceof TransactionID))
             return false;
 
-        return Arrays.equals(transactionID, ((TransactionID)obj).transactionID);
+        return Arrays.equals(transactionID, ((TransactionID) obj).transactionID);
     }
 
     /**
@@ -224,8 +194,7 @@ public class TransactionID
      * @param targetID the id to compare with ours.
      * @return true if targetID matches this transaction id.
      */
-    public boolean equals(byte[] targetID)
-    {
+    public boolean equals(byte[] targetID) {
         return Arrays.equals(transactionID, targetID);
     }
 
@@ -235,17 +204,11 @@ public class TransactionID
      * @return the hashcode of this object - as advised by the Java Platform
      * Specification
      */
-    public int hashCode()
-    {
-        //if (hashCode == 0) {
+    public int hashCode() {
+        if (hashCode == 0) {
             //calculate hashcode for Hashtable storage
-            hashCode =   (transactionID[3] << 24 & 0xFF000000)
-                       | (transactionID[2] << 16 & 0x00FF0000)
-                       | (transactionID[1] << 8  & 0x0000FF00)
-                       | (transactionID[0] & 0x000000FF);
-            // add ua length 
-            hashCode += uaLength;
-        //}
+            hashCode = (transactionID[3] << 24 & 0xFF000000) | (transactionID[2] << 16 & 0x00FF0000) | (transactionID[1] << 8 & 0x0000FF00) | (transactionID[0] & 0x000000FF);
+        }
         return hashCode;
     }
 
@@ -254,8 +217,7 @@ public class TransactionID
      *
      * @return a hex string representing the id
      */
-    public String toString()
-    {
+    public String toString() {
         return TransactionID.toString(transactionID);
     }
 
@@ -266,19 +228,16 @@ public class TransactionID
      *
      * @return a hex string representing the id
      */
-    public static String toString(byte[] transactionID)
-    {
+    public static String toString(byte[] transactionID) {
         StringBuilder idStr = new StringBuilder();
 
         idStr.append("0x");
-        for(int i = 0; i < transactionID.length; i++)
-        {
+        for (int i = 0; i < transactionID.length; i++) {
 
-            if((transactionID[i] & 0xFF) <= 15)
+            if ((transactionID[i] & 0xFF) <= 15)
                 idStr.append("0");
 
-            idStr.append(
-                    Integer.toHexString(transactionID[i] & 0xFF).toUpperCase());
+            idStr.append(Integer.toHexString(transactionID[i] & 0xFF).toUpperCase());
         }
 
         return idStr.toString();
@@ -293,8 +252,7 @@ public class TransactionID
      * application would like to correlate to the transaction represented by
      * this ID.
      */
-    public void setApplicationData(Object applicationData)
-    {
+    public void setApplicationData(Object applicationData) {
         this.applicationData = applicationData;
     }
 
@@ -305,16 +263,8 @@ public class TransactionID
      * @return a reference to the {@link Object} that the application may have
      * stored in this ID's application data field.
      */
-    public Object getApplicationData()
-    {
+    public Object getApplicationData() {
         return applicationData;
     }
 
-    public int getUaLength() {
-        return uaLength;
-    }
-
-    public void setUaLength(int uaLength) {
-        this.uaLength = uaLength;
-    }
 }

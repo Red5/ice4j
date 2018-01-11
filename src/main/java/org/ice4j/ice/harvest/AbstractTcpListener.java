@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -44,21 +33,18 @@ import java.util.logging.*;
  * @author Boris Grozev
  * @author Lyubomir Marinov
  */
-public abstract class AbstractTcpListener
-{
+public abstract class AbstractTcpListener {
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(AbstractTcpListener.class.getName());
+    private static final Logger logger = Logger.getLogger(AbstractTcpListener.class.getName());
 
     /**
      * Closes a {@code Channel} and swallows any {@link IOException}.
      *
      * @param channel the {@code Channel} to close
      */
-    static void closeNoExceptions(Channel channel)
-    {
+    static void closeNoExceptions(Channel channel) {
         MuxServerSocketChannelFactory.closeNoExceptions(channel);
     }
 
@@ -70,27 +56,18 @@ public abstract class AbstractTcpListener
      * @param port the port to use.
      * @param interfaces the list of interfaces to use.
      */
-    private static List<TransportAddress> getLocalAddresses(
-            int port,
-            List<NetworkInterface> interfaces)
-        throws IOException
-    {
+    private static List<TransportAddress> getLocalAddresses(int port, List<NetworkInterface> interfaces) throws IOException {
         List<TransportAddress> addresses = new LinkedList<>();
 
-        for (NetworkInterface iface : interfaces)
-        {
-            if (NetworkUtils.isInterfaceLoopback(iface)
-                    || !NetworkUtils.isInterfaceUp(iface)
-                    || !HostCandidateHarvester.isInterfaceAllowed(iface))
-            {
+        for (NetworkInterface iface : interfaces) {
+            if (NetworkUtils.isInterfaceLoopback(iface) || !NetworkUtils.isInterfaceUp(iface) || !HostCandidateHarvester.isInterfaceAllowed(iface)) {
                 //this one is obviously not going to do
                 continue;
             }
 
             Enumeration<InetAddress> ifaceAddresses = iface.getInetAddresses();
 
-            while(ifaceAddresses.hasMoreElements())
-            {
+            while (ifaceAddresses.hasMoreElements()) {
                 InetAddress addr = ifaceAddresses.nextElement();
 
                 addresses.add(new TransportAddress(addr, port, Transport.TCP));
@@ -113,29 +90,21 @@ public abstract class AbstractTcpListener
      * {@code SocketChannel} by this {@code TcpHarvester};
      * otherwise, {@code false}
      */
-    private static boolean isFirstDatagramPacket(DatagramPacket p)
-    {
+    private static boolean isFirstDatagramPacket(DatagramPacket p) {
         int len = p.getLength();
         boolean b = false;
 
-        if (len > 0)
-        {
+        if (len > 0) {
             byte[] buf = p.getData();
             int off = p.getOffset();
 
             // Check for Google TURN SSLTCP
-            final byte[] googleTurnSslTcp
-                = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
+            final byte[] googleTurnSslTcp = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
 
-            if (len >= googleTurnSslTcp.length)
-            {
+            if (len >= googleTurnSslTcp.length) {
                 b = true;
-                for (int i = 0, iEnd = googleTurnSslTcp.length, j = off;
-                     i < iEnd;
-                     i++, j++)
-                {
-                    if (googleTurnSslTcp[i] != buf[j])
-                    {
+                for (int i = 0, iEnd = googleTurnSslTcp.length, j = off; i < iEnd; i++, j++) {
+                    if (googleTurnSslTcp[i] != buf[j]) {
                         b = false;
                         break;
                     }
@@ -143,8 +112,7 @@ public abstract class AbstractTcpListener
             }
 
             // nothing found, lets check for stun binding requests
-            if (!b)
-            {
+            if (!b) {
                 // 2 bytes    uint16 length
                 // STUN Binding request:
                 //   2 bits   00
@@ -155,17 +123,12 @@ public abstract class AbstractTcpListener
                 // RFC 5389: For example, a Binding request has class=0b00
                 // (request) and method=0b000000000001 (Binding) and is encoded
                 // into the first 16 bits as 0x0001.
-                if (len >= 10 && buf[off + 2] == 0 && buf[off + 3] == 1)
-                {
+                if (len >= 10 && buf[off + 2] == 0 && buf[off + 3] == 1) {
                     final byte[] magicCookie = Message.MAGIC_COOKIE;
 
                     b = true;
-                    for (int i = 0, iEnd = magicCookie.length, j = off + 6;
-                         i < iEnd;
-                         i++, j++)
-                    {
-                        if (magicCookie[i] != buf[j])
-                        {
+                    for (int i = 0, iEnd = magicCookie.length, j = off + 6; i < iEnd; i++, j++) {
+                        if (magicCookie[i] != buf[j]) {
                             b = false;
                             break;
                         }
@@ -213,8 +176,7 @@ public abstract class AbstractTcpListener
      * The list of <tt>ServerSocketChannel</tt>s that we will <tt>accept</tt>
      * on.
      */
-    private final List<ServerSocketChannel> serverSocketChannels
-        = new LinkedList<>();
+    private final List<ServerSocketChannel> serverSocketChannels = new LinkedList<>();
 
     /**
      * The object used to synchronize access to the collection of sessions that
@@ -232,9 +194,7 @@ public abstract class AbstractTcpListener
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public AbstractTcpListener(int port)
-            throws IOException
-    {
+    public AbstractTcpListener(int port) throws IOException {
         this(port, Collections.list(NetworkInterface.getNetworkInterfaces()));
     }
 
@@ -249,9 +209,7 @@ public abstract class AbstractTcpListener
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public AbstractTcpListener(int port, List<NetworkInterface> interfaces)
-        throws IOException
-    {
+    public AbstractTcpListener(int port, List<NetworkInterface> interfaces) throws IOException {
         this(getLocalAddresses(port, interfaces));
     }
 
@@ -264,9 +222,7 @@ public abstract class AbstractTcpListener
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public AbstractTcpListener(List<TransportAddress> transportAddresses)
-        throws IOException
-    {
+    public AbstractTcpListener(List<TransportAddress> transportAddresses) throws IOException {
         addLocalAddresses(transportAddresses);
         init();
     }
@@ -280,54 +236,36 @@ public abstract class AbstractTcpListener
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values.
      */
-    protected void addLocalAddresses(List<TransportAddress> transportAddresses)
-        throws IOException
-    {
-        boolean useIPv6 = !StackProperties.getBoolean(
-                StackProperties.DISABLE_IPv6,
-                false);
-        boolean useIPv6LinkLocal = !StackProperties.getBoolean(
-                StackProperties.DISABLE_LINK_LOCAL_ADDRESSES,
-                false);
+    protected void addLocalAddresses(List<TransportAddress> transportAddresses) throws IOException {
+        boolean useIPv6 = !StackProperties.getBoolean(StackProperties.DISABLE_IPv6, false);
+        boolean useIPv6LinkLocal = !StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
 
         // White list from the configuration
-        String[] allowedAddressesStr
-            = StackProperties.getStringArray(StackProperties.ALLOWED_ADDRESSES,
-                                             ";");
+        String[] allowedAddressesStr = StackProperties.getStringArray(StackProperties.ALLOWED_ADDRESSES, ";");
         InetAddress[] allowedAddresses = null;
 
-        if (allowedAddressesStr != null)
-        {
+        if (allowedAddressesStr != null) {
             allowedAddresses = new InetAddress[allowedAddressesStr.length];
-            for (int i = 0; i < allowedAddressesStr.length; i++)
-            {
-                allowedAddresses[i]
-                    = InetAddress.getByName(allowedAddressesStr[i]);
+            for (int i = 0; i < allowedAddressesStr.length; i++) {
+                allowedAddresses[i] = InetAddress.getByName(allowedAddressesStr[i]);
             }
         }
 
         // Black list from the configuration
-        String[] blockedAddressesStr
-            = StackProperties.getStringArray(StackProperties.BLOCKED_ADDRESSES,
-                                             ";");
+        String[] blockedAddressesStr = StackProperties.getStringArray(StackProperties.BLOCKED_ADDRESSES, ";");
         InetAddress[] blockedAddresses = null;
 
-        if (blockedAddressesStr != null)
-        {
+        if (blockedAddressesStr != null) {
             blockedAddresses = new InetAddress[blockedAddressesStr.length];
-            for (int i = 0; i < blockedAddressesStr.length; i++)
-            {
-                blockedAddresses[i]
-                    = InetAddress.getByName(blockedAddressesStr[i]);
+            for (int i = 0; i < blockedAddressesStr.length; i++) {
+                blockedAddresses[i] = InetAddress.getByName(blockedAddressesStr[i]);
             }
         }
 
-        for (TransportAddress transportAddress : transportAddresses)
-        {
+        for (TransportAddress transportAddress : transportAddresses) {
             InetAddress address = transportAddress.getAddress();
 
-            if (address.isLoopbackAddress())
-            {
+            if (address.isLoopbackAddress()) {
                 //loopback again
                 continue;
             }
@@ -335,51 +273,37 @@ public abstract class AbstractTcpListener
             if (!useIPv6 && (address instanceof Inet6Address))
                 continue;
 
-            if (!useIPv6LinkLocal
-                    && (address instanceof Inet6Address)
-                    && address.isLinkLocalAddress())
-            {
-                logger.info("Not using link-local address " + address +" for"
-                                    + " TCP candidates.");
+            if (!useIPv6LinkLocal && (address instanceof Inet6Address) && address.isLinkLocalAddress()) {
+                logger.info("Not using link-local address " + address + " for TCP candidates.");
                 continue;
             }
 
-            if (allowedAddresses != null)
-            {
+            if (allowedAddresses != null) {
                 boolean found = false;
 
-                for (InetAddress allowedAddress : allowedAddresses)
-                {
-                    if (allowedAddress.equals(address))
-                    {
+                for (InetAddress allowedAddress : allowedAddresses) {
+                    if (allowedAddress.equals(address)) {
                         found = true;
                         break;
                     }
                 }
-                if (!found)
-                {
-                    logger.info("Not using " + address +" for TCP candidates, "
-                                + "because it is not in the allowed list.");
+                if (!found) {
+                    logger.info("Not using " + address + " for TCP candidates, because it is not in the allowed list.");
                     continue;
                 }
             }
 
-            if (blockedAddresses != null)
-            {
+            if (blockedAddresses != null) {
                 boolean found = false;
 
-                for (InetAddress blockedAddress : blockedAddresses)
-                {
-                    if (blockedAddress.equals(address))
-                    {
+                for (InetAddress blockedAddress : blockedAddresses) {
+                    if (blockedAddress.equals(address)) {
                         found = true;
                         break;
                     }
                 }
-                if (found)
-                {
-                    logger.info("Not using " + address + " for TCP candidates, "
-                                + "because it is in the blocked list.");
+                if (found) {
+                    logger.info("Not using " + address + " for TCP candidates, because it is in the blocked list.");
                     continue;
                 }
             }
@@ -393,8 +317,7 @@ public abstract class AbstractTcpListener
      * Triggers the termination of the threads of this
      * <tt>MultiplexingTcpHarvester</tt>.
      */
-    public void close()
-    {
+    public void close() {
         close = true;
     }
 
@@ -403,27 +326,18 @@ public abstract class AbstractTcpListener
      * used by this instance.
      * @throws IOException if an I/O error occurs
      */
-    protected void init()
-        throws IOException
-    {
-        boolean bindWildcard = !StackProperties.getBoolean(
-                StackProperties.BIND_WILDCARD,
-                false);
+    protected void init() throws IOException {
+        boolean bindWildcard = !StackProperties.getBoolean(StackProperties.BIND_WILDCARD, false);
 
         // Use a set to filter out any duplicates.
         Set<InetSocketAddress> addressesToBind = new HashSet<>();
 
-        for (TransportAddress transportAddress : localAddresses)
-        {
-            addressesToBind.add( new InetSocketAddress(
-                bindWildcard ? null : transportAddress.getAddress(),
-                transportAddress.getPort()
-            ) );
+        for (TransportAddress transportAddress : localAddresses) {
+            addressesToBind.add(new InetSocketAddress(bindWildcard ? null : transportAddress.getAddress(), transportAddress.getPort()));
         }
 
-        for (InetSocketAddress addressToBind : addressesToBind )
-        {
-            addSocketChannel( addressToBind );
+        for (InetSocketAddress addressToBind : addressesToBind) {
+            addSocketChannel(addressToBind);
         }
 
         acceptThread = new AcceptThread();
@@ -437,25 +351,18 @@ public abstract class AbstractTcpListener
      * Initializes one of the channels in {@link #serverSocketChannels},
      * @throws IOException if an I/O error occurs
      */
-    private void addSocketChannel(InetSocketAddress address)
-        throws IOException
-    {
-        ServerSocketChannel channel = MuxServerSocketChannelFactory
-                    .openAndBindMuxServerSocketChannel(
-                            /* properties */ null,
-                            address,
-                            /* backlog */ 0,
-                            new DatagramPacketFilter()
-                            {
-                                /**
-                                 * {@inheritDoc}
-                                 */
-                                @Override
-                                public boolean accept(DatagramPacket p)
-                                {
-                                    return isFirstDatagramPacket(p);
-                                }
-                            });
+    private void addSocketChannel(InetSocketAddress address) throws IOException {
+        ServerSocketChannel channel = MuxServerSocketChannelFactory.openAndBindMuxServerSocketChannel(
+        /* properties */null, address,
+        /* backlog */0, new DatagramPacketFilter() {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean accept(DatagramPacket p) {
+                return isFirstDatagramPacket(p);
+            }
+        });
 
         serverSocketChannels.add(channel);
     }
@@ -469,17 +376,13 @@ public abstract class AbstractTcpListener
      * @throws IllegalStateException
      * @throws IOException
      */
-    protected abstract void acceptSession(
-            Socket socket, String ufrag, DatagramPacket pushback)
-        throws IOException, IllegalStateException;
+    protected abstract void acceptSession(Socket socket, String ufrag, DatagramPacket pushback) throws IOException, IllegalStateException;
 
     /**
      * A <tt>Thread</tt> which will accept new <tt>SocketChannel</tt>s from all
      * <tt>ServerSocketChannel</tt>s in {@link #serverSocketChannels}.
      */
-    private class AcceptThread
-        extends Thread
-    {
+    private class AcceptThread extends Thread {
         /**
          * The <tt>Selector</tt> used to select a specific
          * <tt>ServerSocketChannel</tt> which is ready to <tt>accept</tt>.
@@ -489,15 +392,12 @@ public abstract class AbstractTcpListener
         /**
          * Initializes a new <tt>AcceptThread</tt>.
          */
-        public AcceptThread()
-            throws IOException
-        {
+        public AcceptThread() throws IOException {
             setName("TcpHarvester AcceptThread");
             setDaemon(true);
 
             selector = Selector.open();
-            for (ServerSocketChannel channel : serverSocketChannels)
-            {
+            for (ServerSocketChannel channel : serverSocketChannels) {
                 channel.configureBlocking(false);
                 channel.register(selector, SelectionKey.OP_ACCEPT);
             }
@@ -506,8 +406,7 @@ public abstract class AbstractTcpListener
         /**
          * Notifies {@link #readThread} that new channels have been added.
          */
-        private void notifyReadThread()
-        {
+        private void notifyReadThread() {
             readSelector.wakeup();
         }
 
@@ -515,12 +414,9 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public void run()
-        {
-            do
-            {
-                if (close)
-                {
+        public void run() {
+            do {
+                if (close) {
                     break;
                 }
 
@@ -529,33 +425,23 @@ public abstract class AbstractTcpListener
                 // Allow to go on, so we can quit if closed.
                 long selectTimeout = 3000;
 
-                for (SelectionKey key : selector.keys())
-                {
-                    if (key.isValid())
-                    {
+                for (SelectionKey key : selector.keys()) {
+                    if (key.isValid()) {
                         SocketChannel channel;
                         boolean acceptable = key.isAcceptable();
 
-                        try
-                        {
-                            channel
-                                = ((ServerSocketChannel) key.channel())
-                                    .accept();
-                        }
-                        catch (IOException ioe)
-                        {
+                        try {
+                            channel = ((ServerSocketChannel) key.channel()).accept();
+                        } catch (IOException ioe) {
                             exception = ioe;
                             break;
                         }
 
                         // Add the accepted channel to newChannels to allow the
                         // 'read' thread to it up.
-                        if (channel != null)
-                        {
+                        if (channel != null) {
                             channelsToAdd.add(channel);
-                        }
-                        else if (acceptable)
-                        {
+                        } else if (acceptable) {
                             // The SelectionKey reported the channel as
                             // acceptable but channel#accept() did not accept a
                             // non-null SocketChannel. Give the channel a little
@@ -567,47 +453,35 @@ public abstract class AbstractTcpListener
                 // We accepted from all serverSocketChannels.
                 selector.selectedKeys().clear();
 
-                if (!channelsToAdd.isEmpty())
-                {
-                    synchronized (newChannels)
-                    {
+                if (!channelsToAdd.isEmpty()) {
+                    synchronized (newChannels) {
                         newChannels.addAll(channelsToAdd);
                     }
                     notifyReadThread();
                 }
 
-                if (exception != null)
-                {
-                    logger.info(
-                            "Failed to accept a socket, which should have been"
-                                + " ready to accept: " + exception);
+                if (exception != null) {
+                    logger.info("Failed to accept a socket, which should have been ready to accept: " + exception);
                     break;
                 }
 
-                try
-                {
+                try {
                     // Allow to go on, so we can quit if closed.
                     selector.select(selectTimeout);
-                }
-                catch (IOException ioe)
-                {
-                    logger.info(
-                            "Failed to select an accept-ready socket: " + ioe);
+                } catch (IOException ioe) {
+                    logger.info("Failed to select an accept-ready socket: " + ioe);
                     break;
                 }
-            }
-            while (true);
+            } while (true);
 
             //now clean up and exit
             for (ServerSocketChannel serverSocketChannel : serverSocketChannels)
                 closeNoExceptions(serverSocketChannel);
 
-            try
-            {
+            try {
                 selector.close();
+            } catch (IOException ioe) {
             }
-            catch (IOException ioe)
-            {}
         }
     }
 
@@ -615,8 +489,7 @@ public abstract class AbstractTcpListener
      * Contains a <tt>SocketChannel</tt> that <tt>ReadThread</tt> is reading
      * from.
      */
-    private static class ChannelDesc
-    {
+    private static class ChannelDesc {
         /**
          * The actual <tt>SocketChannel</tt>.
          */
@@ -654,8 +527,7 @@ public abstract class AbstractTcpListener
          * Initializes a new <tt>ChannelDesc</tt> with the given channel.
          * @param channel the channel.
          */
-        public ChannelDesc(SocketChannel channel)
-        {
+        public ChannelDesc(SocketChannel channel) {
             this.channel = channel;
         }
     }
@@ -665,9 +537,7 @@ public abstract class AbstractTcpListener
      * <tt>DatagramPacket</tt> to be pushed back and received on the first call
      * to {@link #receive(DatagramPacket)}.
      */
-    protected static class PushBackIceSocketWrapper
-        extends IceSocketWrapper
-    {
+    protected static class PushBackIceSocketWrapper extends IceSocketWrapper {
         /**
          * The <tt>DatagramPacket</tt> which will be used on the first call to
          * {@link #receive(DatagramPacket)}.
@@ -690,9 +560,7 @@ public abstract class AbstractTcpListener
          * @param datagramPacket the <tt>DatagramPacket</tt> which will be used
          * on the first call to {@link #receive(DatagramPacket)}
          */
-        public PushBackIceSocketWrapper(IceSocketWrapper wrappedWrapper,
-                                        DatagramPacket datagramPacket)
-        {
+        public PushBackIceSocketWrapper(IceSocketWrapper wrappedWrapper, DatagramPacket datagramPacket) {
             this.wrapped = wrappedWrapper;
             this.datagramPacket = datagramPacket;
         }
@@ -701,8 +569,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public void close()
-        {
+        public void close() {
             wrapped.close();
         }
 
@@ -710,8 +577,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public InetAddress getLocalAddress()
-        {
+        public InetAddress getLocalAddress() {
             return wrapped.getLocalAddress();
         }
 
@@ -719,8 +585,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public int getLocalPort()
-        {
+        public int getLocalPort() {
             return wrapped.getLocalPort();
         }
 
@@ -728,8 +593,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public SocketAddress getLocalSocketAddress()
-        {
+        public SocketAddress getLocalSocketAddress() {
             return wrapped.getLocalSocketAddress();
         }
 
@@ -737,8 +601,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public Socket getTCPSocket()
-        {
+        public Socket getTCPSocket() {
             return wrapped.getTCPSocket();
         }
 
@@ -746,8 +609,7 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public DatagramSocket getUDPSocket()
-        {
+        public DatagramSocket getUDPSocket() {
             return wrapped.getUDPSocket();
         }
 
@@ -759,20 +621,14 @@ public abstract class AbstractTcpListener
          * {@link #wrapped}.
          */
         @Override
-        public void receive(DatagramPacket p) throws IOException
-        {
-            if (datagramPacket != null)
-            {
+        public void receive(DatagramPacket p) throws IOException {
+            if (datagramPacket != null) {
                 int len = Math.min(p.getLength(), datagramPacket.getLength());
-                System.arraycopy(datagramPacket.getData(), 0,
-                                 p.getData(), 0,
-                                 len);
+                System.arraycopy(datagramPacket.getData(), 0, p.getData(), 0, len);
                 p.setAddress(datagramPacket.getAddress());
                 p.setPort(datagramPacket.getPort());
                 datagramPacket = null;
-            }
-            else
-            {
+            } else {
                 wrapped.receive(p);
             }
         }
@@ -781,23 +637,18 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public void send(DatagramPacket p) throws IOException
-        {
+        public void send(DatagramPacket p) throws IOException {
             wrapped.send(p);
         }
     }
 
-    private class ReadThread
-        extends Thread
-    {
+    private class ReadThread extends Thread {
         /**
          * Initializes a new <tt>ReadThread</tt>.
          *
          * @throws IOException if the selector to be used fails to open.
          */
-        public ReadThread()
-            throws IOException
-        {
+        public ReadThread() throws IOException {
             setName("TcpHarvester ReadThread");
             setDaemon(true);
         }
@@ -806,22 +657,13 @@ public abstract class AbstractTcpListener
          * Registers the channels from {@link #newChannels} in
          * {@link #readSelector}.
          */
-        private void checkForNewChannels()
-        {
-            synchronized (newChannels)
-            {
-                for (SocketChannel channel : newChannels)
-                {
-                    try
-                    {
+        private void checkForNewChannels() {
+            synchronized (newChannels) {
+                for (SocketChannel channel : newChannels) {
+                    try {
                         channel.configureBlocking(false);
-                        channel.register(
-                                readSelector,
-                                SelectionKey.OP_READ,
-                                new ChannelDesc(channel));
-                    }
-                    catch (IOException ioe)
-                    {
+                        channel.register(readSelector, SelectionKey.OP_READ, new ChannelDesc(channel));
+                    } catch (IOException ioe) {
                         logger.info("Failed to register channel: " + ioe);
                         closeNoExceptions(channel);
                     }
@@ -837,12 +679,10 @@ public abstract class AbstractTcpListener
          * {@link MuxServerSocketChannelFactory#SOCKET_CHANNEL_READ_TIMEOUT}
          * milliseconds.
          */
-        private void cleanup()
-        {
+        private void cleanup() {
             long now = System.currentTimeMillis();
 
-            for (SelectionKey key : readSelector.keys())
-            {
+            for (SelectionKey key : readSelector.keys()) {
                 // An invalid key specifies that either the channel was closed
                 // (in which case we do not have to do anything else to it) or
                 // that we no longer control the channel (i.e. we do not want to
@@ -857,11 +697,7 @@ public abstract class AbstractTcpListener
 
                 long lastActive = channelDesc.lastActive;
 
-                if (lastActive != -1
-                        && now - lastActive
-                            > MuxServerSocketChannelFactory
-                                .SOCKET_CHANNEL_READ_TIMEOUT)
-                {
+                if (lastActive != -1 && now - lastActive > MuxServerSocketChannelFactory.SOCKET_CHANNEL_READ_TIMEOUT) {
                     // De-register from the Selector.
                     key.cancel();
 
@@ -895,31 +731,20 @@ public abstract class AbstractTcpListener
          * <tt>channel</tt>, which is to be canceled in case no further
          * reading is required from the channel.
          */
-        private void readFromChannel(ChannelDesc channel, SelectionKey key)
-        {
-            if (channel.buffer == null)
-            {
+        private void readFromChannel(ChannelDesc channel, SelectionKey key) {
+            if (channel.buffer == null) {
                 // Set up a buffer with a pre-determined size
 
-                if (!channel.checkedForSSLHandshake && channel.length == -1)
-                {
-                    channel.buffer
-                        = ByteBuffer.allocate(
-                                GoogleTurnSSLCandidateHarvester
-                                    .SSL_CLIENT_HANDSHAKE.length);
-                }
-                else if (channel.length == -1)
-                {
+                if (!channel.checkedForSSLHandshake && channel.length == -1) {
+                    channel.buffer = ByteBuffer.allocate(GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE.length);
+                } else if (channel.length == -1) {
                     channel.buffer = ByteBuffer.allocate(2);
-                }
-                else
-                {
+                } else {
                     channel.buffer = ByteBuffer.allocate(channel.length);
                 }
             }
 
-            try
-            {
+            try {
                 int read = channel.channel.read(channel.buffer);
 
                 if (read == -1)
@@ -927,14 +752,10 @@ public abstract class AbstractTcpListener
                 else if (read > 0)
                     channel.lastActive = System.currentTimeMillis();
 
-                if (!channel.buffer.hasRemaining())
-                {
+                if (!channel.buffer.hasRemaining()) {
                     // We've filled in the buffer.
-                    if (!channel.checkedForSSLHandshake)
-                    {
-                        byte[] bytesRead
-                            = new byte[GoogleTurnSSLCandidateHarvester
-                                .SSL_CLIENT_HANDSHAKE.length];
+                    if (!channel.checkedForSSLHandshake) {
+                        byte[] bytesRead = new byte[GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE.length];
 
                         channel.buffer.flip();
                         channel.buffer.get(bytesRead);
@@ -944,34 +765,21 @@ public abstract class AbstractTcpListener
                         channel.buffer = null;
                         channel.checkedForSSLHandshake = true;
 
-                        if (Arrays.equals(bytesRead,
-                                          GoogleTurnSSLCandidateHarvester
-                                                  .SSL_CLIENT_HANDSHAKE))
-                        {
-                            ByteBuffer byteBuffer = ByteBuffer.wrap(
-                                    GoogleTurnSSLCandidateHarvester
-                                            .SSL_SERVER_HANDSHAKE);
+                        if (Arrays.equals(bytesRead, GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE)) {
+                            ByteBuffer byteBuffer = ByteBuffer.wrap(GoogleTurnSSLCandidateHarvester.SSL_SERVER_HANDSHAKE);
                             channel.channel.write(byteBuffer);
-                        }
-                        else
-                        {
+                        } else {
                             int fb = bytesRead[0];
                             int sb = bytesRead[1];
 
                             channel.length = (((fb & 0xff) << 8) | (sb & 0xff));
 
-                            byte[] preBuffered
-                                = Arrays.copyOfRange(
-                                    bytesRead, 2, bytesRead.length);
+                            byte[] preBuffered = Arrays.copyOfRange(bytesRead, 2, bytesRead.length);
 
                             // if we had read enough data
-                            if(channel.length <= bytesRead.length - 2)
-                            {
-                                processFirstDatagram(
-                                    preBuffered, channel, key);
-                            }
-                            else
-                            {
+                            if (channel.length <= bytesRead.length - 2) {
+                                processFirstDatagram(preBuffered, channel, key);
+                            } else {
                                 // not enough data, store what was read
                                 // and continue
                                 channel.preBuffered = preBuffered;
@@ -979,9 +787,7 @@ public abstract class AbstractTcpListener
                                 channel.length -= channel.preBuffered.length;
                             }
                         }
-                    }
-                    else if (channel.length == -1)
-                    {
+                    } else if (channel.length == -1) {
                         channel.buffer.flip();
 
                         int fb = channel.buffer.get();
@@ -992,30 +798,20 @@ public abstract class AbstractTcpListener
                         // Set to null, so that we re-allocate it for the next
                         // stage
                         channel.buffer = null;
-                    }
-                    else
-                    {
+                    } else {
                         byte[] bytesRead = new byte[channel.length];
 
                         channel.buffer.flip();
                         channel.buffer.get(bytesRead);
 
-                        if(channel.preBuffered != null)
-                        {
+                        if (channel.preBuffered != null) {
                             // will store preBuffered and currently read data
-                            byte[] newBytesRead = new byte[
-                                channel.preBuffered.length + bytesRead.length];
+                            byte[] newBytesRead = new byte[channel.preBuffered.length + bytesRead.length];
 
                             // copy old data
-                            System.arraycopy(
-                                channel.preBuffered, 0,
-                                newBytesRead, 0,
-                                channel.preBuffered.length);
+                            System.arraycopy(channel.preBuffered, 0, newBytesRead, 0, channel.preBuffered.length);
                             // and new data
-                            System.arraycopy(
-                                bytesRead, 0,
-                                newBytesRead, channel.preBuffered.length,
-                                bytesRead.length);
+                            System.arraycopy(bytesRead, 0, newBytesRead, channel.preBuffered.length, bytesRead.length);
 
                             // use that data for processing
                             bytesRead = newBytesRead;
@@ -1026,12 +822,8 @@ public abstract class AbstractTcpListener
                         processFirstDatagram(bytesRead, channel, key);
                     }
                 }
-            }
-            catch (IOException | IllegalStateException e)
-            {
-                logger.info(
-                        "Failed to handle TCP socket "
-                            + channel.channel.socket() + ": " + e.getMessage());
+            } catch (IOException | IllegalStateException e) {
+                logger.info("Failed to handle TCP socket " + channel.channel.socket() + ": " + e.getMessage());
                 key.cancel();
                 closeNoExceptions(channel.channel);
             }
@@ -1056,20 +848,12 @@ public abstract class AbstractTcpListener
          * username fragment cannot be accepted for implementation reasons
          * (e.g. no ICE Agent with the given local ufrag is found).
          */
-        private void processFirstDatagram(
-            byte[] bytesRead,
-            ChannelDesc channel, SelectionKey key)
-            throws IOException, IllegalStateException
-        {
+        private void processFirstDatagram(byte[] bytesRead, ChannelDesc channel, SelectionKey key) throws IOException, IllegalStateException {
             // Does this look like a STUN binding request?
             // What's the username?
-            String ufrag
-                = AbstractUdpListener.getUfrag(bytesRead,
-                                               (char) 0,
-                                               (char) bytesRead.length);
+            String ufrag = AbstractUdpListener.getUfrag(bytesRead, (char) 0, (char) bytesRead.length);
 
-            if (ufrag == null)
-            {
+            if (ufrag == null) {
                 throw new IOException("Cannot extract ufrag");
             }
 
@@ -1082,8 +866,7 @@ public abstract class AbstractTcpListener
 
             // Construct a DatagramPacket from the just-read packet
             // which is to be pushed back
-            DatagramPacket p
-                = new DatagramPacket(bytesRead, bytesRead.length);
+            DatagramPacket p = new DatagramPacket(bytesRead, bytesRead.length);
             Socket socket = channel.channel.socket();
 
             p.setAddress(socket.getInetAddress());
@@ -1096,12 +879,9 @@ public abstract class AbstractTcpListener
          * {@inheritDoc}
          */
         @Override
-        public void run()
-        {
-            do
-            {
-                synchronized (AbstractTcpListener.this)
-                {
+        public void run() {
+            do {
+                synchronized (AbstractTcpListener.this) {
                     if (close)
                         break;
                 }
@@ -1111,12 +891,9 @@ public abstract class AbstractTcpListener
 
                 checkForNewChannels();
 
-                for (SelectionKey key : readSelector.keys())
-                {
-                    if (key.isValid())
-                    {
-                        ChannelDesc channelDesc
-                            = (ChannelDesc) key.attachment();
+                for (SelectionKey key : readSelector.keys()) {
+                    if (key.isValid()) {
+                        ChannelDesc channelDesc = (ChannelDesc) key.attachment();
 
                         readFromChannel(channelDesc, key);
                     }
@@ -1124,38 +901,27 @@ public abstract class AbstractTcpListener
                 // We read from all SocketChannels.
                 readSelector.selectedKeys().clear();
 
-                try
-                {
-                    readSelector.select(
-                            MuxServerSocketChannelFactory
-                                    .SOCKET_CHANNEL_READ_TIMEOUT
-                                / 2);
-                }
-                catch (IOException ioe)
-                {
+                try {
+                    readSelector.select(MuxServerSocketChannelFactory.SOCKET_CHANNEL_READ_TIMEOUT / 2);
+                } catch (IOException ioe) {
                     logger.info("Failed to select a read-ready channel.");
                 }
-            }
-            while (true);
+            } while (true);
 
             //we are all done, clean up.
-            synchronized (newChannels)
-            {
-                for (SocketChannel channel : newChannels)
-                {
+            synchronized (newChannels) {
+                for (SocketChannel channel : newChannels) {
                     closeNoExceptions(channel);
                 }
                 newChannels.clear();
             }
 
-            for (SelectionKey key : readSelector.keys())
-            {
+            for (SelectionKey key : readSelector.keys()) {
                 // An invalid key specifies that either the channel was closed
                 // (in which case we do not have to do anything else to it) or
                 // that we no longer control the channel (i.e. we do not want to
                 // do anything else to it).
-                if (key.isValid())
-                {
+                if (key.isValid()) {
                     Channel channel = key.channel();
 
                     if (channel.isOpen())
@@ -1163,12 +929,10 @@ public abstract class AbstractTcpListener
                 }
             }
 
-            try
-            {
+            try {
                 readSelector.close();
+            } catch (IOException ioe) {
             }
-            catch (IOException ioe)
-            {}
         }
     }
 }

@@ -104,14 +104,6 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      * {@inheritDoc}
      */
     @Override
-    public DatagramSocket getUDPSocket() {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void receive(DatagramPacket p) throws IOException {
         if (socketAsDelegatingSocket != null) {
             socketAsDelegatingSocket.receive(p);

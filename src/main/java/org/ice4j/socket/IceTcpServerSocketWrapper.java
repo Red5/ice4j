@@ -131,14 +131,6 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public DatagramSocket getUDPSocket() {
-        return null;
-    }
-
-    /**
      * Thread that will wait for new TCP connections.
      *
      * @author Sebastien Vincent

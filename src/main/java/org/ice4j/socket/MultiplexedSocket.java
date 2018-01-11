@@ -209,7 +209,7 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
                 if (packet.getData() == b && lengthRead <= len) {
                     return lengthRead;
                 } else {
-                    logger.warning("Failed to read directly into the provided buffer," + " len=" + len + " lengthRead=" + lengthRead + " (packet.getData() == b)=" + (packet.getData() == b));
+                    logger.warning("Failed to read directly into the provided buffer, len=" + len + " lengthRead=" + lengthRead + " (packet.getData() == b)=" + (packet.getData() == b));
                 }
             }
 

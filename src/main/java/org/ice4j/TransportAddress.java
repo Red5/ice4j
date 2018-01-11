@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j;
 
@@ -27,9 +16,7 @@ import org.ice4j.ice.*;
  * @author Emil Ivov
  * @author Lubomir Marinov
  */
-public class TransportAddress
-    extends InetSocketAddress
-{
+public class TransportAddress extends InetSocketAddress {
     /**
      * our serial version UID;
      */
@@ -56,10 +43,8 @@ public class TransportAddress
      * @throws IllegalArgumentException if the port parameter is outside the
      * specified range of valid port values.
      */
-    public TransportAddress(String hostname, int port, Transport transport)
-    {
+    public TransportAddress(String hostname, int port, Transport transport) {
         super(hostname, port);
-
         this.transport = transport;
     }
 
@@ -80,9 +65,7 @@ public class TransportAddress
      * @throws UnknownHostException UnknownHostException  if IP address is of
      * illegal length
      */
-    public TransportAddress(byte[] ipAddress, int port, Transport transport)
-        throws UnknownHostException
-    {
+    public TransportAddress(byte[] ipAddress, int port, Transport transport) throws UnknownHostException {
         this(InetAddress.getByAddress(ipAddress), port, transport);
     }
 
@@ -96,8 +79,7 @@ public class TransportAddress
      * range of valid port values, or if the host name parameter is
      * <tt>null</tt>.
      */
-    public TransportAddress(InetSocketAddress address, Transport transport)
-    {
+    public TransportAddress(InetSocketAddress address, Transport transport) {
         this(address.getAddress(), address.getPort(), transport);
     }
 
@@ -118,10 +100,8 @@ public class TransportAddress
      * range of valid port values, or if the host name parameter is
      * <tt>null</tt>.
      */
-    public TransportAddress(InetAddress address, int port, Transport transport)
-    {
+    public TransportAddress(InetAddress address, int port, Transport transport) {
         super(address, port);
-
         this.transport = transport;
     }
 
@@ -132,8 +112,7 @@ public class TransportAddress
      *
      * @return the raw IP address of this object.
      */
-    public byte[] getAddressBytes()
-    {
+    public byte[] getAddressBytes() {
         return getAddress().getAddress();
     }
 
@@ -145,22 +124,17 @@ public class TransportAddress
      *
      * @return a string representation of this object.
      */
-    public String toString()
-    {
+    public String toString() {
         String hostAddress = getHostAddress();
-        if(hostAddress == null)
-        {
+        if (hostAddress == null) {
             hostAddress = getHostName();
         }
-
         StringBuilder bldr = new StringBuilder(hostAddress);
-
-        if(isIPv6())
-           bldr.insert(0, "[").append("]");
-
+        if (isIPv6()) {
+            bldr.insert(0, "[").append("]");
+        }
         bldr.append(":").append(getPort());
         bldr.append("/").append(getTransport());
-
         return bldr.toString();
     }
 
@@ -169,15 +143,12 @@ public class TransportAddress
      *
      * @return a String part of the address
      */
-    public String getHostAddress()
-    {
+    public String getHostAddress() {
         InetAddress addr = getAddress();
-        String addressStr
-            = addr != null ? addr.getHostAddress() : null;
-
-        if(addr instanceof Inet6Address)
+        String addressStr = addr != null ? addr.getHostAddress() : null;
+        if (addr instanceof Inet6Address) {
             addressStr = NetworkUtils.stripScopeID(addressStr);
-
+        }
         return addressStr;
     }
 
@@ -187,8 +158,7 @@ public class TransportAddress
      * @return one of the transport strings (UDP/TCP/...) defined as contants
      * in this class.
      */
-    public Transport getTransport()
-    {
+    public Transport getTransport() {
         return transport;
     }
 
@@ -202,8 +172,7 @@ public class TransportAddress
      * the specified <tt>transportAddress</tt>; otherwise, <tt>false</tt>
      * @see #equalsTransportAddress(Object)
      */
-    public boolean equals(TransportAddress transportAddress)
-    {
+    public boolean equals(TransportAddress transportAddress) {
         return equalsTransportAddress(transportAddress);
     }
 
@@ -224,10 +193,8 @@ public class TransportAddress
      * <tt>false</tt> otherwise.
      * @see java.net.InetAddress#equals(java.lang.Object)
      */
-    public boolean equalsTransportAddress(Object obj)
-    {
-        return super.equals(obj)
-            &&(  ((TransportAddress)obj).getTransport() == getTransport() );
+    public boolean equalsTransportAddress(Object obj) {
+        return super.equals(obj) && (((TransportAddress) obj).getTransport() == getTransport());
     }
 
     /**
@@ -237,8 +204,7 @@ public class TransportAddress
      * @return <tt>true</tt> if this is an IPv6 address and <tt>false</tt>
      * otherwise.
      */
-    public boolean isIPv6()
-    {
+    public boolean isIPv6() {
         return getAddress() instanceof Inet6Address;
     }
 
@@ -256,21 +222,18 @@ public class TransportAddress
      * otherwise.
      *
      */
-    public boolean canReach(TransportAddress dst)
-    {
-        if( getTransport() != dst.getTransport() )
+    public boolean canReach(TransportAddress dst) {
+        if (getTransport() != dst.getTransport())
             return false;
 
         if (isIPv6() != dst.isIPv6())
             return false;
 
-        if (isIPv6())
-        {
-            Inet6Address srcAddr = (Inet6Address)getAddress();
-            Inet6Address dstAddr = (Inet6Address)dst.getAddress();
+        if (isIPv6()) {
+            Inet6Address srcAddr = (Inet6Address) getAddress();
+            Inet6Address dstAddr = (Inet6Address) dst.getAddress();
 
-            if(srcAddr.isLinkLocalAddress() != dstAddr.isLinkLocalAddress())
-            {
+            if (srcAddr.isLinkLocalAddress() != dstAddr.isLinkLocalAddress()) {
                 //this one may actually work if for example we are contacting
                 //the public address of someone in our local network. however
                 //in most cases we would also be able to reach the same address
@@ -278,9 +241,7 @@ public class TransportAddress
                 //opposite is considerably lower than the probability of us
                 //trying to reach a distant global address through one of our
                 //own. Therefore we would return false here by default.
-                return
-                    Boolean.getBoolean(
-                            StackProperties.ALLOW_LINK_TO_GLOBAL_REACHABILITY);
+                return Boolean.getBoolean(StackProperties.ALLOW_LINK_TO_GLOBAL_REACHABILITY);
             }
         }
 
@@ -288,4 +249,5 @@ public class TransportAddress
 
         return true;
     }
+
 }

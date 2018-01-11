@@ -65,20 +65,21 @@ public abstract class IceSocketWrapper {
     public abstract SocketAddress getLocalSocketAddress();
 
     /**
-     * Returns Socket object if the delegate socket is a TCP one, null
-     * otherwise.
+     * Returns Socket object if the delegate socket is a TCP one, null otherwise.
      *
-     * @return Socket object if the delegate socket is a TCP one, null
-     * otherwise.
+     * @return Socket object if the delegate socket is a TCP one, null otherwise.
      */
-    public abstract Socket getTCPSocket();
+    public Socket getTCPSocket() {
+        return null;
+    }
 
     /**
-     * Returns DatagramSocket object if the delegate socket is a UDP one, null
-     * otherwise.
+     * Returns DatagramSocket object if the delegate socket is a UDP one, null otherwise.
      *
-     * @return DatagramSocket object if the delegate socket is a UDP one, null
-     * otherwise.
+     * @return DatagramSocket object if the delegate socket is a UDP one, null otherwise.
      */
-    public abstract DatagramSocket getUDPSocket();
+    public DatagramSocket getUDPSocket() {
+        return null;
+    }
+
 }
