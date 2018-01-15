@@ -8,25 +8,43 @@ package org.ice4j.socket;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.DatagramChannel;
+
+import org.ice4j.TransportAddress;
 
 /**
  * UDP implementation of the <tt>IceSocketWrapper</tt>.
  *
  * @author Sebastien Vincent
+ * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
     /**
-     * Delegate UDP <tt>DatagramSocket</tt>.
+     * Delegate UDP <tt>DatagramChannel</tt>.
      */
-    private final DatagramSocket socket;
+    private final DatagramChannel channel;
 
     /**
      * Constructor.
      *
-     * @param delegate delegate <tt>DatagramSocket</tt>
+     * @param address <tt>TransportAddress</tt>
+     * @throws IOException 
      */
-    public IceUdpSocketWrapper(DatagramSocket delegate) {
-        this.socket = delegate;
+    public IceUdpSocketWrapper(TransportAddress address) throws IOException {
+        this.channel = DatagramChannel.open();
+        this.channel.socket().bind(new InetSocketAddress(address.getHostAddress(), address.getPort()));
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param address <tt>InetAddress</tt>
+     * @param port
+     * @throws IOException 
+     */
+    public IceUdpSocketWrapper(InetAddress address, int port) throws IOException {
+        this.channel = DatagramChannel.open();
+        this.channel.socket().bind(new InetSocketAddress(address, port));
     }
 
     /**
@@ -34,7 +52,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public void send(DatagramPacket p) throws IOException {
-        socket.send(p);
+        channel.socket().send(p);
     }
 
     /**
@@ -42,7 +60,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public void receive(DatagramPacket p) throws IOException {
-        socket.receive(p);
+        channel.socket().receive(p);
     }
 
     /**
@@ -50,7 +68,11 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public void close() {
-        socket.close();
+        try {
+            channel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -58,7 +80,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public InetAddress getLocalAddress() {
-        return socket.getLocalAddress();
+        return channel.socket().getLocalAddress();
     }
 
     /**
@@ -66,7 +88,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public int getLocalPort() {
-        return socket.getLocalPort();
+        return channel.socket().getLocalPort();
     }
 
     /**
@@ -74,14 +96,19 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        return socket.getLocalSocketAddress();
+        try {
+            return channel.getLocalAddress();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public DatagramSocket getUDPSocket() {
-        return socket;
+    public DatagramChannel getUDPChannel() {
+        return channel;
     }
 }

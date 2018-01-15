@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -41,14 +30,12 @@ import java.util.logging.Logger;
  *
  * @author Boris Grozev
  */
-public abstract class AbstractUdpListener
-{
+public abstract class AbstractUdpListener {
 
     /**
      * Our class logger.
      */
-    private static final Logger logger
-            = Logger.getLogger(AbstractUdpListener.class.getName());
+    private static final Logger logger = Logger.getLogger(AbstractUdpListener.class.getName());
 
     /**
      * The size for newly allocated <tt>Buffer</tt> instances. This limits the
@@ -57,8 +44,7 @@ public abstract class AbstractUdpListener
      * XXX should we increase this in case of other MTUs, or set it dynamically
      * according to the available network interfaces?
      */
-    private static final int BUFFER_SIZE
-        = /* assumed MTU */ 1500 - /* IPv4 header */ 20 - /* UDP header */ 8;
+    private static final int BUFFER_SIZE = /* assumed MTU */1500 - /* IPv4 header */20 - /* UDP header */8;
 
     /**
      * The number of <tt>Buffer</tt> instances to keep in {@link #pool}.
@@ -70,8 +56,7 @@ public abstract class AbstractUdpListener
      * which {@link SinglePortUdpHarvester} will request for the sockets that
      * it creates.
      */
-    private static final String SO_RCVBUF_PNAME
-        = AbstractUdpListener.class.getName() + ".SO_RCVBUF";
+    private static final String SO_RCVBUF_PNAME = AbstractUdpListener.class.getName() + ".SO_RCVBUF";
 
     /**
      * Returns the list of {@link TransportAddress}es, one for each allowed IP
@@ -80,12 +65,9 @@ public abstract class AbstractUdpListener
      * @param port the UDP port number.
      * @return the list of allowed transport addresses.
      */
-    public static List<TransportAddress> getAllowedAddresses(int port)
-    {
+    public static List<TransportAddress> getAllowedAddresses(int port) {
         List<TransportAddress> addresses = new LinkedList<>();
-        for (InetAddress address
-                : HostCandidateHarvester.getAllAllowedAddresses())
-        {
+        for (InetAddress address : HostCandidateHarvester.getAllAllowedAddresses()) {
             addresses.add(new TransportAddress(address, port, Transport.UDP));
         }
 
@@ -105,59 +87,42 @@ public abstract class AbstractUdpListener
      * @return the local ufrag from the USERNAME attribute of the STUN message
      * contained in <tt>buf</tt>, or <tt>null</tt>.
      */
-    static String getUfrag(byte[] buf, int off, int len)
-    {
+    static String getUfrag(byte[] buf, int off, int len) {
         // RFC5389, Section 6:
         // All STUN messages MUST start with a 20-byte header followed by zero
         // or more Attributes.
-        if (buf == null || buf.length < off + len || len < 20)
-        {
+        if (buf == null || buf.length < off + len || len < 20) {
             return null;
         }
 
         // RFC5389, Section 6:
         // The magic cookie field MUST contain the fixed value 0x2112A442 in
         // network byte order.
-        if ( !( (buf[off + 4] & 0xFF) == 0x21 &&
-            (buf[off + 5] & 0xFF) == 0x12 &&
-            (buf[off + 6] & 0xFF) == 0xA4 &&
-            (buf[off + 7] & 0xFF) == 0x42))
-        {
-            if (logger.isLoggable(Level.FINE))
-            {
+        if (!((buf[off + 4] & 0xFF) == 0x21 && (buf[off + 5] & 0xFF) == 0x12 && (buf[off + 6] & 0xFF) == 0xA4 && (buf[off + 7] & 0xFF) == 0x42)) {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.fine("Not a STUN packet, magic cookie not found.");
             }
             return null;
         }
 
-        try
-        {
-            Message stunMessage
-                = Message.decode(buf, off, len);
+        try {
+            Message stunMessage = Message.decode(buf, off, len);
 
-            if (stunMessage.getMessageType()
-                != Message.BINDING_REQUEST)
-            {
+            if (stunMessage.getMessageType() != Message.BINDING_REQUEST) {
                 return null;
             }
 
-            UsernameAttribute usernameAttribute
-                = (UsernameAttribute)
-                stunMessage.getAttribute(Attribute.Type.USERNAME);
+            UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
             //logger.info("usernameAttribute: " + usernameAttribute);
             if (usernameAttribute == null)
                 return null;
 
-            String usernameString
-                = new String(usernameAttribute.getUsername());
+            String usernameString = new String(usernameAttribute.getUsername());
             return usernameString.split(":")[0];
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             // Catch everything. We are going to log, and then drop the packet
             // anyway.
-            if (logger.isLoggable(Level.FINE))
-            {
+            if (logger.isLoggable(Level.FINE)) {
                 logger.fine("Failed to extract local ufrag: " + e);
             }
         }
@@ -171,15 +136,13 @@ public abstract class AbstractUdpListener
      * {@link #thread} is the only thread which adds new entries, while
      * other threads remove entries when candidates are freed.
      */
-    private final Map<SocketAddress, MySocket> sockets
-            = new ConcurrentHashMap<>();
+    private final Map<SocketAddress, MySocket> sockets = new ConcurrentHashMap<>();
 
     /**
      * A pool of <tt>Buffer</tt> instances used to avoid creating of new java
      * objects.
      */
-    private final ArrayBlockingQueue<Buffer> pool
-        = new ArrayBlockingQueue<>(POOL_SIZE);
+    private final ArrayBlockingQueue<Buffer> pool = new ArrayBlockingQueue<>(POOL_SIZE);
 
     /**
      * The local address that this harvester is bound to.
@@ -202,54 +165,37 @@ public abstract class AbstractUdpListener
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
      */
-    protected AbstractUdpListener(TransportAddress localAddress)
-        throws IOException
-    {
-        boolean bindWildcard = !StackProperties.getBoolean(
-                StackProperties.BIND_WILDCARD,
-                false);
+    protected AbstractUdpListener(TransportAddress localAddress) throws IOException {
+        boolean bindWildcard = !StackProperties.getBoolean(StackProperties.BIND_WILDCARD, false);
 
-        if (bindWildcard)
-        {
-            this.localAddress = new TransportAddress(
-                                        (InetAddress) null,
-                                        localAddress.getPort(),
-                                        localAddress.getTransport()
-                                );
-        }
-        else
-        {
+        if (bindWildcard) {
+            this.localAddress = new TransportAddress((InetAddress) null, localAddress.getPort(), localAddress.getTransport());
+        } else {
             this.localAddress = localAddress;
         }
 
         socket = new DatagramSocket(localAddress);
 
         int receiveBufferSize = StackProperties.getInt(SO_RCVBUF_PNAME, -1);
-        if (receiveBufferSize > 0)
-        {
+        if (receiveBufferSize > 0) {
             socket.setReceiveBufferSize(receiveBufferSize);
         }
 
-        String logMessage
-            = "Initialized AbstractUdpListener with address " + localAddress;
+        String logMessage = "Initialized AbstractUdpListener with address " + localAddress;
         logMessage += ". Receive buffer size " + socket.getReceiveBufferSize();
-        if (receiveBufferSize > 0)
-        {
+        if (receiveBufferSize > 0) {
             logMessage += " (asked for " + receiveBufferSize + ")";
         }
         logger.info(logMessage);
 
-        thread = new Thread()
-        {
+        thread = new Thread() {
             @Override
-            public void run()
-            {
+            public void run() {
                 AbstractUdpListener.this.runInHarvesterThread();
             }
         };
 
-        thread.setName(AbstractUdpListener.class.getName() + " thread for "
-            + localAddress);
+        thread.setName(AbstractUdpListener.class.getName() + " thread for " + localAddress);
         thread.setDaemon(true);
         thread.start();
     }
@@ -262,15 +208,13 @@ public abstract class AbstractUdpListener
      * socket.receive(), of course),  because it could potentially delay the
      * reception of both ICE and media packets for the whole application.
      */
-    private void runInHarvesterThread()
-    {
+    private void runInHarvesterThread() {
         Buffer buf;
         DatagramPacket pkt = null;
         MySocket destinationSocket;
         InetSocketAddress remoteAddress;
 
-        do
-        {
+        do {
             // TODO: implement stopping the thread with a switch?
 
             buf = getFreeBuffer();
@@ -280,31 +224,23 @@ public abstract class AbstractUdpListener
             else
                 pkt.setData(buf.buffer, 0, buf.buffer.length);
 
-            try
-            {
+            try {
                 socket.receive(pkt);
-            }
-            catch (IOException ioe)
-            {
+            } catch (IOException ioe) {
                 logger.severe("Failed to receive from socket: " + ioe);
                 break;
             }
             buf.len = pkt.getLength();
 
-
             remoteAddress = (InetSocketAddress) pkt.getSocketAddress();
             destinationSocket = sockets.get(remoteAddress);
-            if (destinationSocket != null)
-            {
+            if (destinationSocket != null) {
                 //make 'pkt' available for reading through destinationSocket
                 destinationSocket.addBuffer(buf);
-            }
-            else
-            {
+            } else {
                 // Packet from an unknown source. Is it a STUN Binding Request?
                 String ufrag = getUfrag(buf.buffer, 0, buf.len);
-                if (ufrag == null)
-                {
+                if (ufrag == null) {
                     // Not a STUN Binding Request or doesn't have a valid
                     // USERNAME attribute. Drop it.
                     continue;
@@ -313,8 +249,7 @@ public abstract class AbstractUdpListener
                 maybeAcceptNewSession(buf, remoteAddress, ufrag);
                 // Maybe add to #sockets here in the base class?
             }
-        }
-        while (true);
+        } while (true);
 
         // TODO we are all done, clean up.
     }
@@ -337,20 +272,15 @@ public abstract class AbstractUdpListener
      * @param ufrag the local ICE username fragment of the received STUN Binding
      * Request.
      */
-    protected abstract void maybeAcceptNewSession(
-            Buffer buf,
-            InetSocketAddress remoteAddress,
-            String ufrag);
+    protected abstract void maybeAcceptNewSession(Buffer buf, InetSocketAddress remoteAddress, String ufrag);
 
     /**
      * Gets an unused <tt>Buffer</tt> instance, creating it if necessary.
      * @return  an unused <tt>Buffer</tt> instance, creating it if necessary.
      */
-    private Buffer getFreeBuffer()
-    {
+    private Buffer getFreeBuffer() {
         Buffer buf = pool.poll();
-        if (buf == null)
-        {
+        if (buf == null) {
             buf = new Buffer(new byte[BUFFER_SIZE], 0);
         }
 
@@ -368,14 +298,11 @@ public abstract class AbstractUdpListener
      * socket instance.
      * @return the created socket instance.
      */
-    protected MySocket addSocket(InetSocketAddress remoteAddress)
-        throws SocketException
-    {
+    protected MySocket addSocket(InetSocketAddress remoteAddress) throws SocketException {
         MySocket newSocket = new MySocket(remoteAddress);
         sockets.put(remoteAddress, newSocket);
         return newSocket;
     }
-
 
     /**
      * Implements a <tt>DatagramSocket</tt> for the purposes of a specific
@@ -384,9 +311,7 @@ public abstract class AbstractUdpListener
      * It is not bound to a specific port, but shares the same local address
      * as the bound socket held by the harvester.
      */
-    protected class MySocket
-            extends DatagramSocket
-    {
+    protected class MySocket extends DatagramSocket {
         /**
          * The size of {@link #queue}.
          */
@@ -395,8 +320,7 @@ public abstract class AbstractUdpListener
         /**
          * The FIFO which acts as a buffer for this socket.
          */
-        private final ArrayBlockingQueue<Buffer> queue
-            = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        private final ArrayBlockingQueue<Buffer> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
 
         /**
          * The {@link QueueStatistics} instance optionally used to collect and
@@ -422,20 +346,14 @@ public abstract class AbstractUdpListener
          * new instance.
          * @throws SocketException
          */
-        MySocket(InetSocketAddress remoteAddress)
-            throws SocketException
-        {
+        MySocket(InetSocketAddress remoteAddress) throws SocketException {
             // unbound
-            super((SocketAddress)null);
+            super((SocketAddress) null);
 
             this.remoteAddress = remoteAddress;
-            if (logger.isLoggable(Level.FINEST))
-            {
-                queueStatistics = new QueueStatistics(
-                    "SinglePort" + remoteAddress.toString().replace('/', '-'));
-            }
-            else
-            {
+            if (logger.isLoggable(Level.FINEST)) {
+                queueStatistics = new QueueStatistics("SinglePort" + remoteAddress.toString().replace('/', '-'));
+            } else {
                 queueStatistics = null;
             }
         }
@@ -444,32 +362,24 @@ public abstract class AbstractUdpListener
          * Adds pkt to this socket. If the queue is full, drops a packet. Does
          * not block.
          */
-        public void addBuffer(Buffer buf)
-        {
+        public void addBuffer(Buffer buf) {
             // Drop the first rather than the current packet, so that
             // receivers can notice the loss earlier.
-            if (queue.offer(buf))
-            {
-                if (queueStatistics != null)
-                {
+            if (queue.offer(buf)) {
+                if (queueStatistics != null) {
                     queueStatistics.add(System.currentTimeMillis());
                 }
-                
-            } 
-            else
-            {
+
+            } else {
                 logger.info("Dropping a packet because the queue is full.");
-                if (queueStatistics != null)
-                {
+                if (queueStatistics != null) {
                     queueStatistics.remove(System.currentTimeMillis());
                 }
                 // remove head
                 queue.poll();
                 // try once more to add the buf
-                if (queue.offer(buf))
-                {
-                    if (queueStatistics != null)
-                    {
+                if (queue.offer(buf)) {
+                    if (queueStatistics != null) {
                         queueStatistics.add(System.currentTimeMillis());
                     }
                 }
@@ -482,8 +392,7 @@ public abstract class AbstractUdpListener
          * Delegates to the actual socket of the harvester.
          */
         @Override
-        public InetAddress getLocalAddress()
-        {
+        public InetAddress getLocalAddress() {
             return localAddress.getAddress();
         }
 
@@ -493,8 +402,7 @@ public abstract class AbstractUdpListener
          * Delegates to the actual socket of the harvester.
          */
         @Override
-        public int getLocalPort()
-        {
+        public int getLocalPort() {
             return localAddress.getPort();
         }
 
@@ -504,8 +412,7 @@ public abstract class AbstractUdpListener
          * Delegates to the actual socket of the harvester.
          */
         @Override
-        public SocketAddress getLocalSocketAddress()
-        {
+        public SocketAddress getLocalSocketAddress() {
             return localAddress;
         }
 
@@ -517,8 +424,7 @@ public abstract class AbstractUdpListener
          * address.
          */
         @Override
-        public SocketAddress getRemoteSocketAddress()
-        {
+        public SocketAddress getRemoteSocketAddress() {
             return remoteAddress;
         }
 
@@ -530,8 +436,7 @@ public abstract class AbstractUdpListener
          * address.
          */
         @Override
-        public InetAddress getInetAddress()
-        {
+        public InetAddress getInetAddress() {
             return remoteAddress.getAddress();
         }
 
@@ -543,8 +448,7 @@ public abstract class AbstractUdpListener
          * address.
          */
         @Override
-        public int getPort()
-        {
+        public int getPort() {
             return remoteAddress.getPort();
         }
 
@@ -555,8 +459,7 @@ public abstract class AbstractUdpListener
          * the harvester's map.
          */
         @Override
-        public void close()
-        {
+        public void close() {
             closed = true;
             queue.clear();
             // We could be called by the super-class constructor, in which
@@ -574,21 +477,17 @@ public abstract class AbstractUdpListener
          * @throws IOException
          */
         @Override
-        public void receive(DatagramPacket p)
-           throws IOException
-        {
+        public void receive(DatagramPacket p) throws IOException {
             Buffer buf = null;
 
-            while (buf == null)
-            {
+            while (buf == null) {
                 if (closed) {
                     throw new SocketException("Socket closed");
                 }
                 try {
                     // take will block until there's a buffer
                     buf = queue.take();
-                    if (queueStatistics != null)
-                    {
+                    if (queueStatistics != null) {
                         queueStatistics.remove(System.currentTimeMillis());
                     }
                 } catch (InterruptedException e) {
@@ -614,9 +513,7 @@ public abstract class AbstractUdpListener
          * Delegates to the actual socket of the harvester.
          */
         @Override
-        public void send(DatagramPacket p)
-            throws IOException
-        {
+        public void send(DatagramPacket p) throws IOException {
             socket.send(p);
         }
     }
@@ -626,8 +523,7 @@ public abstract class AbstractUdpListener
      * Wraps a byte[] and adds a length field specifying the number of elements
      * actually used.
      */
-    protected class Buffer
-    {
+    protected class Buffer {
         /**
          * The actual data.
          */
@@ -643,8 +539,7 @@ public abstract class AbstractUdpListener
          * @param buffer the data.
          * @param len the length.
          */
-        private Buffer(byte[] buffer, int len)
-        {
+        private Buffer(byte[] buffer, int len) {
             this.buffer = buffer;
             this.len = len;
         }

@@ -1,27 +1,14 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
-import java.net.*;
-import java.util.*;
+import java.util.Comparator;
 
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.stack.TransactionID;
 
 /**
  * <tt>CandidatePair</tt>s map local to remote <tt>Candidate</tt>s so that they
@@ -36,9 +23,7 @@ import org.ice4j.stack.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public class CandidatePair
-    implements Comparable<CandidatePair>
-{
+public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * The value of the <tt>consentFreshness</tt> property of
      * <tt>CandidatePair</tt> which indicates that the time in milliseconds of
@@ -128,9 +113,7 @@ public class CandidatePair
      * @param localCandidate the local candidate of the pair.
      * @param remoteCandidate the remote candidate of the pair.
      */
-    public CandidatePair(LocalCandidate localCandidate,
-                         RemoteCandidate remoteCandidate)
-    {
+    public CandidatePair(LocalCandidate localCandidate, RemoteCandidate remoteCandidate) {
         this.localCandidate = localCandidate;
         this.remoteCandidate = remoteCandidate;
 
@@ -150,10 +133,8 @@ public class CandidatePair
      * @return the foundation of this candidate pair, which is a concatenation
      * of the foundations of the remote and local candidates.
      */
-    public String getFoundation()
-    {
-        return localCandidate.getFoundation()
-            + remoteCandidate.getFoundation();
+    public String getFoundation() {
+        return localCandidate.getFoundation() + remoteCandidate.getFoundation();
     }
 
     /**
@@ -161,8 +142,7 @@ public class CandidatePair
      *
      * @return the local <tt>Candidate</tt> of this <tt>CandidatePair</tt>.
      */
-    public LocalCandidate getLocalCandidate()
-    {
+    public LocalCandidate getLocalCandidate() {
         return localCandidate;
     }
 
@@ -172,8 +152,7 @@ public class CandidatePair
      * @param localCnd the local <tt>Candidate</tt> of this
      * <tt>CandidatePair</tt>.
      */
-    protected void setLocalCandidate( LocalCandidate localCnd)
-    {
+    protected void setLocalCandidate(LocalCandidate localCnd) {
         this.localCandidate = localCnd;
     }
 
@@ -182,8 +161,7 @@ public class CandidatePair
      *
      * @return the remote <tt>Candidate</tt> of this <tt>CandidatePair</tt>.
      */
-    public RemoteCandidate getRemoteCandidate()
-    {
+    public RemoteCandidate getRemoteCandidate() {
         return remoteCandidate;
     }
 
@@ -193,8 +171,7 @@ public class CandidatePair
      * @param remoteCnd the local <tt>Candidate</tt> of this
      * <tt>CandidatePair</tt>.
      */
-    protected void setRemoteCandidate(RemoteCandidate remoteCnd)
-    {
+    protected void setRemoteCandidate(RemoteCandidate remoteCnd) {
         this.remoteCandidate = remoteCnd;
     }
 
@@ -208,8 +185,7 @@ public class CandidatePair
      * @return the <tt>CandidatePairState</tt> that this candidate pair is
      * currently in.
      */
-    public CandidatePairState getState()
-    {
+    public CandidatePairState getState() {
         return state;
     }
 
@@ -218,8 +194,7 @@ public class CandidatePair
      * {@link CandidatePairState#FAILED}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
-    public void setStateFailed()
-    {
+    public void setStateFailed() {
         setState(CandidatePairState.FAILED, null);
     }
 
@@ -228,8 +203,7 @@ public class CandidatePair
      * {@link CandidatePairState#FROZEN}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
-    public void setStateFrozen()
-    {
+    public void setStateFrozen() {
         setState(CandidatePairState.FROZEN, null);
     }
 
@@ -242,8 +216,7 @@ public class CandidatePair
      * connectivity check in case we are entering the <tt>In-Progress</tt>
      * state and <tt>null</tt> otherwise.
      */
-    public void setStateInProgress(TransactionID tranID)
-    {
+    public void setStateInProgress(TransactionID tranID) {
         setState(CandidatePairState.IN_PROGRESS, tranID);
     }
 
@@ -252,8 +225,7 @@ public class CandidatePair
      * {@link CandidatePairState#SUCCEEDED}. This method should only be called
      * by the ICE agent, during the execution of the ICE procedures.
      */
-    public void setStateSucceeded()
-    {
+    public void setStateSucceeded() {
         setState(CandidatePairState.SUCCEEDED, null);
     }
 
@@ -262,8 +234,7 @@ public class CandidatePair
      * {@link CandidatePairState#WAITING}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
-    public void setStateWaiting()
-    {
+    public void setStateWaiting() {
         setState(CandidatePairState.WAITING, null);
     }
 
@@ -282,40 +253,23 @@ public class CandidatePair
      * @throws IllegalArgumentException if state is {@link CandidatePairState
      * #IN_PROGRESS} and <tt>tranID</tt> is <tt>null</tt>.
      */
-    private synchronized void setState(CandidatePairState newState,
-                                       TransactionID      tranID)
-        throws IllegalArgumentException
-    {
+    private synchronized void setState(CandidatePairState newState, TransactionID tranID) throws IllegalArgumentException {
         CandidatePairState oldState = this.state;
 
         this.state = newState;
 
-        if (newState == CandidatePairState.IN_PROGRESS)
-        {
-            if (tranID == null)
-            {
-                throw new IllegalArgumentException(
-                        "Putting a pair into the In-Progress state MUST be"
-                            + " accompanied with the TransactionID of the"
-                            + " connectivity check.");
+        if (newState == CandidatePairState.IN_PROGRESS) {
+            if (tranID == null) {
+                throw new IllegalArgumentException("Putting a pair into the In-Progress state MUST be" + " accompanied with the TransactionID of the" + " connectivity check.");
             }
-        }
-        else
-        {
-            if (tranID != null)
-            {
-                throw new IllegalArgumentException(
-                        "How could you have a transaction for a pair that's not"
-                            + " in the In-Progress state?");
+        } else {
+            if (tranID != null) {
+                throw new IllegalArgumentException("How could you have a transaction for a pair that's not" + " in the In-Progress state?");
             }
         }
         this.connCheckTranID = tranID;
 
-        getParentComponent().getParentStream().firePairPropertyChange(
-                this,
-                IceMediaStream.PROPERTY_PAIR_STATE_CHANGED,
-                oldState,
-                newState);
+        getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_STATE_CHANGED, oldState, newState);
     }
 
     /**
@@ -327,8 +281,7 @@ public class CandidatePair
      *
      * @return true if this candidate pair is frozen and false otherwise.
      */
-    public boolean isFrozen()
-    {
+    public boolean isFrozen() {
         return this.getState().equals(CandidatePairState.FROZEN);
     }
 
@@ -338,12 +291,8 @@ public class CandidatePair
      * @return a reference to the <tt>Candidate</tt> instance that comes from
      * the controlling agent.
      */
-    public Candidate<?> getControllingAgentCandidate()
-    {
-        return (getLocalCandidate().getParentComponent().getParentStream()
-                        .getParentAgent().isControlling())
-                    ? getLocalCandidate()
-                    : getRemoteCandidate();
+    public Candidate<?> getControllingAgentCandidate() {
+        return (getLocalCandidate().getParentComponent().getParentStream().getParentAgent().isControlling()) ? getLocalCandidate() : getRemoteCandidate();
     }
 
     /**
@@ -352,14 +301,9 @@ public class CandidatePair
      * @return a reference to the <tt>Candidate</tt> instance that comes from
      * the controlled agent.
      */
-    public Candidate<?> getControlledAgentCandidate()
-    {
-        return (getLocalCandidate().getParentComponent().getParentStream()
-                        .getParentAgent().isControlling())
-                    ? getRemoteCandidate()
-                    : getLocalCandidate();
+    public Candidate<?> getControlledAgentCandidate() {
+        return (getLocalCandidate().getParentComponent().getParentStream().getParentAgent().isControlling()) ? getRemoteCandidate() : getLocalCandidate();
     }
-
 
     /**
      * A candidate pair priority is computed the following way:<br>
@@ -374,22 +318,18 @@ public class CandidatePair
      * priority. If two pairs have identical priority, the ordering amongst
      * them is arbitrary.
      */
-    protected void computePriority()
-    {
+    protected void computePriority() {
         // Use g and d as local and remote candidate priority names to fit the
         // definition in the RFC.
         long g = getControllingAgentCandidate().getPriority();
         long d = getControlledAgentCandidate().getPriority();
         long min, max, expr;
 
-        if (g > d)
-        {
+        if (g > d) {
             min = d;
             max = g;
             expr = 1L;
-        }
-        else
-        {
+        } else {
             min = g;
             max = d;
             expr = 0L;
@@ -403,8 +343,7 @@ public class CandidatePair
      *
      * @return the priority of this pair.
      */
-    public long getPriority()
-    {
+    public long getPriority() {
         return priority;
     }
 
@@ -423,8 +362,7 @@ public class CandidatePair
      * @throws ClassCastException if the specified object's type prevents it
      *         from being compared to this Object.
      */
-    public int compareTo(CandidatePair candidatePair)
-    {
+    public int compareTo(CandidatePair candidatePair) {
         long thisPri = getPriority();
         long otherPri = candidatePair.getPriority();
 
@@ -441,9 +379,8 @@ public class CandidatePair
      * candidates and <tt>false</tt> otherwise.
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof CandidatePair))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CandidatePair))
             return false;
 
         CandidatePair candidatePair = (CandidatePair) obj;
@@ -451,17 +388,14 @@ public class CandidatePair
         // XXX DO NOT change this method to also depend on other pair properties
         // because ConnectivityCheckClient counts on it only using the
         // candidates for comparisons.
-        return
-            localCandidate.equals(candidatePair.localCandidate)
-                && remoteCandidate.equals(candidatePair.remoteCandidate);
+        return localCandidate.equals(candidatePair.localCandidate) && remoteCandidate.equals(candidatePair.remoteCandidate);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         // Even if the following hashCode algorithm has drawbacks because of it
         // simplicity, it is better than nothing because at least it allows
         // CandidatePair to be used as a HashMap key.
@@ -476,12 +410,8 @@ public class CandidatePair
      * @return a String representation of the object.
      */
     @Override
-    public String toString()
-    {
-        return
-            "CandidatePair (State=" + getState() + " Priority=" + getPriority()
-                + "):\n\tLocalCandidate=" + getLocalCandidate()
-                + "\n\tRemoteCandidate=" + getRemoteCandidate();
+    public String toString() {
+        return "CandidatePair (State=" + getState() + " Priority=" + getPriority() + "):\n\tLocalCandidate=" + getLocalCandidate() + "\n\tRemoteCandidate=" + getRemoteCandidate();
     }
 
     /**
@@ -489,19 +419,15 @@ public class CandidatePair
      *
      * @return a short String representation of the object.
      */
-    public String toShortString()
-    {
-        return getLocalCandidate().toShortString()
-                + " -> " + getRemoteCandidate().toShortString()
-                + " (" + getParentComponent().toShortString() + ")";
+    public String toShortString() {
+        return getLocalCandidate().toShortString() + " -> " + getRemoteCandidate().toShortString() + " (" + getParentComponent().toShortString() + ")";
     }
 
     /**
      * A <tt>Comparator</tt> using the <tt>compareTo</tt> method of the
      * <tt>CandidatePair</tt>
      */
-    public static class PairComparator implements Comparator<CandidatePair>
-    {
+    public static class PairComparator implements Comparator<CandidatePair> {
         /**
          * Compares <tt>pair1</tt> and <tt>pair2</tt> for order. Returns a
          * negative integer, zero, or a positive integer as <tt>pair1</tt>'s
@@ -518,8 +444,7 @@ public class CandidatePair
          * @throws ClassCastException if the specified object's type prevents it
          *         from being compared to this Object.
          */
-        public int compare(CandidatePair pair1, CandidatePair pair2)
-        {
+        public int compare(CandidatePair pair1, CandidatePair pair2) {
             return pair1.compareTo(pair2);
         }
 
@@ -546,8 +471,7 @@ public class CandidatePair
          * @see java.lang.Object#hashCode()
          */
         @Override
-        public boolean equals(Object obj)
-        {
+        public boolean equals(Object obj) {
             return obj instanceof PairComparator;
         }
     }
@@ -557,8 +481,7 @@ public class CandidatePair
      *
      * @return the <tt>Component</tt> that this pair belongs to.
      */
-    public Component getParentComponent()
-    {
+    public Component getParentComponent() {
         return getLocalCandidate().getParentComponent();
     }
 
@@ -573,16 +496,14 @@ public class CandidatePair
      * {@link CandidatePairState#IN_PROGRESS} or <tt>null</tt> if it's in
      * any other state.
      */
-    public TransactionID getConnectivityCheckTransaction()
-    {
+    public TransactionID getConnectivityCheckTransaction() {
         return connCheckTranID;
     }
 
     /**
      * Raises the <tt>useCandidateSent</tt> flag for this pair.
      */
-    public void setUseCandidateSent()
-    {
+    public void setUseCandidateSent() {
         this.useCandidateSent = true;
     }
 
@@ -593,16 +514,14 @@ public class CandidatePair
      * @return <tt>true</tt> if someone has previously raised this pair's
      * <tt>useCandidate</tt> flag and <tt>false</tt> otherwise.
      */
-    public boolean useCandidateSent()
-    {
+    public boolean useCandidateSent() {
         return useCandidateSent;
     }
 
     /**
      * Raises the <tt>useCandidate</tt> flag for this pair.
      */
-    public void setUseCandidateReceived()
-    {
+    public void setUseCandidateReceived() {
         this.useCandidate = true;
     }
 
@@ -613,8 +532,7 @@ public class CandidatePair
      * @return <tt>true</tt> if someone has previously raised this pair's
      * <tt>useCandidate</tt> flag and <tt>false</tt> otherwise.
      */
-    public boolean useCandidateReceived()
-    {
+    public boolean useCandidateReceived() {
         return useCandidate;
     }
 
@@ -623,14 +541,11 @@ public class CandidatePair
      * pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      */
-    public void nominate()
-    {
+    public void nominate() {
         this.isNominated = true;
-        getParentComponent().getParentStream().firePairPropertyChange(
-                this,
-                IceMediaStream.PROPERTY_PAIR_NOMINATED,
-                /* oldValue */ false,
-                /* newValue */ true);
+        getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_NOMINATED,
+        /* oldValue */false,
+        /* newValue */true);
     }
 
     /**
@@ -641,8 +556,7 @@ public class CandidatePair
      * @return <tt>true</tt> if this pair has already been nominated for
      * selection and <tt>false</tt> otherwise.
      */
-    public boolean isNominated()
-    {
+    public boolean isNominated() {
         return this.isNominated;
     }
 
@@ -653,22 +567,16 @@ public class CandidatePair
      * @return <tt>true</tt> if this pair has been confirmed by a connectivity
      * check response and <tt>false</tt> otherwise.
      */
-    public boolean isValid()
-    {
+    public boolean isValid() {
         return isValid;
     }
 
     /**
      * Marks this pair as valid. Should only be used internally.
      */
-    protected void validate()
-    {
+    protected void validate() {
         this.isValid = true;
-        getParentComponent().getParentStream().firePairPropertyChange(
-                this,
-                IceMediaStream.PROPERTY_PAIR_VALIDATED,
-                false,
-                true);
+        getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_VALIDATED, false, true);
     }
 
     /**
@@ -678,8 +586,7 @@ public class CandidatePair
      * @return the time in milliseconds of the latest consent freshness
      * confirmation
      */
-    public long getConsentFreshness()
-    {
+    public long getConsentFreshness() {
         return consentFreshness;
     }
 
@@ -687,8 +594,7 @@ public class CandidatePair
      * Sets the time in milliseconds of the latest consent freshness
      * confirmation to now.
      */
-    void setConsentFreshness()
-    {
+    void setConsentFreshness() {
         setConsentFreshness(System.currentTimeMillis());
     }
 
@@ -699,57 +605,13 @@ public class CandidatePair
      * @param consentFreshness the time in milliseconds of the latest consent
      * freshness to be set on this <tt>CandidatePair</tt>
      */
-    void setConsentFreshness(long consentFreshness)
-    {
-        if (this.consentFreshness != consentFreshness)
-        {
+    void setConsentFreshness(long consentFreshness) {
+        if (this.consentFreshness != consentFreshness) {
             long oldValue = this.consentFreshness;
-
             this.consentFreshness = consentFreshness;
-
             long newValue = this.consentFreshness;
-
-            getParentComponent().getParentStream().firePairPropertyChange(
-                    this,
-                    IceMediaStream.PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED,
-                    oldValue,
-                    newValue);
+            getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED, oldValue, newValue);
         }
     }
 
-    /**
-     * Returns the UDP <tt>DatagramSocket</tt> (if any) for this
-     * <tt>CandidatePair</tt>.
-     * @return the UDP <tt>DatagramSocket</tt> (if any) for this
-     * <tt>CandidatePair</tt>.
-     * @deprecated use {@link Component#getSocket()} instead.
-     */
-    @Deprecated
-    public DatagramSocket getDatagramSocket()
-    {
-        IceSocketWrapper wrapper = getIceSocketWrapper();
-        return wrapper == null ? null : wrapper.getUDPSocket();
-    }
-
-    /**
-     * Returns the TCP <tt>Socket</tt> (if any) for this <tt>CandidatePair</tt>.
-     * @return the TCP <tt>Socket</tt> (if any) for this <tt>CandidatePair</tt>.
-     * @deprecated use {@link Component#getSocket()} instead.
-     */
-    @Deprecated
-    public Socket getSocket()
-    {
-        return null;
-    }
-
-    /**
-     * Returns the <tt>IceSocketWrapper</tt> for this <tt>CandidatePair</tt>.
-     * @return  the <tt>IceSocketWrapper</tt> for this <tt>CandidatePair</tt>.
-     * @deprecated use {@link Component#getSocket()} instead.
-     */
-    @Deprecated
-    public IceSocketWrapper getIceSocketWrapper()
-    {
-        return getParentComponent().getSocketWrapper();
-    }
 }

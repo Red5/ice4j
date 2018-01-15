@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -33,26 +22,24 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
-public abstract class LocalCandidate
-    extends Candidate<LocalCandidate>
-{
+public abstract class LocalCandidate extends Candidate<LocalCandidate> {
 
     /**
      * The type of method used to discover this candidate ("host", "upnp", "stun
      * peer reflexive", "stun server reflexive", "turn relayed", "google turn
      * relayed", "google tcp turn relayed" or "jingle node").
      */
-    private CandidateExtendedType extendedType = null;
+    private CandidateExtendedType extendedType;
 
     /**
      * Ufrag for the local candidate.
      */
-    private String ufrag = null;
+    private String ufrag;
 
     /**
      * Whether this <tt>LocalCandidate</tt> uses SSL.
      */
-    private boolean isSSL = false;
+    private boolean isSSL;
 
     /**
      * The {@link Logger} used by {@link LocalCandidate} instances.
@@ -77,66 +64,16 @@ public abstract class LocalCandidate
      * address (the mapped address of the TURN allocate response) for a relayed
      * candidate.
      */
-    public LocalCandidate(TransportAddress transportAddress,
-                          Component        parentComponent,
-                          CandidateType    type,
-                          CandidateExtendedType extendedType,
-                          LocalCandidate  relatedCandidate)
-    {
+    public LocalCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, CandidateExtendedType extendedType, LocalCandidate relatedCandidate) {
         super(transportAddress, parentComponent, type, relatedCandidate);
         this.extendedType = extendedType;
-    }
-
-    /**
-     * Gets the <tt>DatagramSocket</tt> associated with this
-     * <tt>Candidate</tt>.
-     *
-     * @return the <tt>DatagramSocket</tt> associated with this
-     * <tt>Candidate</tt>
-     *
-     * @deprecated This should be used by the library only. Users of ice4j
-     * should use {@link org.ice4j.ice.Component#getSocket()} instead.
-     */
-    @Deprecated
-    public DatagramSocket getDatagramSocket()
-    {
-        IceSocketWrapper wrapper = getIceSocketWrapper();
-        return wrapper == null ? null : wrapper.getUDPSocket();
-    }
-
-    /**
-     * Gets the <tt>Socket</tt> associated with this
-     * <tt>Candidate</tt>.
-     *
-     * @return the <tt>Socket</tt> associated with this
-     * <tt>Candidate</tt>
-     *
-     * @deprecated This should be used by the library only. Users of ice4j
-     * should use {@link org.ice4j.ice.Component#getSocket()} instead.
-     */
-    @Deprecated
-    public Socket getSocket()
-    {
-        return null;
-    }
-
-    /**
-     * @return the {@link IceSocketWrapper} instance of the {@link Component}
-     * which owns this {@link LocalCandidate}. Note that this IS NOT an
-     * instance specific to this {@link LocalCandidate}. See
-     * {@link #getCandidateIceSocketWrapper()}.
-     */
-    protected IceSocketWrapper getIceSocketWrapper()
-    {
-        return getParentComponent().getSocketWrapper();
     }
 
     /**
      * @return the {@link IceSocketWrapper} instance, if any, associated with
      * this candidate. Note that this IS NOT the instance which should be used
      * for reading and writing by the application, and SHOULD NOT be used from
-     * outside ice4j (even if a subclass exposes it as public). Also see
-     * {@link #getIceSocketWrapper()}.
+     * outside ice4j (even if a subclass exposes it as public).
      */
     protected abstract IceSocketWrapper getCandidateIceSocketWrapper();
 
@@ -146,9 +83,7 @@ public abstract class LocalCandidate
      * @param remoteAddress the remote address for which to return an
      * associated socket.
      */
-    protected IceSocketWrapper getCandidateIceSocketWrapper(
-        SocketAddress remoteAddress)
-    {
+    protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
         // The default implementation just refers to the method which doesn't
         // involve a remove address. Extenders which support multiple instances
         // mapped by remote address should override.
@@ -168,108 +103,53 @@ public abstract class LocalCandidate
      * and receiving STUN packets, while harvesting STUN candidates or
      * performing connectivity checks.
      */
-    public IceSocketWrapper getStunSocket(TransportAddress serverAddress)
-    {
+    public IceSocketWrapper getStunSocket(TransportAddress serverAddress) {
         IceSocketWrapper hostSocket = getCandidateIceSocketWrapper();
-
-        if (hostSocket != null
-              && hostSocket.getTCPSocket() != null)
-        {
+        if (hostSocket != null && hostSocket.getTCPSocket() != null) {
             Socket tcpSocket = hostSocket.getTCPSocket();
             Socket tcpStunSocket = null;
-
-            if (tcpSocket instanceof MultiplexingSocket)
-            {
-                DatagramPacketFilter stunDatagramPacketFilter
-                    = createStunDatagramPacketFilter(serverAddress);
+            if (tcpSocket instanceof MultiplexingSocket) {
+                DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
                 Throwable exception = null;
-
-                try
-                {
-                    tcpStunSocket
-                        = ((MultiplexingSocket) tcpSocket)
-                            .getSocket(stunDatagramPacketFilter);
-                }
-                catch (SocketException sex) //don't u just luv da name? ;)
-                {
+                try {
+                    tcpStunSocket = ((MultiplexingSocket) tcpSocket).getSocket(stunDatagramPacketFilter);
+                } catch (SocketException sex) {
                     logger.warn("Failed to acquire Socket specific to STUN communication", sex);
                     exception = sex;
                 }
-                if (tcpStunSocket == null)
-                {
-                    throw
-                        new IllegalStateException(
-                                "Failed to acquire Socket"
-                                    + " specific to STUN communication",
-                                exception);
+                if (tcpStunSocket == null) {
+                    throw new IllegalStateException("Failed to acquire Socket specific to STUN communication", exception);
                 }
+            } else {
+                throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingSocket instance");
             }
-            else
-            {
-                throw
-                    new IllegalStateException(
-                            "The socket of "
-                                + getClass().getSimpleName()
-                                + " must be a MultiplexingSocket " +
-                                        "instance");
-            }
-
             IceTcpSocketWrapper stunSocket = null;
-            try
-            {
+            try {
                 stunSocket = new IceTcpSocketWrapper(tcpStunSocket);
-            }
-            catch(IOException e)
-            {
+            } catch (IOException e) {
                 logger.info("Failed to create IceTcpSocketWrapper " + e);
             }
-
             return stunSocket;
-        }
-        else if (hostSocket != null
-                   && hostSocket.getUDPSocket() != null)
-        {
+        } else if (hostSocket != null && hostSocket.getUDPSocket() != null) {
             DatagramSocket udpSocket = hostSocket.getUDPSocket();
             DatagramSocket udpStunSocket = null;
-
-            if (udpSocket instanceof MultiplexingDatagramSocket)
-            {
-                DatagramPacketFilter stunDatagramPacketFilter
-                    = createStunDatagramPacketFilter(serverAddress);
+            if (udpSocket instanceof MultiplexingDatagramSocket) {
+                DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
                 Throwable exception = null;
-
-                try
-                {
-                    udpStunSocket
-                        = ((MultiplexingDatagramSocket) udpSocket)
-                            .getSocket(stunDatagramPacketFilter);
-                }
-                catch (SocketException sex) //don't u just luv da name? ;)
-                {
+                try {
+                    udpStunSocket = ((MultiplexingDatagramSocket) udpSocket).getSocket(stunDatagramPacketFilter);
+                } catch (SocketException sex) {
                     logger.warn("Failed to acquire DatagramSocket specific to STUN communication", sex);
                     exception = sex;
                 }
-                if (udpStunSocket == null)
-                {
-                    throw
-                        new IllegalStateException(
-                                "Failed to acquire DatagramSocket"
-                                    + " specific to STUN communication",
-                                exception);
+                if (udpStunSocket == null) {
+                    throw new IllegalStateException("Failed to acquire DatagramSocket specific to STUN communication", exception);
                 }
-            }
-            else
-            {
-                throw
-                    new IllegalStateException(
-                            "The socket of "
-                                + getClass().getSimpleName()
-                                + " must be a MultiplexingDatagramSocket " +
-                                        "instance");
+            } else {
+                throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingDatagramSocket instance");
             }
             return new IceUdpSocketWrapper(udpStunSocket);
         }
-
         return null;
     }
 
@@ -278,13 +158,8 @@ public abstract class LocalCandidate
      *
      * @return the <tt>StunStack</tt> associated with this <tt>Candidate</tt>
      */
-    public StunStack getStunStack()
-    {
-        return
-            getParentComponent()
-                .getParentStream()
-                    .getParentAgent()
-                        .getStunStack();
+    public StunStack getStunStack() {
+        return getParentComponent().getParentStream().getParentAgent().getStunStack();
     }
 
     /**
@@ -298,9 +173,7 @@ public abstract class LocalCandidate
      * messages and make them available to the <tt>DatagramSocket</tt> returned
      * by {@link #getStunSocket(TransportAddress)}
      */
-    protected StunDatagramPacketFilter createStunDatagramPacketFilter(
-            TransportAddress serverAddress)
-    {
+    protected StunDatagramPacketFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
         return new StunDatagramPacketFilter(serverAddress);
     }
 
@@ -310,26 +183,15 @@ public abstract class LocalCandidate
      * <tt>LocalCandidate</tt> is closed only if it is not the <tt>socket</tt>
      * of the <tt>base</tt> of this <tt>LocalCandidate</tt>.
      */
-    protected void free()
-    {
+    protected void free() {
         // Close the socket associated with this LocalCandidate.
         IceSocketWrapper socket = getCandidateIceSocketWrapper();
-
-        if (socket != null)
-        {
+        if (socket != null) {
             LocalCandidate base = getBase();
-
-            if ((base == null)
-                    || (base == this)
-                    || (base.getCandidateIceSocketWrapper() != socket))
-            {
+            if (base == null || base == this || base.getCandidateIceSocketWrapper() != socket) {
                 //remove our socket from the stack.
                 getStunStack().removeSocket(getTransportAddress());
-
-                /*
-                 * Allow this LocalCandidate implementation to not create a
-                 * socket if it still hasn't created one.
-                 */
+                // Allow this LocalCandidate implementation to not create a socket if it still hasn't created one.
                 socket.close();
             }
         }
@@ -344,8 +206,7 @@ public abstract class LocalCandidate
      * Component yet.
      */
     @Override
-    public boolean isDefault()
-    {
+    public boolean isDefault() {
         Component parentCmp = getParentComponent();
 
         return (parentCmp != null) && equals(parentCmp.getDefaultCandidate());
@@ -356,8 +217,7 @@ public abstract class LocalCandidate
      *
      * @param ufrag local ufrag
      */
-    public void setUfrag(String ufrag)
-    {
+    public void setUfrag(String ufrag) {
         this.ufrag = ufrag;
     }
 
@@ -367,8 +227,7 @@ public abstract class LocalCandidate
      * @return local ufrag
      */
     @Override
-    public String getUfrag()
-    {
+    public String getUfrag() {
         return ufrag;
     }
 
@@ -381,8 +240,7 @@ public abstract class LocalCandidate
      * "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
      * "google turn relayed", "google tcp turn relayed" or "jingle node").
      */
-    public CandidateExtendedType getExtendedType()
-    {
+    public CandidateExtendedType getExtendedType() {
         return this.extendedType;
     }
 
@@ -396,8 +254,7 @@ public abstract class LocalCandidate
      * relayed", "google turn relayed", "google tcp turn relayed" or "jingle
      * node").
      */
-    public void setExtendedType(CandidateExtendedType extendedType)
-    {
+    public void setExtendedType(CandidateExtendedType extendedType) {
         this.extendedType = extendedType;
     }
 
@@ -422,9 +279,7 @@ public abstract class LocalCandidate
      * related address.
      */
     @Override
-    protected LocalCandidate findRelatedCandidate(
-            TransportAddress relatedAddress)
-    {
+    protected LocalCandidate findRelatedCandidate(TransportAddress relatedAddress) {
         return getParentComponent().findLocalCandidate(relatedAddress);
     }
 
@@ -432,8 +287,7 @@ public abstract class LocalCandidate
      * Gets the value of the 'ssl' flag.
      * @return the value of the 'ssl' flag.
      */
-    public boolean isSSL()
-    {
+    public boolean isSSL() {
         return isSSL;
     }
 
@@ -441,8 +295,7 @@ public abstract class LocalCandidate
      * Sets the value of the 'ssl' flag.
      * @param isSSL the value to set.
      */
-    public void setSSL(boolean isSSL)
-    {
+    public void setSSL(boolean isSSL) {
         this.isSSL = isSSL;
     }
 }

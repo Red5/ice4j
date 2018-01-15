@@ -43,7 +43,7 @@ class Connector implements Runnable {
      * The object that we use to lock socket operations (since the socket itself
      * is often null)
      */
-    private final Object sockLock = new Object();
+    //private final Object sockLock = new Object();
 
     /**
      * A flag that is set to false to exit the message processor.
@@ -81,9 +81,7 @@ class Connector implements Runnable {
         this.messageQueue = messageQueue;
         this.errorHandler = errorHandler;
         this.remoteAddress = remoteAddress;
-
         Transport transport = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
-
         listenAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport);
     }
 
@@ -105,29 +103,17 @@ class Connector implements Runnable {
         this.running = true;
         Thread.currentThread().setName("IceConnector@" + hashCode());
         DatagramPacket packet = null;
-
         while (this.running) {
             try {
-                IceSocketWrapper localSock;
-
-                synchronized (sockLock) {
-                    if (!running)
-                        return;
-
-                    localSock = this.sock;
-                }
-
                 /*
                  * Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
                  */
                 int receiveBufferSize = 1500;
-
                 if (packet == null) {
                     packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
                 } else {
                     byte[] packetData = packet.getData();
-
-                    if ((packetData == null) || (packetData.length < receiveBufferSize)) {
+                    if (packetData == null || packetData.length < receiveBufferSize) {
                         packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                     } else {
                         /*
@@ -137,13 +123,12 @@ class Connector implements Runnable {
                         packet.setLength(receiveBufferSize);
                     }
                 }
-
-                localSock.receive(packet);
-
+                // blocking
+                this.sock.receive(packet);
                 //get lost if we are no longer running.
-                if (!running)
+                if (!running) {
                     return;
-
+                }
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.finest("received datagram packet - addr: " + packet.getAddress() + " port: " + packet.getPort());
                 }
@@ -159,7 +144,6 @@ class Connector implements Runnable {
             } catch (SocketException ex) {
                 if (running) {
                     logger.log(Level.WARNING, "Connector died: " + listenAddress + " -> " + remoteAddress, ex);
-
                     stop();
                     //Something wrong has happened
                     errorHandler.handleFatalError(this, "A socket exception was thrown while trying to receive a message.", ex);
@@ -178,12 +162,10 @@ class Connector implements Runnable {
                 }
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "A net access point has gone useless:", ex);
-
                 errorHandler.handleError(ex.getMessage(), ex);
                 //do not stop the thread;
             } catch (Throwable ex) {
                 logger.log(Level.WARNING, "A net access point has gone useless:", ex);
-
                 stop();
                 errorHandler.handleFatalError(this, "Unknown error occurred while listening for messages!", ex);
             }
@@ -194,12 +176,10 @@ class Connector implements Runnable {
      * Makes the access point stop listening on its socket.
      */
     protected void stop() {
-        synchronized (sockLock) {
-            running = false;
-            if (sock != null) {
-                sock.close();
-                sock = null;
-            }
+        running = false;
+        if (sock != null) {
+            sock.close();
+            sock = null;
         }
     }
 
@@ -222,12 +202,11 @@ class Connector implements Runnable {
      */
     @Override
     public String toString() {
-        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not" : "") + " running";
+        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not running" : "running");
     }
 
     /**
-     * Returns the <tt>TransportAddress</tt> that this access point is bound
-     * on.
+     * Returns the <tt>TransportAddress</tt> that this access point is bound on.
      *
      * @return the <tt>TransportAddress</tt> associated with this AP.
      */
@@ -236,11 +215,9 @@ class Connector implements Runnable {
     }
 
     /**
-     * Returns the remote <tt>TransportAddress</tt> or <tt>null</tt> if none
-     * is specified.
+     * Returns the remote <tt>TransportAddress</tt> or <tt>null</tt> if none is specified.
      *
-     * @return the remote <tt>TransportAddress</tt> or <tt>null</tt> if none
-     * is specified.
+     * @return the remote <tt>TransportAddress</tt> or <tt>null</tt> if none is specified.
      */
     TransportAddress getRemoteAddress() {
         return remoteAddress;

@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -41,15 +30,12 @@ import java.util.logging.*;
  *
  * @author Emil Ivov
  */
-public class MappingCandidateHarvester
-    extends AbstractCandidateHarvester
-{
+public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     /**
      * The <tt>Logger</tt> used by the <tt>StunCandidateHarvester</tt> class and
      * its instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(StunCandidateHarvester.class.getName());
+    private static final Logger logger = Logger.getLogger(StunCandidateHarvester.class.getName());
 
     /**
      * The addresses that we will use as a mask
@@ -67,9 +53,7 @@ public class MappingCandidateHarvester
      * @param mask the <tt>TransportAddress</tt>es that would be used as a mask.
      * @param face the <tt>TransportAddress</tt>es that we will be masking.
      */
-    public MappingCandidateHarvester(TransportAddress mask,
-                                     TransportAddress face)
-    {
+    public MappingCandidateHarvester(TransportAddress mask, TransportAddress face) {
         this.mask = Objects.requireNonNull(mask);
         this.face = Objects.requireNonNull(face);
     }
@@ -79,8 +63,7 @@ public class MappingCandidateHarvester
      * specified addresses (only useful in subclasses which override
      * {@link #getMask()} and {@link #getFace()}).
      */
-    protected MappingCandidateHarvester()
-    {
+    protected MappingCandidateHarvester() {
     }
 
     /**
@@ -93,51 +76,33 @@ public class MappingCandidateHarvester
      * <tt>CandidateHarvester</tt> or <tt>null</tt> if no mask is specified.
      */
     @Override
-    public Collection<LocalCandidate> harvest(Component component)
-    {
+    public Collection<LocalCandidate> harvest(Component component) {
         TransportAddress mask = getMask();
         TransportAddress face = getFace();
-        if (face == null || mask == null)
-        {
-            logger.warning("Harvester not configured: face=" + face
-                           + ", mask=" + mask);
+        if (face == null || mask == null) {
+            logger.warning("Harvester not configured: face=" + face + ", mask=" + mask);
             return null;
         }
 
-         // Report the LocalCandidates gathered by this CandidateHarvester so
-         // that the harvest is sure to be considered successful.
+        // Report the LocalCandidates gathered by this CandidateHarvester so
+        // that the harvest is sure to be considered successful.
         Collection<LocalCandidate> candidates = new HashSet<>();
 
-        for (Candidate<?> cand : component.getLocalCandidates())
-        {
-            if (!(cand instanceof HostCandidate)
-                || !cand.getTransportAddress().getHostAddress()
-                            .equals(face.getHostAddress())
-                || cand.getTransport() != face.getTransport())
-            {
+        for (Candidate<?> cand : component.getLocalCandidates()) {
+            if (!(cand instanceof HostCandidate) || !cand.getTransportAddress().getHostAddress().equals(face.getHostAddress()) || cand.getTransport() != face.getTransport()) {
                 continue;
             }
 
             HostCandidate hostCandidate = (HostCandidate) cand;
-            TransportAddress mappedAddress = new TransportAddress(
-                mask.getHostAddress(),
-                hostCandidate.getHostAddress().getPort(),
-                hostCandidate.getHostAddress().getTransport());
+            TransportAddress mappedAddress = new TransportAddress(mask.getHostAddress(), hostCandidate.getHostAddress().getPort(), hostCandidate.getHostAddress().getTransport());
 
-            ServerReflexiveCandidate mappedCandidate
-                = new ServerReflexiveCandidate(
-                    mappedAddress,
-                    hostCandidate,
-                    hostCandidate.getStunServerAddress(),
-                    CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
+            ServerReflexiveCandidate mappedCandidate = new ServerReflexiveCandidate(mappedAddress, hostCandidate, hostCandidate.getStunServerAddress(), CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
             if (hostCandidate.isSSL())
                 mappedCandidate.setSSL(true);
 
             //try to add the candidate to the component and then
             //only add it to the harvest not redundant
-            if( !candidates.contains(mappedCandidate)
-                && component.addLocalCandidate(mappedCandidate))
-            {
+            if (!candidates.contains(mappedCandidate) && component.addLocalCandidate(mappedCandidate)) {
                 candidates.add(mappedCandidate);
             }
         }
@@ -149,8 +114,7 @@ public class MappingCandidateHarvester
      * Returns the public (mask) address, or null.
      * @return the public (mask) address, or null.
      */
-    public TransportAddress getMask()
-    {
+    public TransportAddress getMask() {
         return mask;
     }
 
@@ -158,8 +122,7 @@ public class MappingCandidateHarvester
      * Returns the local (face) address, or null.
      * @return the local (face) address, or null.
      */
-    public TransportAddress getFace()
-    {
+    public TransportAddress getFace() {
         return face;
     }
 
@@ -167,13 +130,9 @@ public class MappingCandidateHarvester
      * {@inheritDoc}
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         TransportAddress face = getFace();
         TransportAddress mask = getMask();
-        return
-            this.getClass().getName()
-                    + ", face=" + (face == null ? "null" : face.getAddress())
-                    + ", mask=" + (mask == null ? "null" : mask.getAddress());
+        return this.getClass().getName() + ", face=" + (face == null ? "null" : face.getAddress()) + ", mask=" + (mask == null ? "null" : mask.getAddress());
     }
 }

@@ -29,7 +29,6 @@ import org.ice4j.message.Request;
 import org.ice4j.message.Response;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
-import org.ice4j.socket.SafeCloseDatagramSocket;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -92,14 +91,14 @@ public class ShallowStackTest extends TestCase {
             logger.error("Address lookup failed", e);
             throw e;
         }
-        // ephemeral port selection using 0 isnt working since the InetSocketAddress used by TransportAddress doesnt show the selected port
+        // XXX Paul: ephemeral port selection using 0 isnt working since the InetSocketAddress used by TransportAddress doesnt show the selected port
         // this causes connector lookups to fail due to port being still set to 0
         dummyServerAddress = new TransportAddress(new InetSocketAddress(addr, 50001), Transport.UDP);
         localAddress = new TransportAddress(new InetSocketAddress(addr, 50003), Transport.UDP);
         //init the stack
         stunStack = new StunStack();
         //access point
-        localSock = new IceUdpSocketWrapper(new SafeCloseDatagramSocket(localAddress));
+        localSock = new IceUdpSocketWrapper(localAddress);
         stunStack.addSocket(localSock);
         //init the dummy server
         dummyServerSocket = new DatagramSocket(dummyServerAddress);

@@ -226,7 +226,6 @@ public class StunStack implements MessageEventHandler {
      * be cancelled).
      */
     private void cancelTransactionsForAddress(TransportAddress localAddr, TransportAddress remoteAddr) {
-
         for (StunClientTransaction tran : clientTransactions.values()) {
             if (tran.getLocalAddress().equals(localAddr) && (remoteAddr == null || remoteAddr.equals(tran.getRemoteAddress()))) {
                 clientTransactions.remove(tran);
@@ -236,7 +235,6 @@ public class StunStack implements MessageEventHandler {
         for (StunServerTransaction tran : serverTransactions.values()) {
             TransportAddress listenAddr = tran.getLocalListeningAddress();
             TransportAddress sendingAddr = tran.getSendingAddress();
-
             if (listenAddr.equals(localAddr) || (sendingAddr != null && sendingAddr.equals(localAddr))) {
                 if (remoteAddr == null || remoteAddr.equals(tran.getRequestSourceAddress())) {
                     serverTransactions.remove(tran);

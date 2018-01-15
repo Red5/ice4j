@@ -30,10 +30,6 @@
             <artifactId>java-sdp-nist-bridge</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.bitlet</groupId>
-            <artifactId>weupnp</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>

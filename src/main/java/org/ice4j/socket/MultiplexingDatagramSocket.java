@@ -6,9 +6,14 @@
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.util.List;
 
 /**
  * Represents a <tt>DatagramSocket</tt> which allows filtering
@@ -19,7 +24,7 @@ import java.util.*;
  *
  * @author Lyubomir Marinov
  */
-public class MultiplexingDatagramSocket extends SafeCloseDatagramSocket {
+public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     /**
      * The {@code MultiplexingXXXSocketSupport} which implements functionality
      * common to TCP and UDP sockets in order to facilitate implementers such as

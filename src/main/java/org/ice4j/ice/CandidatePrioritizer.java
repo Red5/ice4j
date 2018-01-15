@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -24,9 +13,7 @@ import java.util.*;
  *
  * @author Emil Ivov
  */
-class CandidatePrioritizer
-    implements Comparator<Candidate<?>>
-{
+class CandidatePrioritizer implements Comparator<Candidate<?>> {
     /**
      * Compares the two <tt>Candidate</tt>s based on their priority and
      * returns a negative integer, zero, or a positive integer as the first
@@ -41,13 +28,13 @@ class CandidatePrioritizer
      *         or greater priority than the
      *         second.
      */
-    public static int compareCandidates(Candidate<?> c1, Candidate<?> c2)
-    {
+    public static int compareCandidates(Candidate<?> c1, Candidate<?> c2) {
         if (c1.getPriority() < c2.getPriority())
             return 1;
         else if (c1.getPriority() == c2.getPriority())
             return 0;
-        else //if(c1.getPriority() > c2.getPriority())
+        else
+            //if(c1.getPriority() > c2.getPriority())
             return -1;
     }
 
@@ -65,8 +52,7 @@ class CandidatePrioritizer
      *         or greater priority than the
      *         second.
      */
-    public int compare(Candidate<?> c1, Candidate<?> c2)
-    {
+    public int compare(Candidate<?> c1, Candidate<?> c2) {
         return CandidatePrioritizer.compareCandidates(c1, c2);
     }
 
@@ -95,8 +81,7 @@ class CandidatePrioritizer
      * @see Object#equals(Object)
      * @see Object#hashCode()
      */
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         return (obj instanceof CandidatePrioritizer);
     }
 }

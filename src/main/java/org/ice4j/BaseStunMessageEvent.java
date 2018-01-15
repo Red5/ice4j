@@ -17,12 +17,11 @@
  */
 package org.ice4j;
 
-import java.util.*;
+import java.util.EventObject;
 
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ice4j.message.Message;
+import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
 
 /**
  * Represents an <tt>EventObject</tt> which notifies of an event associated with

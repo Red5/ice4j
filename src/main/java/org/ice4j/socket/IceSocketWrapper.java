@@ -8,6 +8,7 @@ package org.ice4j.socket;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.DatagramChannel;
 
 /**
  * Abstract socket wrapper that define a socket that could be UDP, TCP...
@@ -79,6 +80,15 @@ public abstract class IceSocketWrapper {
      * @return DatagramSocket object if the delegate socket is a UDP one, null otherwise.
      */
     public DatagramSocket getUDPSocket() {
+        return null;
+    }
+
+    /**
+     * Returns DatagramChannel object if the delegate socket is a UDP one, null otherwise.
+     *
+     * @return DatagramChannel object if the delegate socket is a UDP one, null otherwise.
+     */
+    public DatagramChannel getUDPChannel() {
         return null;
     }
 

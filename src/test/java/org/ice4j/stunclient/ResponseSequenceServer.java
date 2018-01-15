@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stunclient;
 
@@ -33,15 +22,12 @@ import org.ice4j.stack.*;
  *
  * @author Emil Ivov
  */
-public class ResponseSequenceServer
-    implements RequestListener
-{
+public class ResponseSequenceServer implements RequestListener {
     /**
      * The <tt>Logger</tt> used by the <tt>ResponseSequenceServer</tt> class and
      * its instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(ResponseSequenceServer.class.getName());
+    private static final Logger logger = Logger.getLogger(ResponseSequenceServer.class.getName());
 
     /**
      * The sequence of responses to send.
@@ -55,6 +41,7 @@ public class ResponseSequenceServer
     private final StunStack stunStack;
 
     private TransportAddress serverAddress = null;
+
     private IceSocketWrapper localSocket = null;
 
     /**
@@ -66,10 +53,7 @@ public class ResponseSequenceServer
      * for the purposes of STUN communication
      * @param bindAddress
      */
-    public ResponseSequenceServer(
-            StunStack stunStack,
-            TransportAddress bindAddress)
-    {
+    public ResponseSequenceServer(StunStack stunStack, TransportAddress bindAddress) {
         this.stunStack = stunStack;
         this.serverAddress = bindAddress;
     }
@@ -79,12 +63,8 @@ public class ResponseSequenceServer
      * @throws StunException if something else fails
      * @throws IOException if we fail to bind a local socket.
      */
-    public void start()
-        throws IOException, StunException
-    {
-        localSocket = new IceUdpSocketWrapper(
-            new SafeCloseDatagramSocket(serverAddress));
-
+    public void start() throws IOException, StunException {
+        localSocket = new IceUdpSocketWrapper(serverAddress);
         stunStack.addSocket(localSocket);
         stunStack.addRequestListener(serverAddress, this);
 
@@ -93,8 +73,7 @@ public class ResponseSequenceServer
     /**
      * Resets the server (deletes the sequence and stops the stack)
      */
-    public void shutDown()
-    {
+    public void shutDown() {
         stunStack.removeSocket(serverAddress);
         messageSequence.removeAllElements();
         localSocket.close();
@@ -105,14 +84,11 @@ public class ResponseSequenceServer
      * not respond) if response is null.
      * @param response the response to add or null to mark a pause
      */
-    public void addMessage(Response response)
-    {
-        if (response == null)
-        {
+    public void addMessage(Response response) {
+        if (response == null) {
             //leave a mark to skip a message
             messageSequence.add(false);
-        }
-        else
+        } else
             messageSequence.add(response);
     }
 
@@ -122,24 +98,19 @@ public class ResponseSequenceServer
      * different from a Response on the current position.
      * @param evt the event being dispatched
      */
-    public void processRequest(StunMessageEvent evt)
-    {
-        if(messageSequence.isEmpty())
+    public void processRequest(StunMessageEvent evt) {
+        if (messageSequence.isEmpty())
             return;
         Object obj = messageSequence.remove(0);
 
-        if( !(obj instanceof Response) )
+        if (!(obj instanceof Response))
             return;
 
-        Response res = (Response)obj;
+        Response res = (Response) obj;
 
-        try
-        {
-            stunStack.sendResponse(evt.getMessage().getTransactionID(),
-                res, serverAddress, evt.getRemoteAddress());
-        }
-        catch (Exception ex)
-        {
+        try {
+            stunStack.sendResponse(evt.getMessage().getTransactionID(), res, serverAddress, evt.getRemoteAddress());
+        } catch (Exception ex) {
             logger.log(Level.WARNING, "failed to send a response", ex);
         }
 
@@ -149,9 +120,8 @@ public class ResponseSequenceServer
      * Returns a string representation of this Server.
      * @return the ip address and port where this server is bound
      */
-    public String toString()
-    {
-        return serverAddress == null?"null":serverAddress.toString();
+    public String toString() {
+        return serverAddress == null ? "null" : serverAddress.toString();
     }
 
 }

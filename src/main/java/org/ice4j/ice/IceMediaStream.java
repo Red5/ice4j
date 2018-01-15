@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -39,15 +28,13 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Namal Senarathne
  */
-public class IceMediaStream
-{
+public class IceMediaStream {
 
     /**
      * The property name that we use when delivering events notifying listeners
      * that the consent freshness of a pair has changed.
      */
-    public static final String PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED
-        = "PairConsentFreshnessChanged";
+    public static final String PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED = "PairConsentFreshnessChanged";
 
     /**
      * The property name that we use when delivering events notifying listeners
@@ -75,8 +62,7 @@ public class IceMediaStream
      * media stream is a part of
      * @return IceMediaStream
      */
-    public static IceMediaStream build(Agent parentAgent, String name)
-    {
+    public static IceMediaStream build(Agent parentAgent, String name) {
         return new IceMediaStream(parentAgent, name);
     }
 
@@ -124,8 +110,7 @@ public class IceMediaStream
      * Contains {@link PropertyChangeListener}s registered with this {@link
      * Agent} and following the various events it may be generating.
      */
-    private final List<PropertyChangeListener> streamListeners
-        = new LinkedList<>();
+    private final List<PropertyChangeListener> streamListeners = new LinkedList<>();
 
     /**
      * The maximum number of candidate pairs that we should have in our check
@@ -160,8 +145,7 @@ public class IceMediaStream
      * @param parentAgent the agent that is handling the session that this
      * media stream is a part of
      */
-    protected IceMediaStream(Agent parentAgent, String name)
-    {
+    protected IceMediaStream(Agent parentAgent, String name) {
         this.name = name;
         this.parentAgent = parentAgent;
         checkList = new CheckList(this);
@@ -179,14 +163,11 @@ public class IceMediaStream
      * @return the newly created stream <tt>Component</tt> after adding it to
      * the stream first.
      */
-    protected Component createComponent(KeepAliveStrategy keepAliveStrategy)
-    {
+    protected Component createComponent(KeepAliveStrategy keepAliveStrategy) {
         Component component;
 
-        synchronized (components)
-        {
-            component
-                = new Component(++lastComponentID, this, keepAliveStrategy);
+        synchronized (components) {
+            component = new Component(++lastComponentID, this, keepAliveStrategy);
             components.put(component.getComponentID(), component);
         }
 
@@ -198,8 +179,7 @@ public class IceMediaStream
      *
      * @return the name of this <tt>IceMediaStream</tt>.
      */
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
@@ -209,15 +189,10 @@ public class IceMediaStream
      * @return a <tt>String</tt> representation of this media stream.
      */
     @Override
-    public String toString()
-    {
-        StringBuilder buff
-            = new StringBuilder( "media stream:")
-                .append(getName());
+    public String toString() {
+        StringBuilder buff = new StringBuilder("media stream:").append(getName());
 
-        buff.append(" (component count=")
-            .append(getComponentCount())
-            .append(")");
+        buff.append(" (component count=").append(getComponentCount()).append(")");
 
         for (Component cmp : getComponents())
             buff.append("\n").append(cmp);
@@ -234,10 +209,8 @@ public class IceMediaStream
      * @return  the <tt>Component</tt> with the specified <tt>id</tt> or
      * <tt>null</tt> if no such component exists in this stream.
      */
-    public Component getComponent(int id)
-    {
-        synchronized(components)
-        {
+    public Component getComponent(int id) {
+        synchronized (components) {
             return components.get(id);
         }
     }
@@ -249,10 +222,8 @@ public class IceMediaStream
      * @return a non-null list of <tt>Component</tt>s currently registered with
      * this stream.
      */
-    public List<Component> getComponents()
-    {
-        synchronized(components)
-        {
+    public List<Component> getComponents() {
+        synchronized (components) {
             return new ArrayList<>(components.values());
         }
     }
@@ -264,10 +235,8 @@ public class IceMediaStream
      * @return the number of <tt>Component</tt>s currently registered with this
      * stream.
      */
-    public int getComponentCount()
-    {
-        synchronized(components)
-        {
+    public int getComponentCount() {
+        synchronized (components) {
             return components.size();
         }
     }
@@ -279,10 +248,8 @@ public class IceMediaStream
      * @return a non-null list of IDs corresponding to the <tt>Component</tt>s
      * currently registered with this stream.
      */
-    public List<Integer> getComponentIDs()
-    {
-        synchronized(components)
-        {
+    public List<Integer> getComponentIDs() {
+        synchronized (components) {
             return new ArrayList<>(components.keySet());
         }
     }
@@ -292,8 +259,7 @@ public class IceMediaStream
      *
      * @return a reference to the <tt>Agent</tt> that this stream belongs to.
      */
-    public Agent getParentAgent()
-    {
+    public Agent getParentAgent() {
         return parentAgent;
     }
 
@@ -301,22 +267,17 @@ public class IceMediaStream
      * Removes this stream and all <tt>Candidate</tt>s associated with its child
      * <tt>Component</tt>s.
      */
-    protected void free()
-    {
+    protected void free() {
         List<Component> components;
 
-        synchronized (this.components)
-        {
+        synchronized (this.components) {
             components = getComponents();
             this.components.clear();
         }
         /*
-         * Free the components outside the synchronized block because a deadlock
-         * has been reported (by Carl Hasselskog). The execution flow is not the
-         * same as when freeing the components inside the synchronized block
-         * because in the latter case an exception thrown by Component#free()
-         * will leave subsequent components in IceMediaStream#componenets. But
-         * there is no indication that such behaviour is expected.
+         * Free the components outside the synchronized block because a deadlock has been reported (by Carl Hasselskog). The execution flow is not the same as when freeing the
+         * components inside the synchronized block because in the latter case an exception thrown by Component#free() will leave subsequent components in
+         * IceMediaStream#componenets. But there is no indication that such behaviour is expected.
          */
         for (Component component : components)
             component.free();
@@ -329,18 +290,13 @@ public class IceMediaStream
      *
      * @param component the <tt>Component</tt> we'd like to remove and free.
      */
-    public void removeComponent(Component component)
-    {
-        synchronized (components)
-        {
+    public void removeComponent(Component component) {
+        synchronized (components) {
             components.remove(component.getComponentID());
         }
         /*
-         * There is no known reason why the component should be freed with
-         * synchronization by components. However, the freeing outside the
-         * synchronization block will surely decrease the chances of a deadlock.
-         * Besides, Component#free() has really been reported involved in a
-         * deadlock.
+         * There is no known reason why the component should be freed with synchronization by components. However, the freeing outside the synchronization block will surely
+         * decrease the chances of a deadlock. Besides, Component#free() has really been reported involved in a deadlock.
          */
         component.free();
     }
@@ -349,11 +305,9 @@ public class IceMediaStream
      * Creates, initializes and orders the list of candidate pairs that would
      * be used for the connectivity checks for all components in this stream.
      */
-    protected void initCheckList()
-    {
+    protected void initCheckList() {
         //first init the check list.
-        synchronized(checkList)
-        {
+        synchronized (checkList) {
             checkList.clear();
             createCheckList(checkList);
 
@@ -369,9 +323,8 @@ public class IceMediaStream
      *
      * @param checkList the list that we need to update with the new pairs.
      */
-    protected void createCheckList(List<CandidatePair> checkList)
-    {
-        for(Component cmp : getComponents())
+    protected void createCheckList(List<CandidatePair> checkList) {
+        for (Component cmp : getComponents())
             createCheckList(cmp, checkList);
     }
 
@@ -383,34 +336,13 @@ public class IceMediaStream
      * pair and extract.
      * @param checkList the list that we need to update with the new pairs.
      */
-    private void createCheckList(final Component           component,
-                                 final List<CandidatePair> checkList)
-    {
+    private void createCheckList(final Component component, final List<CandidatePair> checkList) {
         List<LocalCandidate> localCnds = component.getLocalCandidates();
         List<RemoteCandidate> remoteCnds = component.getRemoteCandidates();
-        LocalCandidate upnpBase = null;
-
-        for(LocalCandidate lc : localCnds)
-        {
-            // XXX do we assume a single UPNPCandidate here?
-            if(lc instanceof UPNPCandidate)
-                upnpBase = lc.getBase();
-        }
-
-        for(LocalCandidate localCnd : localCnds)
-        {
-            // Don't take into consideration UPnP base candidate
-            if(localCnd == upnpBase)
-                continue;
-
-            for(RemoteCandidate remoteCnd : remoteCnds)
-            {
-                if(localCnd.canReach(remoteCnd)
-                        && remoteCnd.getTransportAddress().getPort() != 0)
-                {
-                    CandidatePair pair
-                        = getParentAgent()
-                            .createCandidatePair(localCnd, remoteCnd);
+        for (LocalCandidate localCnd : localCnds) {
+            for (RemoteCandidate remoteCnd : remoteCnds) {
+                if (localCnd.canReach(remoteCnd) && remoteCnd.getTransportAddress().getPort() != 0) {
+                    CandidatePair pair = getParentAgent().createCandidatePair(localCnd, remoteCnd);
                     checkList.add(pair);
                 }
             }
@@ -422,8 +354,7 @@ public class IceMediaStream
      * priority. If two pairs have identical priority, the ordering amongst
      * them is arbitrary.
      */
-    private void orderCheckList()
-    {
+    private void orderCheckList() {
         Collections.sort(checkList, CandidatePair.comparator);
     }
 
@@ -443,36 +374,30 @@ public class IceMediaStream
      *
      * @param checkList the checklist to prune
      */
-    protected void pruneCheckList(List<CandidatePair> checkList)
-    {
+    protected void pruneCheckList(List<CandidatePair> checkList) {
         //a list that we only use for storing pairs that we've already gone
         //through. The list is destroyed at the end of this method.
         List<CandidatePair> tmpCheckList = new ArrayList<>(checkList.size());
 
         Iterator<CandidatePair> ckListIter = checkList.iterator();
 
-        while(ckListIter.hasNext())
-        {
+        while (ckListIter.hasNext()) {
             CandidatePair pair = ckListIter.next();
 
             //drop all pairs above MAX_CHECK_LIST_SIZE.
-            if(tmpCheckList.size() > maxCheckListSize)
-            {
+            if (tmpCheckList.size() > maxCheckListSize) {
                 ckListIter.remove();
                 continue;
             }
 
             //replace local server reflexive candidates with their base.
             LocalCandidate localCnd = pair.getLocalCandidate();
-            if( localCnd.getType()
-                        == CandidateType.SERVER_REFLEXIVE_CANDIDATE)
-            {
+            if (localCnd.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
                 pair.setLocalCandidate(localCnd.getBase());
 
                 //if the new pair corresponds to another one with a higher
                 //priority, then remove it.
-                if(tmpCheckList.contains(pair))
-                {
+                if (tmpCheckList.contains(pair)) {
                     ckListIter.remove();
                     continue;
                 }
@@ -489,8 +414,7 @@ public class IceMediaStream
      * @return the list of <tt>CandidatePair</tt>s to be used in checks for
      * this stream.
      */
-    public CheckList getCheckList()
-    {
+    public CheckList getCheckList() {
         return checkList;
     }
 
@@ -499,8 +423,7 @@ public class IceMediaStream
      *
      * @param nSize the size of our check list.
      */
-    protected void setMaxCheckListSize(int nSize)
-    {
+    protected void setMaxCheckListSize(int nSize) {
         this.maxCheckListSize = nSize;
     }
 
@@ -515,13 +438,11 @@ public class IceMediaStream
      * <tt>localAddress</tt> if it belongs to any of this stream's components
      * or <tt>null</tt> otherwise.
      */
-    public LocalCandidate findLocalCandidate(TransportAddress localAddress)
-    {
-        for( Component cmp : components.values())
-        {
+    public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
+        for (Component cmp : components.values()) {
             LocalCandidate cnd = cmp.findLocalCandidate(localAddress);
 
-            if(cnd != null)
+            if (cnd != null)
                 return cnd;
         }
 
@@ -540,13 +461,11 @@ public class IceMediaStream
      * Component}s or <tt>null</tt> if it doesn't.
      *
      */
-    public RemoteCandidate findRemoteCandidate(TransportAddress remoteAddress)
-    {
-        for( Component cmp : components.values())
-        {
+    public RemoteCandidate findRemoteCandidate(TransportAddress remoteAddress) {
+        for (Component cmp : components.values()) {
             RemoteCandidate cnd = cmp.findRemoteCandidate(remoteAddress);
 
-            if(cnd != null)
+            if (cnd != null)
                 return cnd;
         }
 
@@ -567,18 +486,10 @@ public class IceMediaStream
      * addresses or <tt>null</tt> if neither of the {@link CheckList}s in this
      * stream contain such a pair.
      */
-    public CandidatePair findCandidatePair(TransportAddress localAddress,
-                                           TransportAddress remoteAddress)
-    {
-        synchronized(checkList)
-        {
-            for (CandidatePair pair : checkList)
-            {
-                if (pair.getLocalCandidate().getTransportAddress()
-                            .equals(localAddress)
-                        && pair.getRemoteCandidate().getTransportAddress()
-                                .equals(remoteAddress))
-                {
+    public CandidatePair findCandidatePair(TransportAddress localAddress, TransportAddress remoteAddress) {
+        synchronized (checkList) {
+            for (CandidatePair pair : checkList) {
+                if (pair.getLocalCandidate().getTransportAddress().equals(localAddress) && pair.getRemoteCandidate().getTransportAddress().equals(remoteAddress)) {
                     return pair;
                 }
             }
@@ -597,19 +508,13 @@ public class IceMediaStream
      * addresses or <tt>null</tt> if neither of the {@link CheckList}s in this
      * stream contain such a pair.
      */
-    public CandidatePair findCandidatePair(String localUFrag,
-                                           String remoteUFrag)
-    {
-        synchronized(checkList)
-        {
-            for (CandidatePair pair : checkList)
-            {
+    public CandidatePair findCandidatePair(String localUFrag, String remoteUFrag) {
+        synchronized (checkList) {
+            for (CandidatePair pair : checkList) {
                 LocalCandidate local = pair.getLocalCandidate();
                 RemoteCandidate remote = pair.getRemoteCandidate();
 
-                if (local.getUfrag().equals(remoteUFrag)
-                        && remote.getUfrag().equals(localUFrag))
-                {
+                if (local.getUfrag().equals(remoteUFrag) && remote.getUfrag().equals(localUFrag)) {
                     return pair;
                 }
             }
@@ -622,12 +527,10 @@ public class IceMediaStream
      *
      * @return the number of host {@link Candidate}s in this stream.
      */
-    protected int countHostCandidates()
-    {
+    protected int countHostCandidates() {
         int num = 0;
 
-        synchronized (components)
-        {
+        synchronized (components) {
             for (Component cmp : components.values())
                 num += cmp.countLocalHostCandidates();
         }
@@ -642,10 +545,8 @@ public class IceMediaStream
      *
      * @param candidatePair the pair that we'd like to add to this streams.
      */
-    protected void addToCheckList(CandidatePair candidatePair)
-    {
-        synchronized(checkList)
-        {
+    protected void addToCheckList(CandidatePair candidatePair) {
+        synchronized (checkList) {
             checkList.add(candidatePair);
         }
     }
@@ -656,10 +557,8 @@ public class IceMediaStream
      *
      * @param pair the {@link CandidatePair} to add to our valid list.
      */
-    protected void addToValidList(CandidatePair pair)
-    {
-        synchronized (validList)
-        {
+    protected void addToValidList(CandidatePair pair) {
+        synchronized (validList) {
             if (!validList.contains(pair))
                 validList.add(pair);
         }
@@ -677,12 +576,9 @@ public class IceMediaStream
      * @return <tt>true</tt> if this stream's <tt>validList</tt> contains a
      * pair with the specified <tt>foundation</tt> and <tt>false</tt> otherwise.
      */
-    protected boolean validListContainsFoundation(String foundation)
-    {
-        synchronized(validList)
-        {
-            for (CandidatePair pair : validList)
-            {
+    protected boolean validListContainsFoundation(String foundation) {
+        synchronized (validList) {
+            for (CandidatePair pair : validList) {
                 if (pair.getFoundation().equals(foundation))
                     return true;
             }
@@ -702,15 +598,10 @@ public class IceMediaStream
      * pair that is nominated for the specified <tt>Component</tt> and
      * <tt>false</tt> otherwise.
      */
-    protected boolean validListContainsNomineeForComponent(Component component)
-    {
-        synchronized (validList)
-        {
-            for (CandidatePair pair : validList)
-            {
-                if (pair.isNominated()
-                        && pair.getParentComponent() == component)
-                {
+    protected boolean validListContainsNomineeForComponent(Component component) {
+        synchronized (validList) {
+            for (CandidatePair pair : validList) {
+                if (pair.isNominated() && pair.getParentComponent() == component) {
                     return true;
                 }
             }
@@ -727,12 +618,9 @@ public class IceMediaStream
      * one {@link CandidatePair} for each {@link Component} of the stream and
      * <tt>false</tt> otherwise.
      */
-    protected boolean validListContainsAllComponents()
-    {
-        for (Component cmp : getComponents())
-        {
-            if (getValidPair(cmp) == null)
-            {
+    protected boolean validListContainsAllComponents() {
+        for (Component cmp : getComponents()) {
+            if (getValidPair(cmp) == null) {
                 //it looks like there's at least one component we don't have a
                 //valid candidate for.
                 return false;
@@ -750,14 +638,11 @@ public class IceMediaStream
      * CandidatePair} in the valid list for every {@link Component} of this
      * stream and <tt>false</tt> otherwise.
      */
-    protected boolean allComponentsAreNominated()
-    {
+    protected boolean allComponentsAreNominated() {
         List<Component> components = getComponents();
 
-        synchronized (validList)
-        {
-            for (CandidatePair pair : validList)
-            {
+        synchronized (validList) {
+            for (CandidatePair pair : validList) {
                 if (pair.isNominated())
                     components.remove(pair.getParentComponent());
             }
@@ -775,10 +660,8 @@ public class IceMediaStream
      * CandidatePair} who doesn't have a selected address yet, and <tt>true</tt>
      * otherwise.
      */
-    protected boolean allComponentsHaveSelected()
-    {
-        for (Component component : getComponents())
-        {
+    protected boolean allComponentsHaveSelected() {
+        for (Component component : getComponents()) {
             if (component.getSelectedPair() == null)
                 return false;
         }
@@ -795,12 +678,9 @@ public class IceMediaStream
      * @return a valid {@link CandidatePair} for the specified
      * <tt>component</tt> if at least one exists, and <tt>null</tt> otherwise.
      */
-    protected CandidatePair getValidPair(Component component)
-    {
-        synchronized (validList)
-        {
-            for (CandidatePair pair : validList)
-            {
+    protected CandidatePair getValidPair(Component component) {
+        synchronized (validList) {
+            for (CandidatePair pair : validList) {
                 if (pair.getParentComponent() == component)
                     return pair;
             }
@@ -816,10 +696,8 @@ public class IceMediaStream
      *
      * @param l the listener to register.
      */
-    public void addPairChangeListener(PropertyChangeListener l)
-    {
-        synchronized (streamListeners)
-        {
+    public void addPairChangeListener(PropertyChangeListener l) {
+        synchronized (streamListeners) {
             if (!streamListeners.contains(l))
                 streamListeners.add(l);
         }
@@ -831,10 +709,8 @@ public class IceMediaStream
      *
      * @param l the listener to remove.
      */
-    public void removePairStateChangeListener(PropertyChangeListener l)
-    {
-        synchronized (streamListeners)
-        {
+    public void removePairStateChangeListener(PropertyChangeListener l) {
+        synchronized (streamListeners) {
             streamListeners.remove(l);
         }
     }
@@ -848,22 +724,14 @@ public class IceMediaStream
      * @param oldValue the old value of the property that changed.
      * @param newValue the new value of the property that changed.
      */
-    protected void firePairPropertyChange(CandidatePair source,
-                                          String        propertyName,
-                                          Object        oldValue,
-                                          Object        newValue)
-    {
+    protected void firePairPropertyChange(CandidatePair source, String propertyName, Object oldValue, Object newValue) {
         PropertyChangeListener[] ls;
 
-        synchronized (streamListeners)
-        {
-            ls
-                = streamListeners.toArray(
-                        new PropertyChangeListener[streamListeners.size()]);
+        synchronized (streamListeners) {
+            ls = streamListeners.toArray(new PropertyChangeListener[streamListeners.size()]);
         }
 
-        PropertyChangeEvent ev
-            = new PropertyChangeEvent(source, propertyName, oldValue, newValue);
+        PropertyChangeEvent ev = new PropertyChangeEvent(source, propertyName, oldValue, newValue);
 
         for (PropertyChangeListener l : ls)
             l.propertyChange(ev);
@@ -874,8 +742,7 @@ public class IceMediaStream
      *
      * @param remoteUfrag the user name that we received from the remote peer.
      */
-    public void setRemoteUfrag(String remoteUfrag)
-    {
+    public void setRemoteUfrag(String remoteUfrag) {
         this.remoteUfrag = remoteUfrag;
     }
 
@@ -886,8 +753,7 @@ public class IceMediaStream
      * @return the user name that we received from the remote peer or
      * <tt>null</tt> if we haven't received a user name from them yet.
      */
-    public String getRemoteUfrag()
-    {
+    public String getRemoteUfrag() {
         return remoteUfrag;
     }
 
@@ -897,8 +763,7 @@ public class IceMediaStream
      * @param remotePassword the user name that we received from the remote
      * peer.
      */
-    public void setRemotePassword(String remotePassword)
-    {
+    public void setRemotePassword(String remotePassword) {
         this.remotePassword = remotePassword;
     }
 
@@ -909,8 +774,7 @@ public class IceMediaStream
      * @return the password that we received from the remote peer or
      * <tt>null</tt> if we haven't received a password from them yet.
      */
-    public String getRemotePassword()
-    {
+    public String getRemotePassword() {
         return remotePassword;
     }
 }

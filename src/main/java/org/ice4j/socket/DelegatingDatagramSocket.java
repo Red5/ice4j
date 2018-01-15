@@ -13,8 +13,7 @@ import java.nio.channels.*;
 import org.ice4j.stack.*;
 
 /**
- * Implements a <tt>DatagramSocket</tt> which delegates its calls to a specific
- * <tt>DatagramSocket</tt>.
+ * Implements a <tt>DatagramSocket</tt> which delegates its calls to a specific <tt>DatagramSocket</tt>.
  *
  * @author Lyubomir Marinov
  */
@@ -188,19 +187,15 @@ public class DelegatingDatagramSocket extends DatagramSocket {
      */
     public DelegatingDatagramSocket(DatagramSocket delegate, SocketAddress address) throws SocketException {
         super((SocketAddress) null);
-
-        // Delegates the DatagramSocket functionality to the DatagramSocket
-        // given in parameter.
+        // Delegates the DatagramSocket functionality to the DatagramSocket given in parameter.
         if (delegate != null) {
             this.delegate = delegate;
         } else {
-            // Creates a custom DatagramSocket to replace classical "java"
-            // DatagramSocket and set it as a delegate Socket
+            // Creates a custom DatagramSocket to replace classical "java" DatagramSocket and set it as a delegate Socket
             if (delegateFactory != null) {
                 this.delegate = delegateFactory.createUnboundDatagramSocket();
-            }
-            // Creates a socket directly connected to the network stack.
-            else {
+            } else {
+                // Creates a socket directly connected to the network stack.
                 this.delegate = null;
                 initReceiveBufferSize();
             }
@@ -564,26 +559,7 @@ public class DelegatingDatagramSocket extends DatagramSocket {
     @Override
     public void receive(DatagramPacket p) throws IOException {
         if (delegate == null) {
-            // If the packet length is too small, then the
-            // DatagramSocket.receive function will truncate the received
-            // datagram. This problem appears when reusing the same
-            // DatagramPacket i.e. if the first time we use the DatagramPacket
-            // to receive a small packet and the second time a bigger one, then
-            // after the first packet is received, the length is set to the size
-            // of the first packet and the second packet is truncated.
-            // http://docs.oracle.com/javase/6/docs/api/java/net/DatagramSocket.html
-            //
-            // XXX(boris): I think the above is wrong. I don't interpret the
-            // API description this way, and testing on a couple of different
-            // environments shows that  DatagramSocket.receive() grows the
-            // packet's length to as much as much as the array (and offset)
-            // would allow. I am leaving the code because it seems harmless.
-            byte[] data = p.getData();
-
-            p.setLength((data == null) ? 0 : (data.length - p.getOffset()));
-
             super.receive(p);
-
             if (StunDatagramPacketFilter.isStunPacket(p) || logNonStun(++nbReceivedPackets)) {
                 StunStack.logPacketToPcap(p, false, getLocalAddress(), getLocalPort());
             }
@@ -617,35 +593,26 @@ public class DelegatingDatagramSocket extends DatagramSocket {
     public void send(DatagramPacket p) throws IOException {
         // Sends the packet to the final DatagramSocket
         if (delegate == null) {
-            try {
+//            try {
                 super.send(p);
-            }
-            // DIRTY, DIRTY, DIRTY!!!
-            // Here we correct a java under MAC OSX bug when dealing with
-            // ipv6 local interface: the destination address (as well as the
-            // source address) under java / MAC OSX must have a scope ID,
-            // i.e.  "fe80::1%en1".  This correction (the whole "catch") is to
-            // be removed as soon as java under MAC OSX implements a real ipv6
-            // network stack.
-            catch (Exception ex) {
-                InetAddress tmpAddr = p.getAddress();
-                if (((ex instanceof NoRouteToHostException) || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) && (tmpAddr instanceof Inet6Address) && (tmpAddr.isLinkLocalAddress())) {
-                    Inet6Address newAddr = Inet6Address.getByAddress("", tmpAddr.getAddress(), ((Inet6Address) super.getLocalAddress()).getScopeId());
-                    p.setAddress(newAddr);
-
-                    super.send(p);
-
-                } else if (ex instanceof IOException) {
-                    throw ((IOException) ex);
-                }
-            }
-
+//            } catch (Exception ex) {
+//                // DIRTY, DIRTY, DIRTY!!!
+//                // Here we correct a java under MAC OSX bug when dealing with ipv6 local interface: the destination address (as well as the
+//                // source address) under java / MAC OSX must have a scope ID, i.e.  "fe80::1%en1".  This correction (the whole "catch") is to
+//                // be removed as soon as java under MAC OSX implements a real ipv6 network stack.
+//                InetAddress tmpAddr = p.getAddress();
+//                if (((ex instanceof NoRouteToHostException) || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) && (tmpAddr instanceof Inet6Address) && (tmpAddr.isLinkLocalAddress())) {
+//                    Inet6Address newAddr = Inet6Address.getByAddress("", tmpAddr.getAddress(), ((Inet6Address) super.getLocalAddress()).getScopeId());
+//                    p.setAddress(newAddr);
+//                    super.send(p);
+//                } else if (ex instanceof IOException) {
+//                    throw ((IOException) ex);
+//                }
+//            }
             if (logNonStun(++nbSentPackets)) {
                 StunStack.logPacketToPcap(p, true, getLocalAddress(), getLocalPort());
             }
-        }
-        // Else, the delegate socket will encapsulate the packet.
-        else {
+        } else {
             delegate.send(p);
         }
     }

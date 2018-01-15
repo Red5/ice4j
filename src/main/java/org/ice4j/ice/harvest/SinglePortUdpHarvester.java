@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -47,15 +36,11 @@ import java.util.logging.*;
  *
  * @author Boris Grozev
  */
-public class SinglePortUdpHarvester
-        extends AbstractUdpListener
-        implements CandidateHarvester
-{
+public class SinglePortUdpHarvester extends AbstractUdpListener implements CandidateHarvester {
     /**
      * Our class logger.
      */
-    private static final Logger logger
-            = Logger.getLogger(SinglePortUdpHarvester.class.getName());
+    private static final Logger logger = Logger.getLogger(SinglePortUdpHarvester.class.getName());
 
     /**
      * Creates a new <tt>SinglePortUdpHarvester</tt> instance for each allowed
@@ -64,25 +49,15 @@ public class SinglePortUdpHarvester
      * @param port the UDP port number to use.
      * @return the list of created <tt>SinglePortUdpHarvester</tt>s.
      */
-    public static List<SinglePortUdpHarvester> createHarvesters(int port)
-    {
+    public static List<SinglePortUdpHarvester> createHarvesters(int port) {
         List<SinglePortUdpHarvester> harvesters = new LinkedList<>();
-
-        for (TransportAddress address
-                : AbstractUdpListener.getAllowedAddresses(port))
-        {
-            try
-            {
-                harvesters.add(
-                    new SinglePortUdpHarvester(address));
-            }
-            catch (IOException ioe)
-            {
-                logger.info("Failed to create SinglePortUdpHarvester for "
-                                + "address " + address + ": " + ioe);
+        for (TransportAddress address : AbstractUdpListener.getAllowedAddresses(port)) {
+            try {
+                harvesters.add(new SinglePortUdpHarvester(address));
+            } catch (IOException ioe) {
+                logger.info("Failed to create SinglePortUdpHarvester for " + "address " + address + ": " + ioe);
             }
         }
-
         return harvesters;
     }
 
@@ -91,8 +66,7 @@ public class SinglePortUdpHarvester
      * this harvester. The keys are the local username fragments (ufrags) of
      * the components for which the candidates are harvested.
      */
-    private final ConcurrentMap<String, MyCandidate> candidates
-            = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, MyCandidate> candidates = new ConcurrentHashMap<>();
 
     /**
      * Manages statistics about harvesting time.
@@ -105,19 +79,15 @@ public class SinglePortUdpHarvester
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
      */
-    public SinglePortUdpHarvester(TransportAddress localAddress)
-        throws IOException
-    {
+    public SinglePortUdpHarvester(TransportAddress localAddress) throws IOException {
         super(localAddress);
-        logger.info("Initialized SinglePortUdpHarvester with address "
-                            + localAddress);
+        logger.info("Initialized SinglePortUdpHarvester with address " + localAddress);
     }
 
     /**
      * {@inheritDoc}
      */
-    public HarvestStatistics getHarvestStatistics()
-    {
+    public HarvestStatistics getHarvestStatistics() {
         return harvestStatistics;
     }
 
@@ -128,39 +98,24 @@ public class SinglePortUdpHarvester
      * local ufrag of {@code ufrag}, and if one is found it accepts the new
      * socket and adds it to the candidate.
      */
-    protected void maybeAcceptNewSession(Buffer buf,
-                                         InetSocketAddress remoteAddress,
-                                         String ufrag)
-    {
+    protected void maybeAcceptNewSession(Buffer buf, InetSocketAddress remoteAddress, String ufrag) {
         MyCandidate candidate = candidates.get(ufrag);
-        if (candidate == null)
-        {
+        if (candidate == null) {
             // A STUN Binding Request with an unknown USERNAME. Drop it.
             return;
         }
-
-        // This is a STUN Binding Request destined for this
-        // specific Candidate/Component/Agent.
-        try
-        {
+        // This is a STUN Binding Request destined for this specific Candidate/Component/Agent.
+        try {
             // 1. Create a socket for this remote address
-            // 2. Set-up de-multiplexing for future datagrams
-            // with this address to this socket.
+            // 2. Set-up de-multiplexing for future datagrams with this address to this socket.
             MySocket newSocket = addSocket(remoteAddress);
-
-            // 3. Let the candidate and its STUN stack no about the
-            // new socket.
+            // 3. Let the candidate and its STUN stack no about the new socket.
             candidate.addSocket(newSocket, remoteAddress);
-
             // 4. Add the original datagram to the new socket.
             newSocket.addBuffer(buf);
-        }
-        catch (SocketException se)
-        {
+        } catch (SocketException se) {
             logger.info("Could not create a socket: " + se);
-        }
-        catch (IOException ioe)
-        {
+        } catch (IOException ioe) {
             logger.info("Failed to handle new socket: " + ioe);
         }
     }
@@ -169,22 +124,17 @@ public class SinglePortUdpHarvester
      * {@inheritDoc}
      */
     @Override
-    public Collection<LocalCandidate> harvest(Component component)
-    {
+    public Collection<LocalCandidate> harvest(Component component) {
         IceMediaStream stream = component.getParentStream();
         Agent agent = stream.getParentAgent();
         String ufrag = agent.getLocalUfrag();
 
-        if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1)
-        {
+        if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1) {
             /*
-             * SinglePortUdpHarvester only works with streams with a
-             * single component, and agents with a single stream. This is
-             * because we use the local "ufrag" from an incoming STUN packet
-             * to setup de-multiplexing based on remote transport address.
+             * SinglePortUdpHarvester only works with streams with a single component, and agents with a single stream. This is because we use the local "ufrag" from an incoming
+             * STUN packet to setup de-multiplexing based on remote transport address.
              */
-            logger.info(
-                    "More than one Component for an Agent, cannot harvest.");
+            logger.info("More than one Component for an Agent, cannot harvest.");
             return new LinkedList<>();
         }
 
@@ -200,8 +150,7 @@ public class SinglePortUdpHarvester
      * {@inheritDoc}
      */
     @Override
-    public boolean isHostHarvester()
-    {
+    public boolean isHostHarvester() {
         return true;
     }
 
@@ -209,9 +158,7 @@ public class SinglePortUdpHarvester
      * Implements a <tt>Candidate</tt> for the purposes of this
      * <tt>SinglePortUdpHarvester</tt>.
      */
-    private class MyCandidate
-        extends HostCandidate
-    {
+    private class MyCandidate extends HostCandidate {
         /**
          * The local username fragment associated with this candidate.
          */
@@ -231,8 +178,7 @@ public class SinglePortUdpHarvester
          * There are wrappers over <tt>MultiplexedDatagramSocket</tt>s over
          * a corresponding socket in {@link #sockets}.
          */
-        private final ConcurrentMap<SocketAddress, IceSocketWrapper> candidateSockets
-            = new ConcurrentHashMap<>();
+        private final ConcurrentMap<SocketAddress, IceSocketWrapper> candidateSockets = new ConcurrentHashMap<>();
 
         /**
          * The collection of <tt>DatagramSocket</tt>s added to this candidate.
@@ -241,8 +187,7 @@ public class SinglePortUdpHarvester
          * These are the "raw" sockets, before any wrappers are added for
          * the STUN stack or the user of ice4j.
          */
-        private final ConcurrentMap<SocketAddress, DatagramSocket> sockets
-            = new ConcurrentHashMap<>();
+        private final ConcurrentMap<SocketAddress, DatagramSocket> sockets = new ConcurrentHashMap<>();
 
         /**
          * Initializes a new <tt>MyCandidate</tt> instance with the given
@@ -253,8 +198,7 @@ public class SinglePortUdpHarvester
          * @param ufrag the local ICE username fragment for this candidate (and
          * its <tt>Component</tt> and <tt>Agent</tt>).
          */
-        private MyCandidate(Component component, String ufrag)
-        {
+        private MyCandidate(Component component, String ufrag) {
             super(localAddress, component);
             this.ufrag = ufrag;
         }
@@ -265,40 +209,25 @@ public class SinglePortUdpHarvester
          * Closes all sockets in use by this <tt>LocalCandidate</tt>.
          */
         @Override
-        public void free()
-        {
-            if (freed.compareAndSet(false, true))
-            {
+        public void free() {
+            if (freed.compareAndSet(false, true)) {
                 candidates.remove(ufrag);
                 StunStack stunStack = getStunStack();
-                for (Map.Entry<SocketAddress, DatagramSocket> e
-                    : sockets.entrySet())
-                {
+                for (Map.Entry<SocketAddress, DatagramSocket> e : sockets.entrySet()) {
                     DatagramSocket socket = e.getValue();
-                    if (stunStack != null)
-                    {
-                        TransportAddress localAddress
-                            = new TransportAddress(socket.getLocalAddress(),
-                                                   socket.getLocalPort(),
-                                                   Transport.UDP);
-                        TransportAddress remoteAddress
-                            = new TransportAddress(
-                            (InetSocketAddress) e.getKey(),
-
-                            Transport.UDP);
-
+                    if (stunStack != null) {
+                        // XXX optimize this to remove without creating two new objects * n
+                        TransportAddress localAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), Transport.UDP);
+                        TransportAddress remoteAddress = new TransportAddress((InetSocketAddress) e.getKey(), Transport.UDP);
                         stunStack.removeSocket(localAddress, remoteAddress);
                     }
                     socket.close();
                 }
                 sockets.clear();
-
-                for (IceSocketWrapper wrapper : candidateSockets.values())
-                {
+                for (IceSocketWrapper wrapper : candidateSockets.values()) {
                     wrapper.close();
                 }
                 candidateSockets.clear();
-
                 super.free();
             }
         }
@@ -310,72 +239,43 @@ public class SinglePortUdpHarvester
          * @param socket the socket to add.
          * @param remoteAddress the remote address for the socket.
          */
-        private void addSocket(DatagramSocket socket,
-                                            InetSocketAddress remoteAddress)
-            throws IOException
-        {
-            if (freed.get())
-            {
+        private void addSocket(DatagramSocket socket, InetSocketAddress remoteAddress) throws IOException {
+            if (freed.get()) {
                 throw new IOException("Candidate freed");
             }
-
             Component component = getParentComponent();
-            if (component == null)
-            {
+            if (component == null) {
                 throw new IOException("No parent component");
             }
-
-            IceProcessingState state
-                = component.getParentStream().getParentAgent().getState();
-            if (state == IceProcessingState.FAILED)
-            {
-                throw new IOException(
-                    "Cannot add socket to an Agent in state FAILED.");
-            }
-            else if (state != null && state.isOver()
-                && logger.isLoggable(Level.FINE))
-            {
-                logger.fine(
-                    "Adding a socket to a completed Agent, state=" + state);
+            IceProcessingState state = component.getParentStream().getParentAgent().getState();
+            if (state == IceProcessingState.FAILED) {
+                throw new IOException("Cannot add socket to an Agent in state FAILED.");
+            } else if (state != null && state.isOver() && logger.isLoggable(Level.FINE)) {
+                logger.fine("Adding a socket to a completed Agent, state=" + state);
             }
 
-            MultiplexingDatagramSocket multiplexing
-                = new MultiplexingDatagramSocket(socket);
-
+            MultiplexingDatagramSocket multiplexing = new MultiplexingDatagramSocket(socket);
             // Socket to add to the candidate
-            IceSocketWrapper candidateSocket
-                = new IceUdpSocketWrapper(multiplexing);
-
+            IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(multiplexing);
             // STUN-only filtered socket to add to the StunStack
-            IceSocketWrapper stunSocket
-                = new IceUdpSocketWrapper(
-                multiplexing.getSocket(new StunDatagramPacketFilter()));
-
-            component.getParentStream().getParentAgent().getStunStack()
-                .addSocket(
-                    stunSocket,
-                    new TransportAddress(remoteAddress, Transport.UDP));
-
+            IceSocketWrapper stunSocket = new IceUdpSocketWrapper(multiplexing.getSocket(new StunDatagramPacketFilter()));
+            component.getParentStream().getParentAgent().getStunStack().addSocket(stunSocket, new TransportAddress(remoteAddress, Transport.UDP));
             // TODO: maybe move this code to the candidates.
             component.getComponentSocket().add(multiplexing);
 
-            IceSocketWrapper oldSocket
-                = candidateSockets.put(remoteAddress, candidateSocket);
-            if (oldSocket != null)
-            {
-                logger.warning("Replacing the socket for remote address "
-                                   + remoteAddress);
+            IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
+            if (oldSocket != null) {
+                logger.warning("Replacing the socket for remote address " + remoteAddress);
                 oldSocket.close();
             }
             sockets.put(remoteAddress, socket);
         }
+
         /**
          * {@inheritDoc}
          */
         @Override
-        protected IceSocketWrapper getCandidateIceSocketWrapper(
-            SocketAddress remoteAddress)
-        {
+        protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
             return candidateSockets.get(remoteAddress);
         }
 

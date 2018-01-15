@@ -132,7 +132,13 @@ class MessageProcessor implements Runnable {
         future.cancel(true);
     }
 
+    /**
+     * Sets a local reference to the future which owns this instance.
+     * 
+     * @param future
+     */
     public void setFutureRef(Future<?> future) {
         this.future = future;
     }
+
 }
