@@ -6,6 +6,8 @@
  */
 package org.ice4j.socket;
 
+import org.ice4j.socket.filter.DatagramPacketFilter;
+
 /**
  * Defines the application programming interface (API) expected of pseudo
  * sockets which are in fact {@code DatagramPacket}-based views of actual

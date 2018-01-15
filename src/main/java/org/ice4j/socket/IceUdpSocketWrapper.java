@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.channels.DatagramChannel;
 
+import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
 /**
@@ -23,6 +24,8 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      * Delegate UDP <tt>DatagramChannel</tt>.
      */
     private final DatagramChannel channel;
+
+    private TransportAddress transportAddress;
 
     /**
      * Constructor.
@@ -111,4 +114,16 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     public DatagramChannel getUDPChannel() {
         return channel;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TransportAddress getTransportAddress() {
+        if (transportAddress == null && channel != null) {
+            transportAddress = new TransportAddress(channel.socket().getInetAddress(), channel.socket().getLocalPort(), Transport.UDP);
+        }
+        return transportAddress;
+    }
+
 }

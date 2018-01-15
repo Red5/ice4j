@@ -9,6 +9,9 @@ package org.ice4j.socket;
 import java.io.*;
 import java.net.*;
 
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+
 /**
  * TCP implementation of the <tt>IceSocketWrapper</tt>.
  *
@@ -29,6 +32,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      * Delegate TCP <tt>Socket</tt>.
      */
     private final Socket socket;
+
+    private TransportAddress transportAddress;
 
     /**
      * A <tt>DelegatingSocket</tt> view of {@link #socket} if the latter
@@ -98,6 +103,17 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     @Override
     public Socket getTCPSocket() {
         return socket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TransportAddress getTransportAddress() {
+        if (transportAddress == null && socket != null) {
+            transportAddress = new TransportAddress(socket.getInetAddress(), socket.getLocalPort(), Transport.TCP);
+        }
+        return transportAddress;
     }
 
     /**

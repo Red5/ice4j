@@ -6,14 +6,23 @@
  */
 package org.ice4j.stack;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 
-import org.ice4j.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
+import org.ice4j.StunException;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.message.ChannelData;
+import org.ice4j.message.Message;
+import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,12 +237,8 @@ class NetAccessManager implements ErrorHandler {
      */
     protected void addSocket(IceSocketWrapper socket) {
         //no null check - let it through as a NullPointerException
-        Socket tcpSocket = socket.getTCPSocket();
-        TransportAddress remoteAddress = null;
-        if (tcpSocket != null) {
-            // In case of TCP we can extract the remote address from the actual Socket.
-            remoteAddress = new TransportAddress(tcpSocket.getInetAddress(), tcpSocket.getPort(), Transport.TCP);
-        }
+        // In case of TCP we can extract the remote address from the actual Socket.
+        TransportAddress remoteAddress = socket.getTransportAddress();
         addSocket(socket, remoteAddress);
     }
 
@@ -244,12 +249,16 @@ class NetAccessManager implements ErrorHandler {
      * @param  socket   the socket that the access point should use.
      * @param remoteAddress the remote address of the socket of the
      * {@link Connector} to be created if it is a TCP socket, or null if it is UDP.
+     * @throws IOException 
      */
     protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
-        logger.info("addSocket: {}", socket.getUDPSocket().getLocalSocketAddress());
-        Transport transport = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
-        TransportAddress localAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport);
-        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (transport.equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
+        try {
+            logger.info("addSocket: {}", socket.getUDPChannel().getLocalAddress());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        TransportAddress localAddress = socket.getTransportAddress();
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress == null) {
             connectorsForLocalAddress = new HashMap<>();

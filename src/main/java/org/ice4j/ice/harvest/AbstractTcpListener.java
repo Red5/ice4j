@@ -6,17 +6,35 @@
  */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
 
-import java.io.*;
-import java.net.*;
-import java.nio.*;
-import java.nio.channels.*;
-import java.util.*;
-import java.util.logging.*;
+import org.ice4j.StackProperties;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.NetworkUtils;
+import org.ice4j.message.Message;
+import org.ice4j.socket.MuxServerSocketChannelFactory;
+import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
  * An abstract class that binds on a set of sockets and accepts sessions that
@@ -529,116 +547,6 @@ public abstract class AbstractTcpListener {
          */
         public ChannelDesc(SocketChannel channel) {
             this.channel = channel;
-        }
-    }
-
-    /**
-     * An <tt>IceSocketWrapper</tt> implementation which allows a
-     * <tt>DatagramPacket</tt> to be pushed back and received on the first call
-     * to {@link #receive(DatagramPacket)}.
-     */
-    protected static class PushBackIceSocketWrapper extends IceSocketWrapper {
-        /**
-         * The <tt>DatagramPacket</tt> which will be used on the first call to
-         * {@link #receive(DatagramPacket)}.
-         */
-        private DatagramPacket datagramPacket;
-
-        /**
-         * The <tt>IceSocketWrapper</tt> that this instance wraps around.
-         */
-        private final IceSocketWrapper wrapped;
-
-        /**
-         * Initializes a new <tt>PushBackIceSocketWrapper</tt> instance that
-         * wraps around <tt>wrappedWrapper</tt> and reads from
-         * <tt>datagramSocket</tt> on the first call to
-         * {@link #receive(DatagramPacket)}
-         *
-         * @param wrappedWrapper the <tt>IceSocketWrapper</tt> instance that we
-         * wrap around.
-         * @param datagramPacket the <tt>DatagramPacket</tt> which will be used
-         * on the first call to {@link #receive(DatagramPacket)}
-         */
-        public PushBackIceSocketWrapper(IceSocketWrapper wrappedWrapper, DatagramPacket datagramPacket) {
-            this.wrapped = wrappedWrapper;
-            this.datagramPacket = datagramPacket;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close() {
-            wrapped.close();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public InetAddress getLocalAddress() {
-            return wrapped.getLocalAddress();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public int getLocalPort() {
-            return wrapped.getLocalPort();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public SocketAddress getLocalSocketAddress() {
-            return wrapped.getLocalSocketAddress();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public Socket getTCPSocket() {
-            return wrapped.getTCPSocket();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public DatagramSocket getUDPSocket() {
-            return wrapped.getUDPSocket();
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * On the first call to this instance reads from
-         * {@link #datagramPacket}, on subsequent calls delegates to
-         * {@link #wrapped}.
-         */
-        @Override
-        public void receive(DatagramPacket p) throws IOException {
-            if (datagramPacket != null) {
-                int len = Math.min(p.getLength(), datagramPacket.getLength());
-                System.arraycopy(datagramPacket.getData(), 0, p.getData(), 0, len);
-                p.setAddress(datagramPacket.getAddress());
-                p.setPort(datagramPacket.getPort());
-                datagramPacket = null;
-            } else {
-                wrapped.receive(p);
-            }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void send(DatagramPacket p) throws IOException {
-            wrapped.send(p);
         }
     }
 

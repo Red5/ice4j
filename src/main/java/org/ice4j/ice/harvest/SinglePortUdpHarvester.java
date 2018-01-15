@@ -6,17 +6,36 @@
  */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Agent;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.HostCandidate;
+import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.LocalCandidate;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.socket.MultiplexingDatagramSocket;
+import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.stack.StunStack;
 
 /**
  * A harvester implementation which binds to a single <tt>DatagramSocket</tt>

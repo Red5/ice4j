@@ -1,31 +1,45 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
-import java.io.*;
-import java.lang.ref.*;
-import java.net.*;
-import java.util.*;
-import java.util.logging.*;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.Socket;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
-import org.ice4j.socket.*;
+import org.ice4j.StackProperties;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Agent;
+import org.ice4j.ice.CandidateExtendedType;
+import org.ice4j.ice.CandidateTcpType;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.ServerReflexiveCandidate;
+import org.ice4j.ice.TcpHostCandidate;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.IceTcpSocketWrapper;
+import org.ice4j.socket.MultiplexingSocket;
+import org.ice4j.socket.filter.StunDatagramPacketFilter;
 
 /**
  * An implementation of {@link AbstractTcpListener} which acts as a
@@ -37,15 +51,11 @@ import org.ice4j.socket.*;
  * @author Boris Grozev
  * @author Lyubomir Marinov
  */
-public class TcpHarvester
-    extends AbstractTcpListener
-    implements CandidateHarvester
-{
+public class TcpHarvester extends AbstractTcpListener implements CandidateHarvester {
     /**
      * Our class logger.
      */
-    private static final Logger logger
-        = Logger.getLogger(TcpHarvester.class.getName());
+    private static final Logger logger = Logger.getLogger(TcpHarvester.class.getName());
 
     /**
      * The constant which specifies how often to perform purging on
@@ -60,15 +70,13 @@ public class TcpHarvester
      * We only keep weak references, because we do not want to prevent
      * <tt>Component</tt>s from being freed.
      */
-    private final Map<String, WeakReference<Component>> components
-        = new HashMap<>();
+    private final Map<String, WeakReference<Component>> components = new HashMap<>();
 
     /**
      * Maps a public address to a local address. Used to add additional
      * candidates with type "srflx" when harvesting.
      */
-    private final Map<InetAddress, InetAddress> mappedAddresses
-        = new HashMap<>();
+    private final Map<InetAddress, InetAddress> mappedAddresses = new HashMap<>();
 
     /**
      * Sets of additional ports, for which server reflexive candidates will be
@@ -102,9 +110,7 @@ public class TcpHarvester
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(int port)
-        throws IOException
-    {
+    public TcpHarvester(int port) throws IOException {
         super(port);
         this.ssltcp = false;
         addMappedAddresses();
@@ -121,9 +127,7 @@ public class TcpHarvester
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(int port, boolean ssltcp)
-            throws IOException
-    {
+    public TcpHarvester(int port, boolean ssltcp) throws IOException {
         super(port, Collections.list(NetworkInterface.getNetworkInterfaces()));
         this.ssltcp = ssltcp;
         addMappedAddresses();
@@ -141,12 +145,7 @@ public class TcpHarvester
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(
-            int port,
-            List<NetworkInterface> interfaces,
-            boolean ssltcp)
-        throws IOException
-    {
+    public TcpHarvester(int port, List<NetworkInterface> interfaces, boolean ssltcp) throws IOException {
         super(port, interfaces);
         this.ssltcp = ssltcp;
         addMappedAddresses();
@@ -161,9 +160,7 @@ public class TcpHarvester
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(List<TransportAddress> transportAddresses)
-        throws IOException
-    {
+    public TcpHarvester(List<TransportAddress> transportAddresses) throws IOException {
         super(transportAddresses);
         this.ssltcp = false;
         addMappedAddresses();
@@ -179,11 +176,7 @@ public class TcpHarvester
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(
-            List<TransportAddress> transportAddresses,
-            boolean ssltcp)
-        throws IOException
-    {
+    public TcpHarvester(List<TransportAddress> transportAddresses, boolean ssltcp) throws IOException {
         super(transportAddresses);
         this.ssltcp = ssltcp;
         addMappedAddresses();
@@ -192,14 +185,9 @@ public class TcpHarvester
     /**
      * Adds the mapped addresses known from {@link MappingCandidateHarvesters}.
      */
-    private void addMappedAddresses()
-    {
-        for (MappingCandidateHarvester harvester
-                    : MappingCandidateHarvesters.getHarvesters())
-        {
-            addMappedAddress(
-                    harvester.getMask().getAddress(),
-                    harvester.getFace().getAddress());
+    private void addMappedAddresses() {
+        for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters()) {
+            addMappedAddress(harvester.getMask().getAddress(), harvester.getFace().getAddress());
         }
     }
 
@@ -212,13 +200,9 @@ public class TcpHarvester
      * @param publicAddress the public address.
      * @param localAddress the local address.
      */
-    public void addMappedAddress(InetAddress publicAddress,
-                                 InetAddress localAddress)
-    {
-        if (logger.isLoggable(Level.FINE))
-        {
-            logger.fine("Adding a mapped address: " + localAddress
-                            + " => " + publicAddress);
+    public void addMappedAddress(InetAddress publicAddress, InetAddress localAddress) {
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine("Adding a mapped address: " + localAddress + " => " + publicAddress);
         }
         mappedAddresses.put(publicAddress, localAddress);
     }
@@ -229,8 +213,7 @@ public class TcpHarvester
      *
      * @param port the port to add.
      */
-    public void addMappedPort(int port)
-    {
+    public void addMappedPort(int port) {
         mappedPorts.add(port);
     }
 
@@ -244,15 +227,12 @@ public class TcpHarvester
      * this <tt>TcpHarvester</tt> to a specific
      * <tt>Component</tt>.
      */
-    private List<LocalCandidate> createLocalCandidates(Component component)
-    {
+    private List<LocalCandidate> createLocalCandidates(Component component) {
         List<TcpHostCandidate> hostCandidates = new LinkedList<>();
 
         // Add the host candidates for the addresses we really listen on
-        for (TransportAddress transportAddress : localAddresses)
-        {
-            TcpHostCandidate candidate
-                = new TcpHostCandidate(transportAddress, component);
+        for (TransportAddress transportAddress : localAddresses) {
+            TcpHostCandidate candidate = new TcpHostCandidate(transportAddress, component);
 
             candidate.setTcpType(CandidateTcpType.PASSIVE);
             if (ssltcp)
@@ -264,27 +244,15 @@ public class TcpHarvester
         // Add srflx candidates for any mapped addresses
         List<LocalCandidate> mappedCandidates = new LinkedList<>();
 
-        for (Map.Entry<InetAddress, InetAddress> mapping
-                : mappedAddresses.entrySet())
-        {
+        for (Map.Entry<InetAddress, InetAddress> mapping : mappedAddresses.entrySet()) {
             InetAddress localAddress = mapping.getValue();
 
-            for (TcpHostCandidate base : hostCandidates)
-            {
-                TransportAddress baseTransportAddress
-                    = base.getTransportAddress();
+            for (TcpHostCandidate base : hostCandidates) {
+                TransportAddress baseTransportAddress = base.getTransportAddress();
 
-                if (localAddress.equals(baseTransportAddress.getAddress()))
-                {
+                if (localAddress.equals(baseTransportAddress.getAddress())) {
                     InetAddress publicAddress = mapping.getKey();
-                    ServerReflexiveCandidate mappedCandidate
-                        = new ServerReflexiveCandidate(
-                            new TransportAddress(publicAddress,
-                                                 baseTransportAddress.getPort(),
-                                                 Transport.TCP),
-                            base,
-                            base.getStunServerAddress(),
-                            CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
+                    ServerReflexiveCandidate mappedCandidate = new ServerReflexiveCandidate(new TransportAddress(publicAddress, baseTransportAddress.getPort(), Transport.TCP), base, base.getStunServerAddress(), CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
 
                     if (base.isSSL())
                         mappedCandidate.setSSL(true);
@@ -298,19 +266,9 @@ public class TcpHarvester
         // Add srflx candidates for mapped ports
         List<LocalCandidate> portMappedCandidates = new LinkedList<>();
 
-        for (TcpHostCandidate base : hostCandidates)
-        {
-            for (Integer port : mappedPorts)
-            {
-                ServerReflexiveCandidate portMappedCandidate
-                    = new ServerReflexiveCandidate(
-                        new TransportAddress(
-                            base.getTransportAddress().getAddress(),
-                            port,
-                            Transport.TCP),
-                        base,
-                        base.getStunServerAddress(),
-                        CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
+        for (TcpHostCandidate base : hostCandidates) {
+            for (Integer port : mappedPorts) {
+                ServerReflexiveCandidate portMappedCandidate = new ServerReflexiveCandidate(new TransportAddress(base.getTransportAddress().getAddress(), port, Transport.TCP), base, base.getStunServerAddress(), CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
 
                 if (base.isSSL())
                     portMappedCandidate.setSSL(true);
@@ -320,23 +278,11 @@ public class TcpHarvester
             }
         }
         // Mapped ports for mapped addresses
-        for (LocalCandidate mappedCandidate : mappedCandidates)
-        {
-            TcpHostCandidate base
-                = (TcpHostCandidate) mappedCandidate.getBase();
+        for (LocalCandidate mappedCandidate : mappedCandidates) {
+            TcpHostCandidate base = (TcpHostCandidate) mappedCandidate.getBase();
 
-            for (Integer port : mappedPorts)
-            {
-                ServerReflexiveCandidate portMappedCandidate
-                    = new ServerReflexiveCandidate(
-                        new TransportAddress(
-                                mappedCandidate.getTransportAddress()
-                                        .getAddress(),
-                                port,
-                                Transport.TCP),
-                        base,
-                        base.getStunServerAddress(),
-                        CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
+            for (Integer port : mappedPorts) {
+                ServerReflexiveCandidate portMappedCandidate = new ServerReflexiveCandidate(new TransportAddress(mappedCandidate.getTransportAddress().getAddress(), port, Transport.TCP), base, base.getStunServerAddress(), CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
 
                 if (base.isSSL())
                     portMappedCandidate.setSSL(true);
@@ -362,18 +308,14 @@ public class TcpHarvester
      * @return the <tt>Component</tt> instance, if any, for a given local
      * &quot;ufrag&quot;.
      */
-    private Component getComponent(String localUfrag)
-    {
-        synchronized (components)
-        {
+    private Component getComponent(String localUfrag) {
+        synchronized (components) {
             WeakReference<Component> wr = components.get(localUfrag);
 
-            if (wr != null)
-            {
+            if (wr != null) {
                 Component component = wr.get();
 
-                if (component == null)
-                {
+                if (component == null) {
                     components.remove(localUfrag);
                 }
 
@@ -395,21 +337,16 @@ public class TcpHarvester
      * </p>
      */
     @Override
-    public Collection<LocalCandidate> harvest(Component component)
-    {
+    public Collection<LocalCandidate> harvest(Component component) {
         IceMediaStream stream = component.getParentStream();
         Agent agent = stream.getParentAgent();
 
-        if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1)
-        {
+        if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1) {
             /*
-             * TcpHarvester only works with streams with a
-             * single component, and agents with a single stream. This is
-             * because we use the local "ufrag" to de-multiplex the accept()-ed
-             * sockets between the known components.
+             * TcpHarvester only works with streams with a single component, and agents with a single stream. This is because we use the local "ufrag" to de-multiplex the
+             * accept()-ed sockets between the known components.
              */
-            logger.info(
-                    "More than one Component for an Agent, cannot harvest.");
+            logger.info("More than one Component for an Agent, cannot harvest.");
             return new LinkedList<>();
         }
 
@@ -418,11 +355,8 @@ public class TcpHarvester
         for (LocalCandidate candidate : candidates)
             component.addLocalCandidate(candidate);
 
-        synchronized (components)
-        {
-            components.put(
-                    agent.getLocalUfrag(),
-                    new WeakReference<>(component));
+        synchronized (components) {
+            components.put(agent.getLocalUfrag(), new WeakReference<>(component));
             purgeComponents();
         }
 
@@ -433,17 +367,11 @@ public class TcpHarvester
      * Removes entries from {@link #components} for which the
      * <tt>WeakReference</tt> has been cleared.
      */
-    private void purgeComponents()
-    {
+    private void purgeComponents() {
         ++purgeCounter;
-        if (purgeCounter % PURGE_INTERVAL == 0)
-        {
-            synchronized (components)
-            {
-                for (Iterator<WeakReference<Component>> i
-                            = components.values().iterator();
-                        i.hasNext();)
-                {
+        if (purgeCounter % PURGE_INTERVAL == 0) {
+            synchronized (components) {
+                for (Iterator<WeakReference<Component>> i = components.values().iterator(); i.hasNext();) {
                     if (i.next().get() == null)
                         i.remove();
                 }
@@ -455,15 +383,10 @@ public class TcpHarvester
      * {@inheritDoc}
      */
     @Override
-    protected void acceptSession(Socket socket, String ufrag,
-                                 DatagramPacket pushback)
-        throws IOException, IllegalStateException
-    {
+    protected void acceptSession(Socket socket, String ufrag, DatagramPacket pushback) throws IOException, IllegalStateException {
         Component component = getComponent(ufrag);
-        if (component == null)
-        {
-            throw new IllegalStateException(
-                    "No component found for ufrag " + ufrag);
+        if (component == null) {
+            throw new IllegalStateException("No component found for ufrag " + ufrag);
         }
 
         addSocketToComponent(socket, component, pushback);
@@ -481,17 +404,10 @@ public class TcpHarvester
      * @throws IOException if creation of some of the required socket instances
      * failed.
      */
-    private void addSocketToComponent(
-            Socket socket, Component component, DatagramPacket datagramPacket)
-        throws IOException, IllegalStateException
-    {
-        IceProcessingState state
-            = component.getParentStream().getParentAgent().getState();
+    private void addSocketToComponent(Socket socket, Component component, DatagramPacket datagramPacket) throws IOException, IllegalStateException {
+        IceProcessingState state = component.getParentStream().getParentAgent().getState();
 
-        if (logger.isLoggable(Level.FINE)
-            && !IceProcessingState.WAITING.equals(state)
-            && !IceProcessingState.RUNNING.equals(state))
-        {
+        if (logger.isLoggable(Level.FINE) && !IceProcessingState.WAITING.equals(state) && !IceProcessingState.RUNNING.equals(state)) {
             logger.fine("Adding a socket to an Agent in state " + state);
         }
 
@@ -503,20 +419,15 @@ public class TcpHarvester
         MultiplexingSocket multiplexing = new MultiplexingSocket(socket);
         candidateSocket = new IceTcpSocketWrapper(multiplexing);
 
-        stunSocket
-            = new IceTcpSocketWrapper(
-                multiplexing.getSocket(new StunDatagramPacketFilter()));
-        stunSocket = new PushBackIceSocketWrapper(stunSocket, datagramPacket);
+        stunSocket = new IceTcpSocketWrapper(multiplexing.getSocket(new StunDatagramPacketFilter()));
+        //stunSocket = new PushBackIceSocketWrapper(stunSocket, datagramPacket);
 
         TcpHostCandidate candidate = findCandidate(component, socket);
-        if (candidate == null)
-        {
-            throw new IOException(
-                    "Failed to find the local candidate for socket: " + socket);
+        if (candidate == null) {
+            throw new IOException("Failed to find the local candidate for socket: " + socket);
         }
 
-        component.getParentStream().getParentAgent().getStunStack()
-                .addSocket(stunSocket);
+        component.getParentStream().getParentAgent().getStunStack().addSocket(stunSocket);
         candidate.addSocket(candidateSocket);
 
         // TODO: Maybe move this code to the candidate.
@@ -542,23 +453,14 @@ public class TcpHarvester
      * address of <tt>Socket</tt>, or <tt>null</tt> if no such candidate
      * exists.
      */
-    private TcpHostCandidate findCandidate(
-        Component component,
-        Socket socket)
-    {
+    private TcpHostCandidate findCandidate(Component component, Socket socket) {
         InetAddress localAddress = socket.getLocalAddress();
         int localPort = socket.getLocalPort();
 
-        for (LocalCandidate candidate : component.getLocalCandidates())
-        {
-            TransportAddress transportAddress
-                = candidate.getTransportAddress();
+        for (LocalCandidate candidate : component.getLocalCandidates()) {
+            TransportAddress transportAddress = candidate.getTransportAddress();
 
-            if (candidate instanceof TcpHostCandidate
-                && Transport.TCP.equals(transportAddress.getTransport())
-                && localPort == transportAddress.getPort()
-                && localAddress.equals(transportAddress.getAddress()))
-            {
+            if (candidate instanceof TcpHostCandidate && Transport.TCP.equals(transportAddress.getTransport()) && localPort == transportAddress.getPort() && localAddress.equals(transportAddress.getAddress())) {
                 return (TcpHostCandidate) candidate;
             }
         }
@@ -569,16 +471,14 @@ public class TcpHarvester
      * {@inheritDoc}
      */
     @Override
-    public boolean isHostHarvester()
-    {
+    public boolean isHostHarvester() {
         return true;
     }
 
     /**
      * {@inheritDoc}
      */
-    public HarvestStatistics getHarvestStatistics()
-    {
+    public HarvestStatistics getHarvestStatistics() {
         return harvestStatistics;
     }
 

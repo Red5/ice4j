@@ -11,6 +11,8 @@ import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
 
 /**
@@ -35,10 +37,12 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     private final ServerSocket serverSocket;
 
+    private TransportAddress transportAddress;
+
     /**
      * If the socket is still listening.
      */
-    private boolean isRun = false;
+    private boolean isRun;
 
     /**
      * STUN stack.
@@ -131,9 +135,18 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TransportAddress getTransportAddress() {
+        if (transportAddress == null && serverSocket != null) {
+            transportAddress = new TransportAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort(), Transport.TCP);
+        }
+        return transportAddress;
+    }
+
+    /**
      * Thread that will wait for new TCP connections.
-     *
-     * @author Sebastien Vincent
      */
     private class ThreadAccept extends Thread {
         /**

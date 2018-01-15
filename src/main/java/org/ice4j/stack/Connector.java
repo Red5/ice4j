@@ -51,8 +51,7 @@ class Connector implements Runnable {
     private boolean running;
 
     /**
-     * The instance to be notified if errors occur in the network listening
-     * thread.
+     * The instance to be notified if errors occur in the network listening thread.
      */
     private final ErrorHandler errorHandler;
 
@@ -62,8 +61,7 @@ class Connector implements Runnable {
     private final TransportAddress listenAddress;
 
     /**
-     * The remote address of the socket of this <tt>Connector</tt> if it is
-     * a TCP socket, or <tt>null</tt> if it is UDP.
+     * The remote address of the socket of this <tt>Connector</tt> if it is a TCP socket, or <tt>null</tt> if it is UDP.
      */
     private final TransportAddress remoteAddress;
 
@@ -81,8 +79,7 @@ class Connector implements Runnable {
         this.messageQueue = messageQueue;
         this.errorHandler = errorHandler;
         this.remoteAddress = remoteAddress;
-        Transport transport = socket.getUDPSocket() != null ? Transport.UDP : Transport.TCP;
-        listenAddress = new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport);
+        listenAddress = socket.getTransportAddress();
     }
 
     /**
@@ -105,9 +102,7 @@ class Connector implements Runnable {
         DatagramPacket packet = null;
         while (this.running) {
             try {
-                /*
-                 * Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
-                 */
+                // Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
                 int receiveBufferSize = 1500;
                 if (packet == null) {
                     packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
@@ -116,10 +111,8 @@ class Connector implements Runnable {
                     if (packetData == null || packetData.length < receiveBufferSize) {
                         packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                     } else {
-                        /*
-                         * XXX Tell the packet it is large enough because the socket will not look at the length of the data array property and will just respect the length
-                         * property.
-                         */
+                        // XXX Tell the packet it is large enough because the socket will not look at the length of the 
+                        //data array property and will just respect the length property.
                         packet.setLength(receiveBufferSize);
                     }
                 }

@@ -1,21 +1,10 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
-package org.ice4j.socket;
+package org.ice4j.socket.filter;
 
 import java.net.*;
 
@@ -33,9 +22,7 @@ import org.ice4j.message.*;
  *
  * @author Lubomir Marinov
  */
-public class TurnDatagramPacketFilter
-    extends StunDatagramPacketFilter
-{
+public class TurnDatagramPacketFilter extends StunDatagramPacketFilter {
 
     /**
      * Initializes a new <tt>TurnDatagramPacketFilter</tt> which will accept
@@ -46,8 +33,7 @@ public class TurnDatagramPacketFilter
      * <tt>DatagramPacket</tt>s representing TURN messages from and to which
      * will be accepted by the new instance
      */
-    public TurnDatagramPacketFilter(TransportAddress turnServer)
-    {
+    public TurnDatagramPacketFilter(TransportAddress turnServer) {
         super(turnServer);
     }
 
@@ -64,24 +50,17 @@ public class TurnDatagramPacketFilter
      * associated with this instance; otherwise, <tt>false</tt>
      */
     @Override
-    public boolean accept(DatagramPacket p)
-    {
-        if (super.accept(p))
-        {
+    public boolean accept(DatagramPacket p) {
+        if (super.accept(p)) {
             /*
-             * The specified DatagramPacket represents a STUN message with a
-             * TURN method.
+             * The specified DatagramPacket represents a STUN message with a TURN method.
              */
             return true;
-        }
-        else
-        {
+        } else {
 
             /*
-             * The specified DatagramPacket does not come from or is not being
-             * sent to the TURN server associated with this instance or is a
-             * ChannelData message which is not supported by
-             * TurnDatagramPacketFilter.
+             * The specified DatagramPacket does not come from or is not being sent to the TURN server associated with this instance or is a ChannelData message which is not
+             * supported by TurnDatagramPacketFilter.
              */
             return false;
         }
@@ -101,24 +80,21 @@ public class TurnDatagramPacketFilter
      * @see StunDatagramPacketFilter#acceptMethod(char)
      */
     @Override
-    protected boolean acceptMethod(char method)
-    {
+    protected boolean acceptMethod(char method) {
         if (super.acceptMethod(method))
             return true;
-        else
-        {
-            switch (method)
-            {
-            case Message.TURN_METHOD_ALLOCATE:
-            case Message.TURN_METHOD_CHANNELBIND:
-            case Message.TURN_METHOD_CREATEPERMISSION:
-            case Message.TURN_METHOD_DATA:
-            case Message.TURN_METHOD_REFRESH:
-            case Message.TURN_METHOD_SEND:
-            case 0x0005: /* old TURN DATA indication */
-                return true;
-            default:
-                return false;
+        else {
+            switch (method) {
+                case Message.TURN_METHOD_ALLOCATE:
+                case Message.TURN_METHOD_CHANNELBIND:
+                case Message.TURN_METHOD_CREATEPERMISSION:
+                case Message.TURN_METHOD_DATA:
+                case Message.TURN_METHOD_REFRESH:
+                case Message.TURN_METHOD_SEND:
+                case 0x0005: /* old TURN DATA indication */
+                    return true;
+                default:
+                    return false;
             }
         }
     }

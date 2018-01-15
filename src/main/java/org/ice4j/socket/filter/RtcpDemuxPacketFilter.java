@@ -1,21 +1,10 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
-package org.ice4j.socket;
+package org.ice4j.socket.filter;
 
 import java.net.*;
 
@@ -27,9 +16,7 @@ import java.net.*;
  * @author Emil Ivov
  * @author Boris Grozev
  */
-public class RtcpDemuxPacketFilter
-    implements DatagramPacketFilter
-{
+public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
     /**
      * Determines whether a specific <tt>DatagramPacket</tt> is an RTCP.
      * <tt>DatagramPacket</tt> in a selection based on this filter.
@@ -61,8 +48,7 @@ public class RtcpDemuxPacketFilter
      * @return <tt>true</tt> if <tt>p</tt> is an RTCP and this filter accepts it
      * and <tt>false</tt> otherwise.
      */
-    public static boolean isRtcpPacket(DatagramPacket p)
-    {
+    public static boolean isRtcpPacket(DatagramPacket p) {
         int len = p.getLength();
 
         if (len >= 4) //minimum RTCP message length
@@ -86,8 +72,7 @@ public class RtcpDemuxPacketFilter
      * See {@link #isRtcpPacket(java.net.DatagramPacket)}
      * @return <tt>true</tt> if <tt>p</tt> looks like an RTCP packet.
      */
-    public boolean accept(DatagramPacket p)
-    {
+    public boolean accept(DatagramPacket p) {
         return isRtcpPacket(p);
     }
 

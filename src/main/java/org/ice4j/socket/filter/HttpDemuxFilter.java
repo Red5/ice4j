@@ -1,21 +1,10 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
-package org.ice4j.socket;
+package org.ice4j.socket.filter;
 
 import java.net.*;
 import java.nio.charset.*;
@@ -29,9 +18,7 @@ import org.ice4j.ice.harvest.*;
  *
  * @author Lyubomir Marinov
  */
-public class HttpDemuxFilter
-    implements DatagramPacketFilter
-{
+public class HttpDemuxFilter implements DatagramPacketFilter {
     /**
      * The US-ASCII {@code byte}s of {@link #REQUEST_METHOD_STRINGS}. Explicitly
      * defined for the purposes of performance.
@@ -59,21 +46,7 @@ public class HttpDemuxFilter
     /**
      * The HTTP request methods recognized by the class {@code HttpDemuxFilter}.
      */
-    private static String[] REQUEST_METHOD_STRINGS
-        = {
-            "CONNECT",
-            "DELETE",
-            "GET",
-            "HEAD",
-            "MOVE",
-            "OPTIONS",
-            "PATCH",
-            "POST",
-            "PRI",
-            "PROXY",
-            "PUT",
-            "TRACE"
-        };
+    private static String[] REQUEST_METHOD_STRINGS = { "CONNECT", "DELETE", "GET", "HEAD", "MOVE", "OPTIONS", "PATCH", "POST", "PRI", "PROXY", "PUT", "TRACE" };
 
     /**
      * The minimum number of bytes required by the class {@code HttpDemuxFilter}
@@ -82,8 +55,7 @@ public class HttpDemuxFilter
      */
     public static final int TLS_MIN_LENGTH = 11;
 
-    static
-    {
+    static {
         // Gather statistics about the supported HTTP request methods in order
         // to speed up the analysis of DatagramPackets later on.
         char maxChar = 'A';
@@ -92,12 +64,10 @@ public class HttpDemuxFilter
         Charset ascii = Charset.forName("US-ASCII");
 
         REQUEST_METHOD_BYTES = new byte[REQUEST_METHOD_STRINGS.length][];
-        for (int i = 0; i < REQUEST_METHOD_STRINGS.length; i++)
-        {
+        for (int i = 0; i < REQUEST_METHOD_STRINGS.length; i++) {
             String s = REQUEST_METHOD_STRINGS[i];
 
-            if (s != null && s.length() != 0)
-            {
+            if (s != null && s.length() != 0) {
                 char ch = s.charAt(0);
                 byte[] bytes = s.getBytes(ascii);
                 int length = bytes.length;
@@ -110,9 +80,7 @@ public class HttpDemuxFilter
                     minChar = ch;
 
                 REQUEST_METHOD_BYTES[i] = bytes;
-            }
-            else
-            {
+            } else {
                 REQUEST_METHOD_BYTES[i] = new byte[0];
             }
         }
@@ -131,13 +99,11 @@ public class HttpDemuxFilter
      * client communication; otherwise, {@code false}
      */
     @Override
-    public boolean accept(DatagramPacket p)
-    {
+    public boolean accept(DatagramPacket p) {
         int len = p.getLength();
         boolean accept = false;
 
-        if (len > 0)
-        {
+        if (len > 0) {
             byte[] buf = p.getData();
             int off = p.getOffset();
             // The first bytes of HTTP, SSL v2, and TCP are different so quickly
@@ -146,53 +112,39 @@ public class HttpDemuxFilter
             int b0 = 0xFF & buf[off];
             boolean http, sslv2, tls;
 
-            if (b0 == 22 /* TLS handshake */)
-            {
+            if (b0 == 22 /* TLS handshake */) {
                 http = false;
                 sslv2 = false;
                 tls = true;
-            }
-            else if (b0 > 0x80 /* SSL v2 client hello */)
-            {
+            } else if (b0 > 0x80 /* SSL v2 client hello */) {
                 http = false;
                 sslv2 = true;
                 tls = false;
-            }
-            else
-            {
+            } else {
                 http = true;
                 sslv2 = false;
                 tls = false;
             }
 
             // HTTP
-            if (http)
-            {
+            if (http) {
                 // Request-Line = Method SP Request-URI SP HTTP-Version CRLF
                 // HTTP-Version = "HTTP" "/" 1*DIGIT "." 1*DIGIT
-                if (b0 >= REQUEST_METHOD_MIN_CHAR
-                        && b0 <= REQUEST_METHOD_MAX_CHAR
-                        && len >= REQUEST_METHOD_MAX_LENGTH + 1 /* SP */)
-                {
+                if (b0 >= REQUEST_METHOD_MIN_CHAR && b0 <= REQUEST_METHOD_MAX_CHAR && len >= REQUEST_METHOD_MAX_LENGTH + 1 /* SP */) {
                     // Match a supported HTTP request method.
-                    for (byte[] bytes : REQUEST_METHOD_BYTES)
-                    {
+                    for (byte[] bytes : REQUEST_METHOD_BYTES) {
                         int length = bytes.length;
 
-                        if (buf[off + length] == ' ' /* SP */)
-                        {
+                        if (buf[off + length] == ' ' /* SP */) {
                             boolean equals = true;
 
-                            for (int i = 1, j = off + 1; i < length; i++, j++)
-                            {
-                                if (bytes[i] != buf[j])
-                                {
+                            for (int i = 1, j = off + 1; i < length; i++, j++) {
+                                if (bytes[i] != buf[j]) {
                                     equals = false;
                                     break;
                                 }
                             }
-                            if (equals)
-                            {
+                            if (equals) {
                                 accept = true;
                                 break;
                             }
@@ -206,25 +158,17 @@ public class HttpDemuxFilter
             }
 
             // HTTPS
-            if (tls)
-            {
+            if (tls) {
                 // 1 byte   ContentType type = handshake(22)
                 // 2 bytes  ProtocolVersion version = { major(3) , minor<1..3> }
                 // 2 bytes  uint16 length
                 // 1 byte   HandshakeType msg_type = client_hello(1)
                 // 3 bytes  uint24 length
                 // 2 bytes  ProtocolVersion client_version
-                if (len >= TLS_MIN_LENGTH
-                        && /* major */ (0xFF & buf[off + 1]) == 3)
-                {
+                if (len >= TLS_MIN_LENGTH && /* major */(0xFF & buf[off + 1]) == 3) {
                     int minor = 0xFF & buf[off + 2];
 
-                    if (1 <= minor
-                            && minor <= 3
-                            && /* msg_type */ (0xFF & buf[off + 5])
-                                == /* client_hello */ 1
-                            && /* major */ (0xFF & buf[off + 9]) == 3)
-                    {
+                    if (1 <= minor && minor <= 3 && /* msg_type */(0xFF & buf[off + 5]) == /* client_hello */1 && /* major */(0xFF & buf[off + 9]) == 3) {
                         minor = 0xFF & buf[off + 10];
                         if (1 <= minor && minor <= 3)
                             accept = true;
@@ -235,32 +179,21 @@ public class HttpDemuxFilter
                 // then it will not look like HTTP or SSL v2.
                 return accept;
             }
-            if (sslv2)
-            {
-                final byte[] googleTurnSslTcp
-                    = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
+            if (sslv2) {
+                final byte[] googleTurnSslTcp = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
 
                 // 2 bytes  uint15 length
                 // 1 byte   uint8 msg_type = 1
                 // 2 bytes  Version version
-                if (len > 5
-                        && len >= googleTurnSslTcp.length
-                        && /* msg_type */ (0xFF & buf[off + 2]) == 1
-                        && /* major */ (0xFF & buf[off + 3]) == 3)
-                {
+                if (len > 5 && len >= googleTurnSslTcp.length && /* msg_type */(0xFF & buf[off + 2]) == 1 && /* major */(0xFF & buf[off + 3]) == 3) {
                     int minor = 0xFF & buf[off + 4];
 
-                    if (1 <= minor && minor <= 3)
-                    {
+                    if (1 <= minor && minor <= 3) {
                         // Reject Google TURN SSLTCP.
                         boolean equals = true;
 
-                        for (int i = 0, iEnd = googleTurnSslTcp.length, j = off;
-                                i < iEnd;
-                                i++, j++)
-                        {
-                            if (googleTurnSslTcp[i] != buf[j])
-                            {
+                        for (int i = 0, iEnd = googleTurnSslTcp.length, j = off; i < iEnd; i++, j++) {
+                            if (googleTurnSslTcp[i] != buf[j]) {
                                 equals = false;
                                 break;
                             }

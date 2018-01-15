@@ -15,6 +15,8 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.List;
 
+import org.ice4j.socket.filter.DatagramPacketFilter;
+
 /**
  * Represents a <tt>DatagramSocket</tt> which allows filtering
  * <tt>DatagramPacket</tt>s it reads from the network using

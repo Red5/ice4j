@@ -6,9 +6,13 @@
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.List;
+
+import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
  * Represents a <tt>DatagramSocket</tt> which receives <tt>DatagramPacket</tt>s

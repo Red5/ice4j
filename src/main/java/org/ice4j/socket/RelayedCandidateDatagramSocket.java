@@ -1,33 +1,42 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.logging.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.ice.*;
-import org.ice4j.ice.harvest.*;
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.DataAttribute;
+import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.ice.RelayedCandidate;
+import org.ice4j.ice.harvest.TurnCandidateHarvest;
+import org.ice4j.message.Indication;
+import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.message.Response;
+import org.ice4j.socket.filter.DatagramPacketFilter;
+import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.socket.filter.TurnDatagramPacketFilter;
+import org.ice4j.stack.MessageEventHandler;
+import org.ice4j.stack.TransactionID;
 
 /**
  * Represents an application-purposed (as opposed to an ICE-specific)
@@ -40,17 +49,13 @@ import org.ice4j.stack.*;
  *
  * @author Lyubomir Marinov
  */
-public class RelayedCandidateDatagramSocket
-    extends DatagramSocket
-    implements MessageEventHandler
-{
+public class RelayedCandidateDatagramSocket extends DatagramSocket implements MessageEventHandler {
 
     /**
      * The <tt>Logger</tt> used by the <tt>RelayedCandidateDatagramSocket</tt>
      * class and its instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(RelayedCandidateDatagramSocket.class.getName());
+    private static final Logger logger = Logger.getLogger(RelayedCandidateDatagramSocket.class.getName());
 
     /**
      * The constant which represents a channel number value signaling that no
@@ -85,14 +90,13 @@ public class RelayedCandidateDatagramSocket
      * The lifetime in milliseconds of a TURN permission created using a
      * CreatePermission request.
      */
-    private static final long PERMISSION_LIFETIME = 300 /* seconds */ * 1000L;
+    private static final long PERMISSION_LIFETIME = 300 /* seconds */* 1000L;
 
     /**
      * The time in milliseconds before a TURN permission expires that a
      * <tt>RelayedCandidateDatagramSocket</tt> is to try to reinstall it.
      */
-    private static final long PERMISSION_LIFETIME_LEEWAY
-        = 60 /* seconds */ * 1000L;
+    private static final long PERMISSION_LIFETIME_LEEWAY = 60 /* seconds */* 1000L;
 
     /**
      * The <tt>DatagramSocket</tt> through which this
@@ -128,8 +132,7 @@ public class RelayedCandidateDatagramSocket
      * RECOMMENDED that the agent defer creation of a TURN channel until ICE
      * completes."
      */
-    private static final DatagramPacketFilter connectivityCheckRecognizer
-        = new StunDatagramPacketFilter();
+    private static final DatagramPacketFilter connectivityCheckRecognizer = new StunDatagramPacketFilter();
 
     /**
      * The next free channel number to be returned by
@@ -189,50 +192,31 @@ public class RelayedCandidateDatagramSocket
      * @throws SocketException if anything goes wrong while initializing the new
      * <tt>RelayedCandidateDatagramSocket</tt> instance
      */
-    public RelayedCandidateDatagramSocket(
-            RelayedCandidate relayedCandidate,
-            TurnCandidateHarvest turnCandidateHarvest)
-        throws SocketException
-    {
-        super(/* bindaddr */ (SocketAddress) null);
+    public RelayedCandidateDatagramSocket(RelayedCandidate relayedCandidate, TurnCandidateHarvest turnCandidateHarvest) throws SocketException {
+        super(/* bindaddr */(SocketAddress) null);
 
         this.relayedCandidate = relayedCandidate;
         this.turnCandidateHarvest = turnCandidateHarvest;
 
-        this.turnCandidateHarvest
-                .harvester
-                    .getStunStack()
-                        .addIndicationListener(
-                                this.turnCandidateHarvest.hostCandidate
-                                        .getTransportAddress(),
-                                this);
+        this.turnCandidateHarvest.harvester.getStunStack().addIndicationListener(this.turnCandidateHarvest.hostCandidate.getTransportAddress(), this);
 
-        DatagramSocket hostSocket
-            = this.turnCandidateHarvest.hostCandidate
-                    .getCandidateIceSocketWrapper().getUDPSocket();
+        DatagramSocket hostSocket = this.turnCandidateHarvest.hostCandidate.getCandidateIceSocketWrapper().getUDPSocket();
 
-        if (hostSocket instanceof MultiplexingDatagramSocket)
-        {
-            channelDataSocket
-                = ((MultiplexingDatagramSocket) hostSocket).getSocket(
-                        new TurnDatagramPacketFilter(
-                                this.turnCandidateHarvest.harvester.stunServer)
-                        {
-                            @Override
-                            public boolean accept(DatagramPacket p)
-                            {
-                                return channelDataSocketAccept(p);
-                            }
+        if (hostSocket instanceof MultiplexingDatagramSocket) {
+            channelDataSocket = ((MultiplexingDatagramSocket) hostSocket).getSocket(new TurnDatagramPacketFilter(this.turnCandidateHarvest.harvester.stunServer) {
+                @Override
+                public boolean accept(DatagramPacket p) {
+                    return channelDataSocketAccept(p);
+                }
 
-                            @Override
-                            protected boolean acceptMethod(char method)
-                            {
-                                return channelDataSocketAcceptMethod(method);
-                            }
-                        });
-        }
-        else
+                @Override
+                protected boolean acceptMethod(char method) {
+                    return channelDataSocketAcceptMethod(method);
+                }
+            });
+        } else {
             channelDataSocket = null;
+        }
     }
 
     /**
@@ -248,55 +232,37 @@ public class RelayedCandidateDatagramSocket
      * meant to be received by <tt>channelDataSocket</tt>); otherwise,
      * <tt>false</tt>
      */
-    private boolean channelDataSocketAccept(DatagramPacket p)
-    {
+    private boolean channelDataSocketAccept(DatagramPacket p) {
         // Is it from our TURN server?
-        if (turnCandidateHarvest.harvester.stunServer.equals(
-                p.getSocketAddress()))
-        {
+        if (turnCandidateHarvest.harvester.stunServer.equals(p.getSocketAddress())) {
             int pLength = p.getLength();
 
-            if (pLength
-                    >= (CHANNELDATA_CHANNELNUMBER_LENGTH
-                            + CHANNELDATA_LENGTH_LENGTH))
-            {
+            if (pLength >= (CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH)) {
                 byte[] pData = p.getData();
                 int pOffset = p.getOffset();
 
                 /*
-                 * The first two bits should be 0b01 because of the current
-                 * channel number range 0x4000 - 0x7FFE. But 0b10 and 0b11 which
-                 * are currently reserved and may be used in the future to
-                 * extend the range of channel numbers.
+                 * The first two bits should be 0b01 because of the current channel number range 0x4000 - 0x7FFE. But 0b10 and 0b11 which are currently reserved and may be used in
+                 * the future to extend the range of channel numbers.
                  */
-                if ((pData[pOffset] & 0xC0) != 0)
-                {
+                if ((pData[pOffset] & 0xC0) != 0) {
                     /*
-                     * Technically, we cannot create a DatagramPacket from a
-                     * ChannelData message with a Channel Number we do not know
-                     * about. But determining that we know the value of the
-                     * Channel Number field may be too much of an unnecessary
-                     * performance penalty and it may be unnecessary because the
-                     * message comes from our TURN server and it looks like a
-                     * ChannelData message already.
+                     * Technically, we cannot create a DatagramPacket from a ChannelData message with a Channel Number we do not know about. But determining that we know the value
+                     * of the Channel Number field may be too much of an unnecessary performance penalty and it may be unnecessary because the message comes from our TURN server
+                     * and it looks like a ChannelData message already.
                      */
                     pOffset += CHANNELDATA_CHANNELNUMBER_LENGTH;
                     pLength -= CHANNELDATA_CHANNELNUMBER_LENGTH;
 
-                    int length
-                        = ((pData[pOffset++] << 8)
-                              | (pData[pOffset++] & 0xFF));
+                    int length = ((pData[pOffset++] << 8) | (pData[pOffset++] & 0xFF));
 
                     int padding = ((length % 4) > 0) ? 4 - (length % 4) : 0;
 
                     /*
-                     * The Length field specifies the length in bytes of the
-                     * Application Data field. The Length field does not include
-                     * the padding that is sometimes present in the data of the
-                     * DatagramPacket.
+                     * The Length field specifies the length in bytes of the Application Data field. The Length field does not include the padding that is sometimes present in the
+                     * data of the DatagramPacket.
                      */
-                    return length == pLength - padding - CHANNELDATA_LENGTH_LENGTH 
-                    	|| length == pLength - CHANNELDATA_LENGTH_LENGTH;
+                    return length == pLength - padding - CHANNELDATA_LENGTH_LENGTH || length == pLength - CHANNELDATA_LENGTH_LENGTH;
                 }
             }
         }
@@ -314,12 +280,8 @@ public class RelayedCandidateDatagramSocket
      * <tt>DatagramPacket</tt>s which represent STUN messages with the specified
      * <tt>method</tt>; otherwise, <tt>false</tt>
      */
-    private boolean channelDataSocketAcceptMethod(char method)
-    {
-        /*
-         * Accept only ChannelData messages for now. ChannelData messages are
-         * not STUN messages so they do not have a method associated with them.
-         */
+    private boolean channelDataSocketAcceptMethod(char method) {
+        // Accept only ChannelData messages for now. ChannelData messages are not STUN messages so they do not have a method associated with them.
         return false;
     }
 
@@ -329,26 +291,20 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#close()
      */
     @Override
-    public void close()
-    {
-        synchronized (this)
-        {
+    public void close() {
+        synchronized (this) {
             if (this.closed)
                 return;
             else
                 this.closed = true;
         }
-        synchronized (packetsToReceive)
-        {
+        synchronized (packetsToReceive) {
             packetsToReceive.notifyAll();
         }
-        synchronized (packetsToSend)
-        {
+        synchronized (packetsToSend) {
             packetsToSend.notifyAll();
         }
-        turnCandidateHarvest.harvester.getStunStack().removeIndicationListener(
-                turnCandidateHarvest.hostCandidate.getTransportAddress(),
-                this);
+        turnCandidateHarvest.harvester.getStunStack().removeIndicationListener(turnCandidateHarvest.hostCandidate.getTransportAddress(), this);
         turnCandidateHarvest.close(this);
         super.close();
     }
@@ -358,45 +314,29 @@ public class RelayedCandidateDatagramSocket
      * <tt>DatagramPacket</tt>s from {@link #channelDataSocket} and queue them
      * in {@link #packetsToReceive}.
      */
-    private void createReceiveChannelDataThread()
-    {
-        receiveChannelDataThread
-            = new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    boolean done = false;
+    private void createReceiveChannelDataThread() {
+        receiveChannelDataThread = new Thread() {
+            @Override
+            public void run() {
+                boolean done = false;
 
-                    try
-                    {
-                        runInReceiveChannelDataThread();
-                        done = true;
-                    }
-                    catch (SocketException sex)
-                    {
-                        done = true;
-                    }
-                    finally
-                    {
-                        /*
-                         * If receiveChannelDataThread is dying and this
-                         * RelayedCandidateDatagramSocket is not closed, then
-                         * spawn a new receiveChannelDataThread.
-                         */
-                        synchronized (packetsToReceive)
-                        {
-                            if (receiveChannelDataThread
-                                    == Thread.currentThread())
-                                receiveChannelDataThread = null;
-                            if ((receiveChannelDataThread == null)
-                                    && !closed
-                                    && !done)
-                                createReceiveChannelDataThread();
-                        }
+                try {
+                    runInReceiveChannelDataThread();
+                    done = true;
+                } catch (SocketException sex) {
+                    done = true;
+                } finally {
+                    // If receiveChannelDataThread is dying and this RelayedCandidateDatagramSocket is not closed, then spawn a new 
+                    // receiveChannelDataThread.
+                    synchronized (packetsToReceive) {
+                        if (receiveChannelDataThread == Thread.currentThread())
+                            receiveChannelDataThread = null;
+                        if ((receiveChannelDataThread == null) && !closed && !done)
+                            createReceiveChannelDataThread();
                     }
                 }
-            };
+            }
+        };
         receiveChannelDataThread.start();
     }
 
@@ -404,36 +344,25 @@ public class RelayedCandidateDatagramSocket
      * Creates {@link #sendThread} which is to send {@link #packetsToSend} to
      * the associated TURN server.
      */
-    private void createSendThread()
-    {
-        sendThread
-            = new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    try
-                    {
-                        runInSendThread();
-                    }
-                    finally
-                    {
-                        /*
-                         * If sendThread is dying and there are packetsToSend,
-                         * then spawn a new sendThread.
-                         */
-                        synchronized (packetsToSend)
-                        {
-                            if (sendThread == Thread.currentThread())
-                                sendThread = null;
-                            if ((sendThread == null)
-                                    && !closed
-                                    && !packetsToSend.isEmpty())
-                                createSendThread();
-                        }
+    private void createSendThread() {
+        sendThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    runInSendThread();
+                } finally {
+                    /*
+                     * If sendThread is dying and there are packetsToSend, then spawn a new sendThread.
+                     */
+                    synchronized (packetsToSend) {
+                        if (sendThread == Thread.currentThread())
+                            sendThread = null;
+                        if ((sendThread == null) && !closed && !packetsToSend.isEmpty())
+                            createSendThread();
                     }
                 }
-            };
+            }
+        };
         sendThread.start();
     }
 
@@ -455,8 +384,7 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#getLocalAddress()
      */
     @Override
-    public InetAddress getLocalAddress()
-    {
+    public InetAddress getLocalAddress() {
         return getLocalSocketAddress().getAddress();
     }
 
@@ -470,8 +398,7 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#getLocalPort()
      */
     @Override
-    public int getLocalPort()
-    {
+    public int getLocalPort() {
         return getLocalSocketAddress().getPort();
     }
 
@@ -488,8 +415,7 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#getLocalSocketAddress()
      */
     @Override
-    public InetSocketAddress getLocalSocketAddress()
-    {
+    public InetSocketAddress getLocalSocketAddress() {
         return getRelayedCandidate().getTransportAddress();
     }
 
@@ -500,14 +426,12 @@ public class RelayedCandidateDatagramSocket
      * @return the next free channel number to be allocated to a
      * <tt>Channel</tt> and marked as non-free.
      */
-    private char getNextChannelNumber()
-    {
+    private char getNextChannelNumber() {
         char nextChannelNumber;
 
         if (this.nextChannelNumber > MAX_CHANNEL_NUMBER)
             nextChannelNumber = CHANNEL_NUMBER_NOT_SPECIFIED;
-        else
-        {
+        else {
             nextChannelNumber = this.nextChannelNumber;
             this.nextChannelNumber++;
         }
@@ -521,8 +445,7 @@ public class RelayedCandidateDatagramSocket
      * @return the <tt>RelayedCandidate</tt> which uses this instance as the
      * value of its <tt>socket</tt> property
      */
-    public final RelayedCandidate getRelayedCandidate()
-    {
+    public final RelayedCandidate getRelayedCandidate() {
         return relayedCandidate;
     }
 
@@ -536,19 +459,14 @@ public class RelayedCandidateDatagramSocket
      * @param e a <tt>StunMessageEvent</tt> which encapsulates the received STUN
      * message
      */
-    public void handleMessageEvent(StunMessageEvent e)
-    {
+    public void handleMessageEvent(StunMessageEvent e) {
         /*
-         * Is it meant for us? (It should be because
-         * RelayedCandidateDatagramSocket registers for STUN indications
-         * received at the associated local TransportAddress only.)
+         * Is it meant for us? (It should be because RelayedCandidateDatagramSocket registers for STUN indications received at the associated local TransportAddress only.)
          */
-        if (!turnCandidateHarvest.hostCandidate.getTransportAddress().equals(
-                e.getLocalAddress()))
+        if (!turnCandidateHarvest.hostCandidate.getTransportAddress().equals(e.getLocalAddress()))
             return;
         // Is it from our TURN server?
-        if (!turnCandidateHarvest.harvester.stunServer.equals(
-                e.getRemoteAddress()))
+        if (!turnCandidateHarvest.harvester.stunServer.equals(e.getRemoteAddress()))
             return;
 
         Message message = e.getMessage();
@@ -558,25 +476,20 @@ public class RelayedCandidateDatagramSocket
             return;
 
         /*
-         * RFC 5766: When the client receives a Data indication, it checks that
-         * the Data indication contains both an XOR-PEER-ADDRESS and a DATA
-         * attribute, and discards the indication if it does not.
+         * RFC 5766: When the client receives a Data indication, it checks that the Data indication contains both an XOR-PEER-ADDRESS and a DATA attribute, and discards the
+         * indication if it does not.
          */
-        XorPeerAddressAttribute peerAddressAttribute
-            = (XorPeerAddressAttribute)
-                message.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+        XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) message.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
 
         if (peerAddressAttribute == null)
             return;
 
-        DataAttribute dataAttribute
-            = (DataAttribute) message.getAttribute(Attribute.Type.DATA);
+        DataAttribute dataAttribute = (DataAttribute) message.getAttribute(Attribute.Type.DATA);
 
         if (dataAttribute == null)
             return;
 
-        TransportAddress peerAddress
-            = peerAddressAttribute.getAddress(message.getTransactionID());
+        TransportAddress peerAddress = peerAddressAttribute.getAddress(message.getTransactionID());
 
         if (peerAddress == null)
             return;
@@ -588,46 +501,30 @@ public class RelayedCandidateDatagramSocket
 
         DatagramPacket packetToReceive;
 
-        try
-        {
-            packetToReceive
-                = new DatagramPacket(data, 0, data.length, peerAddress);
-        }
-        catch (Throwable t)
-        {
+        try {
+            packetToReceive = new DatagramPacket(data, 0, data.length, peerAddress);
+        } catch (Throwable t) {
             /*
-             * The signature of the DatagramPacket constructor was changed
-             * in JDK 8 to not declare that it may throw a SocketException.
+             * The signature of the DatagramPacket constructor was changed in JDK 8 to not declare that it may throw a SocketException.
              */
-            if (t instanceof SocketException)
-            {
+            if (t instanceof SocketException) {
                 packetToReceive = null;
-            }
-            else if (t instanceof Error)
-            {
+            } else if (t instanceof Error) {
                 throw (Error) t;
-            }
-            else if (t instanceof RuntimeException)
-            {
+            } else if (t instanceof RuntimeException) {
                 throw (RuntimeException) t;
-            }
-            else
-            {
+            } else {
                 /*
-                 * Unfortunately, we cannot re-throw it. Anyway, it was
-                 * unlikely to occur on JDK 7.
+                 * Unfortunately, we cannot re-throw it. Anyway, it was unlikely to occur on JDK 7.
                  */
-                if (t instanceof InterruptedException)
-                {
+                if (t instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                 }
                 packetToReceive = null;
             }
         }
-        if (packetToReceive != null)
-        {
-            synchronized (packetsToReceive)
-            {
+        if (packetToReceive != null) {
+            synchronized (packetsToReceive) {
                 packetsToReceive.add(packetToReceive);
                 packetsToReceive.notifyAll();
             }
@@ -646,18 +543,16 @@ public class RelayedCandidateDatagramSocket
      * and the caller should assume this instance has recovered from it;
      * otherwise, <tt>false</tt>
      */
-    public boolean processErrorOrFailure(Response response, Request request)
-    {
-        switch (request.getMessageType())
-        {
-        case Message.CHANNELBIND_REQUEST:
-            setChannelNumberIsConfirmed(request, false);
-            break;
-        case Message.CREATEPERMISSION_REQUEST:
-            setChannelBound(request, false);
-            break;
-        default:
-            break;
+    public boolean processErrorOrFailure(Response response, Request request) {
+        switch (request.getMessageType()) {
+            case Message.CHANNELBIND_REQUEST:
+                setChannelNumberIsConfirmed(request, false);
+                break;
+            case Message.CREATEPERMISSION_REQUEST:
+                setChannelBound(request, false);
+                break;
+            default:
+                break;
         }
         return false;
     }
@@ -671,18 +566,16 @@ public class RelayedCandidateDatagramSocket
      * @param request the <tt>Request</tt> sent by this instance to which
      * <tt>response</tt> responds
      */
-    public void processSuccess(Response response, Request request)
-    {
-        switch (request.getMessageType())
-        {
-        case Message.CHANNELBIND_REQUEST:
-            setChannelNumberIsConfirmed(request, true);
-            break;
-        case Message.CREATEPERMISSION_REQUEST:
-            setChannelBound(request, true);
-            break;
-        default:
-            break;
+    public void processSuccess(Response response, Request request) {
+        switch (request.getMessageType()) {
+            case Message.CHANNELBIND_REQUEST:
+                setChannelNumberIsConfirmed(request, true);
+                break;
+            case Message.CREATEPERMISSION_REQUEST:
+                setChannelBound(request, true);
+                break;
+            default:
+                break;
         }
     }
 
@@ -698,46 +591,27 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#receive(DatagramPacket)
      */
     @Override
-    public void receive(DatagramPacket p)
-        throws IOException
-    {
-        synchronized (packetsToReceive)
-        {
-            do
-            {
+    public void receive(DatagramPacket p) throws IOException {
+        synchronized (packetsToReceive) {
+            do {
                 /*
-                 * According to the javadoc of DatagramSocket#close(), any
-                 * thread currently blocked in #receive(DatagramPacket) upon
-                 * this socket will throw a SocketException.
+                 * According to the javadoc of DatagramSocket#close(), any thread currently blocked in #receive(DatagramPacket) upon this socket will throw a SocketException.
                  */
-                if (closed)
-                {
-                    throw
-                        new SocketException(
-                                RelayedCandidateDatagramSocket.class
-                                        .getSimpleName()
-                                    + " has been closed.");
-                }
-                else if (packetsToReceive.isEmpty())
-                {
-                    try
-                    {
+                if (closed) {
+                    throw new SocketException(RelayedCandidateDatagramSocket.class.getSimpleName() + " has been closed.");
+                } else if (packetsToReceive.isEmpty()) {
+                    try {
                         packetsToReceive.wait();
+                    } catch (InterruptedException iex) {
                     }
-                    catch (InterruptedException iex)
-                    {
-                    }
-                }
-                else
-                {
+                } else {
                     DatagramPacket packetToReceive = packetsToReceive.remove(0);
 
                     MultiplexingXXXSocketSupport.copy(packetToReceive, p);
                     packetsToReceive.notifyAll();
                     break;
                 }
-            }
-            while (true);
+            } while (true);
         }
     }
 
@@ -750,25 +624,16 @@ public class RelayedCandidateDatagramSocket
      * <tt>DatagramPacket</tt>s from {@link #channelDataSocket} and
      * {@link #receiveChannelDataThread} is to no longer exist
      */
-    private void runInReceiveChannelDataThread()
-        throws SocketException
-    {
+    private void runInReceiveChannelDataThread() throws SocketException {
         DatagramPacket p = null;
 
-        while (!closed)
-        {
+        while (!closed) {
             // read one datagram a time
             int receiveBufferSize = 1500;
 
-            if (p == null)
-            {
-                p
-                    = new DatagramPacket(
-                            new byte[receiveBufferSize],
-                            receiveBufferSize);
-            }
-            else
-            {
+            if (p == null) {
+                p = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
+            } else {
                 byte[] pData = p.getData();
 
                 if ((pData == null) || (pData.length < receiveBufferSize))
@@ -777,66 +642,43 @@ public class RelayedCandidateDatagramSocket
                     p.setLength(receiveBufferSize);
             }
 
-            try
-            {
+            try {
                 channelDataSocket.receive(p);
-            }
-            catch (Throwable t)
-            {
-                if (t instanceof ThreadDeath)
-                {
+            } catch (Throwable t) {
+                if (t instanceof ThreadDeath) {
                     // Death is the end of life no matter what.
                     throw (ThreadDeath) t;
-                }
-                else if (t instanceof SocketException)
-                {
+                } else if (t instanceof SocketException) {
                     /*
-                     * If the channelDataSocket has gone unusable, put an end to
-                     * receiving from it.
+                     * If the channelDataSocket has gone unusable, put an end to receiving from it.
                      */
                     throw (SocketException) t;
-                }
-                else
-                {
-                    if (logger.isLoggable(Level.WARNING))
-                    {
-                        logger.log(
-                                Level.WARNING,
-                                "Ignoring error while receiving from"
-                                    + " ChannelData socket",
-                                t);
+                } else {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "Ignoring error while receiving from" + " ChannelData socket", t);
                     }
                     continue;
                 }
             }
 
             /*
-             * We've been waiting in #receive so make sure we're still to
-             * continue just in case.
+             * We've been waiting in #receive so make sure we're still to continue just in case.
              */
             if (closed)
                 break;
 
             int channelDataLength = p.getLength();
 
-            if (channelDataLength
-                    < (CHANNELDATA_CHANNELNUMBER_LENGTH
-                            + CHANNELDATA_LENGTH_LENGTH))
+            if (channelDataLength < (CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH))
                 continue;
 
             byte[] channelData = p.getData();
             int channelDataOffset = p.getOffset();
-            char channelNumber
-                = (char)
-                    ((channelData[channelDataOffset++] << 8)
-                            | (channelData[channelDataOffset++] & 0xFF));
+            char channelNumber = (char) ((channelData[channelDataOffset++] << 8) | (channelData[channelDataOffset++] & 0xFF));
 
             channelDataLength -= CHANNELDATA_CHANNELNUMBER_LENGTH;
 
-            char length
-                = (char)
-                    ((channelData[channelDataOffset++] << 8)
-                            | (channelData[channelDataOffset++] & 0xFF));
+            char length = (char) ((channelData[channelDataOffset++] << 8) | (channelData[channelDataOffset++] & 0xFF));
 
             channelDataLength -= CHANNELDATA_LENGTH_LENGTH;
             if (length > channelDataLength)
@@ -844,18 +686,13 @@ public class RelayedCandidateDatagramSocket
 
             TransportAddress peerAddress = null;
 
-            synchronized (packetsToSend)
-            {
+            synchronized (packetsToSend) {
                 int channelCount = channels.size();
 
-                for (int channelIndex = 0;
-                        channelIndex < channelCount;
-                        channelIndex++)
-                {
+                for (int channelIndex = 0; channelIndex < channelCount; channelIndex++) {
                     Channel channel = channels.get(channelIndex);
 
-                    if (channel.channelNumberEquals(channelNumber))
-                    {
+                    if (channel.channelNumberEquals(channelNumber)) {
                         peerAddress = channel.peerAddress;
                         break;
                     }
@@ -868,11 +705,9 @@ public class RelayedCandidateDatagramSocket
 
             System.arraycopy(channelData, channelDataOffset, data, 0, length);
 
-            DatagramPacket packetToReceive
-                = new DatagramPacket(data, 0, length, peerAddress);
+            DatagramPacket packetToReceive = new DatagramPacket(data, 0, length, peerAddress);
 
-            synchronized (packetsToReceive)
-            {
+            synchronized (packetsToReceive) {
                 packetsToReceive.add(packetToReceive);
                 packetsToReceive.notifyAll();
             }
@@ -883,145 +718,84 @@ public class RelayedCandidateDatagramSocket
      * Runs in {@link #sendThread} to send {@link #packetsToSend} to the
      * associated TURN server.
      */
-    private void runInSendThread()
-    {
-        synchronized (packetsToSend)
-        {
-            while (!closed)
-            {
-                if (packetsToSend.isEmpty())
-                {
-                    try
-                    {
+    private void runInSendThread() {
+        synchronized (packetsToSend) {
+            while (!closed) {
+                if (packetsToSend.isEmpty()) {
+                    try {
                         packetsToSend.wait();
-                    }
-                    catch (InterruptedException iex)
-                    {
+                    } catch (InterruptedException iex) {
                     }
                     continue;
                 }
 
                 int packetToSendCount = packetsToSend.size();
 
-                for (int packetToSendIndex = 0;
-                        packetToSendIndex < packetToSendCount;
-                        packetToSendIndex++)
-                {
-                    DatagramPacket packetToSend
-                        = packetsToSend.get(packetToSendIndex);
+                for (int packetToSendIndex = 0; packetToSendIndex < packetToSendCount; packetToSendIndex++) {
+                    DatagramPacket packetToSend = packetsToSend.get(packetToSendIndex);
 
                     /*
-                     * Get a channel to the peer which is to receive the
-                     * packetToSend.
+                     * Get a channel to the peer which is to receive the packetToSend.
                      */
                     int channelCount = channels.size();
-                    TransportAddress peerAddress
-                        = new TransportAddress(
-                                packetToSend.getAddress(),
-                                packetToSend.getPort(),
-                                Transport.UDP);
+                    TransportAddress peerAddress = new TransportAddress(packetToSend.getAddress(), packetToSend.getPort(), Transport.UDP);
                     Channel channel = null;
 
-                    for (int channelIndex = 0;
-                            channelIndex < channelCount;
-                            channelIndex++)
-                    {
+                    for (int channelIndex = 0; channelIndex < channelCount; channelIndex++) {
                         Channel aChannel = channels.get(channelIndex);
 
-                        if (aChannel.peerAddressEquals(peerAddress))
-                        {
+                        if (aChannel.peerAddressEquals(peerAddress)) {
                             channel = aChannel;
                             break;
                         }
                     }
-                    if (channel == null)
-                    {
+                    if (channel == null) {
                         channel = new Channel(peerAddress);
                         channels.add(channel);
                     }
 
                     /*
-                     * RFC 5245 says that "it is RECOMMENDED that the agent
-                     * defer creation of a TURN channel until ICE completes."
-                     * RelayedCandidateDatagramSocket is not explicitly told
-                     * from the outside that ICE has completed so it tries to
-                     * determine it by assuming that connectivity checks send
-                     * only STUN messages and ICE has completed by the time a
-                     * non-STUN message is to be sent.
+                     * RFC 5245 says that "it is RECOMMENDED that the agent defer creation of a TURN channel until ICE completes." RelayedCandidateDatagramSocket is not explicitly
+                     * told from the outside that ICE has completed so it tries to determine it by assuming that connectivity checks send only STUN messages and ICE has completed
+                     * by the time a non-STUN message is to be sent.
                      */
                     boolean forceBind = false;
 
-                    if ((channelDataSocket != null)
-                            && !channel.getChannelDataIsPreferred()
-                            && !connectivityCheckRecognizer.accept(
-                                    packetToSend))
-                    {
+                    if ((channelDataSocket != null) && !channel.getChannelDataIsPreferred() && !connectivityCheckRecognizer.accept(packetToSend)) {
                         channel.setChannelDataIsPreferred(true);
                         forceBind = true;
                     }
 
                     /*
-                     * Either bind the channel or send the packetToSend through
-                     * it.
+                     * Either bind the channel or send the packetToSend through it.
                      */
-                    if (!forceBind && channel.isBound())
-                    {
+                    if (!forceBind && channel.isBound()) {
                         packetsToSend.remove(packetToSendIndex);
-                        try
-                        {
+                        try {
                             channel.send(packetToSend, peerAddress);
-                        }
-                        catch (StunException sex)
-                        {
-                            if (logger.isLoggable(Level.INFO))
-                            {
-                                logger.log(
-                                        Level.INFO,
-                                        "Failed to send through "
-                                            + RelayedCandidateDatagramSocket
-                                                    .class.getSimpleName()
-                                            + " channel." ,
-                                        sex);
+                        } catch (StunException sex) {
+                            if (logger.isLoggable(Level.INFO)) {
+                                logger.log(Level.INFO, "Failed to send through " + RelayedCandidateDatagramSocket.class.getSimpleName() + " channel.", sex);
                             }
                         }
                         break;
-                    }
-                    else if (forceBind || !channel.isBinding())
-                    {
-                        try
-                        {
+                    } else if (forceBind || !channel.isBinding()) {
+                        try {
                             channel.bind();
-                        }
-                        catch (StunException sex)
-                        {
-                            if (logger.isLoggable(Level.INFO))
-                            {
-                                logger.log(
-                                        Level.INFO,
-                                        "Failed to bind "
-                                            + RelayedCandidateDatagramSocket
-                                                    .class.getSimpleName()
-                                            + " channel." ,
-                                        sex);
+                        } catch (StunException sex) {
+                            if (logger.isLoggable(Level.INFO)) {
+                                logger.log(Level.INFO, "Failed to bind " + RelayedCandidateDatagramSocket.class.getSimpleName() + " channel.", sex);
                             }
                             /*
-                             * Well, it may not be the fault of the packetToSend
-                             * but it happened while we were trying to send it
-                             * and we don't have a way to report an error so
-                             * just drop packetToSend in order to change
-                             * something and not just go again trying the same
-                             * thing.
+                             * Well, it may not be the fault of the packetToSend but it happened while we were trying to send it and we don't have a way to report an error so just
+                             * drop packetToSend in order to change something and not just go again trying the same thing.
                              */
                             packetsToSend.remove(packetToSendIndex);
                             break;
                         }
                         /*
-                         * If the Channel was bound but #bind() was forced on
-                         * it, we cannot continue with the next packetToSend
-                         * because it may be for the same Channel and then
-                         * #bind() will not be forced and the Channel will be
-                         * bound already so the send order of the packetsToSend
-                         * will be disrupted.
+                         * If the Channel was bound but #bind() was forced on it, we cannot continue with the next packetToSend because it may be for the same Channel and then
+                         * #bind() will not be forced and the Channel will be bound already so the send order of the packetsToSend will be disrupted.
                          */
                         if (forceBind)
                             break;
@@ -1029,18 +803,12 @@ public class RelayedCandidateDatagramSocket
                 }
 
                 /*
-                 * If no packetToSend has been sent by the current iteration,
-                 * then we must be waiting for some condition to change in order
-                 * to be able to send.
+                 * If no packetToSend has been sent by the current iteration, then we must be waiting for some condition to change in order to be able to send.
                  */
-                if (packetsToSend.size() == packetToSendCount)
-                {
-                    try
-                    {
+                if (packetsToSend.size() == packetToSendCount) {
+                    try {
                         packetsToSend.wait();
-                    }
-                    catch (InterruptedException iex)
-                    {
+                    } catch (InterruptedException iex) {
                     }
                 }
             }
@@ -1057,20 +825,11 @@ public class RelayedCandidateDatagramSocket
      * @see DatagramSocket#send(DatagramPacket)
      */
     @Override
-    public void send(DatagramPacket p)
-        throws IOException
-    {
-        synchronized (packetsToSend)
-        {
-            if (closed)
-            {
-                throw
-                    new IOException(
-                            RelayedCandidateDatagramSocket.class.getSimpleName()
-                                + " has been closed.");
-            }
-            else
-            {
+    public void send(DatagramPacket p) throws IOException {
+        synchronized (packetsToSend) {
+            if (closed) {
+                throw new IOException(RelayedCandidateDatagramSocket.class.getSimpleName() + " has been closed.");
+            } else {
                 packetsToSend.add(MultiplexingXXXSocketSupport.clone(p));
                 if (sendThread == null)
                     createSendThread();
@@ -1089,27 +848,18 @@ public class RelayedCandidateDatagramSocket
      * @param bound <tt>true</tt> if the <tt>bound</tt> property of the
      * <tt>Channel</tt> is to be set to <tt>true</tt>; otherwise, <tt>false</tt>
      */
-    private void setChannelBound(Request request, boolean bound)
-    {
-        XorPeerAddressAttribute peerAddressAttribute
-            = (XorPeerAddressAttribute)
-                request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+    private void setChannelBound(Request request, boolean bound) {
+        XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
-        TransportAddress peerAddress
-            = peerAddressAttribute.getAddress(transactionID);
+        TransportAddress peerAddress = peerAddressAttribute.getAddress(transactionID);
 
-        synchronized (packetsToSend)
-        {
+        synchronized (packetsToSend) {
             int channelCount = channels.size();
 
-            for (int channelIndex = 0;
-                    channelIndex < channelCount;
-                    channelIndex++)
-            {
+            for (int channelIndex = 0; channelIndex < channelCount; channelIndex++) {
                 Channel channel = channels.get(channelIndex);
 
-                if (channel.peerAddressEquals(peerAddress))
-                {
+                if (channel.peerAddressEquals(peerAddress)) {
                     channel.setBound(bound, transactionID);
                     packetsToSend.notifyAll();
                     break;
@@ -1128,32 +878,19 @@ public class RelayedCandidateDatagramSocket
      * @param channelNumberIsConfirmed <tt>true</tt> if the channel number has
      * been successfully allocated; otherwise, <tt>false</tt>
      */
-    private void setChannelNumberIsConfirmed(
-            Request request,
-            boolean channelNumberIsConfirmed)
-    {
-        XorPeerAddressAttribute peerAddressAttribute
-            = (XorPeerAddressAttribute)
-                request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+    private void setChannelNumberIsConfirmed(Request request, boolean channelNumberIsConfirmed) {
+        XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
-        TransportAddress peerAddress
-            = peerAddressAttribute.getAddress(transactionID);
+        TransportAddress peerAddress = peerAddressAttribute.getAddress(transactionID);
 
-        synchronized (packetsToSend)
-        {
+        synchronized (packetsToSend) {
             int channelCount = channels.size();
 
-            for (int channelIndex = 0;
-                    channelIndex < channelCount;
-                    channelIndex++)
-            {
+            for (int channelIndex = 0; channelIndex < channelCount; channelIndex++) {
                 Channel channel = channels.get(channelIndex);
 
-                if (channel.peerAddressEquals(peerAddress))
-                {
-                    channel.setChannelNumberIsConfirmed(
-                            channelNumberIsConfirmed,
-                            transactionID);
+                if (channel.peerAddressEquals(peerAddress)) {
+                    channel.setChannelNumberIsConfirmed(channelNumberIsConfirmed, transactionID);
                     packetsToSend.notifyAll();
                     break;
                 }
@@ -1161,14 +898,13 @@ public class RelayedCandidateDatagramSocket
         }
     }
 
-	/**
+    /**
      * Represents a channel which relays data sent through this
      * <tt>RelayedCandidateDatagramSocket</tt> to a specific
      * <tt>TransportAddress</tt> via the TURN server associated with this
      * <tt>RelayedCandidateDatagramSocket</tt>.
      */
-    private class Channel
-    {
+    private class Channel {
         /**
          * The time stamp in milliseconds at which {@link #bindingTransactionID}
          * has been used to bind/install this <tt>Channel</tt>.
@@ -1236,8 +972,7 @@ public class RelayedCandidateDatagramSocket
          * the new instance is to provide a permission of this
          * <tt>RelayedCandidateDatagramSocket</tt> to send data to
          */
-        public Channel(TransportAddress peerAddress)
-        {
+        public Channel(TransportAddress peerAddress) {
             this.peerAddress = peerAddress;
         }
 
@@ -1249,60 +984,37 @@ public class RelayedCandidateDatagramSocket
          * @throws StunException if anything goes wrong while binding/installing
          * this channel
          */
-        public void bind()
-            throws StunException
-        {
-            byte[] createPermissionTransactionID
-                = TransactionID.createNewTransactionID().getBytes();
-            Request createPermissionRequest
-                = MessageFactory.createCreatePermissionRequest(
-                        peerAddress,
-                        createPermissionTransactionID);
+        public void bind() throws StunException {
+            byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
+            Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(peerAddress, createPermissionTransactionID);
 
-            createPermissionRequest.setTransactionID(
-                    createPermissionTransactionID);
-            turnCandidateHarvest.sendRequest(
-                    RelayedCandidateDatagramSocket.this,
-                    createPermissionRequest);
+            createPermissionRequest.setTransactionID(createPermissionTransactionID);
+            turnCandidateHarvest.sendRequest(RelayedCandidateDatagramSocket.this, createPermissionRequest);
 
             bindingTransactionID = createPermissionTransactionID;
             bindingTimeStamp = System.currentTimeMillis();
 
-            if (channelDataIsPreferred)
-            {
-                if (channelNumber == CHANNEL_NUMBER_NOT_SPECIFIED)
-                {
+            if (channelDataIsPreferred) {
+                if (channelNumber == CHANNEL_NUMBER_NOT_SPECIFIED) {
                     channelNumber = getNextChannelNumber();
                     channelNumberIsConfirmed = false;
                 }
-                if (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED)
-                {
-                    byte[] channelBindTransactionID
-                        = TransactionID.createNewTransactionID().getBytes();
-                    Request channelBindRequest
-                        = MessageFactory.createChannelBindRequest(
-                                channelNumber,
-                                peerAddress,
-                                channelBindTransactionID);
+                if (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED) {
+                    byte[] channelBindTransactionID = TransactionID.createNewTransactionID().getBytes();
+                    Request channelBindRequest = MessageFactory.createChannelBindRequest(channelNumber, peerAddress, channelBindTransactionID);
 
-                    channelBindRequest.setTransactionID(
-                            channelBindTransactionID);
+                    channelBindRequest.setTransactionID(channelBindTransactionID);
 
                     /*
-                     * We have to be prepared to receive ChannelData messages
-                     * from the TURN server as soon as we've sent the
-                     * ChannelBind request and before we've received a success
+                     * We have to be prepared to receive ChannelData messages from the TURN server as soon as we've sent the ChannelBind request and before we've received a success
                      * response to it.
                      */
-                    synchronized (packetsToReceive)
-                    {
+                    synchronized (packetsToReceive) {
                         if (!closed && (receiveChannelDataThread == null))
                             createReceiveChannelDataThread();
                     }
 
-                    turnCandidateHarvest.sendRequest(
-                            RelayedCandidateDatagramSocket.this,
-                            channelBindRequest);
+                    turnCandidateHarvest.sendRequest(RelayedCandidateDatagramSocket.this, channelBindRequest);
                 }
             }
         }
@@ -1316,8 +1028,7 @@ public class RelayedCandidateDatagramSocket
          * @return <tt>true</tt> if the specified <tt>channelNumber</tt> is
          * equal to the channel number of this <tt>Channel</tt>
          */
-        public boolean channelNumberEquals(char channelNumber)
-        {
+        public boolean channelNumberEquals(char channelNumber) {
             return (this.channelNumber == channelNumber);
         }
 
@@ -1330,8 +1041,7 @@ public class RelayedCandidateDatagramSocket
          * is set to prefer sending <tt>DatagramPacket</tt>s using TURN
          * ChannelData messages instead of Send indications
          */
-        public boolean getChannelDataIsPreferred()
-        {
+        public boolean getChannelDataIsPreferred() {
             return channelDataIsPreferred;
         }
 
@@ -1344,8 +1054,7 @@ public class RelayedCandidateDatagramSocket
          * itself and has not received a confirmation that it has succeeded in
          * doing so yet; otherwise, <tt>false</tt>
          */
-        public boolean isBinding()
-        {
+        public boolean isBinding() {
             return (bindingTransactionID != null);
         }
 
@@ -1356,13 +1065,8 @@ public class RelayedCandidateDatagramSocket
          * @return <tt>true</tt> if this instance is currently considered
          * bound/installed; otherwise, <tt>false</tt>
          */
-        public boolean isBound()
-        {
-            if ((bindingTimeStamp == -1)
-                    || (bindingTimeStamp
-                                + PERMISSION_LIFETIME
-                                - PERMISSION_LIFETIME_LEEWAY)
-                            < System.currentTimeMillis())
+        public boolean isBound() {
+            if ((bindingTimeStamp == -1) || (bindingTimeStamp + PERMISSION_LIFETIME - PERMISSION_LIFETIME_LEEWAY) < System.currentTimeMillis())
                 return false;
             return (bindingTransactionID == null) && bound;
         }
@@ -1379,23 +1083,15 @@ public class RelayedCandidateDatagramSocket
          * considered by this <tt>Channel</tt> to be equal to its
          * <tt>peerAddress</tt> property; otherwise, <tt>false</tt>
          */
-        public boolean peerAddressEquals(TransportAddress peerAddress)
-        {
+        public boolean peerAddressEquals(TransportAddress peerAddress) {
             /*
-             * CreatePermission installs a permission for the IP address and the
-             * port is ignored. But ChannelBind creates a channel for the
-             * peerAddress only. So if there is a chance that ChannelBind will
-             * be used, have a Channel instance per peerAddress and
-             * CreatePermission more often than really necessary (as a side
-             * effect).
+             * CreatePermission installs a permission for the IP address and the port is ignored. But ChannelBind creates a channel for the peerAddress only. So if there is a
+             * chance that ChannelBind will be used, have a Channel instance per peerAddress and CreatePermission more often than really necessary (as a side effect).
              */
             if (channelDataSocket != null)
                 return this.peerAddress.equals(peerAddress);
-            else
-            {
-                return
-                    this.peerAddress.getAddress().equals(
-                            peerAddress.getAddress());
+            else {
+                return this.peerAddress.getAddress().equals(peerAddress.getAddress());
             }
         }
 
@@ -1410,9 +1106,7 @@ public class RelayedCandidateDatagramSocket
          * specified <tt>DatagramPacket</tt> to the specified peer
          * <tt>TransportAddress</tt>
          */
-        public void send(DatagramPacket p, TransportAddress peerAddress)
-            throws StunException
-        {
+        public void send(DatagramPacket p, TransportAddress peerAddress) throws StunException {
             byte[] pData = p.getData();
             int pOffset = p.getOffset();
             int pLength = p.getLength();
@@ -1420,25 +1114,16 @@ public class RelayedCandidateDatagramSocket
 
             if ((pOffset == 0) && (pLength == pData.length))
                 data = pData;
-            else
-            {
+            else {
                 data = new byte[pLength];
                 System.arraycopy(pData, pOffset, data, 0, pLength);
             }
 
-            if (channelDataIsPreferred
-                    && (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED)
-                    && channelNumberIsConfirmed)
-            {
+            if (channelDataIsPreferred && (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED) && channelNumberIsConfirmed) {
                 char length = (char) data.length;
-                int channelDataLength
-                    = CHANNELDATA_CHANNELNUMBER_LENGTH
-                        + CHANNELDATA_LENGTH_LENGTH
-                        + length;
+                int channelDataLength = CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH + length;
 
-                if ((channelData == null)
-                        || (channelData.length < channelDataLength))
-                {
+                if ((channelData == null) || (channelData.length < channelDataLength)) {
                     channelData = new byte[channelDataLength];
                     if (channelDataPacket != null)
                         channelDataPacket.setData(channelData);
@@ -1451,54 +1136,24 @@ public class RelayedCandidateDatagramSocket
                 channelData[2] = (byte) (length >> 8);
                 channelData[3] = (byte) (length & 0xFF);
                 // Application Data
-                System.arraycopy(
-                        data,
-                        0,
-                        channelData,
-                        CHANNELDATA_CHANNELNUMBER_LENGTH
-                            + CHANNELDATA_LENGTH_LENGTH,
-                        length);
+                System.arraycopy(data, 0, channelData, CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH, length);
 
-                try
-                {
-                    if (channelDataPacket == null)
-                    {
-                        channelDataPacket
-                            = new DatagramPacket(
-                                    channelData, 0, channelDataLength,
-                                    turnCandidateHarvest.harvester.stunServer);
-                    }
-                    else
-                        channelDataPacket.setData(channelData, 0,
-                                channelDataLength);
+                try {
+                    if (channelDataPacket == null) {
+                        channelDataPacket = new DatagramPacket(channelData, 0, channelDataLength, turnCandidateHarvest.harvester.stunServer);
+                    } else
+                        channelDataPacket.setData(channelData, 0, channelDataLength);
 
                     channelDataSocket.send(channelDataPacket);
+                } catch (IOException ioex) {
+                    throw new StunException(StunException.NETWORK_ERROR, "Failed to send TURN ChannelData message", ioex);
                 }
-                catch (IOException ioex)
-                {
-                    throw
-                        new StunException(
-                                StunException.NETWORK_ERROR,
-                                "Failed to send TURN ChannelData message",
-                                ioex);
-                }
-            }
-            else
-            {
-                byte[] transactionID
-                    = TransactionID.createNewTransactionID().getBytes();
-                Indication sendIndication
-                    = MessageFactory.createSendIndication(
-                            peerAddress,
-                            data,
-                            transactionID);
+            } else {
+                byte[] transactionID = TransactionID.createNewTransactionID().getBytes();
+                Indication sendIndication = MessageFactory.createSendIndication(peerAddress, data, transactionID);
 
                 sendIndication.setTransactionID(transactionID);
-                turnCandidateHarvest.harvester.getStunStack().sendIndication(
-                        sendIndication,
-                        turnCandidateHarvest.harvester.stunServer,
-                        turnCandidateHarvest
-                            .hostCandidate.getTransportAddress());
+                turnCandidateHarvest.harvester.getStunStack().sendIndication(sendIndication, turnCandidateHarvest.harvester.stunServer, turnCandidateHarvest.hostCandidate.getTransportAddress());
             }
         }
 
@@ -1512,10 +1167,8 @@ public class RelayedCandidateDatagramSocket
          * the ID of the transaction with which the confirmation about the
          * binding/installing has arrived
          */
-        public void setBound(boolean bound, byte[] boundTransactionID)
-        {
-            if (bindingTransactionID != null)
-            {
+        public void setBound(boolean bound, byte[] boundTransactionID) {
+            if (bindingTransactionID != null) {
                 bindingTransactionID = null;
                 this.bound = bound;
             }
@@ -1530,8 +1183,7 @@ public class RelayedCandidateDatagramSocket
          * is to be set to prefer sending <tt>DatagramPacket</tt>s using TURN
          * ChannelData messages instead of Send indications
          */
-        public void setChannelDataIsPreferred(boolean channelDataIsPreferred)
-        {
+        public void setChannelDataIsPreferred(boolean channelDataIsPreferred) {
             this.channelDataIsPreferred = channelDataIsPreferred;
         }
 
@@ -1549,10 +1201,7 @@ public class RelayedCandidateDatagramSocket
          * the confirmation about the allocation of the channel number has
          * arrived
          */
-        public void setChannelNumberIsConfirmed(
-                boolean channelNumberIsConfirmed,
-                byte[] channelNumberIsConfirmedTransactionID)
-        {
+        public void setChannelNumberIsConfirmed(boolean channelNumberIsConfirmed, byte[] channelNumberIsConfirmedTransactionID) {
             this.channelNumberIsConfirmed = channelNumberIsConfirmed;
         }
     }

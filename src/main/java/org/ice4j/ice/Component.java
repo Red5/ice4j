@@ -11,7 +11,6 @@ import java.beans.PropertyChangeListener;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -167,30 +166,21 @@ public class Component implements PropertyChangeListener {
      */
     public boolean addLocalCandidate(LocalCandidate candidate) {
         Agent agent = getParentStream().getParentAgent();
-
         //assign foundation.
         agent.getFoundationsRegistry().assignFoundation(candidate);
-
         //compute priority
         candidate.computePriority();
-
         synchronized (localCandidates) {
             //check if we already have such a candidate (redundant)
             LocalCandidate redundantCandidate = findRedundant(candidate);
-
             if (redundantCandidate != null) {
-                //if we get here, then it's clear we won't be adding anything
-                //we will just update something at best. We purposefully don't
-                //care about priorities because allowing candidate replace is
-                //tricky to handle on the signalling layer with trickle
+                //if we get here, then it's clear we won't be adding anything we will just update something at best. We purposefully don't
+                //care about priorities because allowing candidate replace is tricky to handle on the signaling layer with trickle
                 return false;
             }
-
             localCandidates.add(candidate);
-
             //we are done adding ... now let's just order by priority.
             Collections.sort(localCandidates);
-
             return true;
         }
     }
@@ -289,7 +279,7 @@ public class Component implements PropertyChangeListener {
      * Update ICE processing with new <tt>Candidate</tt>s.
      */
     public void updateRemoteCandidates() {
-        List<CandidatePair> checkList;
+        List<CandidatePair> checkList = new Vector<>();
         List<RemoteCandidate> newRemoteCandidates;
 
         synchronized (remoteUpdateCandidates) {
@@ -299,21 +289,12 @@ public class Component implements PropertyChangeListener {
             newRemoteCandidates = new LinkedList<>(remoteUpdateCandidates);
 
             List<LocalCandidate> localCnds = getLocalCandidates();
-
-            checkList = new Vector<>();
-
             for (LocalCandidate localCnd : localCnds) {
                 //pair each of the new remote candidates with each of our locals
                 for (RemoteCandidate remoteCnd : remoteUpdateCandidates) {
                     if (localCnd.canReach(remoteCnd) && remoteCnd.getTransportAddress().getPort() != 0) {
-                        // A single LocalCandidate might be/become connected
-                        // to more more than one remote address, and that's ok
+                        // A single LocalCandidate might be/become connected to more than one remote address, and that's ok
                         // (that is, we need to form pairs with them all).
-                        /*
-                         * if (localCnd.getTransport() == Transport.TCP && localCnd.getIceSocketWrapper().getTCPSocket(). isConnected()) { if
-                         * (!localCnd.getIceSocketWrapper().getTCPSocket(). getRemoteSocketAddress().equals( remoteCnd.getTransportAddress())) { continue; } }
-                         */
-
                         CandidatePair pair = getParentStream().getParentAgent().createCandidatePair(localCnd, remoteCnd);
                         logger.info("new Pair added: " + pair.toShortString() + ". Local ufrag " + parentStream.getParentAgent().getLocalUfrag());
                         checkList.add(pair);
@@ -332,8 +313,7 @@ public class Component implements PropertyChangeListener {
         parentStream.pruneCheckList(checkList);
 
         if (parentStream.getCheckList().getState().equals(CheckListState.RUNNING)) {
-            //add the updated CandidatePair list to the currently running
-            //checklist
+            //add the updated CandidatePair list to the currently running checklist
             CheckList streamCheckList = parentStream.getCheckList();
             synchronized (streamCheckList) {
                 for (CandidatePair pair : checkList) {
@@ -556,35 +536,23 @@ public class Component implements PropertyChangeListener {
      */
     protected void free() {
         synchronized (localCandidates) {
-            /*
-             * Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have been harvested, order the freeing.
-             */
+            // Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have 
+            // been harvested, order the freeing.
             CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE };
-
             for (CandidateType candidateType : candidateTypes) {
-                Iterator<LocalCandidate> localCandidateIter = localCandidates.iterator();
-
-                while (localCandidateIter.hasNext()) {
-                    LocalCandidate localCandidate = localCandidateIter.next();
-
+                for (LocalCandidate localCandidate : localCandidates) {
                     if (candidateType.equals(localCandidate.getType())) {
                         free(localCandidate);
-                        localCandidateIter.remove();
+                        localCandidates.remove(localCandidate);
                     }
                 }
             }
-
             // Free whatever's left.
-            Iterator<LocalCandidate> localCandidateIter = localCandidates.iterator();
-
-            while (localCandidateIter.hasNext()) {
-                LocalCandidate localCandidate = localCandidateIter.next();
-
+            for (LocalCandidate localCandidate : localCandidates) {
                 free(localCandidate);
-                localCandidateIter.remove();
+                localCandidates.remove(localCandidate);
             }
         }
-
         getParentStream().removePairStateChangeListener(this);
         keepAlivePairs.clear();
         getComponentSocket().close();

@@ -10,6 +10,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.channels.DatagramChannel;
 
+import org.ice4j.TransportAddress;
+
 /**
  * Abstract socket wrapper that define a socket that could be UDP, TCP...
  *
@@ -79,9 +81,9 @@ public abstract class IceSocketWrapper {
      *
      * @return DatagramSocket object if the delegate socket is a UDP one, null otherwise.
      */
-    public DatagramSocket getUDPSocket() {
-        return null;
-    }
+//    public DatagramSocket getUDPSocket() {
+//        return null;
+//    }
 
     /**
      * Returns DatagramChannel object if the delegate socket is a UDP one, null otherwise.
@@ -91,5 +93,12 @@ public abstract class IceSocketWrapper {
     public DatagramChannel getUDPChannel() {
         return null;
     }
+
+    /**
+     * Returns TransportAddress for the wrapped socket implementation.
+     * 
+     * @return transport address
+     */
+    public abstract TransportAddress getTransportAddress();
 
 }

@@ -6,12 +6,21 @@
  */
 package org.ice4j.ice;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketException;
 
-import org.ice4j.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.TransportAddress;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.IceTcpSocketWrapper;
+import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.socket.MultiplexingDatagramSocket;
+import org.ice4j.socket.MultiplexingSocket;
+import org.ice4j.socket.filter.DatagramPacketFilter;
+import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

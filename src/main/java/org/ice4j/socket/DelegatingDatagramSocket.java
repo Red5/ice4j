@@ -6,11 +6,17 @@
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-import java.nio.channels.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.nio.channels.DatagramChannel;
 
-import org.ice4j.stack.*;
+import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.stack.StunStack;
 
 /**
  * Implements a <tt>DatagramSocket</tt> which delegates its calls to a specific <tt>DatagramSocket</tt>.
