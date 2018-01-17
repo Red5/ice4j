@@ -75,15 +75,15 @@ public enum CandidateExtendedType
     JINGLE_NODE_CANDIDATE("jingle node");
 
     /**
-     * The name of this <tt>CandidateExtendedType</tt> instance.
+     * The name of this CandidateExtendedType instance.
      */
     private final String extendedTypeName;
 
     /**
-     * Creates a <tt>CandidateExtendedType</tt> instance with the specified
+     * Creates a CandidateExtendedType instance with the specified
      * name.
      *
-     * @param extendedTypeName the name of the <tt>CandidateExtendedType</tt>
+     * @param extendedTypeName the name of the CandidateExtendedType
      * instance we'd like to create.
      */
     private CandidateExtendedType(String extendedTypeName)
@@ -92,11 +92,11 @@ public enum CandidateExtendedType
     }
 
     /**
-     * Returns the name of this <tt>CandidateExtendedType</tt> (e.g. "host",
+     * Returns the name of this CandidateExtendedType (e.g. "host",
      * "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
      * "google turn relayed" or "jingle node").
      *
-     * @return The name of this <tt>CandidateExtendedType</tt> (e.g. "host",
+     * @return The name of this CandidateExtendedType (e.g. "host",
      * "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
      * "google turn relayed", "google tcp turn relayed" or "jingle node").
      */
@@ -107,16 +107,16 @@ public enum CandidateExtendedType
     }
 
     /**
-     * Returns a <tt>CandidateExtendedType</tt> instance corresponding to the
-     * specified <tt>extendedTypeName</tt>. For example, for name "host", this
+     * Returns a CandidateExtendedType instance corresponding to the
+     * specified extendedTypeName. For example, for name "host", this
      * method would return {@link #HOST_CANDIDATE}.
      *
      * @param extendedTypeName the name that we'd like to parse.
      *
-     * @return a <tt>CandidateExtendedType</tt> instance corresponding to the
-     * specified <tt>extendedTypeName</tt>.
+     * @return a CandidateExtendedType instance corresponding to the
+     * specified extendedTypeName.
      *
-     * @throws IllegalArgumentException in case <tt>extendedTypeName</tt> is
+     * @throws IllegalArgumentException in case extendedTypeName is
      * not a valid or currently supported candidate extended type.
      */
     public static CandidateExtendedType parse(String extendedTypeName)

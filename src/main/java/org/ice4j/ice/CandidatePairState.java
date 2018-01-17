@@ -18,7 +18,7 @@
 package org.ice4j.ice;
 
 /**
- * Each candidate pair in the a list has a <tt>CandidatePairState</tt>. It is
+ * Each candidate pair in the a list has a CandidatePairState. It is
  * assigned once the check list for each media stream has been computed. There
  * are five potential values that the state can have and they are all
  * represented by this enumeration.
@@ -64,14 +64,14 @@ public enum CandidatePairState
     FROZEN("Frozen");
 
     /**
-     * The name of this <tt>CandidatePairState</tt> instance.
+     * The name of this CandidatePairState instance.
      */
     private final String stateName;
 
     /**
-     * Creates a <tt>CandidatePairState</tt> instance with the specified name.
+     * Creates a CandidatePairState instance with the specified name.
      *
-     * @param stateName the name of the <tt>CandidatePairState</tt> instance
+     * @param stateName the name of the CandidatePairState instance
      * we'd like to create.
      */
     private CandidatePairState(String stateName)
@@ -80,10 +80,10 @@ public enum CandidatePairState
     }
 
     /**
-     * Returns the name of this <tt>CandidatePairStae</tt> (e.g. "In-Progress",
+     * Returns the name of this CandidatePairStae (e.g. "In-Progress",
      * "Waiting", "Succeeded", or "Failed").
      *
-     * @return the name of this <tt>Transport</tt> (e.g. "Waiting" or
+     * @return the name of this Transport (e.g. "Waiting" or
      * "Frozen").
      */
     @Override

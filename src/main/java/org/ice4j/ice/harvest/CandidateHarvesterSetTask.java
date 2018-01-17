@@ -34,14 +34,14 @@ class CandidateHarvesterSetTask
     implements Runnable
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>CandidateHarvesterSetTask</tt>
+     * The Logger used by the CandidateHarvesterSetTask
      * class and its instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(CandidateHarvesterSetTask.class.getName());
 
     /**
-     * The <tt>CandidateHarvester</tt> on which
+     * The CandidateHarvester on which
      * {@link CandidateHarvester#harvest(org.ice4j.ice.Component)} is to be or
      * is being called.
      */
@@ -59,15 +59,15 @@ class CandidateHarvesterSetTask
     private final TrickleCallback trickleCallback;
 
     /**
-     * Initializes a new <tt>CandidateHarvesterSetTask</tt> which is to
+     * Initializes a new CandidateHarvesterSetTask which is to
      * call {@link CandidateHarvester#harvest(org.ice4j.ice.Component)} on a
      * specific harvester and then as many harvesters as possible.
      *
-     * @param harvester the <tt>CandidateHarvester</tt> on which the
+     * @param harvester the CandidateHarvester on which the
      * new instance is to call
-     * @param components the <tt>Component</tt> whose candidates we are currently
+     * @param components the Component whose candidates we are currently
      * gathering.
-     * <tt>CandidateHarvester#harvest(Component)</tt> first
+     * CandidateHarvester#harvest(Component) first
      */
     public CandidateHarvesterSetTask(
             CandidateHarvesterSetElement harvester,
@@ -80,12 +80,12 @@ class CandidateHarvesterSetTask
     }
 
     /**
-     * Gets the <tt>CandidateHarvester</tt> on which
+     * Gets the CandidateHarvester on which
      * {@link CandidateHarvester#harvest(org.ice4j.ice.Component)} is being
      * called.
      *
-     * @return the <tt>CandidateHarvester</tt> on which
-     * <tt>CandidateHarvester#harvest(Component)</tt> is being called
+     * @return the CandidateHarvester on which
+     * CandidateHarvester#harvest(Component) is being called
      */
     public CandidateHarvesterSetElement getHarvester()
     {

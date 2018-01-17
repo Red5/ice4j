@@ -49,7 +49,7 @@ public class NetworkUtils
     private final static int IN6_ADDR_SIZE = 16;
 
     /**
-     * The size of the tokens in a <tt>String</tt> representation of IPv6
+     * The size of the tokens in a String representation of IPv6
      * addresses.
      */
     //private final static int IN6_ADDR_TOKEN_SIZE = 16;
@@ -122,11 +122,11 @@ public class NetworkUtils
     }
 
     /**
-     * Verifies whether <tt>address</tt> could be an IPv4 address string.
+     * Verifies whether address could be an IPv4 address string.
      *
      * @param address the String that we'd like to determine as an IPv4 address.
      *
-     * @return true if the address contained by <tt>address</tt> is an IPv4
+     * @return true if the address contained by address is an IPv4
      * address and false otherwise.
      */
     public static boolean isIPv4Address(String address)
@@ -135,11 +135,11 @@ public class NetworkUtils
     }
 
     /**
-     * Verifies whether <tt>address</tt> could be an IPv6 address string.
+     * Verifies whether address could be an IPv6 address string.
      *
      * @param address the String that we'd like to determine as an IPv6 address.
      *
-     * @return true if the address contained by <tt>address</tt> is an IPv6
+     * @return true if the address contained by address is an IPv6
      * address and false otherwise.
      */
     public static boolean isIPv6Address(String address)
@@ -148,7 +148,7 @@ public class NetworkUtils
     }
 
     /**
-     * Checks whether <tt>address</tt> is a valid IP address string.
+     * Checks whether address is a valid IP address string.
      *
      * @param address the address that we'd like to check
      * @return true if address is an IPv4 or IPv6 address and false otherwise.
@@ -210,12 +210,12 @@ public class NetworkUtils
     }
 
     /**
-     * Creates a byte array containing the specified <tt>ipv4AddStr</tt>.
+     * Creates a byte array containing the specified ipv4AddStr.
      *
-     * @param ipv4AddrStr a <tt>String</tt> containing an IPv4 address.
+     * @param ipv4AddrStr a String containing an IPv4 address.
      *
      * @return a byte array containing the four bytes of the address represented
-     * by ipv4AddrStr or <tt>null</tt> if <tt>ipv4AddrStr</tt> does not contain
+     * by ipv4AddrStr or null if ipv4AddrStr does not contain
      * a valid IPv4 address string.
      */
     public static byte[] strToIPv4(String ipv4AddrStr)
@@ -310,12 +310,12 @@ public class NetworkUtils
     }
 
     /**
-     * Creates a byte array containing the specified <tt>ipv6AddStr</tt>.
+     * Creates a byte array containing the specified ipv6AddStr.
      *
-     * @param ipv6AddrStr a <tt>String</tt> containing an IPv6 address.
+     * @param ipv6AddrStr a String containing an IPv6 address.
      *
      * @return a byte array containing the four bytes of the address represented
-     * by <tt>ipv6AddrStr</tt> or <tt>null</tt> if <tt>ipv6AddrStr</tt> does
+     * by ipv6AddrStr or null if ipv6AddrStr does
      * not contain a valid IPv6 address string.
      */
     public static byte[] strToIPv6(String ipv6AddrStr)
@@ -470,7 +470,7 @@ public class NetworkUtils
 
     /**
      * Returns an IPv4 address matching the one mapped in the IPv6
-     * <tt>addr</tt>. Both input and returned value are in network order.
+     * addr. Both input and returned value are in network order.
      *
      * @param addr a String representing an IPv4-Mapped address in textual
      * format
@@ -490,14 +490,14 @@ public class NetworkUtils
     }
 
     /**
-     * Utility method to check if the specified <tt>address</tt> is an IPv4
+     * Utility method to check if the specified address is an IPv4
      * mapped IPv6 address.
      *
      * @param address the address that we'd like to determine as an IPv4 mapped
      * one or not.
      *
-     * @return <tt>true</tt> if address is an IPv4 mapped IPv6 address and
-     * <tt>false</tt> otherwise.
+     * @return true if address is an IPv4 mapped IPv6 address and
+     * false otherwise.
      */
     private static boolean isMappedIPv4Addr(byte[] address)
     {
@@ -521,23 +521,23 @@ public class NetworkUtils
     }
 
     /**
-     * Creates an InetAddress from the specified <tt>hostAddress</tt>. The point
+     * Creates an InetAddress from the specified hostAddress. The point
      * of using the method rather than creating the address by yourself is that
-     * it would first check whether the specified <tt>hostAddress</tt> is indeed
+     * it would first check whether the specified hostAddress is indeed
      * a valid ip address. It this is the case, the method would create the
-     * <tt>InetAddress</tt> using the <tt>InetAddress.getByAddress()</tt>
+     * InetAddress using the InetAddress.getByAddress()
      * method so that no DNS resolution is attempted by the JRE. Otherwise
-     * it would simply use <tt>InetAddress.getByName()</tt> so that we would an
-     * <tt>InetAddress</tt> instance even at the cost of a potential DNS
+     * it would simply use InetAddress.getByName() so that we would an
+     * InetAddress instance even at the cost of a potential DNS
      * resolution.
      *
-     * @param hostAddress the <tt>String</tt> representation of the address
-     * that we would like to create an <tt>InetAddress</tt> instance for.
+     * @param hostAddress the String representation of the address
+     * that we would like to create an InetAddress instance for.
      *
-     * @return an <tt>InetAddress</tt> instance corresponding to the specified
-     * <tt>hostAddress</tt>.
+     * @return an InetAddress instance corresponding to the specified
+     * hostAddress.
      *
-     * @throws UnknownHostException if any of the <tt>InetAddress</tt> methods
+     * @throws UnknownHostException if any of the InetAddress methods
      * we are using throw an exception.
      */
     public static InetAddress getInetAddress(String hostAddress)
@@ -629,13 +629,13 @@ public class NetworkUtils
     }
 
     /**
-     * Determines whether <tt>port</tt> is a valid port number bindable by an
+     * Determines whether port is a valid port number bindable by an
      * application (i.e. an integer between 1024 and 65535).
      *
      * @param port the port number that we'd like verified.
      *
-     * @return <tt>true</tt> if port is a valid and bindable port number and
-     * <tt>alse</tt> otherwise.
+     * @return true if port is a valid and bindable port number and
+     * alse otherwise.
      */
     public static boolean isValidPortNumber(int port)
     {
@@ -643,15 +643,15 @@ public class NetworkUtils
     }
 
     /**
-     * Determines whether or not the <tt>iface</tt> interface is a loopback
+     * Determines whether or not the iface interface is a loopback
      * interface. We use this method as a replacement to the
-     * <tt>NetworkInterface.isLoopback()</tt> method that only comes with
+     * NetworkInterface.isLoopback() method that only comes with
      * java 1.6.
      *
      * @param iface the inteface that we'd like to determine as loopback or not.
      *
-     * @return true if <tt>iface</tt> contains at least one loopback address
-     * and <tt>false</tt> otherwise.
+     * @return true if iface contains at least one loopback address
+     * and false otherwise.
      */
     public static boolean isInterfaceLoopback(NetworkInterface iface)
     {
@@ -673,15 +673,15 @@ public class NetworkUtils
     }
 
     /**
-     * Determines, if possible, whether or not the <tt>iface</tt> interface is
+     * Determines, if possible, whether or not the iface interface is
      * up. We use this method so that we could use {@link
-     * java.net.NetworkInterface}'s <tt>isUp()</tt> when running a JVM that
+     * java.net.NetworkInterface}'s isUp() when running a JVM that
      * supports it and return a default value otherwise.
      *
      * @param iface the interface that we'd like to determine as Up or Down.
      *
-     * @return <tt>false</tt> if <tt>iface</tt> is known to be down and
-     * <tt>true</tt> if the <tt>iface</tt> is Up or in case we couldn't
+     * @return false if iface is known to be down and
+     * true if the iface is Up or in case we couldn't
      * determine.
      */
     public static boolean isInterfaceUp(NetworkInterface iface)
@@ -702,16 +702,16 @@ public class NetworkUtils
     }
 
     /**
-     * Determines, if possible, whether or not the <tt>iface</tt> interface is
+     * Determines, if possible, whether or not the iface interface is
      * a virtual interface (e.g. VPN, MIPv6 tunnel, etc.) or not. We use this
      * method so that we could use {@link java.net.NetworkInterface}'s
-     * <tt>isVirtual()</tt> when running a JVM that supports it and return a
+     * isVirtual() when running a JVM that supports it and return a
      * default value otherwise.
      *
      * @param iface the interface that we'd like to determine as virtual or not.
      *
-     * @return <tt>true</tt> if <tt>iface</tt> is known to be a virtual
-     * interface and <tt>false</tt> if the <tt>iface</tt> is not virtual or in
+     * @return true if iface is known to be a virtual
+     * interface and false if the iface is not virtual or in
      * case we couldn't determine.
      */
     public static boolean isInterfaceVirtual(NetworkInterface iface)
@@ -732,7 +732,7 @@ public class NetworkUtils
     }
 
     /**
-     * Returns a <tt>String</tt> that is guaranteed not to contain an address
+     * Returns a String that is guaranteed not to contain an address
      * scope specified (i.e. removes the %scopeID at the end of IPv6 addresses
      * returned by Java. Takes into account the presence or absence of square
      * brackets encompassing the address.

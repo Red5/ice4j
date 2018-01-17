@@ -251,7 +251,7 @@ abstract class AddressAttribute extends Attribute
     /**
      * Returns the bytes of the address.
      *
-     * @return the <tt>byte[]</tt> array containing the address.
+     * @return the byte[] array containing the address.
      */
     public byte[] getAddressBytes()
     {

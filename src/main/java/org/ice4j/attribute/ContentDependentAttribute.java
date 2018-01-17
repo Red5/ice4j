@@ -20,7 +20,7 @@ package org.ice4j.attribute;
 import org.ice4j.stack.*;
 
 /**
- * <tt>ContentDependentAttribute</tt>s have a value that depend on the content
+ * ContentDependentAttributes have a value that depend on the content
  * of the message. The {@link MessageIntegrityAttribute} and {@link
  * FingerprintAttribute} are two such attributes.
  * <p>
@@ -35,16 +35,16 @@ public interface ContentDependentAttribute
     /**
      * Returns a binary representation of this attribute.
      *
-     * @param stunStack the <tt>StunStack</tt> in the context of which the
-     * request to encode this <tt>ContentDependentAttribute</tt> is being made
+     * @param stunStack the StunStack in the context of which the
+     * request to encode this ContentDependentAttribute is being made
      * @param content the content of the message that this attribute will be
      * transported in
-     * @param offset the <tt>content</tt>-related offset where the actual
+     * @param offset the content-related offset where the actual
      * content starts.
-     * @param length the length of the content in the <tt>content</tt> array.
+     * @param length the length of the content in the content array.
      *
      * @return a binary representation of this attribute valid for the message
-     * with the specified <tt>content</tt>.
+     * with the specified content.
      */
     public byte[] encode(
             StunStack stunStack,

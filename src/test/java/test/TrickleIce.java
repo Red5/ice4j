@@ -35,7 +35,7 @@ public class TrickleIce
     extends Ice
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>TrickleIce</tt>
+     * The Logger used by the TrickleIce
      * class and its instances for logging output.
      */
     private static final Logger logger
@@ -121,7 +121,7 @@ public class TrickleIce
          * Converts every trickled candidate to SDP and prints it on stdout.
          *
          * @param iceCandidates the newly discovered list of candidates or,
-         * similarly to WebRTC, <tt>null</tt> in case all candidate harvesting
+         * similarly to WebRTC, null in case all candidate harvesting
          * is now completed.
          */
         public void onIceCandidates(Collection<LocalCandidate> iceCandidates)

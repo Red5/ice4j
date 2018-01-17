@@ -39,7 +39,7 @@ public class MessageTest extends TestCase
     private MsgFixture msgFixture;
 
     /**
-     * The <tt>StunStack</tt> used by this <tt>MessageTest</tt>.
+     * The StunStack used by this MessageTest.
      */
     private StunStack stunStack;
 

@@ -1,87 +1,60 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
 import org.ice4j.*;
 
 /**
- * <tt>RemoteCandidate</tt>s are candidates that an agent received in an offer
+ * RemoteCandidates are candidates that an agent received in an offer
  * or an answer from its peer, and that it would use to form candidate pairs
  * after combining them with its local candidates.
  *
  * @author Emil Ivov
  */
-public class RemoteCandidate
-    extends Candidate<RemoteCandidate>
-{
+public class RemoteCandidate extends Candidate<RemoteCandidate> {
     /**
      * Ufrag for the Google Talk candidate.
      */
     private String ufrag = null;
 
     /**
-     * Creates a <tt>RemoteCandidate</tt> instance for the specified transport
+     * Creates a RemoteCandidate instance for the specified transport
      * address and properties.
      *
      * @param transportAddress  the transport address that this candidate is
      * encapsulating.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * @param parentComponent the Component that this candidate
      * belongs to.
-     * @param type the <tt>CandidateType</tt> for this <tt>Candidate</tt>.
-     * @param foundation the <tt>RemoteCandidate</tt>'s foundation as reported
+     * @param type the CandidateType for this Candidate.
+     * @param foundation the RemoteCandidate's foundation as reported
      * by the session description protocol.
-     * @param priority the <tt>RemoteCandidate</tt>'s priority as reported
+     * @param priority the RemoteCandidate's priority as reported
      * by the session description protocol.
      * @param relatedCandidate the relatedCandidate: null for a host candidate,
      * the base address (host candidate) for a reflexive candidate, the mapped
      * address (the mapped address of the TURN allocate response) for a relayed
      * candidate.
      */
-    public RemoteCandidate(
-            TransportAddress transportAddress,
-            Component        parentComponent,
-            CandidateType    type,
-            String           foundation,
-            long             priority,
-            RemoteCandidate  relatedCandidate)
-    {
-        this(
-                transportAddress,
-                parentComponent,
-                type,
-                foundation,
-                priority,
-                relatedCandidate,
-                null);
+    public RemoteCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, String foundation, long priority, RemoteCandidate relatedCandidate) {
+        this(transportAddress, parentComponent, type, foundation, priority, relatedCandidate, null);
     }
 
     /**
-     * Creates a <tt>RemoteCandidate</tt> instance for the specified transport
+     * Creates a RemoteCandidate instance for the specified transport
      * address and properties.
      *
      * @param transportAddress  the transport address that this candidate is
      * encapsulating.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * @param parentComponent the Component that this candidate
      * belongs to.
-     * @param type the <tt>CandidateType</tt> for this <tt>Candidate</tt>.
-     * @param foundation the <tt>RemoteCandidate</tt>'s foundation as reported
+     * @param type the CandidateType for this Candidate.
+     * @param foundation the RemoteCandidate's foundation as reported
      * by the session description protocol.
-     * @param priority the <tt>RemoteCandidate</tt>'s priority as reported
+     * @param priority the RemoteCandidate's priority as reported
      * by the session description protocol.
      * @param relatedCandidate the relatedCandidate: null for a host candidate,
      * the base address (host candidate) for a reflexive candidate, the mapped
@@ -89,15 +62,7 @@ public class RemoteCandidate
      * candidate.
      * @param ufrag ufrag for the remote candidate
      */
-    public RemoteCandidate(
-            TransportAddress transportAddress,
-            Component        parentComponent,
-            CandidateType    type,
-            String           foundation,
-            long             priority,
-            RemoteCandidate  relatedCandidate,
-            String			ufrag)
-    {
+    public RemoteCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, String foundation, long priority, RemoteCandidate relatedCandidate, String ufrag) {
         super(transportAddress, parentComponent, type, relatedCandidate);
         setFoundation(foundation);
         setPriority(priority);
@@ -105,7 +70,7 @@ public class RemoteCandidate
     }
 
     /**
-     * Sets the priority of this <tt>RemoteCandidate</tt>. Priority is a unique
+     * Sets the priority of this RemoteCandidate. Priority is a unique
      * priority number that MUST be a positive integer between 1 and
      * (2**32 - 1). This priority will be set and used by ICE algorithms to
      * determine the order of the connectivity checks and the relative
@@ -113,22 +78,20 @@ public class RemoteCandidate
      *
      * @param priority the priority number between 1 and (2**32 - 1).
      */
-    public void setPriority(long priority)
-    {
+    public void setPriority(long priority) {
         super.priority = priority;
     }
 
     /**
-     * Determines whether this <tt>Candidate</tt> is the default one for its
+     * Determines whether this Candidate is the default one for its
      * parent component.
      *
-     * @return <tt>true</tt> if this <tt>Candidate</tt> is the default for its
-     * parent component and <tt>false</tt> if it isn't or if it has no parent
+     * @return true if this Candidate is the default for its
+     * parent component and false if it isn't or if it has no parent
      * Component yet.
      */
     @Override
-    public boolean isDefault()
-    {
+    public boolean isDefault() {
         Component parentCmp = getParentComponent();
 
         if (parentCmp == null)
@@ -142,8 +105,7 @@ public class RemoteCandidate
      *
      * @return remote ufrag
      */
-    public String getUfrag()
-    {
+    public String getUfrag() {
         return ufrag;
     }
 
@@ -167,9 +129,7 @@ public class RemoteCandidate
      * - null for a peer reflexive candidate : there is no way to know the
      * related address.
      */
-    protected RemoteCandidate findRelatedCandidate(
-            TransportAddress relatedAddress)
-    {
+    protected RemoteCandidate findRelatedCandidate(TransportAddress relatedAddress) {
         return getParentComponent().findRemoteCandidate(relatedAddress);
     }
 }

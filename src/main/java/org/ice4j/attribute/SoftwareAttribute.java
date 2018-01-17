@@ -35,12 +35,12 @@ public class SoftwareAttribute
     extends Attribute
 {
     /**
-     * The value that this <tt>SoftwareAttribute</tt> is transporting.
+     * The value that this SoftwareAttribute is transporting.
      */
     private byte[] software = null;
 
     /**
-     * Creates a new <tt>SoftwareAttribute</tt>.
+     * Creates a new SoftwareAttribute.
      */
     protected SoftwareAttribute ()
     {

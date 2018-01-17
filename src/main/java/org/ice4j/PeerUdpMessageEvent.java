@@ -39,23 +39,23 @@ public class PeerUdpMessageEvent
     private static final long serialVersionUID = 1L;
 
     /**
-     * The <tt>StunStack</tt> associated with this instance.
+     * The StunStack associated with this instance.
      */
     private final StunStack stunStack;
 
     /**
-     * The Peer UDP <tt>Message</tt> associated with this event. Stored as a
+     * The Peer UDP Message associated with this event. Stored as a
      * RawMessage.
      */
     private final RawMessage udpMessage;
 
     /**
-     * Initializes a new <tt>PeerUdpMessageEvent</tt> associated with a
-     * specific PeerUdp <tt>Message</tt>.
+     * Initializes a new PeerUdpMessageEvent associated with a
+     * specific PeerUdp Message.
      * 
-     * @param stunStack the <tt>StunStack</tt> to be associated with the new
+     * @param stunStack the StunStack to be associated with the new
      *            instance.
-     * @param udpMessage the Peer UDP <tt>Message</tt> associated
+     * @param udpMessage the Peer UDP Message associated
      *            with the new event.
      */
     public PeerUdpMessageEvent(StunStack stunStack, RawMessage udpMessage)
@@ -107,9 +107,9 @@ public class PeerUdpMessageEvent
     }
     
     /**
-     * Gets the <tt>StunStack</tt> associated with this instance.
+     * Gets the StunStack associated with this instance.
      * 
-     * @return the <tt>StunStack</tt> associated with this instance
+     * @return the StunStack associated with this instance
      */
     public StunStack getStunStack()
     {

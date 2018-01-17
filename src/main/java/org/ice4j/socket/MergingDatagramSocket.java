@@ -529,8 +529,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         private final DelegatingSocket delegatingSocket;
 
         /**
-         * The queue to which packets received from this instance's socket are
-         * added.
+         * The queue to which packets received from this instance's socket are added.
          */
         private final ArrayBlockingQueue<Buffer> queue = new ArrayBlockingQueue<>(100);
 
@@ -546,26 +545,20 @@ public class MergingDatagramSocket extends DatagramSocket {
 
         /**
          * The remote address of the last received packet.
-         * Note that this is updated only when a packet is received from this
-         * {@link SocketContainer} via {@link #receive(DatagramPacket)}, and
-         * not when a packet is received from the underlying socket by its
-         * read thread. This is in order to prevent poisoning of the remote
-         * address, since the verification of the address is performed by
-         * the {@link MergingDatagramSocket} after it invokes
-         * {@link #receive(DatagramPacket)}.
+         * Note that this is updated only when a packet is received from this {@link SocketContainer} via {@link #receive(DatagramPacket)}, and
+         * not when a packet is received from the underlying socket by its read thread. This is in order to prevent poisoning of the remote
+         * address, since the verification of the address is performed by the {@link MergingDatagramSocket} after it invokes {@link #receive(DatagramPacket)}.
          */
         private SocketAddress remoteAddress = null;
 
         /**
-         * The thread which reads packets from this instance's socket and adds
-         * them to {@link #queue}. If the queue is filled up, it will stop
+         * The thread which reads packets from this instance's socket and adds them to {@link #queue}. If the queue is filled up, it will stop
          * receiving packets and will block waiting for the queue accept.
          */
         private Thread thread;
 
         /**
-         * Initializes a {@link SocketContainer} instance using a {@link
-         * DatagramSocket} as its socket.
+         * Initializes a {@link SocketContainer} instance using a {@link DelegatingSocket} as its socket.
          *
          * @param socket the socket.
          */
@@ -576,8 +569,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Initializes a {@link SocketContainer} instance using a {@link
-         * DatagramSocket} as its socket.
+         * Initializes a {@link SocketContainer} instance using a {@link DatagramSocket} as its socket.
          *
          * @param socket the socket.
          */
@@ -618,8 +610,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Reads from the underlying socket and adds the read packets to {@link
-         * #queue}. Blocks if {@link #queue} is full.
+         * Reads from the underlying socket and adds the read packets to {@link #queue}. Blocks if {@link #queue} is full.
          */
         private void runInReaderThread() {
             while (true) {
@@ -700,8 +691,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         private void maybeUpdateActive() {
             SocketContainer active = MergingDatagramSocket.this.active;
             // Avoid obtaining the lock on every packet from the active socket.
-            // There is no harm if the value is overwritten before we obtain
-            // the lock.
+            // There is no harm if the value is overwritten before we obtain the lock.
             if (active != this) {
                 synchronized (socketContainersSyncRoot) {
                     MergingDatagramSocket.this.active = this;
@@ -736,8 +726,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * @return the time of reception of the first packet in the queue, or
-         * {@code -1} if the queue is empty.
+         * @return the time of reception of the first packet in the queue, or {@code -1} if the queue is empty.
          */
         private long getFirstReceivedTime() {
             Buffer nextBuffer = queue.peek();
@@ -750,8 +739,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         /**
          * {@inheritDoc}
          * <p>
-         * Delegates to the underlying socket (either {@link #datagramSocket} or
-         * {@link #delegatingSocket}).
+         * Delegates to the underlying socket (either {@link #datagramSocket} or {@link #delegatingSocket}).
          */
         private InetAddress getLocalAddress() {
             return datagramSocket != null ? datagramSocket.getLocalAddress() : delegatingSocket.getLocalAddress();
@@ -790,17 +778,14 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Sends a {@link DatagramPacket} through the underlying socket (either
-         * {@link #datagramSocket} or {@link #delegatingSocket}).
+         * Sends a {@link DatagramPacket} through the underlying socket (either {@link #datagramSocket} or {@link #delegatingSocket}).
          *
          * @param pkt the packet to send.
          */
         private void send(DatagramPacket pkt) throws IOException {
-            // The application writing data doesn't necessarily know what
-            // remote address to use. Since this SocketContainer was selected
+            // The application writing data doesn't necessarily know what remote address to use. Since this SocketContainer was selected
             // to send the packet through, set the target accordingly.
             setTarget(pkt);
-
             if (datagramSocket != null) {
                 datagramSocket.send(pkt);
             } else {
@@ -809,39 +794,30 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Sets the {@link SocketAddress} of {@code pkt} to the remote address
-         * that this {@link SocketContainer} should send packets to.
+         * Sets the {@link SocketAddress} of {@code pkt} to the remote address that this {@link SocketContainer} should send packets to.
          * @param pkt the packet for which to set the socket address.
          */
         private void setTarget(DatagramPacket pkt) {
             SocketAddress target;
-            // If the socket already has a remote address, use it. If this is
-            // the case, the DatagramPacket instance's remote address is likely
+            // If the socket already has a remote address, use it. If this is the case, the DatagramPacket instance's remote address is likely
             // to be ignored, anyway.
             if (datagramSocket != null) {
                 target = datagramSocket.getRemoteSocketAddress();
             } else {
                 target = delegatingSocket.getRemoteSocketAddress();
             }
-
-            // The socket doesn't always have a remote address (e.g. if it is
-            // an unconnected UDP socket from HostCandidateHarvester).
-            // In this case, we send to the source address of the last packet
-            // which was received and accepted, or to the address that was
-            // initialized via initializeActive (i.e. the address initially
-            // selected by ICE).
+            // The socket doesn't always have a remote address (e.g. if it is an unconnected UDP socket from HostCandidateHarvester).
+            // In this case, we send to the source address of the last packet which was received and accepted, or to the address that was
+            // initialized via initializeActive (i.e. the address initially selected by ICE).
             if (target == null) {
                 target = this.remoteAddress;
             }
-
             pkt.setSocketAddress(target);
         }
 
         /**
-         * Notifies this {@link SocketContainer} that a particular
-         * {@link DatagramPacket} was received from it, and was accepted (as
-         * opposed to e.g. having been discarded due to its remote address not
-         * being authorized).
+         * Notifies this {@link SocketContainer} that a particular {@link DatagramPacket} was received from it, and was accepted (as
+         * opposed to e.g. having been discarded due to its remote address not being authorized).
          * @param pkt the accepted packet.
          */
         private void accepted(DatagramPacket pkt) {
@@ -856,17 +832,14 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Closes this {@link SocketContainer}, stopping it's reading thread,
-         * and, if necessary removing it from the merging socket.
-         * @param remove whether to remove this container from the merging
-         * socket.
+         * Closes this {@link SocketContainer}, stopping it's reading thread, and, if necessary removing it from the merging socket.
+         * @param remove whether to remove this container from the merging socket.
          */
         private void close(boolean remove) {
             if (closed) {
                 return;
             }
             closed = true;
-
             thread.interrupt();
             if (remove) {
                 MergingDatagramSocket.this.doRemove(getSocket());
@@ -874,8 +847,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Represents a {@link DatagramPacket} for the purposes of {@link
-         * SocketContainer}.
+         * Represents a {@link DatagramPacket} for the purposes of {@link SocketContainer}.
          */
         private class Buffer {
             /**
@@ -898,11 +870,8 @@ public class MergingDatagramSocket extends DatagramSocket {
              */
             private void reset() {
                 receivedTime = -1;
-
-                // We are going to receive from a socket into this packet. If
-                // the length is insufficient it is going to truncate the data.
-                // So reset it to what we know is the underlying byte[]'s
-                // length.
+                // We are going to receive from a socket into this packet. If the length is insufficient it is going to truncate the data.
+                // So reset it to what we know is the underlying byte[]'s length.
                 pkt.setLength(MAX_PACKET_SIZE);
             }
         }

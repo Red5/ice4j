@@ -31,13 +31,13 @@ public class LongTermCredential
 {
 
     /**
-     * Encodes a specific <tt>String</tt> into a sequence of <tt>byte</tt>s
-     * using the UTF-8 charset, storing the result into a new <tt>byte</tt>
+     * Encodes a specific String into a sequence of bytes
+     * using the UTF-8 charset, storing the result into a new byte
      * array.
      *
-     * @param s the <tt>String</tt> to encode
-     * @return a new array of <tt>byte</tt>s which represents the encoding of
-     * the specified <tt>String</tt> using the UTF-8 charset
+     * @param s the String to encode
+     * @return a new array of bytes which represents the encoding of
+     * the specified String using the UTF-8 charset
      */
     public static byte[] getBytes(String s)
     {
@@ -57,14 +57,14 @@ public class LongTermCredential
     }
 
     /**
-     * Constructs a new <tt>String</tt> by decoding a specific array of
-     * <tt>byte</tt>s using the UTF-8 charset. The length of the new
-     * <tt>String</tt> is a function of the charset, and hence may not be equal
-     * to the length of the <tt>byte</tt> array.
+     * Constructs a new String by decoding a specific array of
+     * bytes using the UTF-8 charset. The length of the new
+     * String is a function of the charset, and hence may not be equal
+     * to the length of the byte array.
      * 
-     * @param bytes the <tt>byte</tt>s to be decoded into characters
-     * @return a new <tt>String</tt> which has been decoded from the specified
-     * array of <tt>byte</tt>s using the UTF-8 charset
+     * @param bytes the bytes to be decoded into characters
+     * @return a new String which has been decoded from the specified
+     * array of bytes using the UTF-8 charset
      */
     public static String toString(byte[] bytes)
     {
@@ -84,17 +84,17 @@ public class LongTermCredential
     }
 
     /**
-     * The password of this <tt>LongTermCredential</tt>.
+     * The password of this LongTermCredential.
      */
     private final byte[] password;
 
     /**
-     * The username of this <tt>LongTermCredential</tt>.
+     * The username of this LongTermCredential.
      */
     private final byte[] username;
 
     /**
-     * Initializes a new <tt>LongTermCredential</tt> instance with no username
+     * Initializes a new LongTermCredential instance with no username
      * and no password. Extenders should override {@link #getUsername()} and
      * {@link #getPassword()} to provide the username and the password,
      * respectively, when requested.
@@ -105,7 +105,7 @@ public class LongTermCredential
     }
 
     /**
-     * Initializes a new <tt>LongTermCredential</tt> instance with a specific
+     * Initializes a new LongTermCredential instance with a specific
      * username and a specific password.
      *
      * @param username the username to initialize the new instance with
@@ -118,7 +118,7 @@ public class LongTermCredential
     }
 
     /**
-     * Initializes a new <tt>LongTermCredential</tt> instance with a specific
+     * Initializes a new LongTermCredential instance with a specific
      * username and a specific password.
      *
      * @param username the username to initialize the new instance with
@@ -130,10 +130,10 @@ public class LongTermCredential
     }
 
     /**
-     * Gets the password of this <tt>LongTermCredential</tt>.
+     * Gets the password of this LongTermCredential.
      *
-     * @return an array of <tt>byte</tt>s which represents the password of this
-     * <tt>LongTermCredential</tt>
+     * @return an array of bytes which represents the password of this
+     * LongTermCredential
      */
     public byte[] getPassword()
     {
@@ -141,10 +141,10 @@ public class LongTermCredential
     }
 
     /**
-     * Gets the username of this <tt>LongTermCredential</tt>.
+     * Gets the username of this LongTermCredential.
      *
-     * @return an array of <tt>byte</tt>s which represents the username of this
-     * <tt>LongTermCredential</tt>
+     * @return an array of bytes which represents the username of this
+     * LongTermCredential
      */
     public byte[] getUsername()
     {

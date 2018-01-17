@@ -24,8 +24,8 @@ import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 
 /**
- * Represents an <tt>EventObject</tt> which notifies of an event associated with
- * a specific STUN <tt>Message</tt>.
+ * Represents an EventObject which notifies of an event associated with
+ * a specific STUN Message.
  *
  * @author Lyubomir Marinov
  */
@@ -41,12 +41,12 @@ public class BaseStunMessageEvent
     private static final long serialVersionUID = 1L;
 
     /**
-     * The STUN <tt>Message</tt> associated with this event.
+     * The STUN Message associated with this event.
      */
     private final Message message;
 
     /**
-     * The <tt>StunStack</tt> associated with this instance.
+     * The StunStack associated with this instance.
      */
     private final StunStack stunStack;
 
@@ -56,14 +56,14 @@ public class BaseStunMessageEvent
     private TransactionID transactionID = null;
 
     /**
-     * Initializes a new <tt>BaseStunMessageEvent</tt> associated with a
-     * specific STUN <tt>Message</tt>.
+     * Initializes a new BaseStunMessageEvent associated with a
+     * specific STUN Message.
      *
-     * @param stunStack the <tt>StunStack</tt> to be associated with the new
+     * @param stunStack the StunStack to be associated with the new
      * instance
-     * @param sourceAddress the <tt>TransportAddress</tt> which is to be
+     * @param sourceAddress the TransportAddress which is to be
      * reported as the source of the new event
-     * @param message the STUN <tt>Message</tt> associated with the new event
+     * @param message the STUN Message associated with the new event
      */
     public BaseStunMessageEvent(
             StunStack stunStack,
@@ -77,9 +77,9 @@ public class BaseStunMessageEvent
     }
 
     /**
-     * Gets the STUN <tt>Message</tt> associated with this event.
+     * Gets the STUN Message associated with this event.
      *
-     * @return the STUN <tt>Message</tt> associated with this event
+     * @return the STUN Message associated with this event
      */
     public Message getMessage()
     {
@@ -87,9 +87,9 @@ public class BaseStunMessageEvent
     }
 
     /**
-     * Gets the <tt>TransportAddress</tt> which is the source of this event.
+     * Gets the TransportAddress which is the source of this event.
      *
-     * @return the <tt>TransportAddress</tt> which is the source of this event
+     * @return the TransportAddress which is the source of this event
      */
     protected TransportAddress getSourceAddress()
     {
@@ -97,9 +97,9 @@ public class BaseStunMessageEvent
     }
 
     /**
-     * Gets the <tt>StunStack</tt> associated with this instance.
+     * Gets the StunStack associated with this instance.
      *
-     * @return the <tt>StunStack</tt> associated with this instance
+     * @return the StunStack associated with this instance
      */
     public StunStack getStunStack()
     {
@@ -107,10 +107,10 @@ public class BaseStunMessageEvent
     }
 
     /**
-     * Gets the ID of the transaction related to the STUN <tt>Message</tt>
+     * Gets the ID of the transaction related to the STUN Message
      * associated with this event.
      *
-     * @return the ID of the transaction related to the STUN <tt>Message</tt>
+     * @return the ID of the transaction related to the STUN Message
      * associated with this event
      */
     public TransactionID getTransactionID()

@@ -25,11 +25,11 @@ public abstract class AbstractResponseCollector
 {
 
     /**
-     * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-     * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+     * Notifies this ResponseCollector that a transaction described by
+     * the specified BaseStunMessageEvent has failed. The possible
      * reasons for the failure include timeouts, unreachable destination, etc.
      *
-     * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+     * @param event the BaseStunMessageEvent which describes the failed
      * transaction and the runtime type of which specifies the failure reason
      */
     protected abstract void processFailure(BaseStunMessageEvent event);
@@ -39,7 +39,7 @@ public abstract class AbstractResponseCollector
      * retransmissions of the original request (as described by rfc3489) and
      * that the request should be considered unanswered.
      *
-     * @param event the <tt>StunTimeoutEvent</tt> containing a reference to the
+     * @param event the StunTimeoutEvent containing a reference to the
      * transaction that has just failed.
      */
     public void processTimeout(StunTimeoutEvent event)
@@ -52,8 +52,8 @@ public abstract class AbstractResponseCollector
      * determined to be unreachable and that the request should be considered
      * unanswered.
      *
-     * @param event the <tt>StunFailureEvent</tt> containing the
-     * <tt>PortUnreachableException</tt> that has just occurred.
+     * @param event the StunFailureEvent containing the
+     * PortUnreachableException that has just occurred.
      */
     public void processUnreachable(StunFailureEvent event)
     {

@@ -26,8 +26,8 @@ import org.ice4j.ice.*;
 import org.ice4j.socket.*;
 
 /**
- * Implements a <tt>CandidateHarvester</tt> which gathers Google TURN SSLTCP
- * dialect <tt>Candidate</tt>s for a specified {@link Component}.
+ * Implements a CandidateHarvester which gathers Google TURN SSLTCP
+ * dialect Candidates for a specified {@link Component}.
  *
  * @author Sebastien Vincent
  */
@@ -69,10 +69,10 @@ public class GoogleTurnSSLCandidateHarvester
     };
 
     /**
-     * Initializes a new <tt>GoogleTurnSSLCandidateHarvester</tt> instance which
+     * Initializes a new GoogleTurnSSLCandidateHarvester instance which
      * is to work with a specific Google TURN server.
      *
-     * @param turnServer the <tt>TransportAddress</tt> of the TURN server the
+     * @param turnServer the TransportAddress of the TURN server the
      * new instance is to work with
      */
     public GoogleTurnSSLCandidateHarvester(TransportAddress turnServer)
@@ -81,15 +81,15 @@ public class GoogleTurnSSLCandidateHarvester
     }
 
     /**
-     * Initializes a new <tt>GoogleTurnSSLCandidateHarvester</tt> instance which is
+     * Initializes a new GoogleTurnSSLCandidateHarvester instance which is
      * to work with a specific TURN server using a specific username for the
      * purposes of the STUN short-term credential mechanism.
      *
-     * @param turnServer the <tt>TransportAddress</tt> of the TURN server the
+     * @param turnServer the TransportAddress of the TURN server the
      * new instance is to work with
      * @param shortTermCredentialUsername the username to be used by the new
      * instance for the purposes of the STUN short-term credential mechanism or
-     * <tt>null</tt> if the use of the STUN short-term credential mechanism is
+     * null if the use of the STUN short-term credential mechanism is
      * not determined at the time of the construction of the new instance
      * @param password The gingle candidates password necessary to use this TURN
      * server.
@@ -102,13 +102,13 @@ public class GoogleTurnSSLCandidateHarvester
     }
 
     /**
-     * Creates a new <tt>GoogleTurnSSLCandidateHarvest</tt> instance which is to
-     * perform TURN harvesting of a specific <tt>HostCandidate</tt>.
+     * Creates a new GoogleTurnSSLCandidateHarvest instance which is to
+     * perform TURN harvesting of a specific HostCandidate.
      *
-     * @param hostCandidate the <tt>HostCandidate</tt> for which harvesting is
-     * to be performed by the new <tt>TurnCandidateHarvest</tt> instance
-     * @return a new <tt>GoogleTurnSSLCandidateHarvest</tt> instance which is to
-     * perform TURN harvesting of the specified <tt>hostCandidate</tt>
+     * @param hostCandidate the HostCandidate for which harvesting is
+     * to be performed by the new TurnCandidateHarvest instance
+     * @return a new GoogleTurnSSLCandidateHarvest instance which is to
+     * perform TURN harvesting of the specified hostCandidate
      * @see StunCandidateHarvester#createHarvest(HostCandidate)
      */
     @Override
@@ -188,12 +188,12 @@ public class GoogleTurnSSLCandidateHarvester
 
     /**
      * Do the SSL handshake (send client certificate and wait for receive server
-     * certificate). We explicitly need <tt>InputStream</tt> and
-     * <tt>OutputStream</tt> because some <tt>Socket</tt> may redefine
+     * certificate). We explicitly need InputStream and
+     * OutputStream because some Socket may redefine
      * getInputStream()/getOutputStream() and we need the original stream.
      *
-     * @param inputStream <tt>InputStream</tt> of the socket
-     * @param outputStream <tt>OutputStream</tt> of the socket
+     * @param inputStream InputStream of the socket
+     * @param outputStream OutputStream of the socket
      * @return true if the SSL handshake is done
      * @throws IOException if something goes wrong
      */

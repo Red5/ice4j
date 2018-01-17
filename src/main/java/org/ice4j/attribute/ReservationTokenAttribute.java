@@ -152,10 +152,10 @@ public class ReservationTokenAttribute
      * generated using the following algorithm:
      * 
      * The first 6 bytes of the id are given the value of
-     * <tt>System.currentTimeMillis()</tt>. Putting the right most bits first so
+     * System.currentTimeMillis(). Putting the right most bits first so
      * that we get a more optimized equals() method.
      * 
-     * @return A <tt>Reservation Token </tt>object with a unique token value.
+     * @return A Reservation Token object with a unique token value.
      */
     public static ReservationTokenAttribute createNewReservationTokenAttribute()
     {
@@ -232,7 +232,7 @@ public class ReservationTokenAttribute
      * Returns a string representation of the token.
      * 
      * @param reservationToken the Reservation Token to convert into
-     *            <tt>String</tt>.
+     *            String.
      * 
      * @return a hex string representing the token.
      */

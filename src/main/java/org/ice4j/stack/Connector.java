@@ -24,9 +24,7 @@ import org.ice4j.socket.*;
  * @author Emil Ivov
  */
 class Connector implements Runnable {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = Logger.getLogger(Connector.class.getName());
 
     /**
@@ -61,7 +59,7 @@ class Connector implements Runnable {
     private final TransportAddress listenAddress;
 
     /**
-     * The remote address of the socket of this <tt>Connector</tt> if it is a TCP socket, or <tt>null</tt> if it is UDP.
+     * The remote address of the socket of this Connector if it is a TCP socket, or null if it is UDP.
      */
     private final TransportAddress remoteAddress;
 
@@ -83,10 +81,10 @@ class Connector implements Runnable {
     }
 
     /**
-     * Returns the <tt>DatagramSocket</tt> that contains the port and address
+     * Returns the DatagramSocket that contains the port and address
      * associated with this access point.
      *
-     * @return the <tt>DatagramSocket</tt> associated with this AP.
+     * @return the DatagramSocket associated with this AP.
      */
     protected IceSocketWrapper getSocket() {
         return sock;
@@ -199,18 +197,18 @@ class Connector implements Runnable {
     }
 
     /**
-     * Returns the <tt>TransportAddress</tt> that this access point is bound on.
+     * Returns the TransportAddress that this access point is bound on.
      *
-     * @return the <tt>TransportAddress</tt> associated with this AP.
+     * @return the TransportAddress associated with this AP.
      */
     TransportAddress getListenAddress() {
         return listenAddress;
     }
 
     /**
-     * Returns the remote <tt>TransportAddress</tt> or <tt>null</tt> if none is specified.
+     * Returns the remote TransportAddress or null if none is specified.
      *
-     * @return the remote <tt>TransportAddress</tt> or <tt>null</tt> if none is specified.
+     * @return the remote TransportAddress or null if none is specified.
      */
     TransportAddress getRemoteAddress() {
         return remoteAddress;

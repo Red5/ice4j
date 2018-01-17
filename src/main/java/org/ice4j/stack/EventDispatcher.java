@@ -36,37 +36,37 @@ public class EventDispatcher
 
     /**
      * The STUN request and indication listeners registered with this
-     * <tt>EventDispatcher</tt>.
+     * EventDispatcher.
      */
     private final List<MessageTypeEventHandler<?>> messageListeners
         = new Vector<>();
 
     /**
-     * The <tt>Map</tt> of <tt>EventDispatcher</tt>s which keep the
+     * The Map of EventDispatchers which keep the
      * registrations of STUN request and indication listeners registered for
      * STUN requests and indications from specific local
-     * <tt>TransportAddress</tt>es.
+     * TransportAddresses.
      */
     private final Map<TransportAddress, EventDispatcher> children
         = new Hashtable<>();
 
     /**
-     * Initializes a new <tt>EventDispatcher</tt> instance.
+     * Initializes a new EventDispatcher instance.
      */
     public EventDispatcher()
     {
     }
 
     /**
-     * Registers a specific <tt>MessageEventHandler</tt> for notifications about
-     * STUN indications received at a specific local <tt>TransportAddress</tt>.
+     * Registers a specific MessageEventHandler for notifications about
+     * STUN indications received at a specific local TransportAddress.
      *
-     * @param localAddr the local <tt>TransportAddress</tt> STUN indications
+     * @param localAddr the local TransportAddress STUN indications
      * received at which are to be reported to the specified
-     * <tt>indicationListener</tt>
-     * @param indicationListener the <tt>MessageEventHandler</tt> which is to be
+     * indicationListener
+     * @param indicationListener the MessageEventHandler which is to be
      * registered for notifications about STUN indications received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     public void addIndicationListener(
             TransportAddress localAddr,
@@ -78,15 +78,15 @@ public class EventDispatcher
     }
 
     /**
-     * Registers a specific <tt>MessageEventHandler</tt> for notifications about
-     * old indications received at a specific local <tt>TransportAddress</tt>.
+     * Registers a specific MessageEventHandler for notifications about
+     * old indications received at a specific local TransportAddress.
      *
-     * @param localAddr the local <tt>TransportAddress</tt> STUN indications
+     * @param localAddr the local TransportAddress STUN indications
      * received at which are to be reported to the specified
-     * <tt>indicationListener</tt>
-     * @param indicationListener the <tt>MessageEventHandler</tt> which is to be
+     * indicationListener
+     * @param indicationListener the MessageEventHandler which is to be
      * registered for notifications about old indications received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     public void addOldIndicationListener(
             TransportAddress localAddr,
@@ -98,10 +98,10 @@ public class EventDispatcher
     }
 
     /**
-     * Registers a specific <tt>MessageTypeEventHandler</tt> for notifications
+     * Registers a specific MessageTypeEventHandler for notifications
      * about received STUN messages.
      *
-     * @param messageListener the <tt>MessageTypeEventHandler</tt> which is to
+     * @param messageListener the MessageTypeEventHandler which is to
      * be registered for notifications about received STUN messages
      */
     private synchronized void addMessageListener(
@@ -115,16 +115,16 @@ public class EventDispatcher
     }
 
     /**
-     * Registers a specific <tt>MessageTypeEventHandler</tt> for notifications
+     * Registers a specific MessageTypeEventHandler for notifications
      * about STUN messages received at a specific local
-     * <tt>TransportAddress</tt>.
+     * TransportAddress.
      *
-     * @param localAddr the local <tt>TransportAddress</tt> STUN messages
+     * @param localAddr the local TransportAddress STUN messages
      * received at which are to be reported to the specified
-     * <tt>messageListener</tt>
-     * @param messageListener the <tt>MessageTypeEventHandler</tt> which is to
+     * messageListener
+     * @param messageListener the MessageTypeEventHandler which is to
      * be registered for notifications about STUN messages received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     private synchronized void addMessageListener(
             TransportAddress localAddr,
@@ -171,10 +171,10 @@ public class EventDispatcher
     }
 
     /**
-     * Unregisters a specific <tt>MessageTypeEventHandler</tt> from
+     * Unregisters a specific MessageTypeEventHandler from
      * notifications about received STUN messages.
      *
-     * @param messageListener the <tt>MessageTypeEventHandler</tt> to be
+     * @param messageListener the MessageTypeEventHandler to be
      * unregistered for notifications about received STUN messages
      */
     private synchronized void removeMessageListener(
@@ -187,16 +187,16 @@ public class EventDispatcher
     }
 
     /**
-     * Unregisters a specific <tt>MessageTypeEventHandler</tt> from
+     * Unregisters a specific MessageTypeEventHandler from
      * notifications about STUN messages received at a specific local
-     * <tt>TransportAddress</tt>.
+     * TransportAddress.
      *
-     * @param localAddr the local <tt>TransportAddress</tt> STUN messages
+     * @param localAddr the local TransportAddress STUN messages
      * received at which to no longer be reported to the specified
-     * <tt>messageListener</tt>
-     * @param messageListener the <tt>MessageTypeEventHandler</tt> to be
+     * messageListener
+     * @param messageListener the MessageTypeEventHandler to be
      * unregistered for notifications about STUN messages received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     private synchronized void removeMessageListener(
             TransportAddress localAddr,
@@ -320,8 +320,8 @@ public class EventDispatcher
     }
 
     /**
-     * Implements <tt>MessageEventHandler</tt> for a
-     * <tt>MessageEventHandler</tt> which handles STUN indications.
+     * Implements MessageEventHandler for a
+     * MessageEventHandler which handles STUN indications.
      *
      * @author Lubomir Marinov
      */
@@ -330,12 +330,12 @@ public class EventDispatcher
     {
 
         /**
-         * Initializes a new <tt>IndicationEventHandler</tt> which is to
-         * implement <tt>MessageEventHandler</tt> for a specific
-         * <tt>MessageEventHandler</tt> which handles STUN indications.
+         * Initializes a new IndicationEventHandler which is to
+         * implement MessageEventHandler for a specific
+         * MessageEventHandler which handles STUN indications.
          *
-         * @param indicationListener the <tt>RequestListener</tt> for which the
-         * new instance is to implement <tt>MessageEventHandler</tt>
+         * @param indicationListener the RequestListener for which the
+         * new instance is to implement MessageEventHandler
          */
         public IndicationEventHandler(MessageEventHandler indicationListener)
         {
@@ -343,10 +343,10 @@ public class EventDispatcher
         }
 
         /**
-         * Notifies this <tt>MessageEventHandler</tt> that a STUN message has
+         * Notifies this MessageEventHandler that a STUN message has
          * been received, parsed and is ready for delivery.
          *
-         * @param e a <tt>StunMessageEvent</tt> which encapsulates the STUN
+         * @param e a StunMessageEvent which encapsulates the STUN
          * message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */
@@ -357,8 +357,8 @@ public class EventDispatcher
     }
 
     /**
-     * Implements <tt>MessageEventHandler</tt> for a
-     * <tt>MessageEventHandler</tt> which handles old DATA indications (0x0115).
+     * Implements MessageEventHandler for a
+     * MessageEventHandler which handles old DATA indications (0x0115).
      *
      * @author Lubomir Marinov
      * @author Sebastien Vincent
@@ -368,13 +368,13 @@ public class EventDispatcher
     {
 
         /**
-         * Initializes a new <tt>IndicationEventHandler</tt> which is to
-         * implement <tt>MessageEventHandler</tt> for a specific
-         * <tt>MessageEventHandler</tt> which handles old DATA indications
+         * Initializes a new IndicationEventHandler which is to
+         * implement MessageEventHandler for a specific
+         * MessageEventHandler which handles old DATA indications
          * (0x0115).
          *
-         * @param indicationListener the <tt>RequestListener</tt> for which the
-         * new instance is to implement <tt>MessageEventHandler</tt>
+         * @param indicationListener the RequestListener for which the
+         * new instance is to implement MessageEventHandler
          */
         public OldIndicationEventHandler(MessageEventHandler indicationListener)
         {
@@ -382,10 +382,10 @@ public class EventDispatcher
         }
 
         /**
-         * Notifies this <tt>MessageEventHandler</tt> that a STUN message has
+         * Notifies this MessageEventHandler that a STUN message has
          * been received, parsed and is ready for delivery.
          *
-         * @param e a <tt>StunMessageEvent</tt> which encapsulates the STUN
+         * @param e a StunMessageEvent which encapsulates the STUN
          * message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */
@@ -396,8 +396,8 @@ public class EventDispatcher
     }
 
     /**
-     * Represents the base for providers of <tt>MessageEventHandler</tt>
-     * implementations to specific <tt>Object</tt>s.
+     * Represents the base for providers of MessageEventHandler
+     * implementations to specific Objects.
      *
      * @author Lubomir Marinov
      * @param <T> the type of the delegate to which the notifications are to be
@@ -408,25 +408,25 @@ public class EventDispatcher
     {
 
         /**
-         * The <tt>Object</tt> for which this instance implements
-         * <tt>MessageEventHandler</tt>.
+         * The Object for which this instance implements
+         * MessageEventHandler.
          */
         public final T delegate;
 
         /**
-         * The type of the STUN messages that this <tt>MessageEventHandler</tt>
+         * The type of the STUN messages that this MessageEventHandler
          * is interested in.
          */
         public final char messageType;
 
         /**
-         * Initializes a new <tt>MessageTypeEventHandler</tt> which is to
+         * Initializes a new MessageTypeEventHandler which is to
          * forward STUN messages with a specific type to a specific handler.
          *
          * @param messageType the type of the STUN messages that the new
-         * instance is to forward to the specified handler <tt>delegate</tt>
+         * instance is to forward to the specified handler delegate
          * @param delegate the handler to which the new instance is to forward
-         * STUN messages with the specified <tt>messageType</tt>
+         * STUN messages with the specified messageType
          */
         public MessageTypeEventHandler(char messageType, T delegate)
         {
@@ -438,13 +438,13 @@ public class EventDispatcher
         }
 
         /**
-         * Determines whether a specific <tt>Object</tt> is value equal to this
-         * <tt>Object</tt>.
+         * Determines whether a specific Object is value equal to this
+         * Object.
          *
-         * @param obj the <tt>Object</tt> to be compared to this <tt>Object</tt>
+         * @param obj the Object to be compared to this Object
          * for value equality
-         * @return <tt>true</tt> if this <tt>Object</tt> is value equal to the
-         * specified <tt>obj</tt>
+         * @return true if this Object is value equal to the
+         * specified obj
          */
         @Override
         public boolean equals(Object obj)
@@ -462,10 +462,10 @@ public class EventDispatcher
         }
 
         /**
-         * Returns a hash code value for this <tt>Object</tt> for the benefit of
+         * Returns a hash code value for this Object for the benefit of
          * hashtables.
          *
-         * @return a hash code value for this <tt>Object</tt> for the benefit of
+         * @return a hash code value for this Object for the benefit of
          * hashtables
          */
         @Override
@@ -476,7 +476,7 @@ public class EventDispatcher
     }
 
     /**
-     * Implements <tt>MessageEventHandler</tt> for <tt>RequestListener</tt>.
+     * Implements MessageEventHandler for RequestListener.
      *
      * @author Lubomir Marinov
      */
@@ -485,12 +485,12 @@ public class EventDispatcher
     {
 
         /**
-         * Initializes a new <tt>RequestListenerMessageEventHandler</tt> which
-         * is to implement <tt>MessageEventHandler</tt> for a specific
-         * <tt>RequestListener</tt>.
+         * Initializes a new RequestListenerMessageEventHandler which
+         * is to implement MessageEventHandler for a specific
+         * RequestListener.
          *
-         * @param requestListener the <tt>RequestListener</tt> for which the new
-         * instance is to implement <tt>MessageEventHandler</tt>
+         * @param requestListener the RequestListener for which the new
+         * instance is to implement MessageEventHandler
          */
         public RequestListenerMessageEventHandler(
                 RequestListener requestListener)
@@ -499,10 +499,10 @@ public class EventDispatcher
         }
 
         /**
-         * Notifies this <tt>MessageEventHandler</tt> that a STUN message has
+         * Notifies this MessageEventHandler that a STUN message has
          * been received, parsed and is ready for delivery.
          *
-         * @param e a <tt>StunMessageEvent</tt> which encapsulates the STUN
+         * @param e a StunMessageEvent which encapsulates the STUN
          * message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */

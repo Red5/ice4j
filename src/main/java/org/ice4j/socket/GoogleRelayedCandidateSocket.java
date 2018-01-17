@@ -28,10 +28,10 @@ import org.ice4j.message.*;
 
 /**
  * Represents an application-purposed (as opposed to an ICE-specific)
- * <tt>Socket</tt> for a <tt>RelayedCandidate</tt> harvested by a
- * <tt>TurnCandidateHarvest</tt> (and its associated
- * <tt>TurnCandidateHarvester</tt>, of course).
- * <tt>GoogleRelayedCandidateSocket</tt> is associated with a successful
+ * Socket for a RelayedCandidate harvested by a
+ * TurnCandidateHarvest (and its associated
+ * TurnCandidateHarvester, of course).
+ * GoogleRelayedCandidateSocket is associated with a successful
  * Allocation on a TURN server and implements sends and receives through it
  * using TURN messages to and from that TURN server.
  *
@@ -42,8 +42,8 @@ public class GoogleRelayedCandidateSocket
     extends DelegatingSocket
 {
     /**
-     * The <tt>Logger</tt> used by the
-     * <tt>GoogleRelayedCandidateSocket</tt> class and its instances for
+     * The Logger used by the
+     * GoogleRelayedCandidateSocket class and its instances for
      * logging output.
      */
     private static final Logger logger
@@ -57,35 +57,35 @@ public class GoogleRelayedCandidateSocket
     private boolean closed = false;
 
     /**
-     * The <tt>GoogleRelayedCandidate</tt> which uses this instance as the value
-     * of its <tt>socket</tt> property.
+     * The GoogleRelayedCandidate which uses this instance as the value
+     * of its socket property.
      */
     private final GoogleRelayedCandidate relayedCandidate;
 
     /**
-     * The <tt>GoogleTurnCandidateDelegage</tt> which will handle send/receive
+     * The GoogleTurnCandidateDelegage which will handle send/receive
      * operations.
      */
     private final GoogleRelayedCandidateDelegate socketDelegate;
 
     /**
-     * The <tt>OutputStream</tt>.
+     * The OutputStream.
      */
     private TCPOutputStream outputStream = null;
 
     /**
-     * Initializes a new <tt>GoogleRelayedCandidateSocket</tt> instance
-     * which is to be the <tt>socket</tt> of a specific
-     * <tt>RelayedCandidate</tt> harvested by a specific
-     * <tt>TurnCandidateHarvest</tt>.
+     * Initializes a new GoogleRelayedCandidateSocket instance
+     * which is to be the socket of a specific
+     * RelayedCandidate harvested by a specific
+     * TurnCandidateHarvest.
      *
-     * @param relayedCandidate the <tt>RelayedCandidate</tt> which is to use the
-     * new instance as the value of its <tt>socket</tt> property
-     * @param turnCandidateHarvest the <tt>TurnCandidateHarvest</tt> which has
-     * harvested <tt>relayedCandidate</tt>
+     * @param relayedCandidate the RelayedCandidate which is to use the
+     * new instance as the value of its socket property
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has
+     * harvested relayedCandidate
      * @param username username
      * @throws SocketException if anything goes wrong while initializing the new
-     * <tt>GoogleRelayedCandidateSocket</tt> instance
+     * GoogleRelayedCandidateSocket instance
      */
     public GoogleRelayedCandidateSocket(
             GoogleRelayedCandidate relayedCandidate,
@@ -122,17 +122,17 @@ public class GoogleRelayedCandidateSocket
 
     /**
      * Gets the local address to which the socket is bound.
-     * <tt>GoogleRelayedCandidateSocket</tt> returns the
-     * <tt>address</tt> of its <tt>localSocketAddress</tt>.
+     * GoogleRelayedCandidateSocket returns the
+     * address of its localSocketAddress.
      * <p>
-     * If there is a security manager, its <tt>checkConnect</tt> method is first
-     * called with the host address and <tt>-1</tt> as its arguments to see if
+     * If there is a security manager, its checkConnect method is first
+     * called with the host address and -1 as its arguments to see if
      * the operation is allowed.
      * </p>
      *
      * @return the local address to which the socket is bound, or an
-     * <tt>InetAddress</tt> representing any local address if either the socket
-     * is not bound, or the security manager <tt>checkConnect</tt> method does
+     * InetAddress representing any local address if either the socket
+     * is not bound, or the security manager checkConnect method does
      * not allow the operation
      * @see #getLocalSocketAddress()
      * @see Socket#getLocalAddress()
@@ -145,8 +145,8 @@ public class GoogleRelayedCandidateSocket
 
     /**
      * Returns the port number on the local host to which this socket is bound.
-     * <tt>GoogleRelayedCandidateSocket</tt> returns the <tt>port</tt>
-     * of its <tt>localSocketAddress</tt>.
+     * GoogleRelayedCandidateSocket returns the port
+     * of its localSocketAddress.
      *
      * @return the port number on the local host to which this socket is bound
      * @see #getLocalSocketAddress()
@@ -160,14 +160,14 @@ public class GoogleRelayedCandidateSocket
 
     /**
      * Returns the address of the endpoint this socket is bound to, or
-     * <tt>null</tt> if it is not bound yet. Since
-     * <tt>GoogleRelayedCandidateSocket</tt> represents an
-     * application-purposed <tt>Socket</tt> relaying data to and from a
-     * TURN server, the <tt>localSocketAddress</tt> is the
-     * <tt>transportAddress</tt> of the respective <tt>RelayedCandidate</tt>.
+     * null if it is not bound yet. Since
+     * GoogleRelayedCandidateSocket represents an
+     * application-purposed Socket relaying data to and from a
+     * TURN server, the localSocketAddress is the
+     * transportAddress of the respective RelayedCandidate.
      *
-     * @return a <tt>SocketAddress</tt> representing the local endpoint of this
-     * socket, or <tt>null</tt> if it is not bound yet
+     * @return a SocketAddress representing the local endpoint of this
+     * socket, or null if it is not bound yet
      * @see Socket#getLocalSocketAddress()
      */
     @Override
@@ -177,11 +177,11 @@ public class GoogleRelayedCandidateSocket
     }
 
     /**
-     * Gets the <tt>RelayedCandidate</tt> which uses this instance as the value
-     * of its <tt>socket</tt> property.
+     * Gets the RelayedCandidate which uses this instance as the value
+     * of its socket property.
      *
-     * @return the <tt>RelayedCandidate</tt> which uses this instance as the
-     * value of its <tt>socket</tt> property
+     * @return the RelayedCandidate which uses this instance as the
+     * value of its socket property
      */
     public final GoogleRelayedCandidate getRelayedCandidate()
     {
@@ -189,13 +189,13 @@ public class GoogleRelayedCandidateSocket
     }
 
     /**
-     * Notifies this <tt>GoogleRelayedCandidateSocket</tt> that a
-     * specific <tt>Request</tt> it has sent has received a STUN success
-     * <tt>Response</tt>.
+     * Notifies this GoogleRelayedCandidateSocket that a
+     * specific Request it has sent has received a STUN success
+     * Response.
      *
-     * @param response the <tt>Response</tt> which responds to <tt>request</tt>
-     * @param request the <tt>Request</tt> sent by this instance to which
-     * <tt>response</tt> responds
+     * @param response the Response which responds to request
+     * @param request the Request sent by this instance to which
+     * response responds
      */
     public void processSuccess(Response response, Request request)
     {
@@ -214,11 +214,11 @@ public class GoogleRelayedCandidateSocket
 
     /**
      * Receives a datagram packet from this socket. When this method returns,
-     * the <tt>DatagramPacket</tt>'s buffer is filled with the data received.
+     * the DatagramPacket's buffer is filled with the data received.
      * The datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
      */
@@ -230,11 +230,11 @@ public class GoogleRelayedCandidateSocket
     }
 
     /**
-     * Sends a datagram packet from this socket. The <tt>DatagramPacket</tt>
+     * Sends a datagram packet from this socket. The DatagramPacket
      * includes information indicating the data to be sent, its length, the IP
      * address of the remote host, and the port number on the remote host.
      *
-     * @param p the <tt>DatagramPacket</tt> to be sent
+     * @param p the DatagramPacket to be sent
      * @throws IOException if an I/O error occurs
      */
     public void send(DatagramPacket p)
@@ -270,7 +270,7 @@ public class GoogleRelayedCandidateSocket
 
     /**
      * TCP output stream for TCP socket. It is used to multiplex sockets and keep
-     * the <tt>OutputStream</tt> interface to users.
+     * the OutputStream interface to users.
      *
      * @author Sebastien Vincent
      */
@@ -283,9 +283,9 @@ public class GoogleRelayedCandidateSocket
         private final TransportAddress target;
 
         /**
-         * Initializes a new <tt>TCPOutputStream</tt>.
+         * Initializes a new TCPOutputStream.
          *
-         * @param target <tt>TransportAddress</tt>
+         * @param target TransportAddress
          */
         public TCPOutputStream(TransportAddress target)
         {

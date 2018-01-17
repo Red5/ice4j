@@ -33,7 +33,7 @@ public class MappingTest
     extends Ice
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>TrickleIce</tt>
+     * The Logger used by the TrickleIce
      * class and its instances for logging output.
      */
     private static final Logger logger

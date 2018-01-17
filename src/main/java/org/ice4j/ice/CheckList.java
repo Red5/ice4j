@@ -30,13 +30,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A check list is a list of <tt>CandidatePair</tt>s with a state (i.e. a
- * <tt>CheckListState</tt>). The pairs in a check list are those that an ICE
+ * A check list is a list of CandidatePairs with a state (i.e. a
+ * CheckListState). The pairs in a check list are those that an ICE
  * agent will run STUN connectivity checks for. There is one check list per
  * in-use media stream resulting from the offer/answer exchange.
  * <p>
  * Given the asynchronous nature of ice, a check list may be accessed from
- * different locations. This class therefore stores pairs in a <tt>Vector</tt>
+ * different locations. This class therefore stores pairs in a Vector
  * @author Emil Ivov
  */
 public class CheckList
@@ -66,7 +66,7 @@ public class CheckList
     private CheckListState state = CheckListState.RUNNING;
 
     /**
-     * The <tt>triggeredCheckQueue</tt> is a FIFO queue containing candidate
+     * The triggeredCheckQueue is a FIFO queue containing candidate
      * pairs for which checks are to be sent at the next available opportunity.
      * A pair would get into a triggered check queue as soon as we receive
      * a check on its local candidate.
@@ -111,7 +111,7 @@ public class CheckList
     /**
      * Returns the state of this check list.
      *
-     * @return the <tt>CheckListState</tt> of this check list.
+     * @return the CheckListState of this check list.
      */
     public CheckListState getState()
     {
@@ -121,7 +121,7 @@ public class CheckList
     /**
      * Sets the state of this list.
      *
-     * @param newState the <tt>CheckListState</tt> for this list.
+     * @param newState the CheckListState for this list.
      */
     protected void setState(CheckListState newState)
     {
@@ -132,7 +132,7 @@ public class CheckList
     }
 
     /**
-     * Adds <tt>pair</tt> to the local triggered check queue unless it's already
+     * Adds pair to the local triggered check queue unless it's already
      * there. Additionally, the method sets the pair's state to {@link
      * CandidatePairState#WAITING}.
      *
@@ -152,10 +152,10 @@ public class CheckList
 
     /**
      * Returns the first {@link CandidatePair} in the triggered check queue or
-     * <tt>null</tt> if that queue is empty.
+     * null if that queue is empty.
      *
      * @return the first {@link CandidatePair} in the triggered check queue or
-     * <tt>null</tt> if that queue is empty.
+     * null if that queue is empty.
      */
     protected CandidatePair popTriggeredCheck()
     {
@@ -170,13 +170,13 @@ public class CheckList
     /**
      * Returns the next {@link CandidatePair} that is eligible for a regular
      * connectivity check. According to RFC 5245 this would be the highest
-     * priority pair that is in the <tt>Waiting</tt> state or, if there is
-     * no such pair, the highest priority <tt>Frozen</tt> {@link CandidatePair}.
+     * priority pair that is in the Waiting state or, if there is
+     * no such pair, the highest priority Frozen {@link CandidatePair}.
      *
      * @return the next {@link CandidatePair} that is eligible for a regular
      * connectivity check, which would either be the highest priority
-     * <tt>Waiting</tt> pair or, when there's no such pair, the highest priority
-     * <tt>Frozen</tt> pair or <tt>null</tt> otherwise
+     * Waiting pair or, when there's no such pair, the highest priority
+     * Frozen pair or null otherwise
      */
     protected synchronized CandidatePair getNextOrdinaryPairToCheck()
     {
@@ -217,11 +217,11 @@ public class CheckList
     }
 
     /**
-     * Determines whether this <tt>CheckList</tt> can be considered active.
+     * Determines whether this CheckList can be considered active.
      * RFC 5245 says: A check list with at least one pair that is Waiting is
      * called an active check list.
      *
-     * @return <tt>true</tt> if this list is active and <tt>false</tt>
+     * @return true if this list is active and false
      * otherwise.
      */
     public synchronized boolean isActive()
@@ -235,12 +235,12 @@ public class CheckList
     }
 
     /**
-     * Determines whether all checks in this <tt>CheckList</tt> have ended one
+     * Determines whether all checks in this CheckList have ended one
      * way or another.
      *
-     * @return <tt>true</tt> if all checks for pairs in this list have either
+     * @return true if all checks for pairs in this list have either
      * succeeded or failed (but non are are currently waiting or in progress)
-     * or <tt>false</tt> otherwise..
+     * or false otherwise..
      */
     public synchronized boolean allChecksCompleted()
     {
@@ -258,12 +258,12 @@ public class CheckList
     }
 
     /**
-     * Determines whether this <tt>CheckList</tt> can be considered frozen.
+     * Determines whether this CheckList can be considered frozen.
      * RFC 5245 says: a check list with all pairs Frozen is called a frozen
      * check list.
      *
-     * @return <tt>true</tt> if all pairs in this list are frozen and
-     * <tt>false</tt> otherwise.
+     * @return true if all pairs in this list are frozen and
+     * false otherwise.
      */
     public synchronized boolean isFrozen()
     {
@@ -276,13 +276,13 @@ public class CheckList
     }
 
     /**
-     * Returns a <tt>String</tt> representation of this check list. It
-     * consists of a list of the <tt>CandidatePair</tt>s in the order they
-     * were inserted and enclosed in square brackets (<tt>"[]"</tt>). The method
+     * Returns a String representation of this check list. It
+     * consists of a list of the CandidatePairs in the order they
+     * were inserted and enclosed in square brackets ("[]"). The method
      * would also call and use the content returned by every member
-     * <tt>CandidatePair</tt>.
+     * CandidatePair.
      *
-     * @return A <tt>String</tt> representation of this collection.
+     * @return A String representation of this collection.
      */
     @Override
     public String toString()
@@ -349,8 +349,8 @@ public class CheckList
     }
 
     /**
-     * Recomputes priorities of all pairs in this <tt>CheckList</tt>. Method is
-     * useful when an agent changes its <tt>isControlling</tt> property as a
+     * Recomputes priorities of all pairs in this CheckList. Method is
+     * useful when an agent changes its isControlling property as a
      * result of a role conflict.
      */
     protected synchronized void recomputePairPriorities()
@@ -361,10 +361,10 @@ public class CheckList
     }
 
     /**
-     * Removes from this <tt>CheckList</tt> and its associated triggered check
-     * queue all {@link CandidatePair}s that are in the <tt>Waiting</tt> and
-     * <tt>Frozen</tt> states and that belong to the same {@link Component} as
-     * <tt>nominatedPair</tt>. Typically this will happen upon confirmation of
+     * Removes from this CheckList and its associated triggered check
+     * queue all {@link CandidatePair}s that are in the Waiting and
+     * Frozen states and that belong to the same {@link Component} as
+     * nominatedPair. Typically this will happen upon confirmation of
      * the nomination of one pair in that component. The procedure implemented
      * here represents one of the cases specified in RFC 5245, Section 8.1.2:
      * <p>
@@ -444,16 +444,16 @@ public class CheckList
     }
 
     /**
-     * Returns <tt>true</tt> if this <tt>CheckList</tt> already contains a
-     * nominated {@link CandidatePair} for the specified <tt>component</tt>
-     * and <tt>false</tt> otherwise.
+     * Returns true if this CheckList already contains a
+     * nominated {@link CandidatePair} for the specified component
+     * and false otherwise.
      *
      * @param component the {@link Component} that we'd whose nominees we are
      * interested in.
      *
-     * @return <tt>true</tt> if this <tt>CheckList</tt> already contains a
-     * nominated {@link CandidatePair} for the specified <tt>component</tt>
-     * and <tt>false</tt> otherwise.
+     * @return true if this CheckList already contains a
+     * nominated {@link CandidatePair} for the specified component
+     * and false otherwise.
      * @deprecated This method takes into account only candidates in the
      * checklist. In case of peer reflexives candidates nominated, they do not
      * appears in checklist but in valid list.
@@ -472,8 +472,8 @@ public class CheckList
     }
 
     /**
-     * Adds <tt>l</tt> to the list of listeners tracking changes of the
-     * {@link CheckListState} of this <tt>CheckList</tt>
+     * Adds l to the list of listeners tracking changes of the
+     * {@link CheckListState} of this CheckList
      *
      * @param l the listener to register.
      */
@@ -487,8 +487,8 @@ public class CheckList
     }
 
     /**
-     * Removes <tt>l</tt> from the list of listeners tracking changes of the
-     * {@link CheckListState} of this <tt>CheckList</tt>
+     * Removes l from the list of listeners tracking changes of the
+     * {@link CheckListState} of this CheckList
      *
      * @param l the listener to remove.
      */
@@ -527,10 +527,10 @@ public class CheckList
     }
 
     /**
-     * Add a <tt>CheckListener</tt>. It will be notified when ordinary checks
+     * Add a CheckListener. It will be notified when ordinary checks
      * ended.
      *
-     * @param l <tt>CheckListener</tt> to add
+     * @param l CheckListener to add
      */
     public void addChecksListener(PropertyChangeListener l)
     {
@@ -544,9 +544,9 @@ public class CheckList
     }
 
     /**
-     * Remove a <tt>CheckListener</tt>.
+     * Remove a CheckListener.
      *
-     * @param l <tt>CheckListener</tt> to remove
+     * @param l CheckListener to remove
      */
     public void removeChecksListener(PropertyChangeListener l)
     {

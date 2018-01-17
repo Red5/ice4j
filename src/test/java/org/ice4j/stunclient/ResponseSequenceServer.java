@@ -24,7 +24,7 @@ import org.ice4j.stack.*;
  */
 public class ResponseSequenceServer implements RequestListener {
     /**
-     * The <tt>Logger</tt> used by the <tt>ResponseSequenceServer</tt> class and
+     * The Logger used by the ResponseSequenceServer class and
      * its instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(ResponseSequenceServer.class.getName());
@@ -35,7 +35,7 @@ public class ResponseSequenceServer implements RequestListener {
     private Vector<Object> messageSequence = new Vector<>();
 
     /**
-     * The <tt>StunStack</tt> used by this instance for the purposes of STUN
+     * The StunStack used by this instance for the purposes of STUN
      * communication.
      */
     private final StunStack stunStack;
@@ -45,11 +45,11 @@ public class ResponseSequenceServer implements RequestListener {
     private IceSocketWrapper localSocket = null;
 
     /**
-     * Initializes a new <tt>ResponseSequenceServer</tt> instance with a
-     * specific <tt>StunStack</tt> to be used for the purposes of STUN
+     * Initializes a new ResponseSequenceServer instance with a
+     * specific StunStack to be used for the purposes of STUN
      * communication.
      *
-     * @param stunStack the <tt>StunStack</tt> to be used by the new instance
+     * @param stunStack the StunStack to be used by the new instance
      * for the purposes of STUN communication
      * @param bindAddress
      */

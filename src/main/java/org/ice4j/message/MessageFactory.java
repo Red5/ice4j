@@ -1,26 +1,38 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.message;
 
-import java.io.*;
+import java.io.UnsupportedEncodingException;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
+import org.ice4j.StunException;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ChangedAddressAttribute;
+import org.ice4j.attribute.ChannelNumberAttribute;
+import org.ice4j.attribute.ConnectionIdAttribute;
+import org.ice4j.attribute.DataAttribute;
+import org.ice4j.attribute.DestinationAddressAttribute;
+import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.IceControlledAttribute;
+import org.ice4j.attribute.IceControllingAttribute;
+import org.ice4j.attribute.LifetimeAttribute;
+import org.ice4j.attribute.MappedAddressAttribute;
+import org.ice4j.attribute.MessageIntegrityAttribute;
+import org.ice4j.attribute.NonceAttribute;
+import org.ice4j.attribute.PriorityAttribute;
+import org.ice4j.attribute.RealmAttribute;
+import org.ice4j.attribute.ReservationTokenAttribute;
+import org.ice4j.attribute.SourceAddressAttribute;
+import org.ice4j.attribute.UnknownAttributesAttribute;
+import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.attribute.XorMappedAddressAttribute;
+import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.attribute.XorRelayedAddressAttribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +45,10 @@ import org.slf4j.LoggerFactory;
  * @author Lubomir Marinov
  * @author Aakash Garg
  */
-public class MessageFactory
-{
+public class MessageFactory {
 
     /**
-     * The <tt>Logger</tt> used by the <tt>MessageFactory</tt> class and its
+     * The Logger used by the MessageFactory class and its
      * instances.
      */
     private static final Logger logger = LoggerFactory.getLogger(MessageFactory.class);
@@ -48,27 +59,19 @@ public class MessageFactory
      *
      * @return a default binding request.
      */
-    public static Request createBindingRequest()
-    {
+    public static Request createBindingRequest() {
         Request bindingRequest = new Request();
-        try
-        {
+        try {
             bindingRequest.setMessageType(Message.BINDING_REQUEST);
-        } catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             // there should be no exc here since we're the creators.
             logger.warn("Failed to set message type", ex);
         }
 
         /* do not add this by default */
         /*
-         * //add a change request attribute ChangeRequestAttribute attribute =
-         * AttributeFactory.createChangeRequestAttribute();
-         *
-         * try { bindingRequest.putAttribute(attribute); } catch (StunException
-         * ex) { //shouldn't happen throw new
-         * RuntimeException("Failed to add a change request "
-         * +"attribute to a binding request!"); }
+         * //add a change request attribute ChangeRequestAttribute attribute = AttributeFactory.createChangeRequestAttribute(); try { bindingRequest.putAttribute(attribute); }
+         * catch (StunException ex) { //shouldn't happen throw new RuntimeException("Failed to add a change request " +"attribute to a binding request!"); }
          */
         return bindingRequest;
     }
@@ -82,13 +85,10 @@ public class MessageFactory
      * @return a BindingRequest header with ICE PRIORITY attribute
      * @throws StunException if we have a problem creating the request
      */
-    public static Request createBindingRequest(long priority)
-                    throws StunException
-    {
+    public static Request createBindingRequest(long priority) throws StunException {
         Request bindingRequest = createBindingRequest();
 
-        PriorityAttribute attribute = AttributeFactory
-                        .createPriorityAttribute(priority);
+        PriorityAttribute attribute = AttributeFactory.createPriorityAttribute(priority);
         bindingRequest.putAttribute(attribute);
 
         return bindingRequest;
@@ -107,25 +107,17 @@ public class MessageFactory
      * ICE-CONTROLLING / ICE-CONTROLLED)
      * @throws StunException if we have a problem creating the request
      */
-    public static Request createBindingRequest(long priority,
-                    boolean controlling, long tieBreaker)
-                    throws StunException
-    {
+    public static Request createBindingRequest(long priority, boolean controlling, long tieBreaker) throws StunException {
         Request bindingRequest = createBindingRequest();
 
-        PriorityAttribute attribute = AttributeFactory
-                        .createPriorityAttribute(priority);
+        PriorityAttribute attribute = AttributeFactory.createPriorityAttribute(priority);
         bindingRequest.putAttribute(attribute);
 
-        if (controlling)
-        {
-            IceControllingAttribute iceControllingAttribute = AttributeFactory
-                            .createIceControllingAttribute(tieBreaker);
+        if (controlling) {
+            IceControllingAttribute iceControllingAttribute = AttributeFactory.createIceControllingAttribute(tieBreaker);
             bindingRequest.putAttribute(iceControllingAttribute);
-        } else
-        {
-            IceControlledAttribute iceControlledAttribute = AttributeFactory
-                            .createIceControlledAttribute(tieBreaker);
+        } else {
+            IceControlledAttribute iceControlledAttribute = AttributeFactory.createIceControlledAttribute(tieBreaker);
             bindingRequest.putAttribute(iceControlledAttribute);
         }
 
@@ -144,18 +136,12 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Response create3489BindingResponse(
-                    TransportAddress mappedAddress,
-                    TransportAddress sourceAddress,
-                    TransportAddress changedAddress)
-                    throws IllegalArgumentException
-    {
+    public static Response create3489BindingResponse(TransportAddress mappedAddress, TransportAddress sourceAddress, TransportAddress changedAddress) throws IllegalArgumentException {
         Response bindingResponse = new Response();
         bindingResponse.setMessageType(Message.BINDING_SUCCESS_RESPONSE);
 
         // mapped address
-        MappedAddressAttribute mappedAddressAttribute = AttributeFactory
-                        .createMappedAddressAttribute(mappedAddress);
+        MappedAddressAttribute mappedAddressAttribute = AttributeFactory.createMappedAddressAttribute(mappedAddress);
 
         // the changed address and source address attribute were removed in
         // RFC 5389 so we should be prepared to go without them.
@@ -164,15 +150,13 @@ public class MessageFactory
         SourceAddressAttribute sourceAddressAttribute = null;
 
         if (sourceAddress != null)
-            sourceAddressAttribute = AttributeFactory
-                            .createSourceAddressAttribute(sourceAddress);
+            sourceAddressAttribute = AttributeFactory.createSourceAddressAttribute(sourceAddress);
 
         // changed address
         ChangedAddressAttribute changedAddressAttribute = null;
 
         if (changedAddress != null)
-            changedAddressAttribute = AttributeFactory
-                            .createChangedAddressAttribute(changedAddress);
+            changedAddressAttribute = AttributeFactory.createChangedAddressAttribute(changedAddress);
 
         bindingResponse.putAttribute(mappedAddressAttribute);
 
@@ -190,7 +174,7 @@ public class MessageFactory
 
     /**
      * Creates a BindingResponse in a 5389 compliant manner containing a single
-     * <tt>XOR-MAPPED-ADDRESS</tt> attribute
+     * XOR-MAPPED-ADDRESS attribute
      *
      * @param request the request that created the transaction that this
      * response will belong to.
@@ -200,17 +184,12 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Response createBindingResponse(Request request,
-                    TransportAddress mappedAddress)
-                    throws IllegalArgumentException
-    {
+    public static Response createBindingResponse(Request request, TransportAddress mappedAddress) throws IllegalArgumentException {
         Response bindingResponse = new Response();
         bindingResponse.setMessageType(Message.BINDING_SUCCESS_RESPONSE);
 
         // xor mapped address
-        XorMappedAddressAttribute xorMappedAddressAttribute = AttributeFactory
-                        .createXorMappedAddressAttribute(mappedAddress,
-                                        request.getTransactionID());
+        XorMappedAddressAttribute xorMappedAddressAttribute = AttributeFactory.createXorMappedAddressAttribute(mappedAddress, request.getTransactionID());
 
         bindingResponse.putAttribute(xorMappedAddressAttribute);
 
@@ -231,32 +210,22 @@ public class MessageFactory
      * @return a binding error response message containing an error code and a
      * UNKNOWN-ATTRIBUTES header
      */
-    public static Response createBindingErrorResponse(char errorCode,
-                    String reasonPhrase, char[] unknownAttributes)
-        throws IllegalArgumentException
-    {
+    public static Response createBindingErrorResponse(char errorCode, String reasonPhrase, char[] unknownAttributes) throws IllegalArgumentException {
         Response bindingErrorResponse = new Response();
         bindingErrorResponse.setMessageType(Message.BINDING_ERROR_RESPONSE);
 
         // init attributes
         UnknownAttributesAttribute unknownAttributesAttribute = null;
-        ErrorCodeAttribute errorCodeAttribute = AttributeFactory
-                        .createErrorCodeAttribute(errorCode,
-                                        reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         bindingErrorResponse.putAttribute(errorCodeAttribute);
 
-        if (unknownAttributes != null)
-        {
-            unknownAttributesAttribute = AttributeFactory
-                            .createUnknownAttributesAttribute();
-            for (int i = 0; i < unknownAttributes.length; i++)
-            {
-                unknownAttributesAttribute
-                                .addAttributeID(unknownAttributes[i]);
+        if (unknownAttributes != null) {
+            unknownAttributesAttribute = AttributeFactory.createUnknownAttributesAttribute();
+            for (int i = 0; i < unknownAttributes.length; i++) {
+                unknownAttributesAttribute.addAttributeID(unknownAttributes[i]);
             }
-            bindingErrorResponse
-                            .putAttribute(unknownAttributesAttribute);
+            bindingErrorResponse.putAttribute(unknownAttributesAttribute);
         }
 
         return bindingErrorResponse;
@@ -273,12 +242,8 @@ public class MessageFactory
      * @return a binding error response message containing an error code and a
      * UNKNOWN-ATTRIBUTES header
      */
-    public static Response createBindingErrorResponseUnknownAttributes(
-                    char[] unknownAttributes) throws StunException
-    {
-        return createBindingErrorResponse(
-                        ErrorCodeAttribute.UNKNOWN_ATTRIBUTE, null,
-                        unknownAttributes);
+    public static Response createBindingErrorResponseUnknownAttributes(char[] unknownAttributes) throws StunException {
+        return createBindingErrorResponse(ErrorCodeAttribute.UNKNOWN_ATTRIBUTE, null, unknownAttributes);
     }
 
     /**
@@ -293,13 +258,8 @@ public class MessageFactory
      * @return a binding error response message containing an error code and a
      * UNKNOWN-ATTRIBUTES header
      */
-    public static Response createBindingErrorResponseUnknownAttributes(
-                    String reasonPhrase, char[] unknownAttributes)
-                    throws StunException
-    {
-        return createBindingErrorResponse(
-                        ErrorCodeAttribute.UNKNOWN_ATTRIBUTE,
-                        reasonPhrase, unknownAttributes);
+    public static Response createBindingErrorResponseUnknownAttributes(String reasonPhrase, char[] unknownAttributes) throws StunException {
+        return createBindingErrorResponse(ErrorCodeAttribute.UNKNOWN_ATTRIBUTE, reasonPhrase, unknownAttributes);
     }
 
     /**
@@ -311,9 +271,7 @@ public class MessageFactory
      * @return a binding error response message containing an error code and a
      * UNKNOWN-ATTRIBUTES header
      */
-    public static Response createBindingErrorResponse(char errorCode,
-                    String reasonPhrase)
-    {
+    public static Response createBindingErrorResponse(char errorCode, String reasonPhrase) {
         return createBindingErrorResponse(errorCode, reasonPhrase, null);
     }
 
@@ -326,8 +284,7 @@ public class MessageFactory
      * @return a binding error response message containing an error code and a
      * UNKNOWN-ATTRIBUTES header
      */
-    public static Response createBindingErrorResponse(char errorCode)
-    {
+    public static Response createBindingErrorResponse(char errorCode) {
         return createBindingErrorResponse(errorCode, null, null);
     }
 
@@ -336,8 +293,7 @@ public class MessageFactory
      *
      * @return a default binding indication.
      */
-    public static Indication createBindingIndication()
-    {
+    public static Indication createBindingIndication() {
         Indication bindingIndication = new Indication();
 
         bindingIndication.setMessageType(Message.BINDING_INDICATION);
@@ -349,15 +305,12 @@ public class MessageFactory
      *
      * @return an allocate request
      */
-    public static Request createAllocateRequest()
-    {
+    public static Request createAllocateRequest() {
         Request allocateRequest = new Request();
 
-        try
-        {
+        try {
             allocateRequest.setMessageType(Message.ALLOCATE_REQUEST);
-        } catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             // there should be no exc here since we're the creators.
             logger.warn("Failed to set message type.", ex);
         }
@@ -372,13 +325,10 @@ public class MessageFactory
      * @param rFlag R flag for the EVEN-PORT
      * @return an allocation request
      */
-    public static Request createAllocateRequest(byte protocol,
-                    boolean rFlag)
-    {
+    public static Request createAllocateRequest(byte protocol, boolean rFlag) {
         Request allocateRequest = new Request();
 
-        try
-        {
+        try {
             allocateRequest.setMessageType(Message.ALLOCATE_REQUEST);
 
             /* XXX add enum somewhere for transport number */
@@ -386,19 +336,13 @@ public class MessageFactory
                 throw new StunException("Protocol not valid!");
 
             // REQUESTED-TRANSPORT
-            allocateRequest.putAttribute(
-                    AttributeFactory.createRequestedTransportAttribute(
-                            protocol));
+            allocateRequest.putAttribute(AttributeFactory.createRequestedTransportAttribute(protocol));
 
             // EVEN-PORT
-            if (rFlag)
-            {
-                allocateRequest.putAttribute(
-                        AttributeFactory.createEvenPortAttribute(rFlag));
+            if (rFlag) {
+                allocateRequest.putAttribute(AttributeFactory.createEvenPortAttribute(rFlag));
             }
-        }
-        catch (StunException ex)
-        {
+        } catch (StunException ex) {
             logger.warn("Failed to set message type.", ex);
         }
         return allocateRequest;
@@ -407,9 +351,9 @@ public class MessageFactory
     /**
      * Creates a AllocationResponse in a 5389 compliant manner containing at
      * most 4 attributes
-     *<br><tt>XOR-RELAYED-ADDRESS</tt> attribute
-     *<br><tt>LIFETIME</tt> attribute
-     *<br><tt>XOR-MAPPED-ADDRESS</tt> attribute
+     *<br>XOR-RELAYED-ADDRESS attribute
+     *<br>LIFETIME attribute
+     *<br>XOR-MAPPED-ADDRESS attribute
      *
      * @param request the request that created the transaction that this
      * response will belong to.
@@ -421,23 +365,16 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Response createAllocationResponse(
-            Request request,
-            TransportAddress mappedAddress,
-            TransportAddress relayedAddress,
-            int lifetime )
-        throws IllegalArgumentException
-    {
-	    return createAllocationResponse(
-            request, mappedAddress, relayedAddress, null ,lifetime);
+    public static Response createAllocationResponse(Request request, TransportAddress mappedAddress, TransportAddress relayedAddress, int lifetime) throws IllegalArgumentException {
+        return createAllocationResponse(request, mappedAddress, relayedAddress, null, lifetime);
     }
-    
+
     /**
      * Creates a AllocationResponse in a 5389 compliant manner containing at most 4 attributes
-     *<br><tt>XOR-RELAYED-ADDRESS</tt> attribute
-     *<br><tt>LIFETIME</tt> attribute
-     *<br><tt>RESERVATION-TOKEN</tt> attribute
-     *<br><tt>XOR-MAPPED-ADDRESS</tt> attribute
+     *<br>XOR-RELAYED-ADDRESS attribute
+     *<br>LIFETIME attribute
+     *<br>RESERVATION-TOKEN attribute
+     *<br>XOR-MAPPED-ADDRESS attribute
      *
      * @param request the request that created the transaction that this
      * response will belong to.
@@ -450,53 +387,36 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Response createAllocationResponse(
-            Request request,
-            TransportAddress mappedAddress,
-            TransportAddress relayedAddress,
-            byte[] token,
-            int lifetime)
-        throws IllegalArgumentException
-    {
+    public static Response createAllocationResponse(Request request, TransportAddress mappedAddress, TransportAddress relayedAddress, byte[] token, int lifetime) throws IllegalArgumentException {
         Response allocationSuccessResponse = new Response();
 
         allocationSuccessResponse.setMessageType(Message.ALLOCATE_RESPONSE);
 
         // xor mapped address
-        XorMappedAddressAttribute xorMappedAddressAttribute
-            = AttributeFactory
-                .createXorMappedAddressAttribute(
-                        mappedAddress, request.getTransactionID());
+        XorMappedAddressAttribute xorMappedAddressAttribute = AttributeFactory.createXorMappedAddressAttribute(mappedAddress, request.getTransactionID());
 
         allocationSuccessResponse.putAttribute(xorMappedAddressAttribute);
 
         //xor relayed address
-        XorRelayedAddressAttribute xorRelayedAddressAttribute
-            = AttributeFactory
-        		.createXorRelayedAddressAttribute(relayedAddress,
-        				request.getTransactionID());
+        XorRelayedAddressAttribute xorRelayedAddressAttribute = AttributeFactory.createXorRelayedAddressAttribute(relayedAddress, request.getTransactionID());
 
         allocationSuccessResponse.putAttribute(xorRelayedAddressAttribute);
 
         //lifetime
-        LifetimeAttribute lifetimeAttribute
-            = AttributeFactory.createLifetimeAttribute(lifetime);
+        LifetimeAttribute lifetimeAttribute = AttributeFactory.createLifetimeAttribute(lifetime);
 
         allocationSuccessResponse.putAttribute(lifetimeAttribute);
-        
-        if(token != null)
-        {
+
+        if (token != null) {
             //reservation token
-            ReservationTokenAttribute reservationTokenAttribute
-                = AttributeFactory
-            		.createReservationTokenAttribute(token);
+            ReservationTokenAttribute reservationTokenAttribute = AttributeFactory.createReservationTokenAttribute(token);
 
             allocationSuccessResponse.putAttribute(reservationTokenAttribute);
         }
-        
+
         return allocationSuccessResponse;
     }
-    
+
     /**
      * Creates a allocation error response according to the specified error
      * code.
@@ -506,11 +426,10 @@ public class MessageFactory
      *
      * @return a allocation error response message containing an error code.
      */
-    public static Response createAllocationErrorResponse(char errorCode)
-    {
-	    return createAllocationErrorResponse(errorCode,null);
+    public static Response createAllocationErrorResponse(char errorCode) {
+        return createAllocationErrorResponse(errorCode, null);
     }
-       
+
     /**
      * Creates a allocation error response according to the specified error
      * code.
@@ -523,24 +442,19 @@ public class MessageFactory
      *
      * @return a allocation error response message containing an error code.
      */
-    public static Response createAllocationErrorResponse(char errorCode,
-	    				String reasonPhrase)
-    {
+    public static Response createAllocationErrorResponse(char errorCode, String reasonPhrase) {
         Response allocationErrorResponse = new Response();
 
         allocationErrorResponse.setMessageType(Message.ALLOCATE_ERROR_RESPONSE);
 
         //error code attribute
-        ErrorCodeAttribute errorCodeAttribute
-            = AttributeFactory
-                .createErrorCodeAttribute(errorCode,
-                                          reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         allocationErrorResponse.putAttribute(errorCodeAttribute);
 
         return allocationErrorResponse;
     }
-    
+
     /**
      * Create an allocate request for a Google TURN relay (old TURN protocol
      * modified).
@@ -548,13 +462,10 @@ public class MessageFactory
      * @param username short-term username
      * @return an allocation request
      */
-    public static Request createGoogleAllocateRequest(String username)
-    {
+    public static Request createGoogleAllocateRequest(String username) {
         Request allocateRequest = new Request();
-        Attribute usernameAttr = AttributeFactory.createUsernameAttribute(
-                username);
-        Attribute magicCookieAttr =
-            AttributeFactory.createMagicCookieAttribute();
+        Attribute usernameAttr = AttributeFactory.createUsernameAttribute(username);
+        Attribute magicCookieAttr = AttributeFactory.createMagicCookieAttribute();
 
         allocateRequest.setMessageType(Message.ALLOCATE_REQUEST);
         // first attribute is MAGIC-COOKIE
@@ -565,40 +476,33 @@ public class MessageFactory
     }
 
     /**
-     * Adds the <tt>Attribute</tt>s to a specific <tt>Request</tt> which support
+     * Adds the Attributes to a specific Request which support
      * the STUN long-term credential mechanism.
      * <p>
-     * <b>Warning</b>: The MESSAGE-INTEGRITY <tt>Attribute</tt> will also be
-     * added so <tt>Attribute</tt>s added afterwards will not be taken into
+     * <b>Warning</b>: The MESSAGE-INTEGRITY Attribute will also be
+     * added so Attributes added afterwards will not be taken into
      * account for the calculation of the MESSAGE-INTEGRITY value. For example,
-     * the FINGERPRINT <tt>Attribute</tt> may still safely be added afterwards,
+     * the FINGERPRINT Attribute may still safely be added afterwards,
      * because it is known to appear after the MESSAGE-INTEGRITY.
      * </p>
      *
-     * @param request the <tt>Request</tt> in which the <tt>Attribute</tt>s of
+     * @param request the Request in which the Attributes of
      * the STUN long-term credential mechanism are to be added
-     * @param username the value for the USERNAME <tt>Attribute</tt> to be added
-     * to <tt>request</tt>
-     * @param realm the value for the REALM <tt>Attribute</tt> to be added to
-     * <tt>request</tt>
-     * @param nonce the value for the NONCE <tt>Attribute</tt> to be added to
-     * <tt>request</tt>
+     * @param username the value for the USERNAME Attribute to be added
+     * to request
+     * @param realm the value for the REALM Attribute to be added to
+     * request
+     * @param nonce the value for the NONCE Attribute to be added to
+     * request
      *
      * @throws StunException if anything goes wrong while adding the
-     * <tt>Attribute</tt>s to <tt>request</tt> which support the STUN long-term
+     * Attributes to request which support the STUN long-term
      * credential mechanism
      */
-    public static void addLongTermCredentialAttributes(
-            Request request,
-            byte username[], byte realm[], byte nonce[])
-        throws StunException
-    {
-        UsernameAttribute usernameAttribute
-            = AttributeFactory.createUsernameAttribute(username);
-        RealmAttribute realmAttribute
-            = AttributeFactory.createRealmAttribute(realm);
-        NonceAttribute nonceAttribute
-            = AttributeFactory.createNonceAttribute(nonce);
+    public static void addLongTermCredentialAttributes(Request request, byte username[], byte realm[], byte nonce[]) throws StunException {
+        UsernameAttribute usernameAttribute = AttributeFactory.createUsernameAttribute(username);
+        RealmAttribute realmAttribute = AttributeFactory.createRealmAttribute(realm);
+        NonceAttribute nonceAttribute = AttributeFactory.createNonceAttribute(nonce);
 
         request.putAttribute(usernameAttribute);
         request.putAttribute(realmAttribute);
@@ -607,44 +511,33 @@ public class MessageFactory
         // MESSAGE-INTEGRITY
         MessageIntegrityAttribute messageIntegrityAttribute;
 
-        try
-        {
+        try {
             /*
-             * The value of USERNAME is a variable-length value. It MUST contain
-             * a UTF-8 [RFC3629] encoded sequence of less than 513 bytes, and
-             * MUST have been processed using SASLprep [RFC4013].
+             * The value of USERNAME is a variable-length value. It MUST contain a UTF-8 [RFC3629] encoded sequence of less than 513 bytes, and MUST have been processed using
+             * SASLprep [RFC4013].
              */
-            messageIntegrityAttribute
-                = AttributeFactory.createMessageIntegrityAttribute(
-                        new String(username, "UTF-8"));
-        }
-        catch (UnsupportedEncodingException ueex)
-        {
+            messageIntegrityAttribute = AttributeFactory.createMessageIntegrityAttribute(new String(username, "UTF-8"));
+        } catch (UnsupportedEncodingException ueex) {
             throw new StunException("username", ueex);
         }
         request.putAttribute(messageIntegrityAttribute);
     }
 
     /**
-     * Creates a new TURN Refresh <tt>Request</tt> without any optional
+     * Creates a new TURN Refresh Request without any optional
      * attributes such as LIFETIME.
      *
-     * @return a new TURN Refresh <tt>Request</tt> without any optional
+     * @return a new TURN Refresh Request without any optional
      * attributes such as LIFETIME
      */
-    public static Request createRefreshRequest()
-    {
+    public static Request createRefreshRequest() {
         Request refreshRequest = new Request();
 
-        try
-        {
+        try {
             refreshRequest.setMessageType(Message.REFRESH_REQUEST);
-        }
-        catch (IllegalArgumentException iaex)
-        {
+        } catch (IllegalArgumentException iaex) {
             /*
-             * We don't actually expect the exception to happen so we're
-             * ignoring it.
+             * We don't actually expect the exception to happen so we're ignoring it.
              */
             logger.warn("Failed to set message type.", iaex);
         }
@@ -657,91 +550,71 @@ public class MessageFactory
      * @param lifetime lifetime value
      * @return refresh request
      */
-    public static Request createRefreshRequest(int lifetime)
-    {
+    public static Request createRefreshRequest(int lifetime) {
         Request refreshRequest = new Request();
 
-        try
-        {
+        try {
             refreshRequest.setMessageType(Message.REFRESH_REQUEST);
 
             /* add a LIFETIME attribute */
-            LifetimeAttribute lifetimeReq = AttributeFactory
-                            .createLifetimeAttribute(lifetime);
+            LifetimeAttribute lifetimeReq = AttributeFactory.createLifetimeAttribute(lifetime);
             refreshRequest.putAttribute(lifetimeReq);
-        } catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
 
         return refreshRequest;
     }
-    
+
     /**
      * Creates a refresh success response with given lifetime.
      * 
      * @param lifetime the lifetime value to be used.
      * @return refresh error response including the error code attribute.
      */
-    public static Response createRefreshResponse(int lifetime)
-    {
+    public static Response createRefreshResponse(int lifetime) {
         Response refreshSuccessResponse = new Response();
 
-        try
-        {
+        try {
             refreshSuccessResponse.setMessageType(Message.REFRESH_RESPONSE);
 
             //lifetime attribute
-            LifetimeAttribute lifetimeAttribute
-                = AttributeFactory
-                        .createLifetimeAttribute(lifetime);
+            LifetimeAttribute lifetimeAttribute = AttributeFactory.createLifetimeAttribute(lifetime);
 
             refreshSuccessResponse.putAttribute(lifetimeAttribute);
-        }
-        catch(IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
         return refreshSuccessResponse;
     }
-    
+
     /**
      * Creates a refresh error response
      * 
      * @param errorCode the error code to encapsulate in this message.
      * @return refresh error response including the error code attribute.
      */
-    public static Response createRefreshErrorResponse(char errorCode)
-    {
+    public static Response createRefreshErrorResponse(char errorCode) {
         return createRefreshErrorResponse(errorCode, null);
     }
-    
+
     /**
      * Creates a refresh error response.
      * @param errorCode the error code to encapsulate in this message.
      * @param reasonPhrase a human readable description of the error.
      * @return refresh error response including the error code attribute.
      */
-    public static Response createRefreshErrorResponse(
-            char errorCode, String reasonPhrase)
-    {
+    public static Response createRefreshErrorResponse(char errorCode, String reasonPhrase) {
         Response refreshErrorResponse = new Response();
 
-        try
-        {
-            refreshErrorResponse.setMessageType(
-                Message.REFRESH_ERROR_RESPONSE);
+        try {
+            refreshErrorResponse.setMessageType(Message.REFRESH_ERROR_RESPONSE);
 
-            ErrorCodeAttribute errorCodeAttribute
-                = AttributeFactory
-                        .createErrorCodeAttribute(
-                            errorCode, reasonPhrase);
+            ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
             refreshErrorResponse.putAttribute(errorCodeAttribute);
-        }
-        catch(IllegalArgumentException ex)
-        {
-             logger.warn("Failed to set message type.", ex);
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Failed to set message type.", ex);
         }
         return refreshErrorResponse;
     }
@@ -755,60 +628,48 @@ public class MessageFactory
      *
      * @return channel bind request
      */
-    public static Request createChannelBindRequest(char channelNumber,
-                    TransportAddress peerAddress, byte[] tranID)
-    {
+    public static Request createChannelBindRequest(char channelNumber, TransportAddress peerAddress, byte[] tranID) {
         Request channelBindRequest = new Request();
 
-        try
-        {
-            channelBindRequest
-                            .setMessageType(Message.CHANNELBIND_REQUEST);
+        try {
+            channelBindRequest.setMessageType(Message.CHANNELBIND_REQUEST);
 
             // add a CHANNEL-NUMBER attribute
-            ChannelNumberAttribute channelNumberAttribute = AttributeFactory
-                            .createChannelNumberAttribute(channelNumber);
+            ChannelNumberAttribute channelNumberAttribute = AttributeFactory.createChannelNumberAttribute(channelNumber);
             channelBindRequest.putAttribute(channelNumberAttribute);
 
             // add a XOR-PEER-ADDRESS
-            XorPeerAddressAttribute peerAddressAttribute
-                = AttributeFactory
-                        .createXorPeerAddressAttribute(peerAddress, tranID);
+            XorPeerAddressAttribute peerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, tranID);
             channelBindRequest.putAttribute(peerAddressAttribute);
-        }
-        catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
 
         return channelBindRequest;
     }
-    
+
     /**
      * Creates a Channel Bind Success Response.
      * @return Channel Bind Success Response.
      */
-    public static Response createChannelBindResponse()
-    {
+    public static Response createChannelBindResponse() {
         Response channelBindSuccessResponse = new Response();
 
-        channelBindSuccessResponse.setMessageType(
-            Message.CHANNELBIND_RESPONSE);
+        channelBindSuccessResponse.setMessageType(Message.CHANNELBIND_RESPONSE);
 
         return channelBindSuccessResponse;
     }
-    
+
     /**
      * Creates a Channel Bind Error Response with given error code.
      * 
      * @param errorCode the error code to encapsulate in this message.
      * @return Channel Bind Error Response including the error code attribute.
      */
-    public static Response createChannelBindErrorResponse(char errorCode)
-    {
-	    return createChannelBindErrorResponse(errorCode, null);
+    public static Response createChannelBindErrorResponse(char errorCode) {
+        return createChannelBindErrorResponse(errorCode, null);
     }
-    
+
     /**
      * Creates a Channel Bind Error Response with given error code
      * and reasonPhrase.
@@ -816,54 +677,39 @@ public class MessageFactory
      * @param reasonPhrase a human readable description of the error.
      * @return Channel Bind Error Response including the error code attribute.
      */
-    public static Response createChannelBindErrorResponse(
-            char errorCode, String reasonPhrase)
-    {
+    public static Response createChannelBindErrorResponse(char errorCode, String reasonPhrase) {
         Response channelBindErrorResponse = new Response();
 
-        channelBindErrorResponse
-            .setMessageType(Message.CHANNELBIND_ERROR_RESPONSE);
+        channelBindErrorResponse.setMessageType(Message.CHANNELBIND_ERROR_RESPONSE);
 
-        ErrorCodeAttribute errorCodeAttribute
-            = AttributeFactory
-                .createErrorCodeAttribute(errorCode,reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         channelBindErrorResponse.putAttribute(errorCodeAttribute);
 
         return channelBindErrorResponse;
     }
-    
+
     /**
-     * Creates a new TURN CreatePermission <tt>Request</tt> with a specific
+     * Creates a new TURN CreatePermission Request with a specific
      * value for its XOR-PEER-ADDRESS attribute.
      *
      * @param peerAddress the value to assigned to the XOR-PEER-ADDRESS
      * attribute
      * @param transactionID the ID of the transaction which is to be used for
-     * the assignment of <tt>peerAddress</tt> to the XOR-PEER-ADDRESS attribute
-     * @return a new TURN CreatePermission <tt>Request</tt> with the specified
+     * the assignment of peerAddress to the XOR-PEER-ADDRESS attribute
+     * @return a new TURN CreatePermission Request with the specified
      * value for its XOR-PEER-ADDRESS attribute
      */
-    public static Request createCreatePermissionRequest(
-            TransportAddress peerAddress,
-            byte[] transactionID)
-    {
+    public static Request createCreatePermissionRequest(TransportAddress peerAddress, byte[] transactionID) {
         Request createPermissionRequest = new Request();
 
-        try
-        {
-            createPermissionRequest.setMessageType(
-                    Message.CREATEPERMISSION_REQUEST);
-        }
-        catch (IllegalArgumentException iaex)
-        {
+        try {
+            createPermissionRequest.setMessageType(Message.CREATEPERMISSION_REQUEST);
+        } catch (IllegalArgumentException iaex) {
             // Expected to not happen because we are the creators.
             logger.warn("Failed to set message type.", iaex);
         }
-        createPermissionRequest.putAttribute(
-                AttributeFactory.createXorPeerAddressAttribute(
-                        peerAddress,
-                        transactionID));
+        createPermissionRequest.putAttribute(AttributeFactory.createXorPeerAddressAttribute(peerAddress, transactionID));
         return createPermissionRequest;
     }
 
@@ -872,28 +718,24 @@ public class MessageFactory
      * 
      * @return CreatePermission Response 
      */
-    public static Response createCreatePermissionResponse()
-    {
+    public static Response createCreatePermissionResponse() {
         Response permissionSuccessResponse = new Response();
 
-        permissionSuccessResponse.setMessageType(
-            Message.CREATEPERMISSION_RESPONSE);
+        permissionSuccessResponse.setMessageType(Message.CREATEPERMISSION_RESPONSE);
 
         return permissionSuccessResponse;
     }
-    
+
     /**
      * Creates a create permission error response.
      * 
      * @param errorCode the error code to encapsulate in this message.
      * @return CreatePermission Error Response with error code attribute.
      */
-    public static Response createCreatePermissionErrorResponse(char errorCode)
-    {
-        return createPermissionErrorResponse(
-            errorCode, null);
+    public static Response createCreatePermissionErrorResponse(char errorCode) {
+        return createPermissionErrorResponse(errorCode, null);
     }
-    
+
     /**
      * Creates a create permission error response.
      * 
@@ -901,24 +743,18 @@ public class MessageFactory
      * @param reasonPhrase a human readable description of the error.
      * @return CreatePermission Error Response with error code attribute.
      */
-    public static Response createPermissionErrorResponse(
-            char errorCode, String reasonPhrase)
-    {
+    public static Response createPermissionErrorResponse(char errorCode, String reasonPhrase) {
         Response createPermissionErrorResponse = new Response();
 
-        createPermissionErrorResponse.setMessageType(
-            Message.CREATEPERMISSION_ERROR_RESPONSE);
+        createPermissionErrorResponse.setMessageType(Message.CREATEPERMISSION_ERROR_RESPONSE);
 
-        ErrorCodeAttribute errorCodeAttribute
-            = AttributeFactory
-                .createErrorCodeAttribute(
-                        errorCode,reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         createPermissionErrorResponse.putAttribute(errorCodeAttribute);
 
         return createPermissionErrorResponse;
     }
-    
+
     /**
      * Create a Send Indication.
      *
@@ -928,29 +764,22 @@ public class MessageFactory
      *
      * @return send indication message
      */
-    public static Indication createSendIndication(
-                    TransportAddress peerAddress, byte[] data, byte[] tranID)
-    {
+    public static Indication createSendIndication(TransportAddress peerAddress, byte[] data, byte[] tranID) {
         Indication sendIndication = new Indication();
 
-        try
-        {
+        try {
             sendIndication.setMessageType(Message.SEND_INDICATION);
 
             /* add XOR-PEER-ADDRESS attribute */
-            XorPeerAddressAttribute peerAddressAttribute = AttributeFactory
-                            .createXorPeerAddressAttribute(peerAddress, tranID);
+            XorPeerAddressAttribute peerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, tranID);
             sendIndication.putAttribute(peerAddressAttribute);
 
             /* add DATA if data */
-            if (data != null && data.length > 0)
-            {
-                DataAttribute dataAttribute = AttributeFactory
-                                .createDataAttribute(data);
+            if (data != null && data.length > 0) {
+                DataAttribute dataAttribute = AttributeFactory.createDataAttribute(data);
                 sendIndication.putAttribute(dataAttribute);
             }
-        } catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
 
@@ -966,38 +795,28 @@ public class MessageFactory
      *
      * @return data indication message
      */
-    public static Indication createDataIndication(
-            TransportAddress peerAddress, byte[] data, byte[] tranID)
-    {
+    public static Indication createDataIndication(TransportAddress peerAddress, byte[] data, byte[] tranID) {
         Indication dataIndication = new Indication();
 
-        try
-        {
+        try {
             dataIndication.setMessageType(Message.DATA_INDICATION);
 
             /* add XOR-PEER-ADDRESS attribute */
-            XorPeerAddressAttribute peerAddressAttribute
-                = AttributeFactory
-                        .createXorPeerAddressAttribute(peerAddress, tranID);
+            XorPeerAddressAttribute peerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, tranID);
             dataIndication.putAttribute(peerAddressAttribute);
 
             /* add DATA if data */
-            if (data != null && data.length > 0)
-            {
-                DataAttribute dataAttribute
-                    = AttributeFactory
-                            .createDataAttribute(data);
+            if (data != null && data.length > 0) {
+                DataAttribute dataAttribute = AttributeFactory.createDataAttribute(data);
                 dataIndication.putAttribute(dataAttribute);
             }
-        }
-        catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
 
         return dataIndication;
     }
-    
+
     /**
      * Create a old Send Request.
      * @param username the username
@@ -1005,38 +824,28 @@ public class MessageFactory
      * @param data data (could be 0 byte)
      * @return send indication message
      */
-    public static Request createSendRequest(
-                    String username, TransportAddress peerAddress, byte[] data)
-    {
+    public static Request createSendRequest(String username, TransportAddress peerAddress, byte[] data) {
         Request sendRequest = new Request();
 
-        try
-        {
+        try {
             sendRequest.setMessageType(Message.SEND_REQUEST);
 
             /* add MAGIC-COOKIE attribute */
-            sendRequest.putAttribute(
-                    AttributeFactory.createMagicCookieAttribute());
+            sendRequest.putAttribute(AttributeFactory.createMagicCookieAttribute());
 
             /* add USERNAME attribute */
-            sendRequest.putAttribute(
-                    AttributeFactory.createUsernameAttribute(username));
+            sendRequest.putAttribute(AttributeFactory.createUsernameAttribute(username));
 
             /* add DESTINATION-ADDRESS attribute */
-            DestinationAddressAttribute peerAddressAttribute = AttributeFactory
-                            .createDestinationAddressAttribute(peerAddress);
+            DestinationAddressAttribute peerAddressAttribute = AttributeFactory.createDestinationAddressAttribute(peerAddress);
             sendRequest.putAttribute(peerAddressAttribute);
 
             /* add DATA if data */
-            if (data != null && data.length > 0)
-            {
-                DataAttribute dataAttribute = AttributeFactory
-                                .createDataAttributeWithoutPadding(data);
+            if (data != null && data.length > 0) {
+                DataAttribute dataAttribute = AttributeFactory.createDataAttributeWithoutPadding(data);
                 sendRequest.putAttribute(dataAttribute);
             }
-        }
-        catch (IllegalArgumentException ex)
-        {
+        } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type.", ex);
         }
 
@@ -1050,10 +859,8 @@ public class MessageFactory
      *
      * @return request
      */
-    public static Request createSharedSecretRequest()
-    {
-        throw new UnsupportedOperationException(
-                        "Shared Secret Support is not currently implemented");
+    public static Request createSharedSecretRequest() {
+        throw new UnsupportedOperationException("Shared Secret Support is not currently implemented");
     }
 
     /**
@@ -1062,10 +869,8 @@ public class MessageFactory
      *
      * @return response
      */
-    public static Response createSharedSecretResponse()
-    {
-        throw new UnsupportedOperationException(
-                        "Shared Secret Support is not currently implemented");
+    public static Response createSharedSecretResponse() {
+        throw new UnsupportedOperationException("Shared Secret Support is not currently implemented");
     }
 
     /**
@@ -1074,15 +879,13 @@ public class MessageFactory
      *
      * @return error response
      */
-    public static Response createSharedSecretErrorResponse()
-    {
-        throw new UnsupportedOperationException(
-                        "Shared Secret Support is not currently implemented");
+    public static Response createSharedSecretErrorResponse() {
+        throw new UnsupportedOperationException("Shared Secret Support is not currently implemented");
     }
-    
+
     /**
      * Creates a ConnectRequest in a 6062 compliant manner containing only
-     *<br><tt>XOR-PEER-ADDRESS</tt> attribute
+     *<br>XOR-PEER-ADDRESS attribute
      *
      * @param request the request that created the transaction that this
      * response will belong to.
@@ -1092,28 +895,22 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Request createConnectRequest(
-            TransportAddress peerAddress, Request request)
-        throws IllegalArgumentException
-    {
+    public static Request createConnectRequest(TransportAddress peerAddress, Request request) throws IllegalArgumentException {
         Request connectRequest = new Request();
 
         connectRequest.setMessageType(Message.CONNECT_REQUEST);
 
         //xor peer address
-        XorPeerAddressAttribute xorPeerAddressAttribute
-            = AttributeFactory
-                .createXorPeerAddressAttribute(
-                    peerAddress, request.getTransactionID());
+        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, request.getTransactionID());
 
         connectRequest.putAttribute(xorPeerAddressAttribute);
 
         return connectRequest;
     }
-    
+
     /**
      * Creates a ConnectRequest in a 6062 compliant manner containing only
-     * <tt>XOR-PEER-ADDRESS</tt> attribute. This method is used by turnserver.
+     * XOR-PEER-ADDRESS attribute. This method is used by turnserver.
      *
      * @param peerAddress the address to assign the xorPeerAddressAttribute
      * @param transactionId the transaction id that this response will belong
@@ -1123,51 +920,42 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-    public static Request createConnectRequest(TransportAddress peerAddress,
-        byte[] transactionId)
-        throws IllegalArgumentException
-    {
+    public static Request createConnectRequest(TransportAddress peerAddress, byte[] transactionId) throws IllegalArgumentException {
         Request connectRequest = new Request();
 
         connectRequest.setMessageType(Message.CONNECT_REQUEST);
 
         // xor peer address
-        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory
-            .createXorPeerAddressAttribute(peerAddress, transactionId);
+        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, transactionId);
 
         connectRequest.putAttribute(xorPeerAddressAttribute);
 
         return connectRequest;
-    }   
+    }
 
     /**
      * Creates a Connect Response in a 6062 compliant manner containing a single
-     * <tt>CONNECTION-ID-ATTRIBUTE</tt> attribute
+     * CONNECTION-ID-ATTRIBUTE attribute
      * @param connectionIdValue the address to assign the connectionIdAttribute
      * @return a ConnectResponse assigning the specified values to mandatory
      * headers.
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
      */
-        
-    public static Response createConnectResponse(
-            int connectionIdValue)
-        throws IllegalArgumentException
-    {
+
+    public static Response createConnectResponse(int connectionIdValue) throws IllegalArgumentException {
         Response connectSuccessResponse = new Response();
 
         connectSuccessResponse.setMessageType(Message.CONNECT_RESPONSE);
 
         //connection id
-        ConnectionIdAttribute connectionIdAttribute
-            = AttributeFactory
-                .createConnectionIdAttribute(connectionIdValue);
+        ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
 
         connectSuccessResponse.putAttribute(connectionIdAttribute);
 
         return connectSuccessResponse;
     }
-    
+
     /**
      * Creates a Connect error response according to the specified error code.
      *
@@ -1176,13 +964,11 @@ public class MessageFactory
      * given parameters had an invalid value.
      * @return a Connect error response message containing an error code.
      */
-    
-    public static Response createConnectErrorResponse(char errorCode)
-        throws IllegalArgumentException
-    {
-	    return createConnectErrorResponse(errorCode, null);
+
+    public static Response createConnectErrorResponse(char errorCode) throws IllegalArgumentException {
+        return createConnectErrorResponse(errorCode, null);
     }
-    
+
     /**
      * Creates a Connect error response according to the specified error code.
      *
@@ -1192,28 +978,22 @@ public class MessageFactory
      * given parameters had an invalid value.
      * @return a Connect error response message containing an error code.
      */
-    public static Response createConnectErrorResponse(
-            char  errorCode, String reasonPhrase )
-        throws IllegalArgumentException
-    {
+    public static Response createConnectErrorResponse(char errorCode, String reasonPhrase) throws IllegalArgumentException {
         Response connectionErrorResponse = new Response();
 
         connectionErrorResponse.setMessageType(Message.CONNECT_ERROR_RESPONSE);
 
         //error code attribute
-        ErrorCodeAttribute errorCodeAttribute
-            = AttributeFactory
-                .createErrorCodeAttribute(errorCode, reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         connectionErrorResponse.putAttribute(errorCodeAttribute);
 
         return connectionErrorResponse;
     }
 
-    
     /**
      * Creates a ConnectionBindRequest in a 6062 compliant manner containing
-     * only <tt>CONECTION-ID-ATTRIBUTE</tt> attribute.
+     * only CONECTION-ID-ATTRIBUTE attribute.
      *
      * @param connectionIdValue the value to assign the connectionIdAtribute
      * @return a ConnectionBind Request assigning the specified values
@@ -1221,23 +1001,19 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      *         way we are trying to create the Request.
      */
-    public static Request createConnectionBindRequest(int connectionIdValue)
-        throws IllegalArgumentException
-    {
+    public static Request createConnectionBindRequest(int connectionIdValue) throws IllegalArgumentException {
         Request connectionBindRequest = new Request();
 
         connectionBindRequest.setMessageType(Message.CONNECTION_BIND_REQUEST);
 
         //connection id
-        ConnectionIdAttribute connectionIdAttribute
-            = AttributeFactory
-                .createConnectionIdAttribute(connectionIdValue);
+        ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
 
         connectionBindRequest.putAttribute(connectionIdAttribute);
 
         return connectionBindRequest;
     }
-    
+
     /**
      * Creates a ConnectionBind Response in a 6062 compliant manner.
      *
@@ -1245,18 +1021,15 @@ public class MessageFactory
      *         mandatory headers.
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the response.
-     */ 
-    public static Response createConnectionBindResponse()
-        throws IllegalArgumentException
-    {
+     */
+    public static Response createConnectionBindResponse() throws IllegalArgumentException {
         Response connectSuccessResponse = new Response();
 
-        connectSuccessResponse.setMessageType(
-            Message.CONNECTION_BIND_SUCCESS_RESPONSE);
+        connectSuccessResponse.setMessageType(Message.CONNECTION_BIND_SUCCESS_RESPONSE);
 
         return connectSuccessResponse;
     }
-    
+
     /**
      * Creates a ConnectionBind error response according to the specified error
      * code.
@@ -1266,13 +1039,11 @@ public class MessageFactory
      * given parameters had an invalid value.
      * @return a ConnectionBind error response message containing an error code.
      */
-    
-    public static Response createConnectionBindErrorResponse(char errorCode)
-        throws IllegalArgumentException
-    {
-	    return createConnectionBindErrorResponse(errorCode,null);
+
+    public static Response createConnectionBindErrorResponse(char errorCode) throws IllegalArgumentException {
+        return createConnectionBindErrorResponse(errorCode, null);
     }
-    
+
     /**
      * Creates a ConnectionBind error response according to the specified error
      * code.
@@ -1283,19 +1054,13 @@ public class MessageFactory
      * given parameters had an invalid value.
      * @return a ConnectionBind error response message containing an error code.
      */
-    public static Response createConnectionBindErrorResponse(
-            char  errorCode, String reasonPhrase)
-        throws IllegalArgumentException
-    {
+    public static Response createConnectionBindErrorResponse(char errorCode, String reasonPhrase) throws IllegalArgumentException {
         Response connectionBindErrorResponse = new Response();
 
-        connectionBindErrorResponse.setMessageType(
-            Message.CONNECTION_BIND_ERROR_RESPONSE);
+        connectionBindErrorResponse.setMessageType(Message.CONNECTION_BIND_ERROR_RESPONSE);
 
         //error code attribute
-        ErrorCodeAttribute errorCodeAttribute
-            = AttributeFactory
-                .createErrorCodeAttribute(errorCode, reasonPhrase);
+        ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
 
         connectionBindErrorResponse.putAttribute(errorCodeAttribute);
 
@@ -1304,8 +1069,8 @@ public class MessageFactory
 
     /**
      * Creates a ConnectionAttempt Indication in a 6062 compliant manner
-     * containing only <tt>CONECTION-ID-ATTRIBUTE</tt> attribute and
-     * <tt>XOR-PPER-ADDRESS</tt> attribute.
+     * containing only CONECTION-ID-ATTRIBUTE attribute and
+     * XOR-PPER-ADDRESS attribute.
      *
      * @param connectionIdValue the value to assign the connectionidAtribute
      * @param peerAddress the value to assign the xorPeerAddress
@@ -1314,37 +1079,28 @@ public class MessageFactory
      * @throws IllegalArgumentException if there was something wrong with the
      * way we are trying to create the Request.
      */
-    public static Indication createConnectionAttemptIndication(
-            int connectionIdValue, TransportAddress peerAddress)
-        throws IllegalArgumentException
-    {
+    public static Indication createConnectionAttemptIndication(int connectionIdValue, TransportAddress peerAddress) throws IllegalArgumentException {
         Indication connectionAttemptIndication = new Indication();
 
-        connectionAttemptIndication.setMessageType(
-            Message.CONNECTION_ATTEMPT_INDICATION);
+        connectionAttemptIndication.setMessageType(Message.CONNECTION_ATTEMPT_INDICATION);
 
         //connection id attribute
-        ConnectionIdAttribute connectionIdAttribute
-            = AttributeFactory
-                .createConnectionIdAttribute(connectionIdValue);
+        ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
 
         connectionAttemptIndication.putAttribute(connectionIdAttribute);
 
         //xor peer address attribute
-        XorPeerAddressAttribute xorPeerAddressAttribute
-            = AttributeFactory
-                .createXorPeerAddressAttribute(peerAddress,
-                    connectionAttemptIndication.getTransactionID());
+        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, connectionAttemptIndication.getTransactionID());
 
         connectionAttemptIndication.putAttribute(xorPeerAddressAttribute);
 
         return connectionAttemptIndication;
-   }
-    
+    }
+
     /**
      * Creates a ConnectionAttempt Indication in a 6062 compliant manner
-     * containing only <tt>CONECTION-ID-ATTRIBUTE</tt> attribute and
-     * <tt>XOR-PPER-ADDRESS</tt> attribute.
+     * containing only CONECTION-ID-ATTRIBUTE attribute and
+     * XOR-PPER-ADDRESS attribute.
      *
      * @param connectionIdValue the value to assign the connectionidAtribute
      * @param peerAddress the value to assign the xorPeerAddress
@@ -1355,33 +1111,25 @@ public class MessageFactory
      * way we are trying to create the Request.
      * @throws StunException when the transaction id is not valid.
      */
-    public static Indication createConnectionAttemptIndication(
-        int connectionIdValue, TransportAddress peerAddress,
-        byte[] transactionId)
-        throws IllegalArgumentException, StunException
-    {
+    public static Indication createConnectionAttemptIndication(int connectionIdValue, TransportAddress peerAddress, byte[] transactionId) throws IllegalArgumentException, StunException {
         Indication connectionAttemptIndication = new Indication();
 
         // set the attempt transaction id
         connectionAttemptIndication.setTransactionID(transactionId);
 
-        connectionAttemptIndication.setMessageType(
-            Message.CONNECTION_ATTEMPT_INDICATION);
+        connectionAttemptIndication.setMessageType(Message.CONNECTION_ATTEMPT_INDICATION);
 
         // connection id attribute
-        ConnectionIdAttribute connectionIdAttribute = AttributeFactory
-            .createConnectionIdAttribute(connectionIdValue);
+        ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
 
         connectionAttemptIndication.putAttribute(connectionIdAttribute);
 
         // xor peer address attribute
-        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory
-            .createXorPeerAddressAttribute(peerAddress,
-            connectionAttemptIndication.getTransactionID());
+        XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, connectionAttemptIndication.getTransactionID());
 
         connectionAttemptIndication.putAttribute(xorPeerAddressAttribute);
 
         return connectionAttemptIndication;
-    }   
+    }
 
 }

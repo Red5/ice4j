@@ -37,12 +37,12 @@ public class PeerReflexiveCandidate
     extends LocalCandidate
 {
     /**
-     * Creates a <tt>PeerReflexiveCandidate</tt> instance for the specified
+     * Creates a PeerReflexiveCandidate instance for the specified
      * transport address and properties.
      *
      * @param transportAddress  the transport address that this candidate is
      * encapsulating.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * @param parentComponent the Component that this candidate
      * belongs to.
      * @param base the base of a peer reflexive candidate base is the local
      * candidate of the candidate pair from which the STUN check was sent.

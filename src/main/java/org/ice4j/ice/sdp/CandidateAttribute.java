@@ -1,31 +1,21 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.sdp;
 
-import gov.nist.core.*;
-import gov.nist.javax.sdp.fields.*;
-import org.ice4j.*;
-import org.ice4j.ice.*;
+import gov.nist.core.NameValue;
+import gov.nist.core.Separators;
+import gov.nist.javax.sdp.fields.AttributeField;
 
-import javax.sdp.*;
+import javax.sdp.SdpException;
 
-public class CandidateAttribute extends AttributeField
-{
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Candidate;
+
+public class CandidateAttribute extends AttributeField {
     /**
      * The SDP name of candidate attributes.
      */
@@ -41,8 +31,7 @@ public class CandidateAttribute extends AttributeField
      */
     private Candidate<?> candidate;
 
-    protected CandidateAttribute()
-    {
+    protected CandidateAttribute() {
         this(null);
     }
 
@@ -51,16 +40,14 @@ public class CandidateAttribute extends AttributeField
      *
      * @param candidate the Candidate
      */
-    public CandidateAttribute(Candidate<?> candidate)
-    {
+    public CandidateAttribute(Candidate<?> candidate) {
         this.candidate = candidate;
     }
 
     /**
      * {@inheritDoc}
      */
-    public NameValue getAttribute()
-    {
+    public NameValue getAttribute() {
         // We've overridden the method getValue() of AttributeField. The
         // NameValue pair of the method getAttribute() should return the value of
         // the method getValue() of AttributeField then. Unfortunately, NameValue
@@ -70,10 +57,7 @@ public class CandidateAttribute extends AttributeField
         NameValue attribute = super.getAttribute();
         String name = getName();
 
-        if ((attribute == null)
-                || (name.equals(attribute.getName())
-                        && (attribute.getValue() == null)))
-        {
+        if ((attribute == null) || (name.equals(attribute.getName()) && (attribute.getValue() == null))) {
             attribute = new NameValue(name, getValue());
         }
         return attribute;
@@ -84,8 +68,7 @@ public class CandidateAttribute extends AttributeField
      *
      * @return a String identity.
      */
-    public String getName()
-    {
+    public String getName() {
         return NAME;
     }
 
@@ -94,17 +77,15 @@ public class CandidateAttribute extends AttributeField
      *
      * @param name ignored.
      */
-    public void setName(String name)
-    {
+    public void setName(String name) {
     }
 
     /**
-     * Always returns <tt>true</tt> as this attribute always has a value.
+     * Always returns true as this attribute always has a value.
      *
      * @return true if the attribute has a value.
      */
-    public boolean hasValue()
-    {
+    public boolean hasValue() {
         return true;
     }
 
@@ -113,26 +94,20 @@ public class CandidateAttribute extends AttributeField
      *
      * @return the value
      */
-    public String getValue()
-    {
-        StringBuffer buff = new StringBuffer();
+    public String getValue() {
+        StringBuilder buff = new StringBuilder();
 
         buff.append(candidate.getFoundation());
-        buff.append(" ").append(
-            candidate.getParentComponent().getComponentID());
+        buff.append(" ").append(candidate.getParentComponent().getComponentID());
         buff.append(" ").append(candidate.getTransport());
         buff.append(" ").append(candidate.getPriority());
-        buff.append(" ").append(
-            candidate.getTransportAddress().getHostAddress());
-        buff.append(" ").append(
-            candidate.getTransportAddress().getPort());
-        buff.append(" typ ").append(
-            candidate.getType());
+        buff.append(" ").append(candidate.getTransportAddress().getHostAddress());
+        buff.append(" ").append(candidate.getTransportAddress().getPort());
+        buff.append(" typ ").append(candidate.getType());
 
         TransportAddress relAddr = candidate.getRelatedAddress();
 
-        if (relAddr != null)
-        {
+        if (relAddr != null) {
             buff.append(" raddr ").append(relAddr.getHostAddress());
             buff.append(" rport ").append(relAddr.getPort());
         }
@@ -145,12 +120,10 @@ public class CandidateAttribute extends AttributeField
      *
      * @param value the - attribute value
      *
-     * @throws javax.sdp.SdpException if there's a problem with the <tt>value
-     * String</tt>.
+     * @throws javax.sdp.SdpException if there's a problem with the value
+     * String.
      */
-    public void setValue(String value)
-        throws SdpException
-    {
+    public void setValue(String value) throws SdpException {
     }
 
     /**
@@ -158,8 +131,7 @@ public class CandidateAttribute extends AttributeField
      *
      * @return the type character for the field.
      */
-    public char getTypeChar()
-    {
+    public char getTypeChar() {
         return 'a';
     }
 
@@ -168,8 +140,7 @@ public class CandidateAttribute extends AttributeField
      *
      * @return a reference to this attribute.
      */
-    public CandidateAttribute clone()
-    {
+    public CandidateAttribute clone() {
         CandidateAttribute clone = (CandidateAttribute) super.clone();
 
         clone.candidate = candidate;
@@ -181,11 +152,10 @@ public class CandidateAttribute extends AttributeField
      *
      * @return the string encoded version of this object
      */
-     public String encode()
-     {
-         StringBuffer sbuff = new StringBuffer(ATTRIBUTE_FIELD);
-         sbuff.append(getName()).append(Separators.COLON);
-         sbuff.append(getValue());
-         return sbuff.append(Separators.NEWLINE).toString();
-     }
+    public String encode() {
+        StringBuilder sbuff = new StringBuilder(ATTRIBUTE_FIELD);
+        sbuff.append(getName()).append(Separators.COLON);
+        sbuff.append(getValue());
+        return sbuff.append(Separators.NEWLINE).toString();
+    }
 }

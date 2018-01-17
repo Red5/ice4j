@@ -80,14 +80,14 @@ public enum CandidateType
     STUN_CANDIDATE("stun");
 
     /**
-     * The name of this <tt>CandidateType</tt> instance.
+     * The name of this CandidateType instance.
      */
     private final String typeName;
 
     /**
-     * Creates a <tt>CandidateType</tt> instance with the specified name.
+     * Creates a CandidateType instance with the specified name.
      *
-     * @param typeName the name of the <tt>CandidateType</tt> instance we'd
+     * @param typeName the name of the CandidateType instance we'd
      * like to create.
      */
     private CandidateType(String typeName)
@@ -96,10 +96,10 @@ public enum CandidateType
     }
 
     /**
-     * Returns the name of this <tt>CandidateType</tt> (e.g. "host", "prflx",
+     * Returns the name of this CandidateType (e.g. "host", "prflx",
      * "srflx", or "relay").
      *
-     * @return the name of this <tt>CandidateType</tt> (e.g. "host", "prflx",
+     * @return the name of this CandidateType (e.g. "host", "prflx",
      * "srflx", or "relay").
      */
     @Override
@@ -109,15 +109,15 @@ public enum CandidateType
     }
 
     /**
-     * Returns a <tt>CandidateType</tt> instance corresponding to the specified
-     * <tt>candidateTypeName</tt>. For example, for name "host", this method
+     * Returns a CandidateType instance corresponding to the specified
+     * candidateTypeName. For example, for name "host", this method
      * would return {@link #HOST_CANDIDATE}.
      *
      * @param candidateTypeName the name that we'd like to parse.
-     * @return a <tt>CandidateType</tt> instance corresponding to the specified
-     * <tt>candidateTypeName</tt>.
+     * @return a CandidateType instance corresponding to the specified
+     * candidateTypeName.
      *
-     * @throws IllegalArgumentException in case <tt>candidateTypeName</tt> is
+     * @throws IllegalArgumentException in case candidateTypeName is
      * not a valid or currently supported candidate type.
      */
     public static CandidateType parse(String candidateTypeName)

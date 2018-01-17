@@ -19,14 +19,12 @@ import org.ice4j.stack.*;
 /**
  * The class provides basic means of discovering a public IP address. All it
  * does is send a binding request through a specified port and return the
- * mapped address it got back or <tt>null</tt> if there was no response.
+ * mapped address it got back or null if there was no response.
  *
  * @author Emil Ivov
  */
 public class SimpleAddressDetector {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = Logger.getLogger(SimpleAddressDetector.class.getName());
 
     /**

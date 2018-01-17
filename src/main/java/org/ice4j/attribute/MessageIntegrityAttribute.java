@@ -119,7 +119,7 @@ public class MessageIntegrityAttribute
     private String media;
 
     /**
-     * Creates a <tt>MessageIntegrityAttribute</tt>.
+     * Creates a MessageIntegrityAttribute.
      */
     protected MessageIntegrityAttribute()
     {
@@ -162,21 +162,21 @@ public class MessageIntegrityAttribute
     }
 
     /**
-     * Encodes <tt>message</tt> using <tt>key</tt> and the HMAC-SHA1 algorithm
+     * Encodes message using key and the HMAC-SHA1 algorithm
      * as per RFC 2104 and returns the resulting byte array. This is a utility
      * method that generates content for the {@link MessageIntegrityAttribute}
      * regardless of the credentials being used (short or long term).
      *
      * @param message the STUN message that the resulting content will need to
      * travel in.
-     * @param offset the index where data starts in <tt>message</tt>.
-     * @param length the length of the data in <tt>message</tt> that the method
+     * @param offset the index where data starts in message.
+     * @param length the length of the data in message that the method
      * should consider.
      * @param key the key that we should be using for the encoding (which
      * depends on whether we are using short or long term credentials).
      *
      * @return the HMAC that should be used in a
-     * <tt>MessageIntegrityAttribute</tt> transported by <tt>message</tt>.
+     * MessageIntegrityAttribute transported by message.
      *
      * @throws IllegalArgumentException if the encoding fails for some reason.
      */
@@ -252,16 +252,16 @@ public class MessageIntegrityAttribute
     /**
      * Returns a binary representation of this attribute.
      *
-     * @param stunStack the <tt>StunStack</tt> in the context of which the
-     * request to encode this <tt>ContentDependentAttribute</tt> is being made
+     * @param stunStack the StunStack in the context of which the
+     * request to encode this ContentDependentAttribute is being made
      * @param content the content of the message that this attribute will be
      * transported in
-     * @param offset the <tt>content</tt>-related offset where the actual
+     * @param offset the content-related offset where the actual
      * content starts.
-     * @param length the length of the content in the <tt>content</tt> array.
+     * @param length the length of the content in the content array.
      *
      * @return a binary representation of this attribute valid for the message
-     * with the specified <tt>content</tt>.
+     * with the specified content.
      */
     public byte[] encode(
             StunStack stunStack,
@@ -318,7 +318,7 @@ public class MessageIntegrityAttribute
     }
 
     /**
-     * Compares two <tt>MessageIntegrityAttribute</tt>s. Two attributes are
+     * Compares two MessageIntegrityAttributes. Two attributes are
      * considered equal when they have the same type length and value.
      *
      * @param obj the object to compare this attribute with.

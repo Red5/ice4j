@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  */
 class ConnectivityCheckClient implements ResponseCollector {
     /**
-     * The <tt>Logger</tt> used by the <tt>ConnectivityCheckClient</tt>
+     * The Logger used by the ConnectivityCheckClient
      * class for logging output.
      * Note that this shouldn't be used directly by instances of
      * {@link ConnectivityCheckClient}, because it doesn't take into account
@@ -42,7 +42,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     private final Agent parentAgent;
 
     /**
-     * The <tt>StunStack</tt> that we will use for connectivity checks.
+     * The StunStack that we will use for connectivity checks.
      */
     private final StunStack stunStack;
 
@@ -62,11 +62,11 @@ class ConnectivityCheckClient implements ResponseCollector {
     private boolean alive;
 
     /**
-     * Creates a new <tt>ConnectivityCheckClient</tt> setting
-     * <tt>parentAgent</tt> as the agent that will be used for retrieving
+     * Creates a new ConnectivityCheckClient setting
+     * parentAgent as the agent that will be used for retrieving
      * information such as user fragments for example.
      *
-     * @param parentAgent the <tt>Agent</tt> that is creating this instance.
+     * @param parentAgent the Agent that is creating this instance.
      */
     public ConnectivityCheckClient(Agent parentAgent) {
         this.parentAgent = parentAgent;
@@ -109,7 +109,7 @@ class ConnectivityCheckClient implements ResponseCollector {
 
     /**
      * Starts client connectivity checks for the {@link CandidatePair}s in
-     *  <tt>checkList</tt>
+     *  checkList
      *
      * @param checkList the {@link CheckList} to start client side connectivity
      * checks for.
@@ -144,14 +144,14 @@ class ConnectivityCheckClient implements ResponseCollector {
     /**
      * Creates a STUN {@link Request} containing the necessary PRIORITY and
      * CONTROLLING/CONTROLLED attributes. Also stores a reference to
-     * <tt>candidatePair</tt> in the newly created transactionID so that we
+     * candidatePair in the newly created transactionID so that we
      * could then refer back to it in subsequent response or failure events.
      *
      * @param candidatePair that {@link CandidatePair} that we'd like to start
      * a check for.
      *
      * @return a reference to the {@link TransactionID} used in the connectivity
-     * check client transaction or <tt>null</tt> if sending the check has
+     * check client transaction or null if sending the check has
      * failed for some reason.
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair) {
@@ -161,7 +161,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     /**
      * Creates a STUN {@link Request} containing the necessary PRIORITY and
      * CONTROLLING/CONTROLLED attributes. Also stores a reference to
-     * <tt>candidatePair</tt> in the newly created transactionID so that we
+     * candidatePair in the newly created transactionID so that we
      * could then refer back to it in subsequent response or failure events.
      *
      * @param candidatePair that {@link CandidatePair} that we'd like to start
@@ -170,7 +170,7 @@ class ConnectivityCheckClient implements ResponseCollector {
      * @param maxWaitInterval
      * @param maxRetransmissions
      * @return a reference to the {@link TransactionID} used in the connectivity
-     * check client transaction or <tt>null</tt> if sending the check has
+     * check client transaction or null if sending the check has
      * failed for some reason.
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) {
@@ -242,7 +242,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Handles the <tt>response</tt> as per the procedures described in RFC 5245
+     * Handles the response as per the procedures described in RFC 5245
      * or in other words, by either changing the state of the corresponding pair
      * to FAILED, or SUCCEEDED, or rescheduling a check in case of a role
      * conflict.
@@ -520,9 +520,9 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Returns <tt>true</tt> if the {@link Response} in <tt>evt</tt> had a
+     * Returns true if the {@link Response} in evt had a
      * source or a destination address that match those of the {@link Request},
-     * or <tt>false</tt> otherwise.<p>
+     * or false otherwise.<p>
      * RFC 5245: The agent MUST check that the source IP address and port of
      * the response equal the destination IP address and port to which the
      * Binding request was sent, and that the destination IP address and
@@ -535,9 +535,9 @@ class ConnectivityCheckClient implements ResponseCollector {
      * @param evt the {@link StunResponseEvent} that contains the {@link
      * Response} we need to examine
      *
-     * @return <tt>true</tt> if the {@link Response} in <tt>evt</tt> had a
+     * @return true if the {@link Response} in evt had a
      * source or a destination address that matched those of the
-     * {@link Request}, or <tt>false</tt> otherwise.
+     * {@link Request}, or false otherwise.
      */
     private boolean checkSymmetricAddresses(StunResponseEvent evt) {
         CandidatePair pair = ((CandidatePair) evt.getTransactionID().getApplicationData());
@@ -598,14 +598,14 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     private class PaceMaker implements Runnable {
         /**
-         * The {@link CheckList} that this <tt>PaceMaker</tt> will be running
+         * The {@link CheckList} that this PaceMaker will be running
          * checks for.
          */
         private final CheckList checkList;
 
         /**
          * Creates a new {@link PaceMaker} for this
-         * <tt>ConnectivityCheckClient</tt>.
+         * ConnectivityCheckClient.
          *
          * @param checkList the {@link CheckList} that we'll be sending checks
          * for
@@ -686,7 +686,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Stops and removes all <tt>PaceMaker</tt>s.
+     * Stops and removes all PaceMakers.
      */
     public void stop() {
         for (Future<?> paceMakerFuture : paceMakerFutures) {

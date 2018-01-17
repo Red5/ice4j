@@ -15,7 +15,7 @@ import org.ice4j.socket.filter.StunDatagramPacketFilter;
 import org.ice4j.socket.filter.TurnDatagramPacketFilter;
 
 /**
- * <tt>HostCandidate</tt>s are obtained by binding to a specific port from an
+ * HostCandidates are obtained by binding to a specific port from an
  * IP address on the host that is running us. This includes IP addresses on
  * physical interfaces and logical ones, such as ones obtained through
  * Virtual Private Networks (VPNs), Mobile IPv6, Realm Specific IP (RSIP) etc.
@@ -40,8 +40,8 @@ public class HostCandidate extends LocalCandidate {
      * Creates a HostCandidate for the specified transport address.
      *
      * @param socket the {@link DatagramSocket} that communication associated
-     * with this <tt>Candidate</tt> will be going through.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * with this Candidate will be going through.
+     * @param parentComponent the Component that this candidate
      * belongs to.
      */
     public HostCandidate(IceSocketWrapper socket, Component parentComponent) {
@@ -52,8 +52,8 @@ public class HostCandidate extends LocalCandidate {
      * Creates a HostCandidate for the specified transport address.
      *
      * @param transportAddress the transport address for the new
-     * <tt>HostCandidate</tt>.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * HostCandidate.
+     * @param parentComponent the Component that this candidate
      * belongs to.
      */
     public HostCandidate(TransportAddress transportAddress, Component parentComponent) {
@@ -67,8 +67,8 @@ public class HostCandidate extends LocalCandidate {
      * Creates a HostCandidate for the specified transport address.
      *
      * @param socket the {@link DatagramSocket} that communication associated
-     * with this <tt>Candidate</tt> will be going through.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * with this Candidate will be going through.
+     * @param parentComponent the Component that this candidate
      * belongs to.
      * @param transport transport protocol used
      */
@@ -80,14 +80,14 @@ public class HostCandidate extends LocalCandidate {
     }
 
     /**
-     * Creates a new <tt>StunDatagramPacketFilter</tt> which is to capture STUN
-     * messages and make them available to the <tt>DatagramSocket</tt> returned
+     * Creates a new StunDatagramPacketFilter which is to capture STUN
+     * messages and make them available to the DatagramSocket returned
      * by {@link #getStunSocket(TransportAddress)}.
      *
      * @param serverAddress the address of the source we'd like to receive
-     * packets from or <tt>null</tt> if we'd like to intercept all STUN packets
-     * @return the <tt>StunDatagramPacketFilter</tt> which is to capture STUN
-     * messages and make them available to the <tt>DatagramSocket</tt> returned
+     * packets from or null if we'd like to intercept all STUN packets
+     * @return the StunDatagramPacketFilter which is to capture STUN
+     * messages and make them available to the DatagramSocket returned
      * by {@link #getStunSocket(TransportAddress)}
      * @see LocalCandidate#createStunDatagramPacketFilter(TransportAddress)
      */

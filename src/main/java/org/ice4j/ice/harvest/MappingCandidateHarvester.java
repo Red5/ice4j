@@ -32,7 +32,7 @@ import java.util.logging.*;
  */
 public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     /**
-     * The <tt>Logger</tt> used by the <tt>StunCandidateHarvester</tt> class and
+     * The Logger used by the StunCandidateHarvester class and
      * its instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(StunCandidateHarvester.class.getName());
@@ -48,10 +48,10 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     protected TransportAddress face;
 
     /**
-     * Creates a mapping harvester with the specified <tt>mask</tt>
+     * Creates a mapping harvester with the specified mask
      *
-     * @param mask the <tt>TransportAddress</tt>es that would be used as a mask.
-     * @param face the <tt>TransportAddress</tt>es that we will be masking.
+     * @param mask the TransportAddresses that would be used as a mask.
+     * @param face the TransportAddresses that we will be masking.
      */
     public MappingCandidateHarvester(TransportAddress mask, TransportAddress face) {
         this.mask = Objects.requireNonNull(mask);
@@ -68,12 +68,12 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
 
     /**
      * Maps all candidates to this harvester's mask and adds them to
-     * <tt>component</tt>.
+     * component.
      *
      * @param component the {@link Component} that we'd like to map candidates
      * to.
-     * @return  the <tt>LocalCandidate</tt>s gathered by this
-     * <tt>CandidateHarvester</tt> or <tt>null</tt> if no mask is specified.
+     * @return  the LocalCandidates gathered by this
+     * CandidateHarvester or null if no mask is specified.
      */
     @Override
     public Collection<LocalCandidate> harvest(Component component) {

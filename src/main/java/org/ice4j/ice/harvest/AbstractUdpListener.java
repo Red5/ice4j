@@ -6,61 +6,62 @@
  */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.util.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
-import java.util.logging.Logger;
+import org.ice4j.StackProperties;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * A class which holds a {@link DatagramSocket} and runs a thread
- * ({@link #thread}) which perpetually reads from it.
+ * A class which holds a {@link DatagramSocket} and runs a thread ({@link #thread}) which perpetually reads from it.
  *
- * When a datagram from an unknown source is received, it is parsed as a STUN
- * Binding Request, and if it has a USERNAME attribute, its ufrag is extracted.
- * At this point, an implementing class may choose to create a mapping for
- * the remote address of the datagram, which will be used for further packets
+ * When a datagram from an unknown source is received, it is parsed as a STUN Binding Request, and if it has a USERNAME attribute, its ufrag is extracted.
+ * At this point, an implementing class may choose to create a mapping for the remote address of the datagram, which will be used for further packets
  * from this address.
  *
  * @author Boris Grozev
+ * @author Paul Gregoire
  */
 public abstract class AbstractUdpListener {
 
-    /**
-     * Our class logger.
-     */
-    private static final Logger logger = Logger.getLogger(AbstractUdpListener.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(AbstractUdpListener.class);
 
     /**
-     * The size for newly allocated <tt>Buffer</tt> instances. This limits the
-     * maximum size of datagrams we can receive.
+     * The size for newly allocated Buffer instances. This limits the maximum size of datagrams we can receive.
      *
-     * XXX should we increase this in case of other MTUs, or set it dynamically
-     * according to the available network interfaces?
+     * XXX should we increase this in case of other MTUs, or set it dynamically according to the available network interfaces?
      */
     private static final int BUFFER_SIZE = /* assumed MTU */1500 - /* IPv4 header */20 - /* UDP header */8;
 
     /**
-     * The number of <tt>Buffer</tt> instances to keep in {@link #pool}.
+     * The number of Buffer instances to keep in {@link #pool}.
      */
     private static final int POOL_SIZE = 256;
 
     /**
-     * The name of the property which controls the size of the receive buffer
-     * which {@link SinglePortUdpHarvester} will request for the sockets that
+     * The name of the property which controls the size of the receive buffer which {@link SinglePortUdpHarvester} will request for the sockets that
      * it creates.
      */
     private static final String SO_RCVBUF_PNAME = AbstractUdpListener.class.getName() + ".SO_RCVBUF";
 
     /**
-     * Returns the list of {@link TransportAddress}es, one for each allowed IP
-     * address found on each allowed network interface, with the given port.
+     * Returns the list of {@link TransportAddress}es, one for each allowed IP address found on each allowed network interface, with the given port.
      *
      * @param port the UDP port number.
      * @return the list of allowed transport addresses.
@@ -70,76 +71,60 @@ public abstract class AbstractUdpListener {
         for (InetAddress address : HostCandidateHarvester.getAllAllowedAddresses()) {
             addresses.add(new TransportAddress(address, port, Transport.UDP));
         }
-
         return addresses;
     }
 
     /**
-     * Tries to parse the bytes in <tt>buf</tt> at offset <tt>off</tt> (and
-     * length <tt>len</tt>) as a STUN Binding Request message. If successful,
-     * looks for a USERNAME attribute and returns the local username fragment
-     * part (see RFC5245 Section 7.1.2.3).
-     * In case of any failure returns <tt>null</tt>.
+     * Tries to parse the bytes in buf at offset off (and length len) as a STUN Binding Request message. If successful,
+     * looks for a USERNAME attribute and returns the local username fragment part (see RFC5245 Section 7.1.2.3).
+     * In case of any failure returns null.
      *
      * @param buf the bytes.
      * @param off the offset.
      * @param len the length.
-     * @return the local ufrag from the USERNAME attribute of the STUN message
-     * contained in <tt>buf</tt>, or <tt>null</tt>.
+     * @return the local ufrag from the USERNAME attribute of the STUN message contained in buf, or null.
      */
     static String getUfrag(byte[] buf, int off, int len) {
-        // RFC5389, Section 6:
-        // All STUN messages MUST start with a 20-byte header followed by zero
-        // or more Attributes.
+        // RFC5389, Section 6: All STUN messages MUST start with a 20-byte header followed by zero or more Attributes.
         if (buf == null || buf.length < off + len || len < 20) {
             return null;
         }
-
-        // RFC5389, Section 6:
-        // The magic cookie field MUST contain the fixed value 0x2112A442 in
-        // network byte order.
+        // RFC5389, Section 6: The magic cookie field MUST contain the fixed value 0x2112A442 in network byte order.
         if (!((buf[off + 4] & 0xFF) == 0x21 && (buf[off + 5] & 0xFF) == 0x12 && (buf[off + 6] & 0xFF) == 0xA4 && (buf[off + 7] & 0xFF) == 0x42)) {
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine("Not a STUN packet, magic cookie not found.");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Not a STUN packet, magic cookie not found.");
             }
             return null;
         }
-
         try {
             Message stunMessage = Message.decode(buf, off, len);
-
             if (stunMessage.getMessageType() != Message.BINDING_REQUEST) {
                 return null;
             }
-
             UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
             //logger.info("usernameAttribute: " + usernameAttribute);
-            if (usernameAttribute == null)
+            if (usernameAttribute == null) {
                 return null;
-
+            }
             String usernameString = new String(usernameAttribute.getUsername());
             return usernameString.split(":")[0];
         } catch (Exception e) {
-            // Catch everything. We are going to log, and then drop the packet
-            // anyway.
-            if (logger.isLoggable(Level.FINE)) {
-                logger.fine("Failed to extract local ufrag: " + e);
+            // Catch everything. We are going to log, and then drop the packet anyway.
+            if (logger.isDebugEnabled()) {
+                logger.warn("Failed to extract local ufrag", e);
             }
         }
-
         return null;
     }
 
     /**
-     * The map which keeps the known remote addresses and their associated
-     * candidateSockets.
-     * {@link #thread} is the only thread which adds new entries, while
-     * other threads remove entries when candidates are freed.
+     * The map which keeps the known remote addresses and their associated candidateSockets.
+     * {@link #thread} is the only thread which adds new entries, while other threads remove entries when candidates are freed.
      */
     private final Map<SocketAddress, MySocket> sockets = new ConcurrentHashMap<>();
 
     /**
-     * A pool of <tt>Buffer</tt> instances used to avoid creating of new java
+     * A pool of Buffer instances used to avoid creating of new java
      * objects.
      */
     private final ArrayBlockingQueue<Buffer> pool = new ArrayBlockingQueue<>(POOL_SIZE);
@@ -160,7 +145,7 @@ public abstract class AbstractUdpListener {
     private final Thread thread;
 
     /**
-     * Initializes a new <tt>SinglePortUdpHarvester</tt> instance which is to
+     * Initializes a new SinglePortUdpHarvester instance which is to
      * bind on the specified local address.
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
@@ -201,11 +186,9 @@ public abstract class AbstractUdpListener {
     }
 
     /**
-     * Perpetually reads datagrams from {@link #socket} and handles them
-     * accordingly.
+     * Perpetually reads datagrams from {@link #socket} and handles them accordingly.
      *
-     * It is important that this blocks are little as possible (except on
-     * socket.receive(), of course),  because it could potentially delay the
+     * It is important that this blocks are little as possible (except on socket.receive(), of course),  because it could potentially delay the
      * reception of both ICE and media packets for the whole application.
      */
     private void runInHarvesterThread() {
@@ -213,25 +196,21 @@ public abstract class AbstractUdpListener {
         DatagramPacket pkt = null;
         MySocket destinationSocket;
         InetSocketAddress remoteAddress;
-
         do {
             // TODO: implement stopping the thread with a switch?
-
             buf = getFreeBuffer();
-
-            if (pkt == null)
+            if (pkt == null) {
                 pkt = new DatagramPacket(buf.buffer, 0, buf.buffer.length);
-            else
+            } else {
                 pkt.setData(buf.buffer, 0, buf.buffer.length);
-
+            }
             try {
                 socket.receive(pkt);
             } catch (IOException ioe) {
-                logger.severe("Failed to receive from socket: " + ioe);
+                logger.warn("Failed to receive from socket", ioe);
                 break;
             }
             buf.len = pkt.getLength();
-
             remoteAddress = (InetSocketAddress) pkt.getSocketAddress();
             destinationSocket = sockets.get(remoteAddress);
             if (destinationSocket != null) {
@@ -241,11 +220,9 @@ public abstract class AbstractUdpListener {
                 // Packet from an unknown source. Is it a STUN Binding Request?
                 String ufrag = getUfrag(buf.buffer, 0, buf.len);
                 if (ufrag == null) {
-                    // Not a STUN Binding Request or doesn't have a valid
-                    // USERNAME attribute. Drop it.
+                    // Not a STUN Binding Request or doesn't have a valid USERNAME attribute. Drop it.
                     continue;
                 }
-
                 maybeAcceptNewSession(buf, remoteAddress, ufrag);
                 // Maybe add to #sockets here in the base class?
             }
@@ -255,47 +232,36 @@ public abstract class AbstractUdpListener {
     }
 
     /**
-     * Handles the reception of a STUN Binding Request with a valid USERNAME
-     * attribute, from a "new" remote address (one which is not in
-     * {@link #sockets}).
-     * Implementations may choose to e.g. create a socket and pass it to their
-     * ICE stack.
+     * Handles the reception of a STUN Binding Request with a valid USERNAME attribute, from a "new" remote address (one which is not in
+     * {@link #sockets}). Implementations may choose to e.g. create a socket and pass it to their ICE stack.
      *
-     * Note that this is meant to only be executed by
-     * {@link AbstractUdpListener}'s read thread, and should not be called from
+     * Note that this is meant to only be executed by {@link AbstractUdpListener}'s read thread, and should not be called from
      * implementing classes.
      *
-     * @param buf the UDP payload of the first datagram received on the newly
-     * accepted socket.
-     * @param remoteAddress the remote address from which the datagram was
-     * received.
-     * @param ufrag the local ICE username fragment of the received STUN Binding
-     * Request.
+     * @param buf the UDP payload of the first datagram received on the newly accepted socket.
+     * @param remoteAddress the remote address from which the datagram was received.
+     * @param ufrag the local ICE username fragment of the received STUN Binding Request.
      */
     protected abstract void maybeAcceptNewSession(Buffer buf, InetSocketAddress remoteAddress, String ufrag);
 
     /**
-     * Gets an unused <tt>Buffer</tt> instance, creating it if necessary.
-     * @return  an unused <tt>Buffer</tt> instance, creating it if necessary.
+     * Gets an unused Buffer instance, creating it if necessary.
+     * @return  an unused Buffer instance, creating it if necessary.
      */
     private Buffer getFreeBuffer() {
         Buffer buf = pool.poll();
         if (buf == null) {
             buf = new Buffer(new byte[BUFFER_SIZE], 0);
         }
-
         return buf;
     }
 
     /**
-     * Creates a new {@link MySocket} instance and associates it with the given
-     * remote address. Returns the created instance.
+     * Creates a new {@link MySocket} instance and associates it with the given remote address. Returns the created instance.
      *
-     * Note that this is meant to only execute in {@link AbstractUdpListener}'s
-     * read thread.
+     * Note that this is meant to only execute in {@link AbstractUdpListener}'s read thread.
      *
-     * @param remoteAddress the remote address with which to associate the new
-     * socket instance.
+     * @param remoteAddress the remote address with which to associate the new socket instance.
      * @return the created socket instance.
      */
     protected MySocket addSocket(InetSocketAddress remoteAddress) throws SocketException {
@@ -305,11 +271,9 @@ public abstract class AbstractUdpListener {
     }
 
     /**
-     * Implements a <tt>DatagramSocket</tt> for the purposes of a specific
-     * <tt>MyCandidate</tt>.
+     * Implements a DatagramSocket for the purposes of a specific MyCandidate.
      *
-     * It is not bound to a specific port, but shares the same local address
-     * as the bound socket held by the harvester.
+     * It is not bound to a specific port, but shares the same local address as the bound socket held by the harvester.
      */
     protected class MySocket extends DatagramSocket {
         /**
@@ -323,65 +287,41 @@ public abstract class AbstractUdpListener {
         private final ArrayBlockingQueue<Buffer> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
 
         /**
-         * The {@link QueueStatistics} instance optionally used to collect and
-         * print detailed statistics about {@link #queue}.
-         */
-        private final QueueStatistics queueStatistics;
-
-        /**
          * The remote address that is associated with this socket.
          */
         private InetSocketAddress remoteAddress;
 
         /**
-         * The flag which indicates that this <tt>DatagramSocket</tt> has been
+         * The flag which indicates that this DatagramSocket has been
          * closed.
          */
         private boolean closed = false;
 
         /**
-         * Initializes a new <tt>MySocket</tt> instance with the given
-         * remote address.
-         * @param remoteAddress the remote address to be associated with the
-         * new instance.
+         * Initializes a new MySocket instance with the given remote address.
+         * @param remoteAddress the remote address to be associated with the new instance.
          * @throws SocketException
          */
         MySocket(InetSocketAddress remoteAddress) throws SocketException {
             // unbound
             super((SocketAddress) null);
-
             this.remoteAddress = remoteAddress;
-            if (logger.isLoggable(Level.FINEST)) {
-                queueStatistics = new QueueStatistics("SinglePort" + remoteAddress.toString().replace('/', '-'));
-            } else {
-                queueStatistics = null;
-            }
         }
 
         /**
-         * Adds pkt to this socket. If the queue is full, drops a packet. Does
-         * not block.
+         * Adds pkt to this socket. If the queue is full, drops a packet. Does not block.
          */
         public void addBuffer(Buffer buf) {
-            // Drop the first rather than the current packet, so that
-            // receivers can notice the loss earlier.
+            // Drop the first rather than the current packet, so that receivers can notice the loss earlier.
             if (queue.offer(buf)) {
-                if (queueStatistics != null) {
-                    queueStatistics.add(System.currentTimeMillis());
-                }
-
+                logger.trace("Packet accepted by the queue");
             } else {
                 logger.info("Dropping a packet because the queue is full.");
-                if (queueStatistics != null) {
-                    queueStatistics.remove(System.currentTimeMillis());
-                }
                 // remove head
                 queue.poll();
                 // try once more to add the buf
                 if (queue.offer(buf)) {
-                    if (queueStatistics != null) {
-                        queueStatistics.add(System.currentTimeMillis());
-                    }
+                    logger.trace("Packet accepted by the to queue");
                 }
             }
         }
@@ -419,9 +359,7 @@ public abstract class AbstractUdpListener {
         /**
          * {@inheritDoc}
          * </p>
-         * This {@link DatagramSocket} will only allow packets from the
-         * remote address that it has, so we consider it connected to this
-         * address.
+         * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override
         public SocketAddress getRemoteSocketAddress() {
@@ -431,9 +369,7 @@ public abstract class AbstractUdpListener {
         /**
          * {@inheritDoc}
          * </p>
-         * This {@link DatagramSocket} will only allow packets from the
-         * remote address that it has, so we consider it connected to this
-         * address.
+         * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override
         public InetAddress getInetAddress() {
@@ -443,9 +379,7 @@ public abstract class AbstractUdpListener {
         /**
          * {@inheritDoc}
          * </p>
-         * This {@link DatagramSocket} will only allow packets from the
-         * remote address that it has, so we consider it connected to this
-         * address.
+         * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override
         public int getPort() {
@@ -455,15 +389,13 @@ public abstract class AbstractUdpListener {
         /**
          * {@inheritDoc}
          *
-         * Removes the association of the remote address with this socket from
-         * the harvester's map.
+         * Removes the association of the remote address with this socket from the harvester's map.
          */
         @Override
         public void close() {
             closed = true;
             queue.clear();
-            // We could be called by the super-class constructor, in which
-            // case this.removeAddress is not initialized yet.
+            // We could be called by the super-class constructor, in which case this.removeAddress is not initialized yet.
             if (remoteAddress != null) {
                 AbstractUdpListener.this.sockets.remove(remoteAddress);
             }
@@ -471,15 +403,13 @@ public abstract class AbstractUdpListener {
         }
 
         /**
-         * Reads the data from the first element of {@link #queue} into
-         * <tt>p</tt>. Blocks until {@link #queue} has an element.
+         * Reads the data from the first element of {@link #queue} into p. Blocks until {@link #queue} has an element.
          * @param p
          * @throws IOException
          */
         @Override
         public void receive(DatagramPacket p) throws IOException {
             Buffer buf = null;
-
             while (buf == null) {
                 if (closed) {
                     throw new SocketException("Socket closed");
@@ -487,15 +417,10 @@ public abstract class AbstractUdpListener {
                 try {
                     // take will block until there's a buffer
                     buf = queue.take();
-                    if (queueStatistics != null) {
-                        queueStatistics.remove(System.currentTimeMillis());
-                    }
                 } catch (InterruptedException e) {
                 }
             }
-
             byte[] pData = p.getData();
-
             // XXX Should we use p.setData() here with a buffer of our own?
             if (pData == null || pData.length < buf.len) {
                 throw new IOException("packet buffer not available");
@@ -503,7 +428,6 @@ public abstract class AbstractUdpListener {
             System.arraycopy(buf.buffer, 0, pData, 0, buf.len);
             p.setLength(buf.len);
             p.setSocketAddress(remoteAddress);
-
             pool.offer(buf);
         }
 
@@ -519,9 +443,8 @@ public abstract class AbstractUdpListener {
     }
 
     /**
-     * Represents a buffer for the purposes of <tt>SinglePortUdpHarvester</tt>.
-     * Wraps a byte[] and adds a length field specifying the number of elements
-     * actually used.
+     * Represents a buffer for the purposes of SinglePortUdpHarvester.
+     * Wraps a byte[] and adds a length field specifying the number of elements actually used.
      */
     protected class Buffer {
         /**
@@ -535,7 +458,7 @@ public abstract class AbstractUdpListener {
         int len;
 
         /**
-         * Initializes a new <tt>Buffer</tt> instance.
+         * Initializes a new Buffer instance.
          * @param buffer the data.
          * @param len the length.
          */

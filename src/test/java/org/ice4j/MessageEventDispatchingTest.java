@@ -255,11 +255,11 @@ public class MessageEventDispatchingTest extends TestCase {
         public final Vector<Object> receivedResponses = new Vector<>();
 
         /**
-         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+         * Notifies this ResponseCollector that a transaction described by
+         * the specified BaseStunMessageEvent has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+         * @param event the BaseStunMessageEvent which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
@@ -279,8 +279,8 @@ public class MessageEventDispatchingTest extends TestCase {
         /**
          * Stores incoming responses.
          *
-         * @param response a <tt>StunMessageEvent</tt> which describes the
-         * received STUN <tt>Response</tt>
+         * @param response a StunMessageEvent which describes the
+         * received STUN Response
          */
         public synchronized void processResponse(StunResponseEvent response) {
             receivedResponses.add(response);

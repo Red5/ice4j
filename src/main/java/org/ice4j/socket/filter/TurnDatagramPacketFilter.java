@@ -12,11 +12,11 @@ import org.ice4j.*;
 import org.ice4j.message.*;
 
 /**
- * Implements a <tt>DatagramPacketFilter</tt> which accepts
- * <tt>DatagramPacket</tt>s which represent TURN messages defined in
+ * Implements a DatagramPacketFilter which accepts
+ * DatagramPackets which represent TURN messages defined in
  * RFC 5766 "Traversal Using Relays around NAT (TURN): Relay Extensions to
  * Session Traversal Utilities for NAT (STUN)" and which are part of the
- * communication with a specific TURN server. <tt>TurnDatagramPacketFilter</tt>
+ * communication with a specific TURN server. TurnDatagramPacketFilter
  * does not accept TURN ChannelData messages because they require knowledge of
  * the value of the "Channel Number" field.
  *
@@ -25,12 +25,12 @@ import org.ice4j.message.*;
 public class TurnDatagramPacketFilter extends StunDatagramPacketFilter {
 
     /**
-     * Initializes a new <tt>TurnDatagramPacketFilter</tt> which will accept
-     * <tt>DatagramPacket</tt>s which represent TURN messages and which are part
+     * Initializes a new TurnDatagramPacketFilter which will accept
+     * DatagramPackets which represent TURN messages and which are part
      * of the communication with a specific TURN server.
      *
-     * @param turnServer the <tt>TransportAddress</tt> of the TURN server
-     * <tt>DatagramPacket</tt>s representing TURN messages from and to which
+     * @param turnServer the TransportAddress of the TURN server
+     * DatagramPackets representing TURN messages from and to which
      * will be accepted by the new instance
      */
     public TurnDatagramPacketFilter(TransportAddress turnServer) {
@@ -38,52 +38,47 @@ public class TurnDatagramPacketFilter extends StunDatagramPacketFilter {
     }
 
     /**
-     * Determines whether a specific <tt>DatagramPacket</tt> represents a TURN
+     * Determines whether a specific DatagramPacket represents a TURN
      * message which is part of the communication with the TURN server
      * associated with this instance.
      *
-     * @param p the <tt>DatagramPacket</tt> to be checked whether it represents
+     * @param p the DatagramPacket to be checked whether it represents
      * a TURN message which is part of the communicator with the TURN server
      * associated with this instance
-     * @return <tt>true</tt> if the specified <tt>DatagramPacket</tt> represents
+     * @return true if the specified DatagramPacket represents
      * a TURN message which is part of the communication with the TURN server
-     * associated with this instance; otherwise, <tt>false</tt>
+     * associated with this instance; otherwise, false
      */
     @Override
     public boolean accept(DatagramPacket p) {
         if (super.accept(p)) {
-            /*
-             * The specified DatagramPacket represents a STUN message with a TURN method.
-             */
+            // The specified DatagramPacket represents a STUN message with a TURN method.
             return true;
         } else {
-
-            /*
-             * The specified DatagramPacket does not come from or is not being sent to the TURN server associated with this instance or is a ChannelData message which is not
-             * supported by TurnDatagramPacketFilter.
-             */
+            // The specified DatagramPacket does not come from or is not being sent to the TURN server associated with this instance 
+            // or is a ChannelData message which is not supported by TurnDatagramPacketFilter.
             return false;
         }
     }
 
     /**
-     * Determines whether this <tt>DatagramPacketFilter</tt> accepts a
-     * <tt>DatagramPacket</tt> which represents a STUN message with a specific
-     * STUN method. <tt>TurnDatagramPacketFilter</tt> accepts TURN methods.
+     * Determines whether this DatagramPacketFilter accepts a
+     * DatagramPacket which represents a STUN message with a specific
+     * STUN method. TurnDatagramPacketFilter accepts TURN methods.
      *
      * @param method the STUN method of a STUN message represented by a
-     * <tt>DatagramPacket</tt> to be checked whether it is accepted by this
-     * <tt>DatagramPacketFilter</tt>
-     * @return <tt>true</tt> if this <tt>DatagramPacketFilter</tt> accepts the
-     * <tt>DatagramPacket</tt> which represents a STUN message with the
-     * specified STUN method; otherwise, <tt>false</tt>
+     * DatagramPacket to be checked whether it is accepted by this
+     * DatagramPacketFilter
+     * @return true if this DatagramPacketFilter accepts the
+     * DatagramPacket which represents a STUN message with the
+     * specified STUN method; otherwise, false
      * @see StunDatagramPacketFilter#acceptMethod(char)
      */
     @Override
     protected boolean acceptMethod(char method) {
-        if (super.acceptMethod(method))
+        if (super.acceptMethod(method)) {
             return true;
-        else {
+        } else {
             switch (method) {
                 case Message.TURN_METHOD_ALLOCATE:
                 case Message.TURN_METHOD_CHANNELBIND:

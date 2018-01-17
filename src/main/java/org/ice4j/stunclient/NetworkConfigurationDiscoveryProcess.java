@@ -80,9 +80,7 @@ import org.ice4j.stack.*;
  * @author Emil Ivov
  */
 public class NetworkConfigurationDiscoveryProcess {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = Logger.getLogger(NetworkConfigurationDiscoveryProcess.class.getName());
 
     /**
@@ -108,22 +106,22 @@ public class NetworkConfigurationDiscoveryProcess {
     private BlockingRequestSender requestSender = null;
 
     /**
-     * The <tt>DatagramSocket</tt> that we are going to be running the
+     * The DatagramSocket that we are going to be running the
      * discovery process through.
      */
     private IceSocketWrapper sock = null;
 
     /**
-     * The <tt>StunStack</tt> used by this instance for the purposes of STUN
+     * The StunStack used by this instance for the purposes of STUN
      * communication.
      */
     private final StunStack stunStack;
 
     /**
-     * Initializes a <tt>StunAddressDiscoverer</tt> with a specific
-     * <tt>StunStack</tt>. In order to use it one must first start it.
+     * Initializes a StunAddressDiscoverer with a specific
+     * StunStack. In order to use it one must first start it.
      *
-     * @param stunStack the <tt>StunStack</tt> to be used by the new instance
+     * @param stunStack the StunStack to be used by the new instance
      * @param localAddress  the address where the stack should bind.
      * @param serverAddress the address of the server to interrogate.
      */
@@ -176,28 +174,20 @@ public class NetworkConfigurationDiscoveryProcess {
         checkStarted();
         StunDiscoveryReport report = new StunDiscoveryReport();
         StunMessageEvent evt = doTestI(serverAddress);
-
         if (evt == null) {
             //UDP Blocked
             report.setNatType(StunDiscoveryReport.UDP_BLOCKING_FIREWALL);
             return report;
         } else {
             TransportAddress mappedAddress = ((MappedAddressAttribute) evt.getMessage().getAttribute(Attribute.Type.MAPPED_ADDRESS)).getAddress();
-
             if (mappedAddress == null) {
-                /*
-                 * maybe we contact a STUNbis server and which do not understand our request.
-                 */
+                // maybe we contact a STUNbis server and which do not understand our request.
                 logger.info("Failed to do the network discovery");
                 return null;
             }
-
             logger.fine("mapped address is=" + mappedAddress + ", name=" + mappedAddress.getHostAddress());
-
             TransportAddress backupServerAddress = ((ChangedAddressAttribute) evt.getMessage().getAttribute(Attribute.Type.CHANGED_ADDRESS)).getAddress();
-
             logger.fine("backup server address is=" + backupServerAddress + ", name=" + backupServerAddress.getHostAddress());
-
             report.setPublicAddress(mappedAddress);
             if (mappedAddress.equals(localAddress)) {
                 evt = doTestII(serverAddress);
@@ -209,7 +199,6 @@ public class NetworkConfigurationDiscoveryProcess {
                     //open internet
                     report.setNatType(StunDiscoveryReport.OPEN_INTERNET);
                     return report;
-
                 }
             } else {
                 evt = doTestII(serverAddress);
@@ -230,7 +219,6 @@ public class NetworkConfigurationDiscoveryProcess {
                             //restricted cone
                             report.setNatType(StunDiscoveryReport.RESTRICTED_CONE_NAT);
                             return report;
-
                         }
                     } else {
                         //Symmetric NAT
@@ -295,12 +283,11 @@ public class NetworkConfigurationDiscoveryProcess {
      */
     private StunMessageEvent doTestII(TransportAddress serverAddress) throws StunException, IOException {
         Request request = MessageFactory.createBindingRequest();
-        /* add a change request attribute */
+        // add a change request attribute
         ChangeRequestAttribute changeRequest = AttributeFactory.createChangeRequestAttribute();
         changeRequest.setChangeIpFlag(true);
         changeRequest.setChangePortFlag(true);
         request.putAttribute(changeRequest);
-
         StunMessageEvent evt = requestSender.sendRequestAndWaitForResponse(request, serverAddress);
         if (evt != null)
             logger.fine("Test II res=" + evt.getRemoteAddress().toString() + " - " + evt.getRemoteAddress().getHostAddress());
@@ -322,12 +309,11 @@ public class NetworkConfigurationDiscoveryProcess {
      */
     private StunMessageEvent doTestIII(TransportAddress serverAddress) throws StunException, IOException {
         Request request = MessageFactory.createBindingRequest();
-        /* add a change request attribute */
+        // add a change request attribute
         ChangeRequestAttribute changeRequest = AttributeFactory.createChangeRequestAttribute();
         changeRequest.setChangeIpFlag(false);
         changeRequest.setChangePortFlag(true);
         request.putAttribute(changeRequest);
-
         StunMessageEvent evt = requestSender.sendRequestAndWaitForResponse(request, serverAddress);
         if (evt != null)
             logger.fine("Test III res=" + evt.getRemoteAddress().toString() + " - " + evt.getRemoteAddress().getHostAddress());

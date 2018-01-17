@@ -22,7 +22,7 @@ import java.net.*;
 
 /**
  * TCP input stream for TCP socket. It is used to multiplex sockets and keep the
- * <tt>InputStream</tt> interface to users.
+ * InputStream interface to users.
  *
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
@@ -31,13 +31,13 @@ public class TCPInputStream
     extends InputStream
 {
     /**
-     * The default size of the receive buffer of <tt>TCPInputStream</tt> if the
-     * associated <tt>MultiplexingSocket</tt> does not specify a value.
+     * The default size of the receive buffer of TCPInputStream if the
+     * associated MultiplexingSocket does not specify a value.
      */
     private static final int DEFAULT_RECEIVE_BUFFER_SIZE = 65536;
 
     /**
-     * The <tt>byte</tt> array with one element which is used by the
+     * The byte array with one element which is used by the
      * implementation of {@link #read()} in order to delegate to the
      * implementation of {@link #read(byte[], int, int)} for the purposes of
      * simplicity.
@@ -45,8 +45,8 @@ public class TCPInputStream
     private final byte[] b = new byte[1];
 
     /**
-     * The indicator which determines whether this <tt>TCPInputStream</tt> is
-     * executing one of its <tt>read</tt> method implementations.
+     * The indicator which determines whether this TCPInputStream is
+     * executing one of its read method implementations.
      */
     private boolean inRead;
 
@@ -56,7 +56,7 @@ public class TCPInputStream
     private DatagramPacket packet;
 
     /**
-     * The <tt>data</tt> of {@link #packet}.
+     * The data of {@link #packet}.
      */
     private byte[] packetData;
 
@@ -71,19 +71,19 @@ public class TCPInputStream
     private int packetOffset;
 
     /**
-     * The <tt>Object</tt> which synchronizes the access to the read-related
+     * The Object which synchronizes the access to the read-related
      * state of this instance.
      */
     private final Object readSyncRoot = new Object();
 
     /**
-     * The <tt>MultiplexingSocket</tt> which has initialized this instance and
-     * is using it as its <tt>inputStream</tt>.
+     * The MultiplexingSocket which has initialized this instance and
+     * is using it as its inputStream.
      */
     private final MultiplexingSocket socket;
 
     /**
-     * Initializes a new <tt>TCPInputStream</tt>.
+     * Initializes a new TCPInputStream.
      *
      * @param socket The inputStream for this instance.
      */
@@ -237,7 +237,7 @@ public class TCPInputStream
 
     /**
      * Waits on {@link #readSyncRoot} while {@link #inRead} equals
-     * <tt>true</tt>.
+     * true.
      */
     private void waitWhileInRead()
     {

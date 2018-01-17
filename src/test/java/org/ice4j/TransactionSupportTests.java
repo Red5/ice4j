@@ -49,7 +49,7 @@ public class TransactionSupportTests extends TestCase {
     IceSocketWrapper serverSock = null;
 
     /**
-     * The <tt>StunStack</tt> used by this <tt>TransactionSupportTests</tt>.
+     * The StunStack used by this TransactionSupportTests.
      */
     private StunStack stunStack;
 
@@ -391,7 +391,7 @@ public class TransactionSupportTests extends TestCase {
          * @param tranid the transaction that we'd like to get requests for.
          *
          * @return a Vector containing all request that we have received and
-         * that match <tt>tranid</tt>.
+         * that match tranid.
          */
         public Vector<StunMessageEvent> getRequestsForTransaction(byte[] tranid) {
             Vector<StunMessageEvent> newVec = new Vector<>();
@@ -428,11 +428,11 @@ public class TransactionSupportTests extends TestCase {
         public final Vector<Object> receivedResponses = new Vector<>();
 
         /**
-         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+         * Notifies this ResponseCollector that a transaction described by
+         * the specified BaseStunMessageEvent has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+         * @param event the BaseStunMessageEvent which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
@@ -449,7 +449,7 @@ public class TransactionSupportTests extends TestCase {
         }
 
         /**
-         * Logs the received <tt>response</tt>
+         * Logs the received response
          *
          * @param response the event to log.
          */

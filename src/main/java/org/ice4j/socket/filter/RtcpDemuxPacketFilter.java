@@ -9,8 +9,8 @@ package org.ice4j.socket.filter;
 import java.net.*;
 
 /**
- * Implements a <tt>DatagramPacketFilter</tt> which only accepts
- * <tt>DatagramPacket</tt>s which represent RTCP messages according to the rules
+ * Implements a DatagramPacketFilter which only accepts
+ * DatagramPackets which represent RTCP messages according to the rules
  * described in RFC5761.
  *
  * @author Emil Ivov
@@ -18,8 +18,8 @@ import java.net.*;
  */
 public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
     /**
-     * Determines whether a specific <tt>DatagramPacket</tt> is an RTCP.
-     * <tt>DatagramPacket</tt> in a selection based on this filter.
+     * Determines whether a specific DatagramPacket is an RTCP.
+     * DatagramPacket in a selection based on this filter.
      *
      * RTP/RTCP packets are distinguished from other packets (such as STUN,
      * DTLS or ZRTP) by the value of their first byte. See
@@ -43,10 +43,10 @@ public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
      * Also, any RTCP packets with Packet Types not in [200, 211] will be
      * misidentified as RTP packets.
      *
-     * @param p the <tt>DatagramPacket</tt> whose protocol we'd like to
+     * @param p the DatagramPacket whose protocol we'd like to
      * determine.
-     * @return <tt>true</tt> if <tt>p</tt> is an RTCP and this filter accepts it
-     * and <tt>false</tt> otherwise.
+     * @return true if p is an RTCP and this filter accepts it
+     * and false otherwise.
      */
     public static boolean isRtcpPacket(DatagramPacket p) {
         int len = p.getLength();
@@ -67,10 +67,10 @@ public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
     }
 
     /**
-     * Returns <tt>true</tt> if this <tt>RtcpDemuxPacketFilter</tt> should
-     * accept <tt>p</tt>, that is, if <tt>p</tt> looks like an RTCP packet.
+     * Returns true if this RtcpDemuxPacketFilter should
+     * accept p, that is, if p looks like an RTCP packet.
      * See {@link #isRtcpPacket(java.net.DatagramPacket)}
-     * @return <tt>true</tt> if <tt>p</tt> looks like an RTCP packet.
+     * @return true if p looks like an RTCP packet.
      */
     public boolean accept(DatagramPacket p) {
         return isRtcpPacket(p);

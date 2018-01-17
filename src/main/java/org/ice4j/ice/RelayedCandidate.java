@@ -25,8 +25,8 @@ import org.ice4j.ice.harvest.*;
 import org.ice4j.socket.*;
 
 /**
- * Represents a <tt>Candidate</tt> obtained by sending a TURN Allocate request
- * from a <tt>HostCandidate</tt> to a TURN server.  The relayed candidate is
+ * Represents a Candidate obtained by sending a TURN Allocate request
+ * from a HostCandidate to a TURN server.  The relayed candidate is
  * resident on the TURN server, and the TURN server relays packets back towards
  * the agent.
  *
@@ -37,35 +37,35 @@ public class RelayedCandidate
 {
 
     /**
-     * The <tt>RelayedCandidateDatagramSocket</tt> of this
-     * <tt>RelayedCandidate</tt>.
+     * The RelayedCandidateDatagramSocket of this
+     * RelayedCandidate.
      */
     private RelayedCandidateDatagramSocket relayedCandidateDatagramSocket;
 
     /**
-     * The application-purposed <tt>DatagramSocket</tt> associated with this
-     * <tt>Candidate</tt>.
+     * The application-purposed DatagramSocket associated with this
+     * Candidate.
      */
     private IceSocketWrapper socket;
 
     /**
-     * The <tt>TurnCandidateHarvest</tt> which has harvested this
-     * <tt>RelayedCandidate</tt>.
+     * The TurnCandidateHarvest which has harvested this
+     * RelayedCandidate.
      */
     private final TurnCandidateHarvest turnCandidateHarvest;
 
     /**
-     * Initializes a new <tt>RelayedCandidate</tt> which is to represent a
-     * specific <tt>TransportAddress</tt> harvested through a specific
-     * <tt>HostCandidate</tt> and a TURN server with a specific
-     * <tt>TransportAddress</tt>.
+     * Initializes a new RelayedCandidate which is to represent a
+     * specific TransportAddress harvested through a specific
+     * HostCandidate and a TURN server with a specific
+     * TransportAddress.
      *
-     * @param transportAddress the <tt>TransportAddress</tt> to be represented
+     * @param transportAddress the TransportAddress to be represented
      * by the new instance
-     * @param turnCandidateHarvest the <tt>TurnCandidateHarvest</tt> which has
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has
      * harvested the new instance
-     * @param mappedAddress the mapped <tt>TransportAddress</tt> reported by the
-     * TURN server with the delivery of the replayed <tt>transportAddress</tt>
+     * @param mappedAddress the mapped TransportAddress reported by the
+     * TURN server with the delivery of the replayed transportAddress
      * to be represented by the new instance
      */
     public RelayedCandidate(
@@ -90,16 +90,16 @@ public class RelayedCandidate
     }
 
     /**
-     * Gets the <tt>RelayedCandidateDatagramSocket</tt> of this
-     * <tt>RelayedCandidate</tt>.
+     * Gets the RelayedCandidateDatagramSocket of this
+     * RelayedCandidate.
      * <p>
      * <b>Note</b>: The method is part of the internal API of
-     * <tt>RelayedCandidate</tt> and <tt>TurnCandidateHarvest</tt> and is not
+     * RelayedCandidate and TurnCandidateHarvest and is not
      * intended for public use.
      * </p>
      *
-     * @return the <tt>RelayedCandidateDatagramSocket</tt> of this
-     * <tt>RelayedCandidate</tt>
+     * @return the RelayedCandidateDatagramSocket of this
+     * RelayedCandidate
      */
     private synchronized RelayedCandidateDatagramSocket
         getRelayedCandidateDatagramSocket()
@@ -122,11 +122,11 @@ public class RelayedCandidate
     }
 
     /**
-     * Gets the application-purposed <tt>DatagramSocket</tt> associated with
-     * this <tt>Candidate</tt>.
+     * Gets the application-purposed DatagramSocket associated with
+     * this Candidate.
      *
-     * @return the <tt>DatagramSocket</tt> associated with this
-     * <tt>Candidate</tt>
+     * @return the DatagramSocket associated with this
+     * Candidate
      */
     @Override
     public synchronized IceSocketWrapper getCandidateIceSocketWrapper()

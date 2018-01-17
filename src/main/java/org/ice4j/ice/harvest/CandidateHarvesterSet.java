@@ -25,7 +25,7 @@ import org.ice4j.*;
 import org.ice4j.ice.*;
 
 /**
- * Implements {@link Set} of <tt>CandidateHarvester</tt>s which runs the
+ * Implements {@link Set} of CandidateHarvesters which runs the
  * gathering of candidate addresses performed by its elements in parallel.
  *
  * @author Lyubomir Marinov
@@ -34,15 +34,15 @@ public class CandidateHarvesterSet
     extends AbstractSet<CandidateHarvester>
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>Agent</tt> class and its instances
+     * The Logger used by the Agent class and its instances
      * for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(CandidateHarvesterSet.class.getName());
 
     /**
-     * The <tt>CandidateHarvester</tt>s which are the elements of this
-     * <tt>Set</tt>.
+     * The CandidateHarvesters which are the elements of this
+     * Set.
      */
     private final Collection<CandidateHarvesterSetElement> elements
         = new LinkedList<>();
@@ -53,23 +53,23 @@ public class CandidateHarvesterSet
     private static ExecutorService threadPool = Executors.newCachedThreadPool();
 
     /**
-     * Initializes a new <tt>CandidateHarvesterSet</tt> instance.
+     * Initializes a new CandidateHarvesterSet instance.
      */
     public CandidateHarvesterSet()
     {
     }
 
     /**
-     * Adds a specific <tt>CandidateHarvester</tt> to this
-     * <tt>CandidateHarvesterSet</tt> and returns <tt>true</tt> if it is not
+     * Adds a specific CandidateHarvester to this
+     * CandidateHarvesterSet and returns true if it is not
      * already present. Otherwise, leaves this set unchanged and returns
-     * <tt>false</tt>.
+     * false.
      *
-     * @param harvester the <tt>CandidateHarvester</tt> to be added to this
-     * <tt>CandidateHarvesterSet</tt>
-     * @return <tt>true</tt> if this <tt>CandidateHarvesterSet</tt> did not
-     * already contain the specified <tt>harvester</tt>; otherwise,
-     * <tt>false</tt>
+     * @param harvester the CandidateHarvester to be added to this
+     * CandidateHarvesterSet
+     * @return true if this CandidateHarvesterSet did not
+     * already contain the specified harvester; otherwise,
+     * false
      * @see Set#add(Object)
      */
     @Override
@@ -87,11 +87,11 @@ public class CandidateHarvesterSet
     }
 
     /**
-     * Gathers candidate addresses for a specific <tt>Component</tt>.
-     * <tt>CandidateHarvesterSet</tt> delegates to the
-     * <tt>CandidateHarvester</tt>s which are its <tt>Set</tt> elements.
+     * Gathers candidate addresses for a specific Component.
+     * CandidateHarvesterSet delegates to the
+     * CandidateHarvesters which are its Set elements.
      *
-     * @param component the <tt>Component</tt> to gather candidate addresses for
+     * @param component the Component to gather candidate addresses for
      * @see CandidateHarvester#harvest(Component)
      */
     public void harvest(Component component)
@@ -101,14 +101,14 @@ public class CandidateHarvesterSet
 
 
     /**
-     * Gathers candidate addresses for a specific <tt>Component</tt>.
-     * <tt>CandidateHarvesterSet</tt> delegates to the
-     * <tt>CandidateHarvester</tt>s which are its <tt>Set</tt> elements.
+     * Gathers candidate addresses for a specific Component.
+     * CandidateHarvesterSet delegates to the
+     * CandidateHarvesters which are its Set elements.
      *
-     * @param components the <tt>Component</tt> to gather candidate addresses for
+     * @param components the Component to gather candidate addresses for
      * @see CandidateHarvester#harvest(Component)
      * @param trickleCallback the {@link TrickleCallback} that we will be
-     * feeding candidates to, or <tt>null</tt> in case the application doesn't
+     * feeding candidates to, or null in case the application doesn't
      * want us trickling any candidates
      */
     public void harvest(final List<Component> components,
@@ -122,18 +122,18 @@ public class CandidateHarvesterSet
     }
 
     /**
-     * Gathers candidate addresses for a specific <tt>Component</tt> using
-     * specific <tt>CandidateHarvester</tt>s.
+     * Gathers candidate addresses for a specific Component using
+     * specific CandidateHarvesters.
      *
-     * @param harvesters the <tt>CandidateHarvester</tt>s to gather candidate
-     * addresses for the specified <tt>Component</tt>
-     * @param components the <tt>Component</tt>s to gather candidate addresses
+     * @param harvesters the CandidateHarvesters to gather candidate
+     * addresses for the specified Component
+     * @param components the Components to gather candidate addresses
      * for.
-     * @param executorService the <tt>ExecutorService</tt> to schedule the
+     * @param executorService the ExecutorService to schedule the
      * execution of the gathering of candidate addresses performed by the
-     * specified <tt>harvesters</tt>
+     * specified harvesters
      * @param trickleCallback the {@link TrickleCallback} that we will be
-     * feeding candidates to, or <tt>null</tt> in case the application doesn't
+     * feeding candidates to, or null in case the application doesn't
      * want us trickling any candidates
      */
     private void harvest(
@@ -250,12 +250,12 @@ public class CandidateHarvesterSet
     }
 
     /**
-     * Returns an <tt>Iterator</tt> over the <tt>CandidateHarvester</tt>s which
-     * are elements in this <tt>CandidateHarvesterSet</tt>. The elements are
+     * Returns an Iterator over the CandidateHarvesters which
+     * are elements in this CandidateHarvesterSet. The elements are
      * returned in no particular order.
      *
-     * @return an <tt>Iterator</tt> over the <tt>CandidateHarvester</tt>s which
-     * are elements in this <tt>CandidateHarvesterSet</tt>
+     * @return an Iterator over the CandidateHarvesters which
+     * are elements in this CandidateHarvesterSet
      * @see Set#iterator()
      */
     public Iterator<CandidateHarvester> iterator()
@@ -269,8 +269,8 @@ public class CandidateHarvesterSet
                 /**
                  * Determines whether this iteration has more elements.
                  *
-                 * @return <tt>true</tt> if this iteration has more elements;
-                 * otherwise, <tt>false</tt>
+                 * @return true if this iteration has more elements;
+                 * otherwise, false
                  * @see Iterator#hasNext()
                  */
                 public boolean hasNext()
@@ -293,19 +293,19 @@ public class CandidateHarvesterSet
                 }
 
                 /**
-                 * Removes from the underlying <tt>CandidateHarvesterSet</tt>
-                 * the last <tt>CandidateHarvester</tt> (element) returned by
-                 * this <tt>Iterator</tt>. <tt>CandidateHarvestSet</tt> does not
-                 * implement the <tt>remove</tt> operation at the time of this
+                 * Removes from the underlying CandidateHarvesterSet
+                 * the last CandidateHarvester (element) returned by
+                 * this Iterator. CandidateHarvestSet does not
+                 * implement the remove operation at the time of this
                  * writing i.e. it always throws
-                 * <tt>UnsupportedOperationException</tt>.
+                 * UnsupportedOperationException.
                  *
-                 * @throws IllegalStateException if the <tt>next</tt> method has
-                 * not yet been called, or the <tt>remove</tt> method has
-                 * already been called after the last call to the <tt>next</tt>
+                 * @throws IllegalStateException if the next method has
+                 * not yet been called, or the remove method has
+                 * already been called after the last call to the next
                  * method
-                 * @throws UnsupportedOperationException if the <tt>remove</tt>
-                 * operation is not supported by this <tt>Iterator</tt>
+                 * @throws UnsupportedOperationException if the remove
+                 * operation is not supported by this Iterator
                  * @see Iterator#remove()
                  */
                 public void remove()
@@ -318,11 +318,11 @@ public class CandidateHarvesterSet
     }
 
     /**
-     * Returns the number of <tt>CandidateHarvester</tt>s which are elements in
-     * this <tt>CandidateHarvesterSet</tt>.
+     * Returns the number of CandidateHarvesters which are elements in
+     * this CandidateHarvesterSet.
      *
-     * @return the number of <tt>CandidateHarvester</tt>s which are elements in
-     * this <tt>CandidateHarvesterSet</tt>
+     * @return the number of CandidateHarvesters which are elements in
+     * this CandidateHarvesterSet
      * @see Set#size()
      */
     public int size()

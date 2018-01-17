@@ -19,10 +19,10 @@ package org.ice4j.ice;
 
 /**
  * RFC 5245 mentions that ICE processing across all media streams also has a
- * state associated with it. This state is equal to <tt>Running</tt> while ICE
+ * state associated with it. This state is equal to Running while ICE
  * processing is under way. The state is Completed when ICE processing is
  * complete and Failed if it failed without success. For convenience reasons
- * we are also adding two extra states. The first one is the <tt>Waiting</tt>
+ * we are also adding two extra states. The first one is the Waiting
  * state that reflects the state of an {@link Agent} before it starts
  * processing. This is also an {@link Agent }'s default state. The second one
  * is the "Terminated" state. RFC 5245 says that once ICE processing
@@ -40,13 +40,13 @@ package org.ice4j.ice;
 public enum IceProcessingState
 {
     /**
-     * The state is equal to <tt>Waiting</tt> if ICE processing has not started
+     * The state is equal to Waiting if ICE processing has not started
      * for the corresponding {@link Agent}.
      */
     WAITING("Waiting"),
 
     /**
-     * The state is equal to <tt>Running</tt> while ICE processing is under way.
+     * The state is equal to Running while ICE processing is under way.
      */
     RUNNING("Running"),
 
@@ -72,14 +72,14 @@ public enum IceProcessingState
     TERMINATED("Terminated");
 
     /**
-     * The name of this <tt>IceProcessingState</tt> instance.
+     * The name of this IceProcessingState instance.
      */
     private final String stateName;
 
     /**
-     * Creates an <tt>IceProcessingState</tt> instance with the specified name.
+     * Creates an IceProcessingState instance with the specified name.
      *
-     * @param stateName the name of the <tt>IceProcessingState</tt> instance
+     * @param stateName the name of the IceProcessingState instance
      * we'd like to create.
      */
     private IceProcessingState(String stateName)
@@ -88,10 +88,10 @@ public enum IceProcessingState
     }
 
     /**
-     * Returns the name of this <tt>IceProcessingState</tt> (e.g. "Running",
+     * Returns the name of this IceProcessingState (e.g. "Running",
      * "Completed", or "Failed").
      *
-     * @return the name of this <tt>IceProcessingState</tt> (e.g. "Running",
+     * @return the name of this IceProcessingState (e.g. "Running",
      * "Completed", or "Failed").
      */
     @Override
@@ -116,13 +116,13 @@ public enum IceProcessingState
     }
 
     /**
-     * Returns <tt>true</tt> iff the state is one in which a connection
-     * has been established, that is either <tt>COMPLETED</tt> or
-     * <tt>TERMINATED</tt>.
+     * Returns true iff the state is one in which a connection
+     * has been established, that is either COMPLETED or
+     * TERMINATED.
      *
-     * @return <tt>true</tt> iff the state is one in which a connection
-     * has been established, that is either <tt>COMPLETED</tt> or
-     * <tt>TERMINATED</tt>.
+     * @return true iff the state is one in which a connection
+     * has been established, that is either COMPLETED or
+     * TERMINATED.
      */
     public boolean isEstablished()
     {

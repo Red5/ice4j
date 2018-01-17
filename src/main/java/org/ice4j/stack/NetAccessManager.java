@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manages <tt>Connector</tt>s and <tt>MessageProcessor</tt> pooling. This class serves as a layer that masks network primitives and provides equivalent STUN
+ * Manages Connectors and MessageProcessor pooling. This class serves as a layer that masks network primitives and provides equivalent STUN
  * abstractions. Instances that operate with the NetAccessManager are only supposed to understand STUN talk and shouldn't be aware of datagrams sockets, etc.
  * 
  * @author Emil Ivov
@@ -41,8 +41,8 @@ class NetAccessManager implements ErrorHandler {
     private static final Logger logger = LoggerFactory.getLogger(NetAccessManager.class);
 
     /**
-     * All <tt>Connectors</tt> currently in use with UDP. The table maps a local <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
-     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without a specified remote address, under the <tt>null</tt> key.
+     * All Connectors currently in use with UDP. The table maps a local TransportAddress and and a remote TransportAddress to
+     * a Connector. We allow a Connector to be added without a specified remote address, under the null key.
      *
      * Due to the final hashCode() method of InetSocketAddress, TransportAddress cannot override and it causes problem to store both UDP and TCP address
      * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp because InetSocketAddress does not take into account transport).
@@ -50,8 +50,8 @@ class NetAccessManager implements ErrorHandler {
     private final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> udpConnectors = new ConcurrentHashMap<>();
 
     /**
-     * All <tt>Connectors</tt> currently in use with TCP. The table maps a local <tt>TransportAddress</tt> and and a remote <tt>TransportAddress</tt> to
-     * a <tt>Connector</tt>. We allow a <tt>Connector</tt> to be added without a specified remote address, under the <tt>null</tt> key.
+     * All Connectors currently in use with TCP. The table maps a local TransportAddress and and a remote TransportAddress to
+     * a Connector. We allow a Connector to be added without a specified remote address, under the null key.
      *
      * Due to the final hashCode() method of InetSocketAddress, TransportAddress cannot override and it causes problem to store both UDP and TCP address
      * (i.e. 192.168.0.3:5000/tcp has the same hashcode as 192.168.0.3:5000/udp because InetSocketAddress does not take into account transport).
@@ -84,14 +84,14 @@ class NetAccessManager implements ErrorHandler {
     private final ChannelDataEventHandler channelDataEventHandler;
 
     /**
-     * The <tt>StunStack</tt> which has created this instance, is its owner and is the handler that incoming message requests should be passed to.
+     * The StunStack which has created this instance, is its owner and is the handler that incoming message requests should be passed to.
      */
     private final StunStack stunStack;
 
     /**
      * Constructs a NetAccessManager.
      *
-     * @param stunStack the <tt>StunStack</tt> which is creating the new instance, is going to be its owner and is the handler that incoming
+     * @param stunStack the StunStack which is creating the new instance, is going to be its owner and is the handler that incoming
      * message requests should be passed to
      */
     NetAccessManager(StunStack stunStack) {
@@ -101,13 +101,13 @@ class NetAccessManager implements ErrorHandler {
     /**
      * Constructs a NetAccessManager with given peerUdpMessageEventHandler and channelDataEventHandler.
      * 
-     * @param stunStack the <tt>StunStack</tt> which is creating the new
+     * @param stunStack the StunStack which is creating the new
      *            instance, is going to be its owner and is the handler that
      *            incoming message requests should be passed to
-     * @param peerUdpMessageEventHandler the <tt>PeerUdpMessageEventHandler</tt>
+     * @param peerUdpMessageEventHandler the PeerUdpMessageEventHandler
      *            that will handle incoming UDP messages which are not STUN
      *            messages and ChannelData messages.
-     * @param channelDataEventHandler the <tt>ChannelDataEventHandler</tt> that
+     * @param channelDataEventHandler the ChannelDataEventHandler that
      *            will handle incoming UDP messages which are ChannelData
      *            messages.
      */
@@ -123,12 +123,12 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Gets the <tt>MessageEventHandler</tt> of this <tt>NetAccessManager</tt>
+     * Gets the MessageEventHandler of this NetAccessManager
      * which is to be notified when incoming messages have been processed and
      * are ready for delivery.
      *
-     * @return the <tt>MessageEventHandler</tt> of this
-     * <tt>NetAccessManager</tt> which is to be notified when incoming messages
+     * @return the MessageEventHandler of this
+     * NetAccessManager which is to be notified when incoming messages
      * have been processed and are ready for delivery
      */
     MessageEventHandler getMessageEventHandler() {
@@ -136,12 +136,12 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Gets the <tt>PeerUdpMessageEventHandler</tt> of this
-     * <tt>NetAccessManager</tt> which is to be notified when incoming UDP
+     * Gets the PeerUdpMessageEventHandler of this
+     * NetAccessManager which is to be notified when incoming UDP
      * messages have been processed and are ready for delivery.
      * 
-     * @return the <tt>PeerUdpMessageEventHandler</tt> of this
-     *         <tt>NetAccessManager</tt> which is to be notified when incoming
+     * @return the PeerUdpMessageEventHandler of this
+     *         NetAccessManager which is to be notified when incoming
      *         UDP messages have been processed and are ready for delivery
      */
     public PeerUdpMessageEventHandler getUdpMessageEventHandler() {
@@ -149,12 +149,12 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Gets the <tt>ChannelDataEventHandler</tt> of this
-     * <tt>NetAccessManager</tt> which is to be notified when incoming
+     * Gets the ChannelDataEventHandler of this
+     * NetAccessManager which is to be notified when incoming
      * ChannelData messages have been processed and are ready for delivery.
      * 
-     * @return the <tt>ChannelDataEventHandler</tt> of this
-     *         <tt>NetAccessManager</tt> which is to be notified when incoming
+     * @return the ChannelDataEventHandler of this
+     *         NetAccessManager which is to be notified when incoming
      *         ChannelData messages have been processed and are ready for
      *         delivery
      */
@@ -163,10 +163,10 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Gets the <tt>BlockingQueue</tt> of this <tt>NetAccessManager</tt> in which
+     * Gets the BlockingQueue of this NetAccessManager in which
      * incoming messages are stocked for processing.
      *
-     * @return the <tt>BlockingQueue</tt> of this <tt>NetAccessManager</tt> in
+     * @return the BlockingQueue of this NetAccessManager in
      * which incoming messages are stocked for processing
      */
     BlockingQueue<RawMessage> getMessageQueue() {
@@ -174,10 +174,10 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Gets the <tt>StunStack</tt> which has created this instance and is its
+     * Gets the StunStack which has created this instance and is its
      * owner.
      *
-     * @return the <tt>StunStack</tt> which has created this instance and is its
+     * @return the StunStack which has created this instance and is its
      * owner
      */
     StunStack getStunStack() {
@@ -280,7 +280,7 @@ class NetAccessManager implements ErrorHandler {
      *
      * @param localAddress the local address of the connector to remove.
      * @param remoteAddress the remote address of the connector to remote. Use
-     * <tt>null</tt> to match the <tt>Connector</tt> with no specified remote address.
+     * null to match the Connector with no specified remote address.
      */
     protected void removeSocket(TransportAddress localAddress, TransportAddress remoteAddress) {
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
@@ -297,7 +297,7 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Stops <tt>NetAccessManager</tt> and all of its <tt>MessageProcessor</tt>.
+     * Stops NetAccessManager and all of its MessageProcessor.
      */
     public void stop() {
         executor.shutdownNow();
@@ -316,12 +316,12 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * Returns the <tt>Connector</tt> responsible for a particular source address and a particular destination address.
+     * Returns the Connector responsible for a particular source address and a particular destination address.
      *
      * @param localAddress the source address.
      * @param remoteAddress the destination address.
-     * Returns the <tt>Connector</tt> responsible for a particular source address and a particular destination address,
-     * or <tt>null</tt> if there's none.
+     * Returns the Connector responsible for a particular source address and a particular destination address,
+     * or null if there's none.
      */
     private Connector getConnector(TransportAddress localAddress, TransportAddress remoteAddress) {
         boolean udp = localAddress.getTransport() == Transport.UDP;

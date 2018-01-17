@@ -52,9 +52,7 @@ import org.ice4j.socket.filter.StunDatagramPacketFilter;
  * @author Lyubomir Marinov
  */
 public class TcpHarvester extends AbstractTcpListener implements CandidateHarvester {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = Logger.getLogger(TcpHarvester.class.getName());
 
     /**
@@ -64,11 +62,11 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     private static final int PURGE_INTERVAL = 20;
 
     /**
-     * Maps a local "ufrag" to the single <tt>Component</tt> instance with that
+     * Maps a local "ufrag" to the single Component instance with that
      * "ufrag".
      *
      * We only keep weak references, because we do not want to prevent
-     * <tt>Component</tt>s from being freed.
+     * Components from being freed.
      */
     private final Map<String, WeakReference<Component>> components = new HashMap<>();
 
@@ -101,8 +99,8 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     private HarvestStatistics harvestStatistics = new HarvestStatistics();
 
     /**
-     * Initializes a new <tt>TcpHarvester</tt>, which is to
-     * listen on port number <tt>port</tt> on all IP addresses on all available
+     * Initializes a new TcpHarvester, which is to
+     * listen on port number port on all IP addresses on all available
      * interfaces.
      *
      * @param port the port to listen on.
@@ -117,12 +115,12 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Initializes a new <tt>TcpHarvester</tt>, which is to
-     * listen on port number <tt>port</tt> on all IP addresses on all available
+     * Initializes a new TcpHarvester, which is to
+     * listen on port number port on all IP addresses on all available
      * interfaces.
      *
      * @param port the port to listen on.
-     * @param ssltcp <tt>true</tt> to use ssltcp; otherwise, <tt>false</tt>
+     * @param ssltcp true to use ssltcp; otherwise, false
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
@@ -134,13 +132,13 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Initializes a new <tt>TcpHarvester</tt>, which is to
-     * listen on port number <tt>port</tt> on all the IP addresses on the
-     * specified <tt>NetworkInterface</tt>s.
+     * Initializes a new TcpHarvester, which is to
+     * listen on port number port on all the IP addresses on the
+     * specified NetworkInterfaces.
      *
      * @param port the port to listen on.
      * @param interfaces the interfaces to listen on.
-     * @param ssltcp <tt>true</tt> to use ssltcp; otherwise, <tt>false</tt>
+     * @param ssltcp true to use ssltcp; otherwise, false
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
@@ -152,8 +150,8 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Initializes a new <tt>TcpHarvester</tt>, which is to
-     * listen on the specified list of <tt>TransportAddress</tt>es.
+     * Initializes a new TcpHarvester, which is to
+     * listen on the specified list of TransportAddresses.
      *
      * @param transportAddresses the transport addresses to listen on.
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or
@@ -167,11 +165,11 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Initializes a new <tt>TcpHarvester</tt>, which is to
-     * listen on the specified list of <tt>TransportAddress</tt>es.
+     * Initializes a new TcpHarvester, which is to
+     * listen on the specified list of TransportAddresses.
      *
      * @param transportAddresses the transport addresses to listen on.
-     * @param ssltcp <tt>true</tt> to use ssltcp; otherwise, <tt>false</tt>
+     * @param ssltcp true to use ssltcp; otherwise, false
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or
      * {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
@@ -192,9 +190,9 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Adds a mapping between <tt>publicAddress</tt> and <tt>localAddress</tt>.
+     * Adds a mapping between publicAddress and localAddress.
      * This means that on harvest, along with any host candidates that have
-     * <tt>publicAddress</tt>, a server reflexive candidate will be added (with
+     * publicAddress, a server reflexive candidate will be added (with
      * the same port as the host candidate).
      *
      * @param publicAddress the public address.
@@ -218,14 +216,14 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Creates and returns the list of <tt>LocalCandidate</tt>s which are to be
-     * added by this <tt>TcpHarvester</tt> to a specific
-     * <tt>Component</tt>.
+     * Creates and returns the list of LocalCandidates which are to be
+     * added by this TcpHarvester to a specific
+     * Component.
      *
-     * @param component the <tt>Component</tt> for which to create candidates.
-     * @return the list of <tt>LocalCandidate</tt>s which are to be added by
-     * this <tt>TcpHarvester</tt> to a specific
-     * <tt>Component</tt>.
+     * @param component the Component for which to create candidates.
+     * @return the list of LocalCandidates which are to be added by
+     * this TcpHarvester to a specific
+     * Component.
      */
     private List<LocalCandidate> createLocalCandidates(Component component) {
         List<TcpHostCandidate> hostCandidates = new LinkedList<>();
@@ -301,11 +299,11 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Returns the <tt>Component</tt> instance, if any, for a given local
+     * Returns the Component instance, if any, for a given local
      * &quot;ufrag&quot;.
      *
      * @param localUfrag the local &quot;ufrag&quot;
-     * @return the <tt>Component</tt> instance, if any, for a given local
+     * @return the Component instance, if any, for a given local
      * &quot;ufrag&quot;.
      */
     private Component getComponent(String localUfrag) {
@@ -328,8 +326,8 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     /**
      * {@inheritDoc}
      *
-     * Saves a (weak) reference to <tt>Component</tt>, so that it can be
-     * notified if/when a socket for one of it <tt>LocalCandidate</tt>s is
+     * Saves a (weak) reference to Component, so that it can be
+     * notified if/when a socket for one of it LocalCandidates is
      * accepted.
      * <p>
      * The method does not perform any network operations and should return
@@ -365,7 +363,7 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
 
     /**
      * Removes entries from {@link #components} for which the
-     * <tt>WeakReference</tt> has been cleared.
+     * WeakReference has been cleared.
      */
     private void purgeComponents() {
         ++purgeCounter;
@@ -393,12 +391,12 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Makes <tt>socket</tt> available to <tt>component</tt> and pushes back
-     * <tt>datagramPacket</tt> into the STUN socket.
+     * Makes socket available to component and pushes back
+     * datagramPacket into the STUN socket.
      *
-     * @param socket the <tt>Socket</tt>.
-     * @param component the <tt>Component</tt>.
-     * @param datagramPacket the <tt>DatagramPacket</tt> to push back.
+     * @param socket the Socket.
+     * @param component the Component.
+     * @param datagramPacket the DatagramPacket to push back.
      * @throws IllegalStateException if the ICE state is incorrect, or an
      * appropriate candidate could not be found.
      * @throws IOException if creation of some of the required socket instances
@@ -438,19 +436,19 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
     }
 
     /**
-     * Searches among the local candidates of <tt>Component</tt> for a
-     * <tt>TcpHostCandidate</tt> with the same transport address as the
-     * local transport address of <tt>socket</tt>.
+     * Searches among the local candidates of Component for a
+     * TcpHostCandidate with the same transport address as the
+     * local transport address of socket.
      *
      * We expect to find such a candidate, which has been added by this
-     * <tt>TcpHarvester</tt> while harvesting.
+     * TcpHarvester while harvesting.
      *
-     * @param component the <tt>Component</tt> to search.
-     * @param socket the <tt>Socket</tt> to match the local transport
+     * @param component the Component to search.
+     * @param socket the Socket to match the local transport
      * address of.
-     * @return a <tt>TcpHostCandidate</tt> among the local candidates of
-     * <tt>Component</tt> with the same transport address as the local
-     * address of <tt>Socket</tt>, or <tt>null</tt> if no such candidate
+     * @return a TcpHostCandidate among the local candidates of
+     * Component with the same transport address as the local
+     * address of Socket, or null if no such candidate
      * exists.
      */
     private TcpHostCandidate findCandidate(Component component, Socket socket) {

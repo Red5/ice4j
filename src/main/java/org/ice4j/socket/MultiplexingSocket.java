@@ -21,23 +21,23 @@ import java.util.logging.Logger;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * Represents a <tt>Socket</tt> which allows filtering <tt>DatagramPacket</tt>s
- * it reads from the network using <tt>DatagramPacketFilter</tt>s so that the
- * <tt>DatagramPacket</tt>s do not get received through it but through
- * associated <tt>MultiplexedSocket</tt>s.
+ * Represents a Socket which allows filtering DatagramPackets
+ * it reads from the network using DatagramPacketFilters so that the
+ * DatagramPackets do not get received through it but through
+ * associated MultiplexedSockets.
  *
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
  */
 public class MultiplexingSocket extends DelegatingSocket {
     /**
-     * The <tt>Logger</tt> used by the <tt>MultiplexingSocket</tt> class and its
+     * The Logger used by the MultiplexingSocket class and its
      * instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(MultiplexingSocket.class.getName());
 
     /**
-     * Custom <tt>InputStream</tt> for this <tt>Socket</tt>.
+     * Custom InputStream for this Socket.
      */
     private final InputStream inputStream = new TCPInputStream(this);
 
@@ -89,13 +89,13 @@ public class MultiplexingSocket extends DelegatingSocket {
     };
 
     /**
-     * Custom <tt>OutputStream</tt> for this <tt>Socket</tt>.
+     * Custom OutputStream for this Socket.
      */
     private TCPOutputStream outputStream = null;
 
     /**
-     * The list of <tt>DatagramPacket</tt>s to be received through this
-     * <tt>Socket</tt> i.e. not accepted by the <tt>DatagramFilter</tt>s of
+     * The list of DatagramPackets to be received through this
+     * Socket i.e. not accepted by the DatagramFilters of
      * {@link #sockets} at the time of the reading from the network.
      */
     private final List<DatagramPacket> received = new SocketReceiveBuffer() {
@@ -109,15 +109,15 @@ public class MultiplexingSocket extends DelegatingSocket {
 
     /**
      * Buffer variable for storing the SO_TIMEOUT value set by the last
-     * <tt>setSoTimeout()</tt> call. Although not strictly needed, getting the
+     * setSoTimeout() call. Although not strictly needed, getting the
      * locally stored value as opposed to retrieving it from a parent
-     * <tt>getSoTimeout()</tt> call seems to significantly improve efficiency,
+     * getSoTimeout() call seems to significantly improve efficiency,
      * at least on some platforms.
      */
     private int soTimeout = 0;
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @see Socket#Socket()
      */
@@ -126,7 +126,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param address not used
      * @param port not used
@@ -137,7 +137,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param address not used
      * @param port not used
@@ -150,7 +150,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param proxy not used
      * @see Socket#Socket(Proxy)
@@ -160,7 +160,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param socket delegate socket
      */
@@ -175,7 +175,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param impl not used
      * @see Socket#Socket(SocketImpl)
@@ -185,7 +185,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param host not used
      * @param port not used
@@ -196,7 +196,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingSocket</tt> instance.
+     * Initializes a new MultiplexingSocket instance.
      *
      * @param host not used
      * @param port not used
@@ -209,10 +209,10 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Closes a specific <tt>MultiplexedSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>Socket</tt>.
+     * Closes a specific MultiplexedSocket which filters
+     * DatagramPackets away from this Socket.
      *
-     * @param multiplexed the <tt>MultiplexedSocket</tt> to close
+     * @param multiplexed the MultiplexedSocket to close
      */
     void close(MultiplexedSocket multiplexed) {
         multiplexingXXXSocketSupport.close(multiplexed);
@@ -227,9 +227,9 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Get original <tt>InputStream</tt>.
+     * Get original InputStream.
      *
-     * @return original <tt>InputStream</tt>
+     * @return original InputStream
      * @throws IOException if something goes wrong
      */
     public InputStream getOriginalInputStream() throws IOException {
@@ -237,9 +237,9 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Get original <tt>OutputStream</tt>.
+     * Get original OutputStream.
      *
-     * @return original <tt>OutputStream</tt>
+     * @return original OutputStream
      * @throws IOException if something goes wrong
      */
     public OutputStream getOriginalOutputStream() throws IOException {
@@ -257,19 +257,19 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Gets a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using a
-     * specific <tt>DatagramPacketFilter</tt>. If such a
-     * <tt>MultiplexedDatagramSocket</tt> does not exist in this instance, it is
+     * Gets a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using a
+     * specific DatagramPacketFilter. If such a
+     * MultiplexedDatagramSocket does not exist in this instance, it is
      * created.
      *
-     * @param filter the <tt>DatagramPacketFilter</tt> to get a
-     * <tt>MultiplexedDatagramSocket</tt> for
-     * @return a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using the
-     * specified <tt>filter</tt>
+     * @param filter the DatagramPacketFilter to get a
+     * MultiplexedDatagramSocket for
+     * @return a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using the
+     * specified filter
      * @throws SocketException if creating the
-     * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
+     * MultiplexedDatagramSocket for the specified filter
      * fails
      */
     public MultiplexedSocket getSocket(DatagramPacketFilter filter) throws SocketException {
@@ -316,21 +316,21 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Receives a datagram packet from this socket. The <tt>DatagramPacket</tt>s
+     * Receives a datagram packet from this socket. The DatagramPackets
      * returned by this method do not match any of the
-     * <tt>DatagramPacketFilter</tt>s of the <tt>MultiplexedDatagramSocket</tt>s
+     * DatagramPacketFilters of the MultiplexedDatagramSockets
      * associated with this instance at the time of their receipt. When this
-     * method returns, the <tt>DatagramPacket</tt>'s buffer is filled with the
+     * method returns, the DatagramPacket's buffer is filled with the
      * data received. The datagram packet also contains the sender's IP address,
      * and the port number on the sender's machine.
      * <p>
-     * This method blocks until a datagram is received. The <tt>length</tt>
+     * This method blocks until a datagram is received. The length
      * field of the datagram packet object contains the length of the received
      * message. If the message is longer than the packet's length, the message
      * is truncated.
      * </p>
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
      * @see DelegatingSocket#receive(DatagramPacket)
@@ -346,12 +346,12 @@ public class MultiplexingSocket extends DelegatingSocket {
     }
 
     /**
-     * Receives a <tt>DatagramPacket</tt> from this <tt>Socket</tt> upon
-     * request from a specific <tt>MultiplexedSocket</tt>.
+     * Receives a DatagramPacket from this Socket upon
+     * request from a specific MultiplexedSocket.
      *
-     * @param multiplexed the <tt>MultiplexedSocket</tt> which requests
-     * the receipt of a <tt>DatagramPacket</tt> from the network
-     * @param p the <tt>DatagramPacket</tt> to receive the data from the network
+     * @param multiplexed the MultiplexedSocket which requests
+     * the receipt of a DatagramPacket from the network
+     * @param p the DatagramPacket to receive the data from the network
      * @throws IOException if an I/O error occurs
      */
     void receive(MultiplexedSocket multiplexed, DatagramPacket p) throws IOException {

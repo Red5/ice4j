@@ -8,6 +8,9 @@ package org.ice4j.socket;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.logging.*;
 
@@ -21,10 +24,7 @@ import org.ice4j.ice.*;
  * @author Sebastien Vincent
  */
 public class IceTcpServerSocketWrapper extends IceSocketWrapper {
-    /**
-     * The <tt>Logger</tt> used by the <tt>LocalCandidate</tt> class and its
-     * instances for logging output.
-     */
+
     private static final Logger logger = Logger.getLogger(IceTcpServerSocketWrapper.class.getName());
 
     /**
@@ -33,11 +33,9 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     private Thread acceptThread = null;
 
     /**
-     * The wrapped TCP ServerSocket.
+     * The wrapped TCP ServerSocketChannel.
      */
-    private final ServerSocket serverSocket;
-
-    private TransportAddress transportAddress;
+    private final ServerSocketChannel serverChannel;
 
     /**
      * If the socket is still listening.
@@ -52,16 +50,16 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     /**
      * List of TCP client sockets.
      */
-    private final List<Socket> sockets = new ArrayList<>();
+    private final List<SocketChannel> channels = new ArrayList<>();
 
     /**
-     * Initializes a new <tt>IceTcpServerSocketWrapper</tt>.
+     * Initializes a new IceTcpServerSocketWrapper.
      *
-     * @param serverSocket TCP <tt>ServerSocket</tt>
-     * @param component related <tt>Component</tt>
+     * @param serverSocket TCP ServerSocket
+     * @param component related Component
      */
-    public IceTcpServerSocketWrapper(ServerSocket serverSocket, Component component) {
-        this.serverSocket = serverSocket;
+    public IceTcpServerSocketWrapper(ServerSocket serverChannel, Component component) {
+        this.serverChannel = serverChannel;
         this.component = component;
         acceptThread = new ThreadAccept();
         acceptThread.start();
@@ -90,8 +88,8 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     public void close() {
         try {
             isRun = false;
-            serverSocket.close();
-            for (Socket s : sockets) {
+            serverChannel.close();
+            for (SocketChannel s : channels) {
                 s.close();
             }
         } catch (IOException e) {
@@ -103,7 +101,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public InetAddress getLocalAddress() {
-        return serverSocket.getInetAddress();
+        return serverChannel.socket().getInetAddress();
     }
 
     /**
@@ -111,7 +109,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public int getLocalPort() {
-        return serverSocket.getLocalPort();
+        return serverChannel.socket().getLocalPort();
     }
 
     /**
@@ -119,18 +117,15 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        return serverSocket.getLocalSocketAddress();
+        return serverChannel.socket().getLocalSocketAddress();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
-    public Socket getTCPSocket() {
-        if (sockets.size() > 0) {
-            return sockets.get(0);
+    public SocketChannel getChannel() {
+        if (channels.size() > 0) {
+            return channels.get(0);
         }
-
         return null;
     }
 
@@ -139,8 +134,8 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public TransportAddress getTransportAddress() {
-        if (transportAddress == null && serverSocket != null) {
-            transportAddress = new TransportAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort(), Transport.TCP);
+        if (transportAddress == null && serverChannel != null) {
+            transportAddress = new TransportAddress(serverChannel.socket().getInetAddress(), serverChannel.socket().getLocalPort(), Transport.TCP);
         }
         return transportAddress;
     }
@@ -149,20 +144,18 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      * Thread that will wait for new TCP connections.
      */
     private class ThreadAccept extends Thread {
-        /**
-         * Thread entry point.
-         */
+
         @Override
         public void run() {
             isRun = true;
             while (isRun) {
                 try {
-                    Socket tcpSocket = serverSocket.accept();
-                    if (tcpSocket != null) {
-                        MultiplexingSocket multiplexingSocket = new MultiplexingSocket(tcpSocket);
+                    SocketChannel tcpChannel = serverChannel.accept();
+                    if (tcpChannel != null) {
+                        MultiplexingSocket multiplexingSocket = new MultiplexingSocket(tcpChannel);
                         component.getParentStream().getParentAgent().getStunStack().addSocket(new IceTcpSocketWrapper(multiplexingSocket));
                         component.getComponentSocket().add(multiplexingSocket);
-                        sockets.add(multiplexingSocket);
+                        channels.add(multiplexingSocket);
                     }
                 } catch (IOException e) {
                     logger.info("Failed to accept TCP socket " + e);

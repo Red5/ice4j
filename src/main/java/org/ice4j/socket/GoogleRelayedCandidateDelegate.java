@@ -39,8 +39,8 @@ public class GoogleRelayedCandidateDelegate
                ResponseCollector
 {
     /**
-     * The <tt>Logger</tt> used by the
-     * <tt>GoogleRelayedCandidateDatagramSocket</tt> class and its instances for
+     * The Logger used by the
+     * GoogleRelayedCandidateDatagramSocket class and its instances for
      * logging output.
      */
     private static final Logger logger = Logger
@@ -53,29 +53,29 @@ public class GoogleRelayedCandidateDelegate
     private boolean closed = false;
 
     /**
-     * The <tt>DatagramPacket</tt>s which are to be received through this
-     * <tt>DatagramSocket</tt> upon calls to its
+     * The DatagramPackets which are to be received through this
+     * DatagramSocket upon calls to its
      * {@link #receive(DatagramPacket)} method. They have been received from the
      * TURN server in the form of Data indications.
      */
     private final List<DatagramPacket> packetsToReceive = new LinkedList<>();
 
     /**
-     * The <tt>DatagramSocket</tt>s which have been sent through this
-     * <tt>DatagramSocket</tt> using its {@link #send(DatagramPacket)} method
+     * The DatagramSockets which have been sent through this
+     * DatagramSocket using its {@link #send(DatagramPacket)} method
      * and which are to be relayed through its associated TURN server in the
      * form of Send indications.
      */
     private final List<DatagramPacket> packetsToSend = new LinkedList<>();
 
     /**
-     * The <tt>Thread</tt> which is to send the {@link #packetsToSend} to the
+     * The Thread which is to send the {@link #packetsToSend} to the
      * associated TURN server.
      */
     private Thread sendThread;
 
     /**
-     * The <tt>GoogleTurnCandidateHarvest</tt> which has harvested
+     * The GoogleTurnCandidateHarvest which has harvested
      * {@link #relayedCandidate}.
      */
     private final GoogleTurnCandidateHarvest turnCandidateHarvest;
@@ -86,16 +86,16 @@ public class GoogleRelayedCandidateDelegate
     private final String username;
 
     /**
-     * Initializes a new <tt>GoogleRelayedCandidateDatagramSocket</tt> instance
-     * which is to be the <tt>socket</tt> of a specific
-     * <tt>RelayedCandidate</tt> harvested by a specific
-     * <tt>TurnCandidateHarvest</tt>.
+     * Initializes a new GoogleRelayedCandidateDatagramSocket instance
+     * which is to be the socket of a specific
+     * RelayedCandidate harvested by a specific
+     * TurnCandidateHarvest.
      *
-     * @param turnCandidateHarvest the <tt>TurnCandidateHarvest</tt> which has
-     * harvested <tt>relayedCandidate</tt>
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has
+     * harvested relayedCandidate
      * @param username username
      * @throws SocketException if anything goes wrong while initializing the new
-     * <tt>GoogleRelayedCandidateDatagramSocket</tt> instance
+     * GoogleRelayedCandidateDatagramSocket instance
      */
     public GoogleRelayedCandidateDelegate(
         GoogleTurnCandidateHarvest turnCandidateHarvest, String username)
@@ -138,13 +138,13 @@ public class GoogleRelayedCandidateDelegate
     }
 
     /**
-     * Notifies this <tt>MessageEventHandler</tt> that a specific STUN message
+     * Notifies this MessageEventHandler that a specific STUN message
      * has been received, parsed and is ready for delivery.
-     * <tt>GoogleRelayedCandidateDatagramSocket</tt> handles STUN indications
+     * GoogleRelayedCandidateDatagramSocket handles STUN indications
      * sent from the associated TURN server and received at the associated local
-     * <tt>TransportAddress</tt>.
+     * TransportAddress.
      *
-     * @param e a <tt>StunMessageEvent</tt> which encapsulates the received STUN
+     * @param e a StunMessageEvent which encapsulates the received STUN
      *            message
      */
     public void handleMessageEvent(StunMessageEvent e)
@@ -248,16 +248,16 @@ public class GoogleRelayedCandidateDelegate
     }
 
     /**
-     * Notifies this <tt>GoogleRelayedCandidateDatagramSocket</tt> that a
-     * specific <tt>Request</tt> it has sent has either failed or received a
-     * STUN error <tt>Response</tt>.
+     * Notifies this GoogleRelayedCandidateDatagramSocket that a
+     * specific Request it has sent has either failed or received a
+     * STUN error Response.
      *
-     * @param response the <tt>Response</tt> which responds to <tt>request</tt>
-     * @param request the <tt>Request</tt> sent by this instance to which
-     *            <tt>response</tt> responds
-     * @return <tt>true</tt> if the failure or error condition has been handled
+     * @param response the Response which responds to request
+     * @param request the Request sent by this instance to which
+     *            response responds
+     * @return true if the failure or error condition has been handled
      *         and the caller should assume this instance has recovered from it;
-     *         otherwise, <tt>false</tt>
+     *         otherwise, false
      */
     public boolean processErrorOrFailure(Response response, Request request)
     {
@@ -265,13 +265,13 @@ public class GoogleRelayedCandidateDelegate
     }
 
     /**
-     * Notifies this <tt>GoogleRelayedCandidateDatagramSocket</tt> that a
-     * specific <tt>Request</tt> it has sent has received a STUN success
-     * <tt>Response</tt>.
+     * Notifies this GoogleRelayedCandidateDatagramSocket that a
+     * specific Request it has sent has received a STUN success
+     * Response.
      *
-     * @param response the <tt>Response</tt> which responds to <tt>request</tt>
-     * @param request the <tt>Request</tt> sent by this instance to which
-     *            <tt>response</tt> responds
+     * @param response the Response which responds to request
+     * @param request the Request sent by this instance to which
+     *            response responds
      */
     public void processSuccess(Response response, Request request)
     {
@@ -291,7 +291,7 @@ public class GoogleRelayedCandidateDelegate
      * retransmissions of the original request (as described by rfc3489) and
      * that the request should be considered unanswered.
      *
-     * @param event the <tt>StunTimeoutEvent</tt> containing a reference to the
+     * @param event the StunTimeoutEvent containing a reference to the
      *            transaction that has just failed.
      */
     public void processTimeout(StunTimeoutEvent event)
@@ -300,11 +300,11 @@ public class GoogleRelayedCandidateDelegate
 
     /**
      * Receives a datagram packet from this socket. When this method returns,
-     * the <tt>DatagramPacket</tt>'s buffer is filled with the data received.
+     * the DatagramPacket's buffer is filled with the data received.
      * The datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      *            data
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#receive(DatagramPacket)
@@ -350,11 +350,11 @@ public class GoogleRelayedCandidateDelegate
     }
 
     /**
-     * Sends a datagram packet from this socket. The <tt>DatagramPacket</tt>
+     * Sends a datagram packet from this socket. The DatagramPacket
      * includes information indicating the data to be sent, its length, the IP
      * address of the remote host, and the port number on the remote host.
      *
-     * @param p the <tt>DatagramPacket</tt> to be sent
+     * @param p the DatagramPacket to be sent
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#send(DatagramPacket)
      */

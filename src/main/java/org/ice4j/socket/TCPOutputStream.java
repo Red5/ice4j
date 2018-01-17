@@ -21,7 +21,7 @@ import java.io.*;
 
 /**
  * TCP output stream for TCP socket. It is used to multiplex sockets and keep
- * the <tt>OutputStream</tt> interface to users.
+ * the OutputStream interface to users.
  *
  * @author Sebastien Vincent
  */
@@ -29,7 +29,7 @@ public class TCPOutputStream
     extends OutputStream
 {
     /**
-     * The indicator which determines whether this <tt>TCPOutputStream</tt> is
+     * The indicator which determines whether this TCPOutputStream is
      * to frame RTP and RTCP packets in accord with RFC 4571 &quot;Framing
      * Real-time Transport Protocol (RTP) and RTP Control Protocol (RTCP)
      * Packets over Connection-Oriented Transport&quot;.
@@ -37,14 +37,14 @@ public class TCPOutputStream
     private final boolean frame;
 
     /**
-     * Original <tt>OutputStream</tt> that this class wraps.
+     * Original OutputStream that this class wraps.
      */
     private final OutputStream outputStream;
 
     /**
-     * Initializes a new <tt>TCPOutputStream</tt>.
+     * Initializes a new TCPOutputStream.
      *
-     * @param outputStream original <tt>OutputStream</tt>
+     * @param outputStream original OutputStream
      */
     public TCPOutputStream(OutputStream outputStream)
     {

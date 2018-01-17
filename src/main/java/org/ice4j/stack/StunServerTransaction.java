@@ -51,7 +51,7 @@ public class StunServerTransaction
     static final long LIFETIME = 16000;
 
     /**
-     * The <tt>StunStack</tt> that created us.
+     * The StunStack that created us.
      */
     private final StunStack stackCallback;
 
@@ -71,12 +71,12 @@ public class StunServerTransaction
     private Response response = null;
 
     /**
-     * The <tt>TransportAddress</tt> that we received our request on.
+     * The TransportAddress that we received our request on.
      */
     private final TransportAddress localListeningAddress;
 
     /**
-     * The <tt>TransportAddress</tt> we use when sending responses
+     * The TransportAddress we use when sending responses
      */
     private TransportAddress localSendingAddress = null;
 
@@ -107,9 +107,9 @@ public class StunServerTransaction
      * @param stackCallback the stack that created us.
      * @param tranID the transaction id contained by the request that was the
      * cause for this transaction.
-     * @param localListeningAddress the <tt>TransportAddress</tt> that this
+     * @param localListeningAddress the TransportAddress that this
      * transaction is receiving requests on.
-     * @param requestSource the <tt>TransportAddress</tt> that this
+     * @param requestSource the TransportAddress that this
      * transaction is receiving requests from.
      */
     public StunServerTransaction(StunStack        stackCallback,
@@ -218,10 +218,10 @@ public class StunServerTransaction
     }
 
     /**
-     * Determines whether this <tt>StunServerTransaction</tt> is expired now.
+     * Determines whether this StunServerTransaction is expired now.
      *
-     * @return <tt>true</tt> if this <tt>StunServerTransaction</tT> is expired
-     * now; otherwise, <tt>false</tt>
+     * @return true if this StunServerTransaction</tT> is expired
+     * now; otherwise, false
      */
     public boolean isExpired()
     {
@@ -229,13 +229,13 @@ public class StunServerTransaction
     }
 
     /**
-     * Determines whether this <tt>StunServerTransaction</tt> will be expired at
+     * Determines whether this StunServerTransaction will be expired at
      * a specific point in time.
      *
-     * @param now the time in milliseconds at which the <tt>expired</tt> state
-     * of this <tt>StunServerTransaction</tt> is to be returned
-     * @return <tt>true</tt> if this <tt>StunServerTransaction</tt> will be
-     * expired at the specified point in time; otherwise, <tt>false</tt>
+     * @param now the time in milliseconds at which the expired state
+     * of this StunServerTransaction is to be returned
+     * @return true if this StunServerTransaction will be
+     * expired at the specified point in time; otherwise, false
      */
     public synchronized boolean isExpired(long now)
     {
@@ -261,8 +261,8 @@ public class StunServerTransaction
      * Specifies whether this server transaction is in the retransmitting state.
      * Or in other words - has it already sent a first response or not?
      *
-     * @return <tt>true</tt> if this transaction is still retransmitting and
-     * false <tt>otherwise</tt>
+     * @return true if this transaction is still retransmitting and
+     * false otherwise
      */
     public boolean isRetransmitting()
     {
@@ -270,10 +270,10 @@ public class StunServerTransaction
     }
 
     /**
-     * Returns the local <tt>TransportAddress</tt> that this transaction is
+     * Returns the local TransportAddress that this transaction is
      * sending responses from.
      *
-     * @return the local <tt>TransportAddress</tt> that this transaction is
+     * @return the local TransportAddress that this transaction is
      * sending responses from.
      */
     public TransportAddress getSendingAddress()
@@ -282,10 +282,10 @@ public class StunServerTransaction
     }
 
     /**
-     * Returns the remote <tt>TransportAddress</tt> that this transaction is
+     * Returns the remote TransportAddress that this transaction is
      * receiving requests from.
      *
-     * @return the remote <tt>TransportAddress</tt> that this transaction is
+     * @return the remote TransportAddress that this transaction is
      * receiving requests from.
      */
     public TransportAddress getResponseDestinationAddress()
@@ -294,10 +294,10 @@ public class StunServerTransaction
     }
 
     /**
-     * Returns the local <tt>TransportAddress</tt> that this transaction is
+     * Returns the local TransportAddress that this transaction is
      * receiving requests on.
      *
-     * @return the local <tt>TransportAddress</tt> that this transaction is
+     * @return the local TransportAddress that this transaction is
      * receiving requests on.
      */
     public TransportAddress getLocalListeningAddress()
@@ -306,10 +306,10 @@ public class StunServerTransaction
     }
 
     /**
-     * Returns the remote <tt>TransportAddress</tt> that this transaction is
+     * Returns the remote TransportAddress that this transaction is
      * receiving requests from.
      *
-     * @return the remote <tt>TransportAddress</tt> that this transaction is
+     * @return the remote TransportAddress that this transaction is
      * receiving requests from.
      */
     public TransportAddress getRequestSourceAddress()
@@ -318,12 +318,12 @@ public class StunServerTransaction
     }
 
     /**
-     * Returns the <tt>Response</tt> that the <tt>StunStack</tt> has sent
-     * through this transaction or <tt>null</tt> if no <tt>Response</tt> has
+     * Returns the Response that the StunStack has sent
+     * through this transaction or null if no Response has
      * been sent yet.
      *
-     * @return the <tt>Response</tt> that the <tt>StunStack</tt> has sent
-     * through this transaction or <tt>null</tt> if no <tt>Response</tt> has
+     * @return the Response that the StunStack has sent
+     * through this transaction or null if no Response has
      * been sent yet.
      */
     protected Response getResponse()

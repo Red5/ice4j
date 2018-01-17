@@ -20,9 +20,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  */
 class MessageProcessor implements Runnable {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = LoggerFactory.getLogger(MessageProcessor.class);
 
     /**
@@ -36,12 +34,12 @@ class MessageProcessor implements Runnable {
     private final BlockingQueue<RawMessage> messageQueue;
 
     /**
-     * The listener that will be retrieving <tt>MessageEvent</tt>s
+     * The listener that will be retrieving MessageEvents
      */
     private final MessageEventHandler messageEventHandler;
 
     /**
-     * The <tt>NetAccessManager</tt> which has created this instance and which
+     * The NetAccessManager which has created this instance and which
      * is its owner.
      */
     private final NetAccessManager netAccessManager;
@@ -54,13 +52,13 @@ class MessageProcessor implements Runnable {
     /**
      * Creates a Message processor.
      *
-     * @param netAccessManager the <tt>NetAccessManager</tt> which is creating
+     * @param netAccessManager the NetAccessManager which is creating
      * the new instance, is going to be its owner, specifies the
-     * <tt>BlockingQueue</tt> which is to store incoming messages, specifies the
-     * <tt>MessageEventHandler</tt> and represents the <tt>ErrorHandler</tt> to
+     * BlockingQueue which is to store incoming messages, specifies the
+     * MessageEventHandler and represents the ErrorHandler to
      * handle exceptions in the new instance
      * @throws IllegalArgumentException if any of the mentioned properties of
-     * <tt>netAccessManager</tt> are <tt>null</tt>
+     * netAccessManager are null
      */
     MessageProcessor(NetAccessManager netAccessManager) throws IllegalArgumentException {
         if (netAccessManager == null)

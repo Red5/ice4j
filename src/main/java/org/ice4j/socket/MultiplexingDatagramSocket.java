@@ -18,11 +18,9 @@ import java.util.List;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * Represents a <tt>DatagramSocket</tt> which allows filtering
- * <tt>DatagramPacket</tt>s it reads from the network using
- * <tt>DatagramPacketFilter</tt>s so that the <tt>DatagramPacket</tt>s do not
- * get received through it but through associated
- * <tt>MultiplexedDatagramSocket</tt>s.
+ * Represents a DatagramSocket which allows filtering DatagramPackets it reads from the network using
+ * DatagramPacketFilters so that the DatagramPackets do not get received through it but through associated
+ * MultiplexedDatagramSockets.
  *
  * @author Lyubomir Marinov
  */
@@ -75,8 +73,8 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     };
 
     /**
-     * The list of <tt>DatagramPacket</tt>s to be received through this
-     * <tt>DatagramSocket</tt> i.e. not accepted by the <tt>DatagramFilter</tt>s
+     * The list of DatagramPackets to be received through this
+     * DatagramSocket i.e. not accepted by the DatagramFilters
      * of {@link #sockets} at the time of the reading from the network.
      */
     private final List<DatagramPacket> received = new SocketReceiveBuffer() {
@@ -90,16 +88,16 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
 
     /**
      * Buffer variable for storing the SO_TIMEOUT value set by the
-     * last <tt>setSoTimeout()</tt> call. Although not strictly needed,
+     * last setSoTimeout() call. Although not strictly needed,
      * getting the locally stored value as opposed to retrieving it
-     * from a parent <tt>getSoTimeout()</tt> call seems to
+     * from a parent getSoTimeout() call seems to
      * significantly improve efficiency, at least on some platforms.
      */
     private int soTimeout = 0;
 
     /**
-     * Initializes a new <tt>MultiplexingDatagramSocket</tt> instance which is
-     * to enable <tt>DatagramPacket</tt> filtering and binds it to any available
+     * Initializes a new MultiplexingDatagramSocket instance which is
+     * to enable DatagramPacket filtering and binds it to any available
      * port on the local host machine. The socket will be bound to the wildcard
      * address, an IP address chosen by the kernel.
      *
@@ -111,12 +109,12 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingDatagramSocket</tt> instance which is
-     * to enable <tt>DatagramPacket</tt> filtering on a specific
-     * <tt>DatagramSocket</tt>.
+     * Initializes a new MultiplexingDatagramSocket instance which is
+     * to enable DatagramPacket filtering on a specific
+     * DatagramSocket.
      *
-     * @param delegate the <tt>DatagramSocket</tt> on which
-     * <tt>DatagramPacket</tt> filtering is to be enabled by the new instance
+     * @param delegate the DatagramSocket on which
+     * DatagramPacket filtering is to be enabled by the new instance
      * @throws SocketException if anything goes wrong while initializing the new
      * instance
      */
@@ -125,8 +123,8 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingDatagramSocket</tt> instance which is
-     * to enable <tt>DatagramPacket</tt> filtering and binds it to the specified
+     * Initializes a new MultiplexingDatagramSocket instance which is
+     * to enable DatagramPacket filtering and binds it to the specified
      * port on the local host machine. The socket will be bound to the wildcard
      * address, an IP address chosen by the kernel.
      *
@@ -140,8 +138,8 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingDatagramSocket</tt> instance which is
-     * to enable <tt>DatagramPacket</tt> filtering, bound to the specified local
+     * Initializes a new MultiplexingDatagramSocket instance which is
+     * to enable DatagramPacket filtering, bound to the specified local
      * address. The local port must be between 0 and 65535 inclusive. If the IP
      * address is 0.0.0.0, the socket will be bound to the wildcard address, an
      * IP address chosen by the kernel.
@@ -157,15 +155,15 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Initializes a new <tt>MultiplexingDatagramSocket</tt> instance which is
-     * to enable <tt>DatagramPacket</tt> filtering, bound to the specified local
+     * Initializes a new MultiplexingDatagramSocket instance which is
+     * to enable DatagramPacket filtering, bound to the specified local
      * socket address.
      * <p>
-     * If the specified local socket address is <tt>null</tt>, creates an
+     * If the specified local socket address is null, creates an
      * unbound socket.
      * </p>
      *
-     * @param bindaddr local socket address to bind, or <tt>null</tt> for an
+     * @param bindaddr local socket address to bind, or null for an
      * unbound socket
      * @throws SocketException if the socket could not be opened, or the socket
      * could not bind to the specified local port
@@ -176,29 +174,29 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Closes a specific <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt>.
+     * Closes a specific MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket.
      *
-     * @param multiplexed the <tt>MultiplexedDatagramSocket</tt> to close
+     * @param multiplexed the MultiplexedDatagramSocket to close
      */
     void close(MultiplexedDatagramSocket multiplexed) {
         multiplexingXXXSocketSupport.close(multiplexed);
     }
 
     /**
-     * Gets a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using a
-     * specific <tt>DatagramPacketFilter</tt>. If such a
-     * <tt>MultiplexedDatagramSocket</tt> does not exist in this instance, it is
+     * Gets a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using a
+     * specific DatagramPacketFilter. If such a
+     * MultiplexedDatagramSocket does not exist in this instance, it is
      * created.
      *
-     * @param filter the <tt>DatagramPacketFilter</tt> to get a
-     * <tt>MultiplexedDatagramSocket</tt> for
-     * @return a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using the
-     * specified <tt>filter</tt>
+     * @param filter the DatagramPacketFilter to get a
+     * MultiplexedDatagramSocket for
+     * @return a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using the
+     * specified filter
      * @throws SocketException if creating the
-     * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
+     * MultiplexedDatagramSocket for the specified filter
      * fails
      */
     public MultiplexedDatagramSocket getSocket(DatagramPacketFilter filter) throws SocketException {
@@ -206,22 +204,22 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Gets a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using a
-     * specific <tt>DatagramPacketFilter</tt>. If <tt>create</tt> is true and
-     * such a <tt>MultiplexedDatagramSocket</tt> does not exist in this
+     * Gets a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using a
+     * specific DatagramPacketFilter. If create is true and
+     * such a MultiplexedDatagramSocket does not exist in this
      * instance, it is created.
      *
-     * @param filter the <tt>DatagramPacketFilter</tt> to get a
-     * <tt>MultiplexedDatagramSocket</tt> for
+     * @param filter the DatagramPacketFilter to get a
+     * MultiplexedDatagramSocket for
      * @param create whether or not to create a
-     * <tt>MultiplexedDatagramSocket</tt> if this instance does not already have
-     * a socket for the given <tt>filter</tt>.
-     * @return a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using the
-     * specified <tt>filter</tt>
+     * MultiplexedDatagramSocket if this instance does not already have
+     * a socket for the given filter.
+     * @return a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using the
+     * specified filter
      * @throws SocketException if creating the
-     * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
+     * MultiplexedDatagramSocket for the specified filter
      * fails.
      */
     public MultiplexedDatagramSocket getSocket(DatagramPacketFilter filter, boolean create) throws SocketException {
@@ -268,24 +266,24 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Receives a datagram packet from this socket. The <tt>DatagramPacket</tt>s
+     * Receives a datagram packet from this socket. The DatagramPackets
      * returned by this method do not match any of the
-     * <tt>DatagramPacketFilter</tt>s of the <tt>MultiplexedDatagramSocket</tt>s
+     * DatagramPacketFilters of the MultiplexedDatagramSockets
      * associated with this instance at the time of their receipt. When this
-     * method returns, the <tt>DatagramPacket</tt>'s buffer is filled with the
+     * method returns, the DatagramPacket's buffer is filled with the
      * data received. The datagram packet also contains the sender's IP address,
      * and the port number on the sender's machine.
      * <p>
-     * This method blocks until a datagram is received. The <tt>length</tt>
+     * This method blocks until a datagram is received. The length
      * field of the datagram packet object contains the length of the received
      * message. If the message is longer than the packet's length, the message
      * is truncated.
      * </p>
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
-     * @throws SocketTimeoutException if <tt>setSoTimeout(int)</tt> was
+     * @throws SocketTimeoutException if setSoTimeout(int) was
      * previously called and the timeout has expired
      * @see DatagramSocket#receive(DatagramPacket)
      */
@@ -295,15 +293,15 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     }
 
     /**
-     * Receives a <tt>DatagramPacket</tt> from this <tt>DatagramSocket</tt> upon
-     * request from a specific <tt>MultiplexedDatagramSocket</tt>.
+     * Receives a DatagramPacket from this DatagramSocket upon
+     * request from a specific MultiplexedDatagramSocket.
      *
-     * @param multiplexed the <tt>MultiplexedDatagramSocket</tt> which requests
-     * the receipt of a <tt>DatagramPacket</tt> from the network
-     * @param p the <tt>DatagramPacket</tt> to receive the data from the network
+     * @param multiplexed the MultiplexedDatagramSocket which requests
+     * the receipt of a DatagramPacket from the network
+     * @param p the DatagramPacket to receive the data from the network
      * @throws IOException if an I/O error occurs
-     * @throws SocketTimeoutException if <tt>setSoTimeout(int)</tt> was
-     * previously called on <tt>multiplexed</tt> and the timeout has expired
+     * @throws SocketTimeoutException if setSoTimeout(int) was
+     * previously called on multiplexed and the timeout has expired
      */
     void receive(MultiplexedDatagramSocket multiplexed, DatagramPacket p) throws IOException {
         multiplexingXXXSocketSupport.receive(multiplexed.received, p, multiplexed.getSoTimeout());
@@ -323,7 +321,6 @@ public class MultiplexingDatagramSocket extends DelegatingDatagramSocket {
     @Override
     public void setSoTimeout(int timeout) throws SocketException {
         super.setSoTimeout(timeout);
-
         soTimeout = timeout;
     }
 }

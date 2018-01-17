@@ -28,10 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A <tt>HostCandidateHarvester</tt> gathers host <tt>Candidate</tt>s for a
- * specified {@link org.ice4j.ice.Component}. Most <tt>CandidateHarvester</tt>s
+ * A HostCandidateHarvester gathers host Candidates for a
+ * specified {@link org.ice4j.ice.Component}. Most CandidateHarvesters
  * would rely on the output of the host harvester, that is all host addresses,
- * to be already present and bound in a <tt>Component</tt> before being able to
+ * to be already present and bound in a Component before being able to
  * harvest the type of addresses that they are responsible for.
  *
  * @author Emil Ivov
@@ -40,9 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class HostCandidateHarvester
 {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = LoggerFactory.getLogger(HostCandidateHarvester.class);
 
     /**
@@ -275,23 +273,23 @@ public class HostCandidateHarvester
     /**
      * Gathers all candidate addresses on the local machine, binds sockets on
      * them and creates {@link HostCandidate}s. The harvester would always
-     * try to bind the sockets on the specified <tt>preferredPort</tt> first.
-     * If that fails we will move through all ports between <tt>minPort</tt> and
-     * <tt>maxPort</tt> and give up if still can't find a free port.
+     * try to bind the sockets on the specified preferredPort first.
+     * If that fails we will move through all ports between minPort and
+     * maxPort and give up if still can't find a free port.
      *
      * @param component the {@link Component} that we'd like to gather candidate
      * addresses for.
      * @param preferredPort the port number that should be tried first when
-     * binding local <tt>Candidate</tt> sockets for this <tt>Component</tt>.
+     * binding local Candidate sockets for this Component.
      * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. <tt>minPort + 1</tt>)
+     * moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding
      * before giving up and throwing an exception.
      * @param transport transport protocol used
      *
-     * @throws IllegalArgumentException if either <tt>minPort</tt> or
-     * <tt>maxPort</tt> is not a valid port number, <tt>minPort &gt;
-     * maxPort</tt> or if transport is not supported.
+     * @throws IllegalArgumentException if either minPort or
+     * maxPort is not a valid port number, minPort &gt;
+     * maxPort or if transport is not supported.
      * @throws IOException if an error occurs while the underlying resolver lib
      * is using sockets.
      */
@@ -435,11 +433,11 @@ public class HostCandidateHarvester
      *
      * @param iface The {@link NetworkInterface}.
      *
-     * @return <tt>true</tt> if the {@link NetworkInterface} is listed in the
-     * <tt>org.ice4j.ice.harvest.ALLOWED_INTERFACES</tt> list. If that list
-     * isn't defined, returns <tt>true</tt> if it's not listed in the
-     * <tt>org.ice4j.ice.harvest.BLOCKED_INTERFACES</tt> list. It returns
-     * <tt>false</tt> otherwise.
+     * @return true if the {@link NetworkInterface} is listed in the
+     * org.ice4j.ice.harvest.ALLOWED_INTERFACES list. If that list
+     * isn't defined, returns true if it's not listed in the
+     * org.ice4j.ice.harvest.BLOCKED_INTERFACES list. It returns
+     * false otherwise.
      */
     static boolean isInterfaceAllowed(NetworkInterface iface)
     {
@@ -481,21 +479,21 @@ public class HostCandidateHarvester
     }
 
     /**
-     * Returns <tt>true</tt> if <tt>address</tt> is allowed to be used by this
-     * <tt>HostCandidateHarvester</tt> for the purposes of candidate allocation,
-     * and <tt>false</tt> otherwise.
+     * Returns true if address is allowed to be used by this
+     * HostCandidateHarvester for the purposes of candidate allocation,
+     * and false otherwise.
      *
      * An address is considered allowed, if
      * 1. It is not a loopback address.
      * 2. Either no addresses have explicitly been configured allowed (via the
-     * <tt>StackProperties.ALLOWED_ADDRESSES</tt> property), or <tt>address</tt>
+     * StackProperties.ALLOWED_ADDRESSES property), or address
      * is explicitly configured allowed.
-     * 3. <tt>address</tt> is not explicitly configured blocked (via the
-     * <tt>StackProperties.BLOCKED_ADDRESSES</tt> property).
+     * 3. address is not explicitly configured blocked (via the
+     * StackProperties.BLOCKED_ADDRESSES property).
      *
      * @param address the address to check
-     * @return <tt>true</tt> if <tt>address</tt> is allowed to be used by this
-     * <tt>HostCandidateHarvester</tt>.
+     * @return true if address is allowed to be used by this
+     * HostCandidateHarvester.
      */
     static boolean isAddressAllowed(InetAddress address)
     {
@@ -517,26 +515,26 @@ public class HostCandidateHarvester
     }
 
     /**
-     * Creates a <tt>ServerSocket</tt> and binds it to the specified
-     * <tt>localAddress</tt> and a port in the range specified by the
-     * <tt>minPort</tt> and <tt>maxPort</tt> parameters.
+     * Creates a ServerSocket and binds it to the specified
+     * localAddress and a port in the range specified by the
+     * minPort and maxPort parameters.
      *
      * @param laddr the address that we'd like to bind the socket on.
      * @param preferredPort the port number that we should try to bind to first.
      * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. <tt>minPort + 1</tt>)
+     * moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding
      * before giving up and throwing an exception.
      *
-     * @return the newly created <tt>DatagramSocket</tt>.
+     * @return the newly created DatagramSocket.
      *
-     * @throws IllegalArgumentException if either <tt>minPort</tt> or
-     * <tt>maxPort</tt> is not a valid port number or if <tt>minPort &gt;
-     * maxPort</tt>.
+     * @throws IllegalArgumentException if either minPort or
+     * maxPort is not a valid port number or if minPort &gt;
+     * maxPort.
      * @throws IOException if an error occurs while the underlying resolver lib
      * is using sockets.
      * @throws BindException if we couldn't find a free port between
-     * <tt>minPort</tt> and <tt>maxPort</tt> before reaching the maximum allowed
+     * minPort and maxPort before reaching the maximum allowed
      * number of retries.
      */
     private IceSocketWrapper createServerSocket(InetAddress laddr,
@@ -589,33 +587,33 @@ public class HostCandidateHarvester
     }
 
     /**
-     * Creates a <tt>DatagramSocket</tt> and binds it to the specified
-     * <tt>localAddress</tt> and a port in the range specified by the
-     * <tt>minPort</tt> and <tt>maxPort</tt> parameters. We first try to bind
-     * the newly created socket on the <tt>preferredPort</tt> port number
-     * (unless it is outside the <tt>[minPort, maxPort]</tt> range in which case
-     * we first try the <tt>minPort</tt>) and then proceed incrementally upwards
+     * Creates a DatagramSocket and binds it to the specified
+     * localAddress and a port in the range specified by the
+     * minPort and maxPort parameters. We first try to bind
+     * the newly created socket on the preferredPort port number
+     * (unless it is outside the [minPort, maxPort] range in which case
+     * we first try the minPort) and then proceed incrementally upwards
      * until we succeed or reach the bind retries limit. If we reach the
-     * <tt>maxPort</tt> port number before the bind retries limit, we will then
-     * start over again at <tt>minPort</tt> and keep going until we run out of
+     * maxPort port number before the bind retries limit, we will then
+     * start over again at minPort and keep going until we run out of
      * retries.
      *
      * @param laddr the address that we'd like to bind the socket on.
      * @param preferredPort the port number that we should try to bind to first.
      * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. <tt>minPort + 1</tt>)
+     * moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding
      * before giving up and throwing an exception.
      *
-     * @return the newly created <tt>DatagramSocket</tt>.
+     * @return the newly created DatagramSocket.
      *
-     * @throws IllegalArgumentException if either <tt>minPort</tt> or
-     * <tt>maxPort</tt> is not a valid port number or if <tt>minPort &gt;
-     * maxPort</tt>.
+     * @throws IllegalArgumentException if either minPort or
+     * maxPort is not a valid port number or if minPort &gt;
+     * maxPort.
      * @throws IOException if an error occurs while the underlying resolver lib
      * is using sockets.
      * @throws BindException if we couldn't find a free port between
-     * <tt>minPort</tt> and <tt>maxPort</tt> before reaching the maximum allowed
+     * minPort and maxPort before reaching the maximum allowed
      * number of retries.
      */
     private IceSocketWrapper createDatagramSocket(InetAddress laddr,
@@ -687,13 +685,13 @@ public class HostCandidateHarvester
      *
      * @param preferredPort the port number that we should try to bind to first.
      * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. <tt>minPort + 1</tt>)
+     * moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding
      * before giving up and throwing an exception.
      *
-     * @throws IllegalArgumentException if either <tt>minPort</tt> or
-     * <tt>maxPort</tt> is not a valid port number or if <tt>minPort</tt> is
-     * greater than <tt>maxPort</tt>.
+     * @throws IllegalArgumentException if either minPort or
+     * maxPort is not a valid port number or if minPort is
+     * greater than maxPort.
      */
     private void checkPorts(int preferredPort, int minPort, int maxPort)
         throws IllegalArgumentException
@@ -738,8 +736,8 @@ public class HostCandidateHarvester
 
     /**
      * Initializes the host candidate interface filters stored in the
-     * <tt>org.ice4j.ice.harvest.ALLOWED_INTERFACES</tt> and
-     * <tt>org.ice4j.ice.harvest.BLOCKED_INTERFACES</tt> properties.
+     * org.ice4j.ice.harvest.ALLOWED_INTERFACES and
+     * org.ice4j.ice.harvest.BLOCKED_INTERFACES properties.
      *
      * @throws java.lang.IllegalStateException if there were errors during host
      * candidate interface filters initialization.

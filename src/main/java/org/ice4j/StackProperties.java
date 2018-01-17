@@ -28,9 +28,7 @@ import java.util.logging.*;
  */
 public class StackProperties
 {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger
         = Logger.getLogger(StackProperties.class.getName());
 
@@ -172,7 +170,7 @@ public class StackProperties
 
     /**
      * The name of the property that can be used to disable STUN keep alives.
-     * Set to <tt>true</tt> to disable.
+     * Set to true to disable.
      */
     public static final String NO_KEEP_ALIVES = "org.ice4j.NO_KEEP_ALIVES";
 
@@ -182,7 +180,7 @@ public class StackProperties
      * The maximum number of milliseconds that we should wait for a check list
      * to complete before nominating one of its valid pairs (unless there are
      * none in which case we may have to wait until one appears or the whole
-     * list fails). Default value is <tt>-1</tt> which causes the nominator
+     * list fails). Default value is -1 which causes the nominator
      * to wait until the check list completes or fails.
      */
     public static final String NOMINATION_TIMER
@@ -236,7 +234,7 @@ public class StackProperties
 
     /**
      * The name of the property which specifies whether the dynamic port UDP
-     * host harvester should be used by <tt>Agent</tt> instances.
+     * host harvester should be used by Agent instances.
      */
     public static final String USE_DYNAMIC_HOST_HARVESTER
             = "org.ice4j.ice.harvest.USE_DYNAMIC_HOST_HARVESTER";
@@ -257,7 +255,7 @@ public class StackProperties
      *
      * @return the result of calling the property's toString method and null in
      * case there was no value mapped against the specified
-     * <tt>propertyName</tt>, or the returned string had zero length or
+     * propertyName, or the returned string had zero length or
      * contained whitespaces only.
      */
     public static String getString(String propertyName)
@@ -314,7 +312,7 @@ public class StackProperties
      * representation is parsed into a signed decimal integer according to the
      * rules of {@link Integer#parseInt(String)}. If parsing the value as a
      * signed decimal integer fails or there is no value associated with the
-     * specified property name, <tt>defaultValue</tt> is returned.
+     * specified property name, defaultValue is returned.
      *
      * @param propertyName the name of the property to get the value of as a
      * signed decimal integer
@@ -324,7 +322,7 @@ public class StackProperties
      * properties.
      * @return the value of the property with the specified name in the System
      * properties as a signed decimal integer;
-     * <tt>defaultValue</tt> if parsing the value of the specified property name
+     * defaultValue if parsing the value of the specified property name
      * fails or no value is associated among the System properties.
      */
     public static int getInt(String propertyName, int defaultValue)
@@ -351,18 +349,18 @@ public class StackProperties
     }
 
     /**
-     * Gets the value of a specific property as a <tt>boolean</tt>. If the
+     * Gets the value of a specific property as a boolean. If the
      * specified property name is associated with a value, the string
-     * representation of the value is parsed into a <tt>boolean</tt> according
+     * representation of the value is parsed into a boolean according
      * to the rules of {@link Boolean#parseBoolean(String)} . Otherwise,
-     * <tt>defaultValue</tt> is returned.
+     * defaultValue is returned.
      *
      * @param propertyName the name of the property to get the value of as a
-     * <tt>boolean</tt>
+     * boolean
      * @param defaultValue the value to be returned if the specified property
      * name is not associated with a value
      * @return the value of the property with the specified name as a
-     * <tt>boolean</tt>; <tt>defaultValue</tt> if the property with the
+     * boolean; defaultValue if the property with the
      * specified name is not associated with a value
      */
     public static boolean getBoolean(String propertyName, boolean defaultValue)

@@ -18,7 +18,7 @@
 package org.ice4j.ice;
 
 /**
- * Everty <tt>CheckList</tt> is associated with a state, which captures the
+ * Everty CheckList is associated with a state, which captures the
  * state of ICE checks for that media stream. There are three states:
  * <br>
  * Running:  In this state, ICE checks are still in progress for this
@@ -57,14 +57,14 @@ public enum CheckListState
     FAILED("Failed");
 
     /**
-     * The name of this <tt>CheckListState</tt> instance.
+     * The name of this CheckListState instance.
      */
     private final String stateName;
 
     /**
-     * Creates a <tt>CheckListState</tt> instance with the specified name.
+     * Creates a CheckListState instance with the specified name.
      *
-     * @param stateName the name of the <tt>CheckListState</tt> instance
+     * @param stateName the name of the CheckListState instance
      * we'd like to create.
      */
     private CheckListState(String stateName)
@@ -73,10 +73,10 @@ public enum CheckListState
     }
 
     /**
-     * Returns the name of this <tt>CheckListStae</tt> (i.e.. "Running",
+     * Returns the name of this CheckListStae (i.e.. "Running",
      * "Completed", or "Failed").
      *
-     * @return the name of this <tt>CheckListStae</tt> (i.e.. "Running",
+     * @return the name of this CheckListStae (i.e.. "Running",
      * "Completed", or "Failed").
      */
     @Override

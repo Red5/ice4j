@@ -45,7 +45,7 @@ public class StunResponseEvent
     /**
      * Creates a new instance of this event.
      *
-     * @param stunStack the <tt>StunStack</tt> to be associated with the new
+     * @param stunStack the StunStack to be associated with the new
      * instance
      * @param rawMessage the crude message we got off the wire.
      * @param response the STUN {@link Response} that we've just received.

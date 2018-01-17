@@ -47,14 +47,14 @@ public class TransactionID {
     private int hashCode = 0;
 
     /**
-     * Limits access to <tt>TransactionID</tt> instantiation.
+     * Limits access to TransactionID instantiation.
      */
     private TransactionID() {
         this(false);
     }
 
     /**
-     * Limits access to <tt>TransactionID</tt> instantiation.
+     * Limits access to TransactionID instantiation.
      *
      * @param rfc3489Compatibility true to create a RFC3489 transaction ID
      */
@@ -67,10 +67,10 @@ public class TransactionID {
      * using the following algorithm:
      *
      * The first 6 bytes of the id are given the value of
-     * <tt>System.currentTimeMillis()</tt>. Putting the right most bits first
+     * System.currentTimeMillis(). Putting the right most bits first
      * so that we get a more optimized equals() method.
      *
-     * @return A <tt>TransactionID</tt> object with a unique transaction id.
+     * @return A TransactionID object with a unique transaction id.
      */
     public static TransactionID createNewTransactionID() {
         TransactionID tid = new TransactionID();
@@ -84,10 +84,10 @@ public class TransactionID {
      * generated using the following algorithm:
      *
      * The first 8 bytes of the id are given the value of
-     * <tt>System.currentTimeMillis()</tt>. Putting the right most bits first
+     * System.currentTimeMillis(). Putting the right most bits first
      * so that we get a more optimized equals() method.
      *
-     * @return A <tt>TransactionID</tt> object with a unique transaction id.
+     * @return A TransactionID object with a unique transaction id.
      */
     public static TransactionID createNewRFC3489TransactionID() {
         TransactionID tid = new TransactionID(true);
@@ -114,19 +114,19 @@ public class TransactionID {
     }
 
     /**
-     * Returns a <tt>TransactionID</tt> instance for the specified id. If
-     * <tt>transactionID</tt> is the ID of a client or a server transaction
+     * Returns a TransactionID instance for the specified id. If
+     * transactionID is the ID of a client or a server transaction
      * already known to the stack, then this method would return a reference
      * to that transaction's instance so that we could use it to for storing
      * application data.
      *
-     * @param stunStack the <tt>StunStack</tt> in the context of which the
-     * request to create a <tt>TransactionID</tt> is being made
+     * @param stunStack the StunStack in the context of which the
+     * request to create a TransactionID is being made
      * @param transactionID the value of the ID.
      *
      * @return a reference to the (possibly already existing)
-     * <tt>TransactionID</tt> corresponding to the value of
-     * <tt>transactionID</tt>
+     * TransactionID corresponding to the value of
+     * transactionID
      */
     public static TransactionID createTransactionID(StunStack stunStack, byte[] transactionID) {
         TransactionID tid = TransactionID.build(transactionID);
@@ -224,7 +224,7 @@ public class TransactionID {
     /**
      * Returns a string representation of the ID
      *
-     * @param transactionID the transaction ID to convert into <tt>String</tt>.
+     * @param transactionID the transaction ID to convert into String.
      *
      * @return a hex string representing the id
      */
@@ -244,7 +244,7 @@ public class TransactionID {
     }
 
     /**
-     * Stores <tt>applicationData</tt> in this ID so that we can refer back to
+     * Stores applicationData in this ID so that we can refer back to
      * it if we ever need to at a later stage (e.g. when receiving a response
      * to a {@link StunClientTransaction}).
      *
@@ -257,7 +257,7 @@ public class TransactionID {
     }
 
     /**
-     * Returns whatever <tt>applicationData</tt> was previously stored in this
+     * Returns whatever applicationData was previously stored in this
      * ID.
      *
      * @return a reference to the {@link Object} that the application may have

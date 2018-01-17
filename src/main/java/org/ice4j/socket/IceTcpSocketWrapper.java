@@ -6,71 +6,84 @@
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 /**
- * TCP implementation of the <tt>IceSocketWrapper</tt>.
+ * TCP implementation of the IceSocketWrapper.
  *
  * @author Sebastien Vincent
+ * @author Paul Gregoire
  */
 public class IceTcpSocketWrapper extends IceSocketWrapper {
-    /**
-     * InputStream for this socket.
-     */
-    private final InputStream inputStream;
 
     /**
-     * OutputStream for this socket.
+     * The ByteBuffer instance used in {@link #receiveFromChannel(java.nio.channels.SocketChannel, java.net.DatagramPacket)} to read the 2-byte length field into.
      */
-    private final OutputStream outputStream;
-
-    /**
-     * Delegate TCP <tt>Socket</tt>.
-     */
-    private final Socket socket;
-
-    private TransportAddress transportAddress;
-
-    /**
-     * A <tt>DelegatingSocket</tt> view of {@link #socket} if the latter
-     * implements the former; otherwise, <tt>null</tt>.
-     */
-    private final DelegatingSocket socketAsDelegatingSocket;
+    private final ByteBuffer frameLengthByteBuffer = ByteBuffer.allocate(2);
 
     /**
      * Constructor.
      *
-     * @param delegate delegate <tt>Socket</tt>
+     * @param delegate delegate Socket
      *
      * @throws IOException if something goes wrong during initialization
      */
-    public IceTcpSocketWrapper(Socket delegate) throws IOException {
-        socket = delegate;
+    public IceTcpSocketWrapper(SocketChannel channel) throws IOException {
+        super(channel);
+    }
 
-        if (delegate instanceof DelegatingSocket) {
-            inputStream = null;
-            outputStream = null;
-            socketAsDelegatingSocket = (DelegatingSocket) delegate;
-        } else {
-            inputStream = delegate.getInputStream();
-            outputStream = delegate.getOutputStream();
-            socketAsDelegatingSocket = null;
-        }
+    /** {@inheritDoc} */
+    @Override
+    public void send(DatagramPacket p) throws IOException {
+        int len = p.getLength();
+        int off = p.getOffset();
+        ByteBuffer data = ByteBuffer.allocate(len + 2);
+        data.put((byte) ((len >> 8) & 0xff));
+        data.put((byte) (len & 0xff));
+        data.put(p.getData(), off, len);
+        ((SocketChannel) channel).write(data);
     }
 
     /**
      * {@inheritDoc}
+     * <br>
+     * Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port
+     * and address of this Socket.
      */
     @Override
-    public void close() {
-        try {
-            socket.close();
-        } catch (IOException e) {
+    public void receive(DatagramPacket p) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) channel;
+        while (frameLengthByteBuffer.hasRemaining()) {
+            int read = socketChannel.read(frameLengthByteBuffer);
+            if (read == -1) {
+                throw new SocketException("Failed to receive data from socket.");
+            }
         }
+        frameLengthByteBuffer.flip();
+        int b0 = frameLengthByteBuffer.get();
+        int b1 = frameLengthByteBuffer.get();
+        int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF);
+        frameLengthByteBuffer.flip();
+        byte[] data = p.getData();
+        if (data == null || data.length < frameLength) {
+            data = new byte[frameLength];
+        }
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data, 0, frameLength);
+        while (byteBuffer.hasRemaining()) {
+            int read = socketChannel.read(byteBuffer);
+            if (read == -1) {
+                throw new SocketException("Failed to receive data from socket.");
+            }
+        }
+        p.setAddress(socketChannel.socket().getInetAddress());
+        p.setData(data, 0, frameLength);
+        p.setPort(socketChannel.socket().getPort());
     }
 
     /**
@@ -78,7 +91,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public InetAddress getLocalAddress() {
-        return socket.getLocalAddress();
+        return ((SocketChannel) channel).socket().getLocalAddress();
     }
 
     /**
@@ -86,7 +99,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public int getLocalPort() {
-        return socket.getLocalPort();
+        return ((SocketChannel) channel).socket().getLocalPort();
     }
 
     /**
@@ -94,56 +107,11 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        return socket.getLocalSocketAddress();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Socket getTCPSocket() {
-        return socket;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public TransportAddress getTransportAddress() {
-        if (transportAddress == null && socket != null) {
-            transportAddress = new TransportAddress(socket.getInetAddress(), socket.getLocalPort(), Transport.TCP);
+        try {
+            return ((SocketChannel) channel).getLocalAddress();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return transportAddress;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void receive(DatagramPacket p) throws IOException {
-        if (socketAsDelegatingSocket != null) {
-            socketAsDelegatingSocket.receive(p);
-        } else {
-            DelegatingSocket.receiveFromInputStream(p, inputStream, getLocalAddress(), getLocalPort());
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void send(DatagramPacket p) throws IOException {
-        if (socketAsDelegatingSocket != null) {
-            socketAsDelegatingSocket.send(p);
-        } else {
-            int len = p.getLength();
-            int off = p.getOffset();
-            byte data[] = new byte[len + 2];
-
-            data[0] = (byte) ((len >> 8) & 0xff);
-            data[1] = (byte) (len & 0xff);
-            System.arraycopy(p.getData(), off, data, 2, len);
-            outputStream.write(data, 0, len + 2);
-        }
+        return null;
     }
 }

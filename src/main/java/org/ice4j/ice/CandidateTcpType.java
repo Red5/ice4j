@@ -41,14 +41,14 @@ public enum CandidateTcpType
     SO("so");
 
     /**
-     * The name of this <tt>CandidateTcpType</tt> instance.
+     * The name of this CandidateTcpType instance.
      */
     private final String name;
 
     /**
-     * Creates a <tt>CandidateTcpType</tt> instance with the specified name.
+     * Creates a CandidateTcpType instance with the specified name.
      *
-     * @param name the name of the <tt>CandidateTcpType</tt> instance we'd
+     * @param name the name of the CandidateTcpType instance we'd
      * like to create.
      */
     private CandidateTcpType(String name)
@@ -57,10 +57,10 @@ public enum CandidateTcpType
     }
 
     /**
-     * Returns the name of this <tt>CandidateTcpType</tt> (e.g. "active",
+     * Returns the name of this CandidateTcpType (e.g. "active",
      * "passive", or "so").
      *
-     * @return the name of this <tt>CandidateTcpType</tt> (e.g. "active",
+     * @return the name of this CandidateTcpType (e.g. "active",
      * "passive", or "so").
      */
     @Override
@@ -71,12 +71,12 @@ public enum CandidateTcpType
 
     /**
      *
-     * Parses the string <tt>candidateTcpTypeName</tt> and return the
-     * corresponding <tt>CandidateTcpType</tt> instance.
+     * Parses the string candidateTcpTypeName and return the
+     * corresponding CandidateTcpType instance.
      *
      * @param candidateTcpTypeName the string to parse
      * @return candidateTcpTypeName as an Enum
-     * @throws IllegalArgumentException in case <tt>candidateTcpTypeName</tt> is
+     * @throws IllegalArgumentException in case candidateTcpTypeName is
      * not a valid or currently supported candidate TCP type.
      */
     public static CandidateTcpType parse(String candidateTcpTypeName)

@@ -49,9 +49,7 @@ import org.slf4j.LoggerFactory;
 public class StunClientTransaction
     implements Runnable
 {
-    /**
-     * Our class logger.
-     */
+ 
     private static final Logger logger = LoggerFactory.getLogger(StunClientTransaction.class);
 
     /**
@@ -74,8 +72,8 @@ public class StunClientTransaction
     public static final int DEFAULT_ORIGINAL_WAIT_INTERVAL = 100;
 
     /**
-     * The pool of <tt>Thread</tt>s which retransmit
-     * <tt>StunClientTransaction</tt>s.
+     * The pool of Threads which retransmit
+     * StunClientTransactions.
      */
     private static final ExecutorService retransmissionThreadPool
         = Executors.newCachedThreadPool(
@@ -132,7 +130,7 @@ public class StunClientTransaction
     public int maxWaitInterval = DEFAULT_MAX_WAIT_INTERVAL;
 
     /**
-     * The <tt>StunStack</tt> that created us.
+     * The StunStack that created us.
      */
     private final StunStack stackCallback;
 
@@ -152,7 +150,7 @@ public class StunClientTransaction
     private final TransactionID transactionID;
 
     /**
-     * The <tt>TransportAddress</tt> through which the original request was sent
+     * The TransportAddress through which the original request was sent
      * and that we are supposed to be retransmitting through.
      */
     private final TransportAddress localAddress;
@@ -169,20 +167,20 @@ public class StunClientTransaction
     private boolean cancelled = false;
 
     /**
-     * The <tt>Lock</tt> which synchronizes the access to the state of this
+     * The Lock which synchronizes the access to the state of this
      * instance. Introduced along with {@link #lockCondition} in order to allow
      * the invocation of {@link #cancel(boolean)} without a requirement to
      * acquire the synchronization root. Otherwise, callers of
-     * <tt>cancel(boolean)</tt> may (and have be reported multiple times to)
+     * cancel(boolean) may (and have be reported multiple times to)
      * fall into a deadlock merely because they want to cancel this
-     * <tt>StunClientTransaction</tt>.
+     * StunClientTransaction.
      */
     private final Lock lock = new ReentrantLock();
 
     /**
-     * The <tt>Condition</tt> of {@link #lock} which this instance uses to wait
+     * The Condition of {@link #lock} which this instance uses to wait
      * for either the next retransmission interval or the cancellation of this
-     * <tt>StunClientTransaction</tt>.
+     * StunClientTransaction.
      */
     private final Condition lockCondition = lock.newCondition();
 
@@ -192,7 +190,7 @@ public class StunClientTransaction
      * @param stackCallback the stack that created us.
      * @param request the request that we are living for.
      * @param requestDestination the destination of the request.
-     * @param localAddress the local <tt>TransportAddress</tt> this transaction
+     * @param localAddress the local TransportAddress this transaction
      * will be communication through.
      * @param responseCollector the instance that should receive this request's
      * response retransmit.
@@ -217,7 +215,7 @@ public class StunClientTransaction
      * @param stackCallback the stack that created us.
      * @param request the request that we are living for.
      * @param requestDestination the destination of the request.
-     * @param localAddress the local <tt>TransportAddress</tt> this transaction
+     * @param localAddress the local TransportAddress this transaction
      * will be communication through.
      * @param responseCollector the instance that should receive this request's
      * response retransmit.
@@ -577,10 +575,10 @@ public class StunClientTransaction
     }
 
     /**
-     * Returns the local <tt>TransportAddress</tt> that this transaction is
+     * Returns the local TransportAddress that this transaction is
      * sending requests from.
      *
-     * @return  the local <tt>TransportAddress</tt> that this transaction is
+     * @return  the local TransportAddress that this transaction is
      * sending requests from.
      */
     public TransportAddress getLocalAddress()
@@ -589,10 +587,10 @@ public class StunClientTransaction
     }
 
     /**
-     * Returns the remote <tt>TransportAddress</tt> that this transaction is
+     * Returns the remote TransportAddress that this transaction is
      * sending requests to.
      *
-     * @return the remote <tt>TransportAddress</tt> that this transaction is
+     * @return the remote TransportAddress that this transaction is
      * sending requests to.
      */
     public TransportAddress getRemoteAddress()

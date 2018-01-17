@@ -37,7 +37,7 @@ public interface ResponseCollector
      * retransmissions of the original request (as described by rfc3489) and
      * that the request should be considered unanswered.
      *
-     * @param event the <tt>StunTimeoutEvent</tt> containing a reference to the
+     * @param event the StunTimeoutEvent containing a reference to the
      * transaction that has just failed.
      */
     public void processTimeout(StunTimeoutEvent event);

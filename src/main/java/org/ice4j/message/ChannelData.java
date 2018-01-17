@@ -126,7 +126,7 @@ public class ChannelData
      *
      * @param channelNumber the channel number to be checked for being in the
      * valid channel number range defined by the TURN RFC
-     * @return <tt>true</tt> if the specified <tt>channelNumber</tt> is in the
+     * @return true if the specified channelNumber is in the
      * valid channel number range defined by the TURN RFC
      */
     private static boolean validateChannelNumber(char channelNumber)

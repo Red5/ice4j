@@ -146,7 +146,7 @@ public class XorMappedAddressAttribute
     /**
      * Returns the result of applying XOR on this attribute's address, using the
      * specified XOR mask. The method may be used for both encoding and
-     * decoding <tt>XorMappedAddresses</tt>.
+     * decoding XorMappedAddresses.
      *
      * @param xorMask the XOR mask to use when obtaining the original address.
      *

@@ -24,8 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The <tt>CredentialsManager</tt> allows an application to handle verification
- * of incoming <tt>MessageIntegrityAttribute</tt>s by registering a
+ * The CredentialsManager allows an application to handle verification
+ * of incoming MessageIntegrityAttributes by registering a
  * {@link CredentialsAuthority} implementation. The point of this mechanism
  * is to allow use in both applications that would handle large numbers of
  * possible users (such as STUN/TURN servers) or others that would only work
@@ -45,20 +45,20 @@ public class CredentialsManager
     private final static Logger logger = LoggerFactory.getLogger(CredentialsManager.class);
 
     /**
-     * The list of <tt>CredentialsAuthority</tt>s registered with this manager
+     * The list of CredentialsAuthoritys registered with this manager
      * as being able to provide credentials.
      */
     private final CopyOnWriteArraySet<CredentialsAuthority> authorities = new CopyOnWriteArraySet<>();
 
     /**
-     * Verifies whether <tt>username</tt> is currently known to any of the
+     * Verifies whether username is currently known to any of the
      * {@link CredentialsAuthority}s registered with this manager and
-     * and returns <tt>true</tt> if so. Returns <tt>false</tt> otherwise.
+     * and returns true if so. Returns false otherwise.
      *
      * @param username the user name whose validity we'd like to check.
      *
-     * @return <tt>true</tt> if <tt>username</tt> is known to any of the
-     * <tt>CredentialsAuthority</tt>s registered here and <tt>false</tt>
+     * @return true if username is known to any of the
+     * CredentialsAuthoritys registered here and false
      * otherwise.
      */
     public boolean checkLocalUserName(String username)
@@ -74,15 +74,15 @@ public class CredentialsManager
 
     /**
      * Queries all currently registered {@link CredentialsAuthority}s for a
-     * password corresponding to the specified local <tt>username</tt> or user
-     * frag and returns the first non-<tt>null</tt> one.
+     * password corresponding to the specified local username or user
+     * frag and returns the first non-null one.
      *
      * @param username a local user name or user frag whose credentials we'd
      * like to obtain.
      *
-     * @return <tt>null</tt> if username was not a recognized local user name
-     * for none of the currently registered <tt>CredentialsAuthority</tt>s or
-     * a <tt>byte</tt> array containing the first non-<tt>null</tt> password
+     * @return null if username was not a recognized local user name
+     * for none of the currently registered CredentialsAuthoritys or
+     * a byte array containing the first non-null password
      * that one of them returned.
      */
     public byte[] getLocalKey(String username)
@@ -102,16 +102,16 @@ public class CredentialsManager
 
     /**
      * Queries all currently registered {@link CredentialsAuthority}s for a
-     * password corresponding to the specified remote <tt>username</tt> or user
-     * frag and returns the first non-<tt>null</tt> one.
+     * password corresponding to the specified remote username or user
+     * frag and returns the first non-null one.
      *
      * @param username a remote user name or user frag whose credentials we'd
      * like to obtain.
      * @param media the media name that we want to get remote key.
      *
-     * @return <tt>null</tt> if username was not a recognized remote user name
-     * for none of the currently registered <tt>CredentialsAuthority</tt>s or
-     * a <tt>byte</tt> array containing the first non-<tt>null</tt> password
+     * @return null if username was not a recognized remote user name
+     * for none of the currently registered CredentialsAuthoritys or
+     * a byte array containing the first non-null password
      * that one of them returned.
      */
     public byte[] getRemoteKey(String username, String media)
@@ -130,7 +130,7 @@ public class CredentialsManager
     }
 
     /**
-     * Adds <tt>authority</tt> to the list of {@link CredentialsAuthority}s
+     * Adds authority to the list of {@link CredentialsAuthority}s
      * registered with this manager.
      *
      * @param authority the {@link CredentialsAuthority} to add to this manager.
@@ -141,7 +141,7 @@ public class CredentialsManager
     }
 
     /**
-     * Removes <tt>authority</tt> from the list of {@link CredentialsAuthority}s
+     * Removes authority from the list of {@link CredentialsAuthority}s
      * registered with this manager.
      *
      * @param authority the {@link CredentialsAuthority} to remove from this

@@ -21,7 +21,7 @@ package org.ice4j.ice;
 /**
  * Contains the nomination strategies currently supported by this
  * implementation's {@link DefaultNominator} class. Applications can either
- * pick one of these strategies or select <tt>NONE</tt> in case they want to
+ * pick one of these strategies or select NONE in case they want to
  * handle nominations themselves.
  * <p>
  * Note that NominationStrategies are an ice4j concept and they are not
@@ -70,9 +70,9 @@ public enum NominationStrategy
     private final String strategyName;
 
     /**
-     * Creates a <tt>NominationStrategy</tt> instance with the specified name.
+     * Creates a NominationStrategy instance with the specified name.
      *
-     * @param name the name of the <tt>NominationStrategy</tt> that we'd like
+     * @param name the name of the NominationStrategy that we'd like
      * to create.
      */
     private NominationStrategy(String name)
@@ -81,9 +81,9 @@ public enum NominationStrategy
     }
 
     /**
-     * Returns the name of this <tt>NominationStrategy</tt>.
+     * Returns the name of this NominationStrategy.
      *
-     * @return the name of this <tt>NominationStrategy</tt>.
+     * @return the name of this NominationStrategy.
      */
     @Override
     public String toString()

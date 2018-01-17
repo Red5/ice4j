@@ -37,7 +37,7 @@ public class IceLite
     extends IceDistributed
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>IceLite</tt>
+     * The Logger used by the IceLite
      * class and its instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(IceLite.class

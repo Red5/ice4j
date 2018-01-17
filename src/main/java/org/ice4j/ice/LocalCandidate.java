@@ -11,6 +11,9 @@ import java.net.DatagramSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SocketChannel;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
@@ -25,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <tt>LocalCandidate</tt>s are obtained by an agent for every stream component
+ * LocalCandidates are obtained by an agent for every stream component
  * and are then included in outgoing offers or answers.
  *
  * @author Emil Ivov
@@ -46,7 +49,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     private String ufrag;
 
     /**
-     * Whether this <tt>LocalCandidate</tt> uses SSL.
+     * Whether this LocalCandidate uses SSL.
      */
     private boolean isSSL;
 
@@ -56,14 +59,14 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     private final static Logger logger = LoggerFactory.getLogger(LocalCandidate.class);
 
     /**
-     * Creates a <tt>LocalCandidate</tt> instance for the specified transport
+     * Creates a LocalCandidate instance for the specified transport
      * address and properties.
      *
      * @param transportAddress  the transport address that this candidate is
      * encapsulating.
-     * @param parentComponent the <tt>Component</tt> that this candidate
+     * @param parentComponent the Component that this candidate
      * belongs to.
-     * @param type the <tt>CandidateType</tt> for this <tt>Candidate</tt>.
+     * @param type the CandidateType for this Candidate.
      * @param extendedType The type of method used to discover this candidate
      * ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn
      * relayed", "google turn relayed", "google tcp turn relayed" or "jingle
@@ -100,86 +103,89 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     }
 
     /**
-     * Creates if necessary and returns a <tt>DatagramSocket</tt> that would
+     * Creates if necessary and returns a DatagramSocket that would
      * capture all STUN packets arriving on this candidate's socket. If the
-     * <tt>serverAddress</tt> parameter is not <tt>null</tt> this socket would
+     * serverAddress parameter is not null this socket would
      * only intercept packets originating at this address.
      *
      * @param serverAddress the address of the source we'd like to receive
-     * packets from or <tt>null</tt> if we'd like to intercept all STUN packets.
+     * packets from or null if we'd like to intercept all STUN packets.
      *
-     * @return the <tt>DatagramSocket</tt> that this candidate uses when sending
+     * @return the DatagramSocket that this candidate uses when sending
      * and receiving STUN packets, while harvesting STUN candidates or
      * performing connectivity checks.
      */
     public IceSocketWrapper getStunSocket(TransportAddress serverAddress) {
         IceSocketWrapper hostSocket = getCandidateIceSocketWrapper();
-        if (hostSocket != null && hostSocket.getTCPSocket() != null) {
-            Socket tcpSocket = hostSocket.getTCPSocket();
-            Socket tcpStunSocket = null;
-            if (tcpSocket instanceof MultiplexingSocket) {
-                DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
-                Throwable exception = null;
-                try {
-                    tcpStunSocket = ((MultiplexingSocket) tcpSocket).getSocket(stunDatagramPacketFilter);
-                } catch (SocketException sex) {
-                    logger.warn("Failed to acquire Socket specific to STUN communication", sex);
-                    exception = sex;
+        if (hostSocket != null) {
+            SelectableChannel channel = hostSocket.getChannel();
+            if (channel instanceof DatagramChannel) {
+                DatagramSocket udpSocket = ((DatagramChannel) channel).socket();
+                DatagramSocket udpStunSocket = null;
+                if (udpSocket instanceof MultiplexingDatagramSocket) {
+                    DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
+                    Throwable exception = null;
+                    try {
+                        udpStunSocket = ((MultiplexingDatagramSocket) udpSocket).getSocket(stunDatagramPacketFilter);
+                    } catch (SocketException sex) {
+                        logger.warn("Failed to acquire DatagramSocket specific to STUN communication", sex);
+                        exception = sex;
+                    }
+                    if (udpStunSocket == null) {
+                        throw new IllegalStateException("Failed to acquire DatagramSocket specific to STUN communication", exception);
+                    }
+                } else {
+                    throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingDatagramSocket instance");
                 }
-                if (tcpStunSocket == null) {
-                    throw new IllegalStateException("Failed to acquire Socket specific to STUN communication", exception);
-                }
+                return new IceUdpSocketWrapper(udpStunSocket);
             } else {
-                throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingSocket instance");
-            }
-            IceTcpSocketWrapper stunSocket = null;
-            try {
-                stunSocket = new IceTcpSocketWrapper(tcpStunSocket);
-            } catch (IOException e) {
-                logger.info("Failed to create IceTcpSocketWrapper " + e);
-            }
-            return stunSocket;
-        } else if (hostSocket != null && hostSocket.getUDPSocket() != null) {
-            DatagramSocket udpSocket = hostSocket.getUDPSocket();
-            DatagramSocket udpStunSocket = null;
-            if (udpSocket instanceof MultiplexingDatagramSocket) {
-                DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
-                Throwable exception = null;
+                Socket tcpSocket = ((SocketChannel) channel).socket();
+                Socket tcpStunSocket = null;
+                if (tcpSocket instanceof MultiplexingSocket) {
+                    DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
+                    Throwable exception = null;
+                    try {
+                        tcpStunSocket = ((MultiplexingSocket) tcpSocket).getSocket(stunDatagramPacketFilter);
+                    } catch (SocketException sex) {
+                        logger.warn("Failed to acquire Socket specific to STUN communication", sex);
+                        exception = sex;
+                    }
+                    if (tcpStunSocket == null) {
+                        throw new IllegalStateException("Failed to acquire Socket specific to STUN communication", exception);
+                    }
+                } else {
+                    throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingSocket instance");
+                }
+                IceTcpSocketWrapper stunSocket = null;
                 try {
-                    udpStunSocket = ((MultiplexingDatagramSocket) udpSocket).getSocket(stunDatagramPacketFilter);
-                } catch (SocketException sex) {
-                    logger.warn("Failed to acquire DatagramSocket specific to STUN communication", sex);
-                    exception = sex;
+                    stunSocket = new IceTcpSocketWrapper(tcpStunSocket);
+                } catch (IOException e) {
+                    logger.info("Failed to create IceTcpSocketWrapper " + e);
                 }
-                if (udpStunSocket == null) {
-                    throw new IllegalStateException("Failed to acquire DatagramSocket specific to STUN communication", exception);
-                }
-            } else {
-                throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingDatagramSocket instance");
+                return stunSocket;
             }
-            return new IceUdpSocketWrapper(udpStunSocket);
         }
         return null;
     }
 
     /**
-     * Gets the <tt>StunStack</tt> associated with this <tt>Candidate</tt>.
+     * Gets the StunStack associated with this Candidate.
      *
-     * @return the <tt>StunStack</tt> associated with this <tt>Candidate</tt>
+     * @return the StunStack associated with this Candidate
      */
     public StunStack getStunStack() {
         return getParentComponent().getParentStream().getParentAgent().getStunStack();
     }
 
     /**
-     * Creates a new <tt>StunDatagramPacketFilter</tt> which is to capture STUN
-     * messages and make them available to the <tt>DatagramSocket</tt> returned
+     * Creates a new StunDatagramPacketFilter which is to capture STUN
+     * messages and make them available to the DatagramSocket returned
      * by {@link #getStunSocket(TransportAddress)}.
      *
      * @param serverAddress the address of the source we'd like to receive
-     * packets from or <tt>null</tt> if we'd like to intercept all STUN packets
-     * @return the <tt>StunDatagramPacketFilter</tt> which is to capture STUN
-     * messages and make them available to the <tt>DatagramSocket</tt> returned
+     * packets from or null if we'd like to intercept all STUN packets
+     * @return the StunDatagramPacketFilter which is to capture STUN
+     * messages and make them available to the DatagramSocket returned
      * by {@link #getStunSocket(TransportAddress)}
      */
     protected StunDatagramPacketFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
@@ -188,9 +194,9 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
 
     /**
      * Frees resources allocated by this candidate such as its
-     * <tt>DatagramSocket</tt>, for example. The <tt>socket</tt> of this
-     * <tt>LocalCandidate</tt> is closed only if it is not the <tt>socket</tt>
-     * of the <tt>base</tt> of this <tt>LocalCandidate</tt>.
+     * DatagramSocket, for example. The socket of this
+     * LocalCandidate is closed only if it is not the socket
+     * of the base of this LocalCandidate.
      */
     protected void free() {
         // Close the socket associated with this LocalCandidate.
@@ -207,11 +213,11 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     }
 
     /**
-     * Determines whether this <tt>Candidate</tt> is the default one for its
+     * Determines whether this Candidate is the default one for its
      * parent component.
      *
-     * @return <tt>true</tt> if this <tt>Candidate</tt> is the default for its
-     * parent component and <tt>false</tt> if it isn't or if it has no parent
+     * @return true if this Candidate is the default for its
+     * parent component and false if it isn't or if it has no parent
      * Component yet.
      */
     @Override

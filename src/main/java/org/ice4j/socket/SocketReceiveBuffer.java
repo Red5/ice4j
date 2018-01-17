@@ -21,10 +21,10 @@ import java.net.*;
 import java.util.*;
 
 /**
- * Implements a list of <tt>DatagramPacket</tt>s received by a
- * <tt>DatagramSocket</tt> or a <tt>Socket</tt>. The list enforces the
- * <tt>SO_RCVBUF</tt> option for the associated <tt>DatagramSocket</tt> or
- * <tt>Socket</tt>.
+ * Implements a list of DatagramPackets received by a
+ * DatagramSocket or a Socket. The list enforces the
+ * SO_RCVBUF option for the associated DatagramSocket or
+ * Socket.
  *
  * @author Lyubomir Marinov
  */
@@ -36,8 +36,8 @@ abstract class SocketReceiveBuffer
     private static final long serialVersionUID = 2804762379509257652L;
 
     /**
-     * The value of the <tt>SO_RCVBUF</tt> option for the associated
-     * <tt>DatagramSocket</tt> or <tt>Socket</tt>. Cached for the sake of
+     * The value of the SO_RCVBUF option for the associated
+     * DatagramSocket or Socket. Cached for the sake of
      * performance.
      */
     private int receiveBufferSize;
@@ -112,13 +112,13 @@ abstract class SocketReceiveBuffer
     }
 
     /**
-     * Gets the value of the <tt>SO_RCVBUF</tt> option for the associated
-     * <tt>DatagramSocket</tt> or <tt>Socket</tt> which is the buffer size used
-     * by the platform for input on the <tt>DatagramSocket</tt> or
-     * <tt>Socket</tt>.
+     * Gets the value of the SO_RCVBUF option for the associated
+     * DatagramSocket or Socket which is the buffer size used
+     * by the platform for input on the DatagramSocket or
+     * Socket.
      *
-     * @return the value of the <tt>SO_RCVBUF</tt> option for the associated
-     * <tt>DatagramSocket</tt> or <tt>Socket</tt>
+     * @return the value of the SO_RCVBUF option for the associated
+     * DatagramSocket or Socket
      * @throws SocketException if there is an error in the underlying protocol
      */
     public abstract int getReceiveBufferSize()

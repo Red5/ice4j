@@ -37,14 +37,14 @@ public abstract class IceControlAttribute
     long tieBreaker;
 
     /**
-     * Indicates whether this is an <tt>ICE-CONTROLLING</tt> or an
-     * <tt>ICE-CONTROLLED</tt> attribute.
+     * Indicates whether this is an ICE-CONTROLLING or an
+     * ICE-CONTROLLED attribute.
      */
     boolean isControlling;
 
     /**
      * Constructs an ICE-CONTROLLING or an ICE-CONTROLLED attribute depending
-     * on the value of <tt>isControlling</tt>.
+     * on the value of isControlling.
      *
      * @param isControlling indicates the kind of attribute we are trying to
      * create

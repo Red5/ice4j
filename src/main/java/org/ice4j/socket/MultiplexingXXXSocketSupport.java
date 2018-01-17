@@ -37,32 +37,32 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     private static final Logger logger = Logger.getLogger(MultiplexingXXXSocketSupport.class.getName());
 
     /**
-     * Initializes a new <tt>DatagramPacket</tt> instance which is a clone of a
-     * specific <tt>DatagramPacket</tt> i.e. the properties of the clone
-     * <tt>DatagramPacket</tt> are clones of the specified
-     * <tt>DatagramPacket</tt>.
+     * Initializes a new DatagramPacket instance which is a clone of a
+     * specific DatagramPacket i.e. the properties of the clone
+     * DatagramPacket are clones of the specified
+     * DatagramPacket.
      *
-     * @param p the <tt>DatagramPacket</tt> to clone
-     * @return a new <tt>DatagramPacket</tt> instance which is a clone of the
-     * specified <tt>DatagramPacket</tt>
+     * @param p the DatagramPacket to clone
+     * @return a new DatagramPacket instance which is a clone of the
+     * specified DatagramPacket
      */
     public static DatagramPacket clone(DatagramPacket p) {
         return clone(p, /* arraycopy */true);
     }
 
     /**
-     * Initializes a new <tt>DatagramPacket</tt> instance which is a clone of a
-     * specific <tt>DatagramPacket</tt> i.e. the properties of the clone
-     * <tt>DatagramPacket</tt> are clones of the specified
-     * <tt>DatagramPacket</tt>.
+     * Initializes a new DatagramPacket instance which is a clone of a
+     * specific DatagramPacket i.e. the properties of the clone
+     * DatagramPacket are clones of the specified
+     * DatagramPacket.
      *
-     * @param p the <tt>DatagramPacket</tt> to clone
-     * @param arraycopy <tt>true</tt> if the actual bytes of the data of
-     * <tt>p</tt> are to be copied into the clone or <tt>false</tt> if only the
-     * capacity of the data of <tt>p</tt> is to be cloned without copying the
-     * actual bytes of the data of <tt>p</tt>
-     * @return a new <tt>DatagramPacket</tt> instance which is a clone of the
-     * specified <tt>DatagramPacket</tt>
+     * @param p the DatagramPacket to clone
+     * @param arraycopy true if the actual bytes of the data of
+     * p are to be copied into the clone or false if only the
+     * capacity of the data of p is to be cloned without copying the
+     * actual bytes of the data of p
+     * @return a new DatagramPacket instance which is a clone of the
+     * specified DatagramPacket
      */
     private static DatagramPacket clone(DatagramPacket p, boolean arraycopy) {
         byte[] data;
@@ -116,13 +116,13 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     }
 
     /**
-     * Copies the properties of a specific <tt>DatagramPacket</tt> to another
-     * <tt>DatagramPacket</tt>. The property values are not cloned.
+     * Copies the properties of a specific DatagramPacket to another
+     * DatagramPacket. The property values are not cloned.
      *
-     * @param src the <tt>DatagramPacket</tt> which is to have its properties
-     * copied to <tt>dest</tt>
-     * @param dest the <tt>DatagramPacket</tt> which is to have its properties
-     * set to the value of the respective properties of <tt>src</tt>
+     * @param src the DatagramPacket which is to have its properties
+     * copied to dest
+     * @param dest the DatagramPacket which is to have its properties
+     * set to the value of the respective properties of src
      */
     public static void copy(DatagramPacket src, DatagramPacket dest) {
         synchronized (dest) {
@@ -156,9 +156,9 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     }
 
     /**
-     * The indicator which determines whether this <tt>DatagramSocket</tt> is
+     * The indicator which determines whether this DatagramSocket is
      * currently reading from the network using
-     * {@link DatagramSocket#receive(DatagramPacket)}. When <tt>true</tt>,
+     * {@link DatagramSocket#receive(DatagramPacket)}. When true,
      * subsequent requests to read from the network will be blocked until the
      * current read is finished.
      */
@@ -166,12 +166,12 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
 
     /**
      * The value with which {@link DatagramSocket#setReceiveBufferSize(int)} is
-     * to be invoked if {@link #setReceiveBufferSize} is <tt>true</tt>. 
+     * to be invoked if {@link #setReceiveBufferSize} is true. 
      */
     private int receiveBufferSize;
 
     /**
-     * The <tt>Object</tt> which synchronizes the access to {@link #inReceive}.
+     * The Object which synchronizes the access to {@link #inReceive}.
      */
     private final Object receiveSyncRoot = new Object();
 
@@ -233,10 +233,10 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     }
 
     /**
-     * Closes a specific <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt>.
+     * Closes a specific MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket.
      *
-     * @param multiplexed the <tt>MultiplexedDatagramSocket</tt> to close
+     * @param multiplexed the MultiplexedDatagramSocket to close
      */
     void close(MultiplexedXXXSocketT multiplexed) {
         synchronized (sockets) {
@@ -316,19 +316,19 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     protected abstract List<DatagramPacket> getReceived(MultiplexedXXXSocketT socket);
 
     /**
-     * Gets a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using a
-     * specific <tt>DatagramPacketFilter</tt>. If such a
-     * <tt>MultiplexedDatagramSocket</tt> does not exist in this instance, it is
+     * Gets a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using a
+     * specific DatagramPacketFilter. If such a
+     * MultiplexedDatagramSocket does not exist in this instance, it is
      * created.
      *
-     * @param filter the <tt>DatagramPacketFilter</tt> to get a
-     * <tt>MultiplexedDatagramSocket</tt> for
-     * @return a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using the
-     * specified <tt>filter</tt>
+     * @param filter the DatagramPacketFilter to get a
+     * MultiplexedDatagramSocket for
+     * @return a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using the
+     * specified filter
      * @throws SocketException if creating the
-     * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
+     * MultiplexedDatagramSocket for the specified filter
      * fails
      */
     public MultiplexedXXXSocketT getSocket(DatagramPacketFilter filter) throws SocketException {
@@ -336,22 +336,22 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     }
 
     /**
-     * Gets a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using a
-     * specific <tt>DatagramPacketFilter</tt>. If <tt>create</tt> is true and
-     * such a <tt>MultiplexedDatagramSocket</tt> does not exist in this
+     * Gets a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using a
+     * specific DatagramPacketFilter. If create is true and
+     * such a MultiplexedDatagramSocket does not exist in this
      * instance, it is created.
      *
-     * @param filter the <tt>DatagramPacketFilter</tt> to get a
-     * <tt>MultiplexedDatagramSocket</tt> for
+     * @param filter the DatagramPacketFilter to get a
+     * MultiplexedDatagramSocket for
      * @param create whether or not to create a
-     * <tt>MultiplexedDatagramSocket</tt> if this instance does not already have
-     * a socket for the given <tt>filter</tt>.
-     * @return a <tt>MultiplexedDatagramSocket</tt> which filters
-     * <tt>DatagramPacket</tt>s away from this <tt>DatagramSocket</tt> using the
-     * specified <tt>filter</tt>
+     * MultiplexedDatagramSocket if this instance does not already have
+     * a socket for the given filter.
+     * @return a MultiplexedDatagramSocket which filters
+     * DatagramPackets away from this DatagramSocket using the
+     * specified filter
      * @throws SocketException if creating the
-     * <tt>MultiplexedDatagramSocket</tt> for the specified <tt>filter</tt>
+     * MultiplexedDatagramSocket for the specified filter
      * fails.
      */
     public MultiplexedXXXSocketT getSocket(DatagramPacketFilter filter, boolean create) throws SocketException {
@@ -449,22 +449,22 @@ abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends Multip
     }
 
     /**
-     * Receives a <tt>DatagramPacket</tt> from a specific list of
-     * <tt>DatagramPacket</tt>s if it is not empty or from the network if the
+     * Receives a DatagramPacket from a specific list of
+     * DatagramPackets if it is not empty or from the network if the
      * specified list is empty. When this method returns, the
-     * <tt>DatagramPacket</tt>'s buffer is filled with the data received. The
+     * DatagramPacket's buffer is filled with the data received. The
      * datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      *
-     * @param received the list of previously received <tt>DatagramPacket</tt>
+     * @param received the list of previously received DatagramPacket
      * from which the first is to be removed and returned if available
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @param timeout the maximum time in milliseconds to wait for a
      * packet. A timeout of zero is interpreted as an infinite
      * timeout
      * @throws IOException if an I/O error occurs
-     * @throws SocketTimeoutException if <tt>timeout</tt> is positive and has
+     * @throws SocketTimeoutException if timeout is positive and has
      * expired
      */
     void receive(List<DatagramPacket> received, DatagramPacket p, int timeout) throws IOException {

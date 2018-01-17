@@ -40,7 +40,7 @@ public class ChannelDataMessageEvent
     private static final long serialVersionUID = 1L;
 
     /**
-     * The <tt>StunStack</tt> associated with this instance.
+     * The StunStack associated with this instance.
      */
     private final StunStack stunStack;
 
@@ -55,21 +55,21 @@ public class ChannelDataMessageEvent
     private final TransportAddress localAddress;
     
     /**
-     * The ChannelData <tt>Message</tt> associated with this event.
+     * The ChannelData Message associated with this event.
      */
     private final ChannelData channelDataMessage;
 
     /**
-     * Initializes a new <tt>ChannelDataMessageEvent</tt> associated with a
-     * specific ChannelData <tt>Message</tt>.
+     * Initializes a new ChannelDataMessageEvent associated with a
+     * specific ChannelData Message.
      * 
-     * @param stunStack the <tt>StunStack</tt> to be associated with the new
+     * @param stunStack the StunStack to be associated with the new
      *            instance.
-     * @param remoteAddress the <tt>TransportAddress</tt> which is to be
+     * @param remoteAddress the TransportAddress which is to be
      *            reported as the source of the new event.
-     * @param localAddress the <tt>TransportAddress</tt> which is to be reported
+     * @param localAddress the TransportAddress which is to be reported
      *            as the receiving location of the new event.
-     * @param channelDataMessage the ChannelData <tt>Message</tt> associated
+     * @param channelDataMessage the ChannelData Message associated
      *            with the new event.
      */
     public ChannelDataMessageEvent(StunStack stunStack,
@@ -86,9 +86,9 @@ public class ChannelDataMessageEvent
     }
 
     /**
-     * Gets the ChannelData <tt>Message</tt> associated with this event.
+     * Gets the ChannelData Message associated with this event.
      * 
-     * @return the ChannelData <tt>Message</tt> associated with this event
+     * @return the ChannelData Message associated with this event
      */
     public ChannelData getChannelDataMessage()
     {
@@ -96,10 +96,10 @@ public class ChannelDataMessageEvent
     }
 
     /**
-     * Gets the <tt>TransportAddress</tt> which is the remote address of this
+     * Gets the TransportAddress which is the remote address of this
      * event.
      * 
-     * @return the <tt>TransportAddress</tt> which is the address who caused
+     * @return the TransportAddress which is the address who caused
      *         this event
      */
     public TransportAddress getRemoteAddress()
@@ -108,10 +108,10 @@ public class ChannelDataMessageEvent
     }
 
     /**
-     * Gets the <tt>TransportAddress</tt> which is local address on which this
+     * Gets the TransportAddress which is local address on which this
      * event was received.
      * 
-     * @return the <tt>TransportAddress</tt> which is local address on which
+     * @return the TransportAddress which is local address on which
      *         this event was received.
      */
     public TransportAddress getLocalAddress()
@@ -120,9 +120,9 @@ public class ChannelDataMessageEvent
     }
 
     /**
-     * Gets the <tt>StunStack</tt> associated with this instance.
+     * Gets the StunStack associated with this instance.
      * 
-     * @return the <tt>StunStack</tt> associated with this instance
+     * @return the StunStack associated with this instance
      */
     public StunStack getStunStack()
     {

@@ -17,45 +17,45 @@ import java.util.logging.Logger;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * Represents a <tt>Socket</tt> which receives <tt>DatagramPacket</tt>s
- * selected by a <tt>DatagramPacketFilter</tt> from a
- * <tt>MultiplexingSocket</tt>. The associated <tt>MultiplexingSocket</tt> is
- * the actual <tt>Socket</tt> which reads the <tt>DatagramPacket</tt>s from the
- * network. The <tt>DatagramPacket</tt>s received through the
- * <tt>MultiplexedSocket</tt> will not be received through the
- * associated <tt>MultiplexingSocket</tt>.
+ * Represents a Socket which receives DatagramPackets
+ * selected by a DatagramPacketFilter from a
+ * MultiplexingSocket. The associated MultiplexingSocket is
+ * the actual Socket which reads the DatagramPackets from the
+ * network. The DatagramPackets received through the
+ * MultiplexedSocket will not be received through the
+ * associated MultiplexingSocket.
  *
  * @author Sebastien Vincent
  */
 public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXXXSocket {
     /**
-     * The <tt>Logger</tt> used by the <tt>MultiplexedSocket</tt> class and its
+     * The Logger used by the MultiplexedSocket class and its
      * instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(MultiplexedSocket.class.getName());
 
     /**
-     * The <tt>DatagramPacketFilter</tt> which determines which
-     * <tt>DatagramPacket</tt>s read from the network by {@link #multiplexing}
+     * The DatagramPacketFilter which determines which
+     * DatagramPackets read from the network by {@link #multiplexing}
      * are to be received through this instance.
      */
     private final DatagramPacketFilter filter;
 
     /**
-     * The custom <tt>InputStream</tt> for this <tt>MultiplexedSocket</tt>.
+     * The custom InputStream for this MultiplexedSocket.
      */
     private final InputStream inputStream = new InputStreamImpl();
 
     /**
-     * The <tt>MultiplexingSocket</tt> which does the actual reading from the
-     * network and which forwards <tt>DatagramPacket</tt>s accepted by
+     * The MultiplexingSocket which does the actual reading from the
+     * network and which forwards DatagramPackets accepted by
      * {@link #filter} for receipt to this instance.
      */
     private final MultiplexingSocket multiplexing;
 
     /**
-     * The list of <tt>DatagramPacket</tt>s to be received through this
-     * <tt>Socket</tt> i.e. accepted by {@link #filter}.
+     * The list of DatagramPackets to be received through this
+     * Socket i.e. accepted by {@link #filter}.
      */
     final List<DatagramPacket> received = new SocketReceiveBuffer() {
         private static final long serialVersionUID = 678744096057601141L;
@@ -67,16 +67,16 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
     };
 
     /**
-     * Initializes a new <tt>MultiplexedSocket</tt> which is unbound and filters
-     * <tt>DatagramPacket</tt>s away from a specific <tt>MultiplexingSocket</tt>
-     * using a specific <tt>DatagramPacketFilter</tt>.
+     * Initializes a new MultiplexedSocket which is unbound and filters
+     * DatagramPackets away from a specific MultiplexingSocket
+     * using a specific DatagramPacketFilter.
      *
-     * @param multiplexing the <tt>MultiplexingSocket</tt> which does the actual
-     * reading from the network and which forwards <tt>DatagramPacket</tt>s
-     * accepted by the specified <tt>filter</tt> to the new instance
-     * @param filter the <tt>DatagramPacketFilter</tt> which determines which
-     * <tt>DatagramPacket</tt>s read from the network by the specified
-     * <tt>multiplexing</tt> are to be received through the new instance
+     * @param multiplexing the MultiplexingSocket which does the actual
+     * reading from the network and which forwards DatagramPackets
+     * accepted by the specified filter to the new instance
+     * @param filter the DatagramPacketFilter which determines which
+     * DatagramPackets read from the network by the specified
+     * multiplexing are to be received through the new instance
      * @throws SocketException if the socket could not be opened
      */
     MultiplexedSocket(MultiplexingSocket multiplexing, DatagramPacketFilter filter) throws SocketException {
@@ -125,17 +125,17 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
 
     /**
      * Receives a datagram packet from this socket. When this method returns,
-     * the <tt>DatagramPacket</tt>'s buffer is filled with the data received.
+     * the DatagramPacket's buffer is filled with the data received.
      * The datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      * <p>
-     * This method blocks until a datagram is received. The <tt>length</tt>
+     * This method blocks until a datagram is received. The length
      * field of the datagram packet object contains the length of the received
      * message. If the message is longer than the packet's length, the message
      * is truncated.
      * </p>
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
      * @see MultiplexingSocket#receive(DatagramPacket)
@@ -146,7 +146,7 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
     }
 
     /**
-     * Implements an <tt>InputStream</tt> for this <tt>MultiplexedSocket</tt>,
+     * Implements an InputStream for this MultiplexedSocket,
      * reading data using {@link #receive(java.net.DatagramPacket)}.
      */
     private class InputStreamImpl extends InputStream {
@@ -156,12 +156,12 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
         private final byte[] buf = new byte[1500];
 
         /**
-         * A <tt>DatagramPacket</tt> instance to receive data into.
+         * A DatagramPacket instance to receive data into.
          */
         private final DatagramPacket packet = new DatagramPacket(buf, 1500);
 
         /**
-         * Initializes a new <tt>TCPInputStream</tt>.
+         * Initializes a new TCPInputStream.
          */
         public InputStreamImpl() {
         }

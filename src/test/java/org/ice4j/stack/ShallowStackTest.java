@@ -41,12 +41,12 @@ import org.slf4j.LoggerFactory;
  */
 public class ShallowStackTest extends TestCase {
     /**
-     * The <tt>Logger</tt> used by the <tt>ShallowStackTest<tt> class and its instances for logging output.
+     * The Logger used by the ShallowStackTest class and its instances for logging output.
      */
     private static final Logger logger = LoggerFactory.getLogger(ShallowStackTest.class);
 
     /**
-     * The <tt>StunStack</tt> used by this <tt>ShallowStackTest</tt>
+     * The StunStack used by this ShallowStackTest
      */
     private StunStack stunStack;
 
@@ -420,17 +420,17 @@ public class ShallowStackTest extends TestCase {
     public static class SimpleResponseCollector extends AbstractResponseCollector {
 
         /**
-         * The response that we've just collected or <tt>null</tt> if none
+         * The response that we've just collected or null if none
          * arrived while we were waiting.
          */
         Response collectedResponse = null;
 
         /**
-         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+         * Notifies this ResponseCollector that a transaction described by
+         * the specified BaseStunMessageEvent has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+         * @param event the BaseStunMessageEvent which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
@@ -450,8 +450,8 @@ public class ShallowStackTest extends TestCase {
         /**
          * Logs the received response and notifies the wait method.
          *
-         * @param response a <tt>StunMessageEvent</tt> which describes the
-         * received STUN <tt>Response</tt>
+         * @param response a StunMessageEvent which describes the
+         * received STUN Response
          */
         public synchronized void processResponse(StunResponseEvent response) {
             collectedResponse = (Response) response.getMessage();
@@ -477,15 +477,15 @@ public class ShallowStackTest extends TestCase {
      */
     public class SimpleRequestCollector implements RequestListener {
         /**
-         * The one request that this collector has received or <tt>null</tt> if
+         * The one request that this collector has received or null if
          * none arrived while we were waiting.
          */
         private Request collectedRequest = null;
 
         /**
-         * Indicates that a <tt>StunRequest</tt> has just been received.
+         * Indicates that a StunRequest has just been received.
          *
-         * @param evt the <tt>StunMessageEvent</tt> containing the details of
+         * @param evt the StunMessageEvent containing the details of
          * the newly received request.
          */
         public void processRequest(StunMessageEvent evt) {

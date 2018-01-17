@@ -9,7 +9,6 @@ package test;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -25,6 +24,8 @@ import org.ice4j.ice.harvest.CandidateHarvester;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Simple ice4j testing scenario. The sample application would create and start
@@ -35,13 +36,13 @@ import org.ice4j.security.LongTermCredential;
  */
 public class Ice {
     /**
-     * The <tt>Logger</tt> used by the <tt>Ice</tt>
+     * The Logger used by the Ice
      * class and its instances for logging output.
      */
-    private static final Logger logger = Logger.getLogger(Ice.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Ice.class);
 
     /**
-     * The indicator which determines whether the <tt>Ice</tt> application (i.e.
+     * The indicator which determines whether the Ice application (i.e.
      * the run-sample Ant target) is to start connectivity establishment of the
      * remote peer (in addition to the connectivity establishment of the local
      * agent which is always started, of course).
@@ -124,20 +125,17 @@ public class Ice {
 
             Object iceProcessingState = evt.getNewValue();
 
-            logger.info("Agent entered the " + iceProcessingState + " state.");
+            logger.info("Agent entered the {} state.", iceProcessingState);
             if (iceProcessingState == IceProcessingState.COMPLETED) {
-                logger.info("Total ICE processing time: " + (processingEndTime - startTime) + "ms");
+                logger.info("Total ICE processing time: {}ms", (processingEndTime - startTime));
                 Agent agent = (Agent) evt.getSource();
                 List<IceMediaStream> streams = agent.getStreams();
-
                 for (IceMediaStream stream : streams) {
                     String streamName = stream.getName();
-                    logger.info("Pairs selected for stream: " + streamName);
+                    logger.info("Pairs selected for stream: ", streamName);
                     List<Component> components = stream.getComponents();
-
                     for (Component cmp : components) {
-                        String cmpName = cmp.getName();
-                        logger.info(cmpName + ": " + cmp.getSelectedPair());
+                        logger.info(cmp.getComponentID() + ": " + cmp.getSelectedPair());
                     }
                 }
 
@@ -163,7 +161,7 @@ public class Ice {
     }
 
     /**
-     * Installs remote candidates in <tt>localAgent</tt>..
+     * Installs remote candidates in localAgent..
      *
      * @param localAgent a reference to the agent that we will pretend to be the
      * local
@@ -186,7 +184,7 @@ public class Ice {
     }
 
     /**
-     * Installs remote candidates in <tt>localStream</tt>..
+     * Installs remote candidates in localStream..
      *
      * @param localStream the stream where we will be adding remote candidates
      * to.
@@ -209,11 +207,11 @@ public class Ice {
     }
 
     /**
-     * Adds to <tt>localComponent</tt> a list of remote candidates that are
-     * actually the local candidates from <tt>remoteComponent</tt>.
+     * Adds to localComponent a list of remote candidates that are
+     * actually the local candidates from remoteComponent.
      *
-     * @param localComponent the <tt>Component</tt> where that we should be
-     * adding <tt>remoteCandidate</tt>s to.
+     * @param localComponent the Component where that we should be
+     * adding remoteCandidates to.
      * @param remoteComponent the source of remote candidates.
      */
     private static void transferRemoteCandidates(Component localComponent, Component remoteComponent) {
@@ -227,12 +225,12 @@ public class Ice {
     }
 
     /**
-     * Creates a vanilla ICE <tt>Agent</tt> and adds to it an audio and a video
+     * Creates a vanilla ICE Agent and adds to it an audio and a video
      * stream with RTP and RTCP components.
      *
      * @param rtpPort the port that we should try to bind the RTP component on
      * (the RTCP one would automatically go to rtpPort + 1)
-     * @return an ICE <tt>Agent</tt> with an audio stream with RTP and RTCP
+     * @return an ICE Agent with an audio stream with RTP and RTCP
      * components.
      *
      * @throws Throwable if anything goes wrong.
@@ -242,13 +240,13 @@ public class Ice {
     }
 
     /**
-     * Creates an ICE <tt>Agent</tt> (vanilla or trickle, depending on the
-     * value of <tt>isTrickling</tt>) and adds to it an audio and a video stream
+     * Creates an ICE Agent (vanilla or trickle, depending on the
+     * value of isTrickling) and adds to it an audio and a video stream
      * with RTP and RTCP components.
      *
      * @param rtpPort the port that we should try to bind the RTP component on
      * (the RTCP one would automatically go to rtpPort + 1)
-     * @return an ICE <tt>Agent</tt> with an audio stream with RTP and RTCP
+     * @return an ICE Agent with an audio stream with RTP and RTCP
      * components.
      * @param isTrickling indicates whether the newly created agent should be
      * performing trickle ICE.
@@ -260,18 +258,18 @@ public class Ice {
     }
 
     /**
-     * Creates an ICE <tt>Agent</tt> (vanilla or trickle, depending on the
-     * value of <tt>isTrickling</tt>) and adds to it an audio and a video stream
+     * Creates an ICE Agent (vanilla or trickle, depending on the
+     * value of isTrickling) and adds to it an audio and a video stream
      * with RTP and RTCP components.
      *
      * @param rtpPort the port that we should try to bind the RTP component on
      * (the RTCP one would automatically go to rtpPort + 1)
-     * @return an ICE <tt>Agent</tt> with an audio stream with RTP and RTCP
+     * @return an ICE Agent with an audio stream with RTP and RTCP
      * components.
      * @param isTrickling indicates whether the newly created agent should be
      * performing trickle ICE.
      * @param harvesters the list of {@link CandidateHarvester}s that the new
-     * agent should use or <tt>null</tt> if it should include the default ones.
+     * agent should use or null if it should include the default ones.
      *
      * @throws Throwable if anything goes wrong.
      */
@@ -314,15 +312,15 @@ public class Ice {
     }
 
     /**
-     * Creates an <tt>IceMediaStream</tt> and adds to it an RTP and and RTCP
+     * Creates an IceMediaStream and adds to it an RTP and and RTCP
      * component.
      *
      * @param rtpPort the port that we should try to bind the RTP component on
      * (the RTCP one would automatically go to rtpPort + 1)
      * @param streamName the name of the stream to create
-     * @param agent the <tt>Agent</tt> that should create the stream.
+     * @param agent the Agent that should create the stream.
      *
-     * @return the newly created <tt>IceMediaStream</tt>.
+     * @return the newly created IceMediaStream.
      * @throws Throwable if anything goes wrong.
      */
     private static IceMediaStream createStream(int rtpPort, String streamName, Agent agent) throws Throwable {

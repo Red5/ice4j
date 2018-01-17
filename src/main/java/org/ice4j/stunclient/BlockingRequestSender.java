@@ -51,7 +51,7 @@ public class BlockingRequestSender extends AbstractResponseCollector {
     private final TransportAddress localAddress;
 
     /**
-     * The <tt>StunMessageEvent</tt> that contains the response matching our
+     * The StunMessageEvent that contains the response matching our
      * request.
      */
     private StunMessageEvent responseEvent = null;
@@ -70,7 +70,7 @@ public class BlockingRequestSender extends AbstractResponseCollector {
      * Creates a new request sender.
      * @param stunStack the stack that the sender should send requests
      * through.
-     * @param localAddress the <tt>TransportAddress</tt> that requests should be
+     * @param localAddress the TransportAddress that requests should be
      * leaving from.
      */
     public BlockingRequestSender(StunStack stunStack, TransportAddress localAddress) {
@@ -89,12 +89,12 @@ public class BlockingRequestSender extends AbstractResponseCollector {
     }
 
     /**
-     * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-     * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+     * Notifies this ResponseCollector that a transaction described by
+     * the specified BaseStunMessageEvent has failed. The possible
      * reasons for the failure include timeouts, unreachable destination, etc.
      * Notifies the discoverer so that it may resume.
      *
-     * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+     * @param event the BaseStunMessageEvent which describes the failed
      * transaction and the runtime type of which specifies the failure reason
      * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
      */

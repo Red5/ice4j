@@ -27,9 +27,9 @@ import org.ice4j.socket.*;
 import org.ice4j.stack.*;
 
 /**
- * Represents the harvesting of Google TURN <tt>Candidates</tt> for a specific
- * <tt>HostCandidate</tt> performed by a specific
- * <tt>GoogleTurnCandidateHarvester</tt>.
+ * Represents the harvesting of Google TURN Candidates for a specific
+ * HostCandidate performed by a specific
+ * GoogleTurnCandidateHarvester.
  *
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
@@ -38,14 +38,14 @@ public class GoogleTurnCandidateHarvest
     extends StunCandidateHarvest
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>TurnCandidateHarvest</tt> class and
+     * The Logger used by the TurnCandidateHarvest class and
      * its instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(GoogleTurnCandidateHarvest.class.getName());
 
     /**
-     * The <tt>Request</tt> created by the last call to
+     * The Request created by the last call to
      * {@link #createRequestToStartResolvingCandidate()}.
      */
     private Request requestToStartResolvingCandidate;
@@ -56,15 +56,15 @@ public class GoogleTurnCandidateHarvest
     private String password;
 
     /**
-     * Initializes a new <tt>TurnCandidateHarvest</tt> which is to represent the
-     * harvesting of TURN <tt>Candidate</tt>s for a specific
-     * <tt>HostCandidate</tt> performed by a specific
-     * <tt>TurnCandidateHarvester</tt>.
+     * Initializes a new TurnCandidateHarvest which is to represent the
+     * harvesting of TURN Candidates for a specific
+     * HostCandidate performed by a specific
+     * TurnCandidateHarvester.
      *
-     * @param harvester the <tt>TurnCandidateHarvester</tt> which is performing
+     * @param harvester the TurnCandidateHarvester which is performing
      * the TURN harvesting
-     * @param hostCandidate the <tt>HostCandidate</tt> for which TURN
-     * <tt>Candidate</tt>s are to be harvested
+     * @param hostCandidate the HostCandidate for which TURN
+     * Candidates are to be harvested
      * @param password The gingle candidates password necessary to use this TURN
      * server.
      */
@@ -78,10 +78,10 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Creates new <tt>Candidate</tt>s determined by a specific STUN
-     * <tt>Response</tt>.
+     * Creates new Candidates determined by a specific STUN
+     * Response.
      *
-     * @param response the received STUN <tt>Response</tt>
+     * @param response the received STUN Response
      * @see StunCandidateHarvest#createCandidates(Response)
      */
     @Override
@@ -91,13 +91,13 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Creates a <tt>RelayedCandidate</tt> using the
-     * <tt>XOR-RELAYED-ADDRESS</tt> attribute in a specific STUN
-     * <tt>Response</tt> for the actual <tt>TransportAddress</tt> of the new
+     * Creates a RelayedCandidate using the
+     * XOR-RELAYED-ADDRESS attribute in a specific STUN
+     * Response for the actual TransportAddress of the new
      * candidate. If the message is malformed and/or does not contain the
      * corresponding attribute, this method simply has no effect.
      *
-     * @param response the STUN <tt>Response</tt> which is supposed to contain
+     * @param response the STUN Response which is supposed to contain
      * the address we should use for the new candidate
      */
     private void createRelayedCandidate(Response response)
@@ -147,18 +147,18 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Creates a new <tt>RelayedCandidate</tt> instance which is to represent a
-     * specific <tt>TransportAddress</tt> harvested through
+     * Creates a new RelayedCandidate instance which is to represent a
+     * specific TransportAddress harvested through
      * {@link #hostCandidate} and the TURN server associated with
      * {@link #harvester}.
      *
-     * @param transportAddress the <tt>TransportAddress</tt> to be represented
-     * by the new <tt>RelayedCandidate</tt> instance
-     * @param mappedAddress the mapped <tt>TransportAddress</tt> reported by the
-     * TURN server with the delivery of the relayed <tt>transportAddress</tt> to
-     * be represented by the new <tt>RelayedCandidate</tt> instance
-     * @return a new <tt>RelayedCandidate</tt> instance which represents the
-     * specified <tt>TransportAddress</tt> harvested through
+     * @param transportAddress the TransportAddress to be represented
+     * by the new RelayedCandidate instance
+     * @param mappedAddress the mapped TransportAddress reported by the
+     * TURN server with the delivery of the relayed transportAddress to
+     * be represented by the new RelayedCandidate instance
+     * @return a new RelayedCandidate instance which represents the
+     * specified TransportAddress harvested through
      * {@link #hostCandidate} and the TURN server associated with
      * {@link #harvester}
      */
@@ -179,11 +179,11 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Creates a new <tt>Request</tt> which is to be sent to
+     * Creates a new Request which is to be sent to
      * {@link TurnCandidateHarvester#stunServer} in order to start resolving
      * {@link #hostCandidate}.
      *
-     * @return a new <tt>Request</tt> which is to be sent to
+     * @return a new Request which is to be sent to
      * {@link TurnCandidateHarvester#stunServer} in order to start resolving
      * {@link #hostCandidate}
      * @see StunCandidateHarvest#createRequestToStartResolvingCandidate()
@@ -204,18 +204,18 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Adds the <tt>Attribute</tt>s to a specific <tt>Request</tt> which support
+     * Adds the Attributes to a specific Request which support
      * the STUN short-term credential mechanism if the mechanism in question is
-     * utilized by this <tt>StunCandidateHarvest</tt> (i.e. by the associated
-     * <tt>StunCandidateHarvester</tt>).
+     * utilized by this StunCandidateHarvest (i.e. by the associated
+     * StunCandidateHarvester).
      *
-     * @param request the <tt>Request</tt> to which to add the
-     * <tt>Attribute</tt>s supporting the STUN short-term credential mechanism
+     * @param request the Request to which to add the
+     * Attributes supporting the STUN short-term credential mechanism
      * if the mechanism in question is utilized by this
-     * <tt>StunCandidateHarvest</tt>
-     * @return <tt>true</tt> if the STUN short-term credential mechanism is
-     * actually utilized by this <tt>StunCandidateHarvest</tt> for the specified
-     * <tt>request</tt>; otherwise, <tt>false</tt>
+     * StunCandidateHarvest
+     * @return true if the STUN short-term credential mechanism is
+     * actually utilized by this StunCandidateHarvest for the specified
+     * request; otherwise, false
      */
     @Override
     protected boolean addShortTermCredentialAttributes(Request request)
@@ -224,20 +224,20 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Completes the harvesting of <tt>Candidate</tt>s for
+     * Completes the harvesting of Candidates for
      * {@link #hostCandidate}. Notifies {@link #harvester} about the completion
-     * of the harvesting of <tt>Candidate</tt> for <tt>hostCandidate</tt>
-     * performed by this <tt>StunCandidateHarvest</tt>.
+     * of the harvesting of Candidate for hostCandidate
+     * performed by this StunCandidateHarvest.
      *
-     * @param request the <tt>Request</tt> sent by this
-     * <tt>StunCandidateHarvest</tt> with which the harvesting of
-     * <tt>Candidate</tt>s for <tt>hostCandidate</tt> has completed
-     * @param response the <tt>Response</tt> received by this
-     * <tt>StunCandidateHarvest</tt>, if any, with which the harvesting of
-     * <tt>Candidate</tt>s for <tt>hostCandidate</tt> has completed
-     * @return <tt>true</tt> if the harvesting of <tt>Candidate</tt>s for
-     * <tt>hostCandidate</tt> performed by this <tt>StunCandidateHarvest</tt>
-     * has completed; otherwise, <tt>false</tt>
+     * @param request the Request sent by this
+     * StunCandidateHarvest with which the harvesting of
+     * Candidates for hostCandidate has completed
+     * @param response the Response received by this
+     * StunCandidateHarvest, if any, with which the harvesting of
+     * Candidates for hostCandidate has completed
+     * @return true if the harvesting of Candidates for
+     * hostCandidate performed by this StunCandidateHarvest
+     * has completed; otherwise, false
      * @see StunCandidateHarvest#completedResolvingCandidate(Request, Response)
      */
     @Override
@@ -267,16 +267,16 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Notifies this <tt>TurnCandidateHarvest</tt> that a specific
-     * <tt>RelayedCandidateDatagramSocket</tt> is closing and that this instance
+     * Notifies this TurnCandidateHarvest that a specific
+     * RelayedCandidateDatagramSocket is closing and that this instance
      * is to delete the associated TURN Allocation.
      * <p>
      * <b>Note</b>: The method is part of the internal API of
-     * <tt>RelayedCandidateDatagramSocket</tt> and <tt>TurnCandidateHarvest</tt>
+     * RelayedCandidateDatagramSocket and TurnCandidateHarvest
      * and is not intended for public use.
      * </p>
      *
-     * @param relayedCandidateSocket the <tt>RelayedCandidateDatagramSocket</tt>
+     * @param relayedCandidateSocket the RelayedCandidateDatagramSocket
      * which notifies this instance and which requests that the associated TURN
      * Allocation be deleted
      */
@@ -294,21 +294,21 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Notifies this <tt>StunCandidateHarvest</tt> that a specific
-     * <tt>Request</tt> has either received an error <tt>Response</tt> or has
-     * failed to receive any <tt>Response</tt>.
+     * Notifies this StunCandidateHarvest that a specific
+     * Request has either received an error Response or has
+     * failed to receive any Response.
      *
-     * @param response the error <tt>Response</tt> which has been received for
-     * <tt>request</tt>
-     * @param request the <tt>Request</tt> to which <tt>Response</tt> responds
-     * @param transactionID the <tt>TransactionID</tt> of <tt>response</tt> and
-     * <tt>request</tt> because <tt>response</tt> and <tt>request</tt> only have
-     * it as a <tt>byte</tt> array and <tt>TransactionID</tt> is required for
-     * the <tt>applicationData</tt> property value
-     * @return <tt>true</tt> if the error or failure condition has been
+     * @param response the error Response which has been received for
+     * request
+     * @param request the Request to which Response responds
+     * @param transactionID the TransactionID of response and
+     * request because response and request only have
+     * it as a byte array and TransactionID is required for
+     * the applicationData property value
+     * @return true if the error or failure condition has been
      * processed and this instance can continue its execution (e.g. the
      * resolution of the candidate) as if it was expected; otherwise,
-     * <tt>false</tt>
+     * false
      * @see StunCandidateHarvest#processErrorOrFailure(Response, Request,
      * TransactionID)
      */
@@ -340,17 +340,17 @@ public class GoogleTurnCandidateHarvest
     }
 
     /**
-     * Handles a specific STUN success <tt>Response</tt> to a specific STUN
-     * <tt>Request</tt>.
+     * Handles a specific STUN success Response to a specific STUN
+     * Request.
      *
-     * @param response the received STUN success <tt>Response</tt> which is to
+     * @param response the received STUN success Response which is to
      * be handled
-     * @param request the STUN <tt>Request</tt> to which <tt>response</tt>
+     * @param request the STUN Request to which response
      * responds
-     * @param transactionID the <tt>TransactionID</tt> of <tt>response</tt> and
-     * <tt>request</tt> because <tt>response</tt> and <tt>request</tt> only have
-     * it as a <tt>byte</tt> array and <tt>TransactionID</tt> is required for
-     * the <tt>applicationData</tt> property value
+     * @param transactionID the TransactionID of response and
+     * request because response and request only have
+     * it as a byte array and TransactionID is required for
+     * the applicationData property value
      * @see StunCandidateHarvest#processSuccess(Response, Request,
      * TransactionID)
      */

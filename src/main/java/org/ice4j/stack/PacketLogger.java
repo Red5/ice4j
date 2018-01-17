@@ -45,7 +45,7 @@ public interface PacketLogger
 
     /**
      * Checks whether the logger is enabled. 
-     * @return <tt>true</tt> if the logger is enabled, <tt>false</tt>
+     * @return true if the logger is enabled, false
      *  otherwise.
      */
     public boolean isEnabled();

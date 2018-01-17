@@ -7,7 +7,7 @@
 package org.ice4j;
 
 /**
- * The <tt>Transport</tt> enumeration contains all currently known transports
+ * The Transport enumeration contains all currently known transports
  * that ICE may be interacting with (but not necessarily support).
  *
  * @author Emil Ivov
@@ -44,14 +44,14 @@ public enum Transport {
     SSLTCP("ssltcp");
 
     /**
-     * The name of this <tt>Transport</tt>.
+     * The name of this Transport.
      */
     private final String transportName;
 
     /**
-     * Creates a <tt>Transport</tt> instance with the specified name.
+     * Creates a Transport instance with the specified name.
      *
-     * @param transportName the name of the <tt>Transport</tt> instance we'd
+     * @param transportName the name of the Transport instance we'd
      * like to create.
      */
     private Transport(String transportName) {
@@ -59,10 +59,10 @@ public enum Transport {
     }
 
     /**
-     * Returns the name of this <tt>Transport</tt> (e.g. "udp" or
+     * Returns the name of this Transport (e.g. "udp" or
      * "tcp").
      *
-     * @return the name of this <tt>Transport</tt> (e.g. "udp" or
+     * @return the name of this Transport (e.g. "udp" or
      * "tcp").
      */
     @Override
@@ -71,15 +71,15 @@ public enum Transport {
     }
 
     /**
-     * Returns a <tt>Transport</tt> instance corresponding to the specified
-     * <tt>transportName</tt>. For example, for name "udp", this method
+     * Returns a Transport instance corresponding to the specified
+     * transportName. For example, for name "udp", this method
      * would return {@link #UDP}.
      *
      * @param transportName the name that we'd like to parse.
-     * @return a <tt>Transport</tt> instance corresponding to the specified
-     * <tt>transportName</tt>.
+     * @return a Transport instance corresponding to the specified
+     * transportName.
      *
-     * @throws IllegalArgumentException in case <tt>transportName</tt> is
+     * @throws IllegalArgumentException in case transportName is
      * not a valid or currently supported transport.
      */
     public static Transport parse(String transportName) throws IllegalArgumentException {

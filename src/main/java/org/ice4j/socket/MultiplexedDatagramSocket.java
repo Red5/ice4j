@@ -15,35 +15,35 @@ import java.util.List;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * Represents a <tt>DatagramSocket</tt> which receives <tt>DatagramPacket</tt>s
- * selected by a <tt>DatagramPacketFilter</tt> from a
- * <tt>MultiplexingDatagramSocket</tt>. The associated
- * <tt>MultiplexingDatagramSocket</tt> is the actual <tt>DatagramSocket</tt>
- * which reads the <tt>DatagramPacket</tt>s from the network. The
- * <tt>DatagramPacket</tt>s received through the
- * <tt>MultiplexedDatagramSocket</tt> will not be received through the
- * associated <tt>MultiplexingDatagramSocket</tt>.
+ * Represents a DatagramSocket which receives DatagramPackets
+ * selected by a DatagramPacketFilter from a
+ * MultiplexingDatagramSocket. The associated
+ * MultiplexingDatagramSocket is the actual DatagramSocket
+ * which reads the DatagramPackets from the network. The
+ * DatagramPackets received through the
+ * MultiplexedDatagramSocket will not be received through the
+ * associated MultiplexingDatagramSocket.
  *
  * @author Lyubomir Marinov
  */
 public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implements MultiplexedXXXSocket {
     /**
-     * The <tt>DatagramPacketFilter</tt> which determines which
-     * <tt>DatagramPacket</tt>s read from the network by {@link #multiplexing}
+     * The DatagramPacketFilter which determines which
+     * DatagramPackets read from the network by {@link #multiplexing}
      * are to be received through this instance.
      */
     private final DatagramPacketFilter filter;
 
     /**
-     * The <tt>MultiplexingDatagramSocket</tt> which does the actual reading
-     * from the network and which forwards <tt>DatagramPacket</tt>s accepted by
+     * The MultiplexingDatagramSocket which does the actual reading
+     * from the network and which forwards DatagramPackets accepted by
      * {@link #filter} for receipt to this instance.
      */
     private final MultiplexingDatagramSocket multiplexing;
 
     /**
-     * The list of <tt>DatagramPacket</tt>s to be received through this
-     * <tt>DatagramSocket</tt> i.e. accepted by {@link #filter}.
+     * The list of DatagramPackets to be received through this
+     * DatagramSocket i.e. accepted by {@link #filter}.
      */
     final List<DatagramPacket> received = new SocketReceiveBuffer() {
         private static final long serialVersionUID = -5763976093759762087L;
@@ -55,18 +55,18 @@ public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implemen
     };
 
     /**
-     * Initializes a new <tt>MultiplexedDatagramSocket</tt> which is unbound and
-     * filters <tt>DatagramPacket</tt>s away from a specific
-     * <tt>MultiplexingDatagramSocket</tt> using a specific
-     * <tt>DatagramPacketFilter</tt>.
+     * Initializes a new MultiplexedDatagramSocket which is unbound and
+     * filters DatagramPackets away from a specific
+     * MultiplexingDatagramSocket using a specific
+     * DatagramPacketFilter.
      *
-     * @param multiplexing the <tt>MultiplexingDatagramSocket</tt> which does
+     * @param multiplexing the MultiplexingDatagramSocket which does
      * the actual reading from the network and which forwards
-     * <tt>DatagramPacket</tt>s accepted by the specified <tt>filter</tt> to the
+     * DatagramPackets accepted by the specified filter to the
      * new instance
-     * @param filter the <tt>DatagramPacketFilter</tt> which determines which
-     * <tt>DatagramPacket</tt>s read from the network by the specified
-     * <tt>multiplexing</tt> are to be received through the new instance
+     * @param filter the DatagramPacketFilter which determines which
+     * DatagramPackets read from the network by the specified
+     * multiplexing are to be received through the new instance
      * @throws SocketException if the socket could not be opened
      */
     MultiplexedDatagramSocket(MultiplexingDatagramSocket multiplexing, DatagramPacketFilter filter) throws SocketException {
@@ -108,21 +108,21 @@ public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implemen
 
     /**
      * Receives a datagram packet from this socket. When this method returns,
-     * the <tt>DatagramPacket</tt>'s buffer is filled with the data received.
+     * the DatagramPacket's buffer is filled with the data received.
      * The datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      * <p>
-     * This method blocks until a datagram is received. The <tt>length</tt>
+     * This method blocks until a datagram is received. The length
      * field of the datagram packet object contains the length of the received
      * message. If the message is longer than the packet's length, the message
      * is truncated.
      * </p>
      * <p>
      * If there is a security manager, a packet cannot be received if the
-     * security manager's <tt>checkAccept</tt> method does not allow it.
+     * security manager's checkAccept method does not allow it.
      * </p>
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#receive(DatagramPacket)

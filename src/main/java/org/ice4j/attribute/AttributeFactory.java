@@ -290,7 +290,7 @@ public class AttributeFactory
     }
 
     /**
-     * Creates a XorMappedAddressAttribute for the specified <tt>address</tt>.
+     * Creates a XorMappedAddressAttribute for the specified address.
      *
      * @param address the address value of the address attribute
      * @param tranID the ID of the transaction that we will be using for the XOR
@@ -324,10 +324,10 @@ public class AttributeFactory
     }
 
     /**
-     * Creates a new <tt>UsernameAttribute</tt> instance.
+     * Creates a new UsernameAttribute instance.
      *
      * @param username the String value of the username
-     * @return a new <tt>UsernameAttribute</tt> instance
+     * @return a new UsernameAttribute instance
      */
     public static UsernameAttribute createUsernameAttribute(String username)
     {
@@ -345,7 +345,7 @@ public class AttributeFactory
     }
 
     /**
-     * Creates an empty <tt>MessageIntegrityAttribute</tt>. When included in a
+     * Creates an empty MessageIntegrityAttribute. When included in a
      * message the stack would set the body of this attribute so that the
      * the HMAC-SHA1 (RFC 2104) would correspond to the actual message that's
      * transporting the attribute.
@@ -366,11 +366,11 @@ public class AttributeFactory
     }
 
     /**
-     * Creates an empty <tt>FingerprintAttribute</tt> with a 0 check sum. Once
+     * Creates an empty FingerprintAttribute with a 0 check sum. Once
      * included in a message, the value of this attribute will be calculated
      * by the stack just before sending it.
      *
-     * @return the newly created <tt>FingerprintAttribute</tt>.
+     * @return the newly created FingerprintAttribute.
      */
     public static FingerprintAttribute createFingerprintAttribute()
     {
@@ -619,7 +619,7 @@ public class AttributeFactory
      * 
      * @param family address family value as specified in the RFC
      * @return the newly created RequestedAddressFamily attribute if family is
-     *         IPv4/IPv6 otherwise <tt>null</tt>.
+     *         IPv4/IPv6 otherwise null.
      */
     public static RequestedAddressFamilyAttribute
         createRequestedAddressFamilyAttribute(char family)

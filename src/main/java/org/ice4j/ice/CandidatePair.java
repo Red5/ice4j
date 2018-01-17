@@ -11,11 +11,11 @@ import java.util.Comparator;
 import org.ice4j.stack.TransactionID;
 
 /**
- * <tt>CandidatePair</tt>s map local to remote <tt>Candidate</tt>s so that they
+ * CandidatePairs map local to remote Candidates so that they
  * could be added to check lists. Connectivity in ICE is always verified by
  * pairs: i.e. STUN packets are sent from the local candidate of a pair to the
  * remote candidate of a pair. To see which pairs work, an agent schedules a
- * series of <tt>ConnectivityCheck</tt>s. Each check is a STUN request/response
+ * series of ConnectivityChecks. Each check is a STUN request/response
  * transaction that the client will perform on a particular candidate pair by
  * sending a STUN request from the local candidate to the remote candidate.
  *
@@ -25,21 +25,21 @@ import org.ice4j.stack.TransactionID;
  */
 public class CandidatePair implements Comparable<CandidatePair> {
     /**
-     * The value of the <tt>consentFreshness</tt> property of
-     * <tt>CandidatePair</tt> which indicates that the time in milliseconds of
+     * The value of the consentFreshness property of
+     * CandidatePair which indicates that the time in milliseconds of
      * the latest consent freshness confirmation is unknown.
      */
     public static final long CONSENT_FRESHNESS_UNKNOWN = -1;
 
     /**
-     * The value of <tt>Math.pow(2, 32)</tt> calculated once for the purposes of
+     * The value of Math.pow(2, 32) calculated once for the purposes of
      * optimizing performance.
      */
     private static final long MATH_POW_2_32 = 1L << 32;
 
     /**
-     * A <tt>Comparator</tt> using the <tt>compareTo</tt> method of the
-     * <tt>CandidatePair</tt>.
+     * A Comparator using the compareTo method of the
+     * CandidatePair.
      */
     public static final PairComparator comparator = new PairComparator();
 
@@ -72,7 +72,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     private boolean useCandidateSent = false;
 
     /**
-     * Indicates whether this <tt>CandidatePair</tt> is on any of this agent's
+     * Indicates whether this CandidatePair is on any of this agent's
      * valid pair lists.
      */
     private boolean isValid = false;
@@ -87,7 +87,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * Each candidate pair has a state that is assigned once the check list
      * for each media stream has been computed. The ICE RFC defines five
      * potential values that the state can have and they are all represented
-     * in the <tt>CandidatePairState</tt> enumeration. The ICE spec stipulates
+     * in the CandidatePairState enumeration. The ICE spec stipulates
      * that the first step of the state initialization process is: The agent
      * sets all of the pairs in each check list to the Frozen state, and hence
      * our default state.
@@ -107,8 +107,8 @@ public class CandidatePair implements Comparable<CandidatePair> {
     private long consentFreshness = CONSENT_FRESHNESS_UNKNOWN;
 
     /**
-     * Creates a <tt>CandidatePair</tt> instance mapping <tt>localCandidate</tt>
-     * to <tt>remoteCandidate</tt>.
+     * Creates a CandidatePair instance mapping localCandidate
+     * to remoteCandidate.
      *
      * @param localCandidate the local candidate of the pair.
      * @param remoteCandidate the remote candidate of the pair.
@@ -121,8 +121,8 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns the foundation of this <tt>CandidatePair</tt>. The foundation
-     * of a <tt>CandidatePair</tt> is just the concatenation of the foundations
+     * Returns the foundation of this CandidatePair. The foundation
+     * of a CandidatePair is just the concatenation of the foundations
      * of its two candidates. Initially, only the candidate pairs with unique
      * foundations are tested. The other candidate pairs are marked "frozen".
      * When the connectivity checks for a candidate pair succeed, the other
@@ -138,51 +138,51 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns the <tt>LocalCandidate</tt> of this <tt>CandidatePair</tt>.
+     * Returns the LocalCandidate of this CandidatePair.
      *
-     * @return the local <tt>Candidate</tt> of this <tt>CandidatePair</tt>.
+     * @return the local Candidate of this CandidatePair.
      */
     public LocalCandidate getLocalCandidate() {
         return localCandidate;
     }
 
     /**
-     * Sets the <tt>LocalCandidate</tt> of this <tt>CandidatePair</tt>.
+     * Sets the LocalCandidate of this CandidatePair.
      *
-     * @param localCnd the local <tt>Candidate</tt> of this
-     * <tt>CandidatePair</tt>.
+     * @param localCnd the local Candidate of this
+     * CandidatePair.
      */
     protected void setLocalCandidate(LocalCandidate localCnd) {
         this.localCandidate = localCnd;
     }
 
     /**
-     * Returns the remote candidate of this <tt>CandidatePair</tt>.
+     * Returns the remote candidate of this CandidatePair.
      *
-     * @return the remote <tt>Candidate</tt> of this <tt>CandidatePair</tt>.
+     * @return the remote Candidate of this CandidatePair.
      */
     public RemoteCandidate getRemoteCandidate() {
         return remoteCandidate;
     }
 
     /**
-     * Sets the <tt>RemoteCandidate</tt> of this <tt>CandidatePair</tt>.
+     * Sets the RemoteCandidate of this CandidatePair.
      *
-     * @param remoteCnd the local <tt>Candidate</tt> of this
-     * <tt>CandidatePair</tt>.
+     * @param remoteCnd the local Candidate of this
+     * CandidatePair.
      */
     protected void setRemoteCandidate(RemoteCandidate remoteCnd) {
         this.remoteCandidate = remoteCnd;
     }
 
     /**
-     * Returns the state of this <tt>CandidatePair</tt>. Each candidate pair has
+     * Returns the state of this CandidatePair. Each candidate pair has
      * a state that is assigned once the check list for each media stream has
      * been computed. The ICE RFC defines five potential values that the state
-     * can have. They are represented here with the <tt>CandidatePairState</tt>
+     * can have. They are represented here with the CandidatePairState
      * enumeration.
      *
-     * @return the <tt>CandidatePairState</tt> that this candidate pair is
+     * @return the CandidatePairState that this candidate pair is
      * currently in.
      */
     public CandidatePairState getState() {
@@ -190,7 +190,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to
+     * Sets the CandidatePairState of this pair to
      * {@link CandidatePairState#FAILED}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
@@ -199,7 +199,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to
+     * Sets the CandidatePairState of this pair to
      * {@link CandidatePairState#FROZEN}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
@@ -208,20 +208,20 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to
+     * Sets the CandidatePairState of this pair to
      * {@link CandidatePairState#FROZEN}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      *
      * @param tranID the {@link TransactionID} that we are using for the
-     * connectivity check in case we are entering the <tt>In-Progress</tt>
-     * state and <tt>null</tt> otherwise.
+     * connectivity check in case we are entering the In-Progress
+     * state and null otherwise.
      */
     public void setStateInProgress(TransactionID tranID) {
         setState(CandidatePairState.IN_PROGRESS, tranID);
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to
+     * Sets the CandidatePairState of this pair to
      * {@link CandidatePairState#SUCCEEDED}. This method should only be called
      * by the ICE agent, during the execution of the ICE procedures.
      */
@@ -230,7 +230,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to
+     * Sets the CandidatePairState of this pair to
      * {@link CandidatePairState#WAITING}. This method should only be called by
      * the ICE agent, during the execution of the ICE procedures.
      */
@@ -239,19 +239,19 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Sets the <tt>CandidatePairState</tt> of this pair to <tt>state</tt>. This
+     * Sets the CandidatePairState of this pair to state. This
      * method should only be called by the ice agent, during the execution of
-     * the ICE procedures. Note that passing a <tt>null</tt> transaction for the
-     * {@link CandidatePairState#IN_PROGRESS} or a non-<tt>null</tt> for any
+     * the ICE procedures. Note that passing a null transaction for the
+     * {@link CandidatePairState#IN_PROGRESS} or a non-null for any
      * other state would cause an {@link IllegalArgumentException} to be thrown.
      *
      * @param newState the state that this candidate pair is to enter.
      * @param tranID the {@link TransactionID} that we are using for the
-     * connectivity check in case we are entering the <tt>In-Progress</tt>
-     * state and <tt>null</tt> otherwise.
+     * connectivity check in case we are entering the In-Progress
+     * state and null otherwise.
      *
      * @throws IllegalArgumentException if state is {@link CandidatePairState
-     * #IN_PROGRESS} and <tt>tranID</tt> is <tt>null</tt>.
+     * #IN_PROGRESS} and tranID is null.
      */
     private synchronized void setState(CandidatePairState newState, TransactionID tranID) throws IllegalArgumentException {
         CandidatePairState oldState = this.state;
@@ -288,7 +288,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns the candidate in this pair that belongs to the controlling agent.
      *
-     * @return a reference to the <tt>Candidate</tt> instance that comes from
+     * @return a reference to the Candidate instance that comes from
      * the controlling agent.
      */
     public Candidate<?> getControllingAgentCandidate() {
@@ -298,7 +298,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns the candidate in this pair that belongs to the controlled agent.
      *
-     * @return a reference to the <tt>Candidate</tt> instance that comes from
+     * @return a reference to the Candidate instance that comes from
      * the controlled agent.
      */
     public Candidate<?> getControlledAgentCandidate() {
@@ -348,15 +348,15 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Compares this <tt>CandidatePair</tt> with the specified object for order.
+     * Compares this CandidatePair with the specified object for order.
      * Returns a negative integer, zero, or a positive integer as this
-     * <tt>CandidatePair</tt>'s priority is greater than, equal to, or less than
+     * CandidatePair's priority is greater than, equal to, or less than
      * the one of the specified object thus insuring that higher priority pairs
      * will come first.<p>
      *
      * @param   candidatePair the Object to be compared.
      * @return  a negative integer, zero, or a positive integer as this
-     * <tt>CandidatePair</tt>'s priority is greater than, equal to, or less than
+     * CandidatePair's priority is greater than, equal to, or less than
      * the one of the specified object.
      *
      * @throws ClassCastException if the specified object's type prevents it
@@ -370,13 +370,13 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Compares this <tt>CandidatePair</tt> to <tt>obj</tt> and returns
-     * <tt>true</tt> if pairs have equal local and equal remote candidates and
-     * <tt>false</tt> otherwise.
+     * Compares this CandidatePair to obj and returns
+     * true if pairs have equal local and equal remote candidates and
+     * false otherwise.
      *
-     * @param obj the <tt>Object</tt> that we'd like to compare this pair to.
-     * @return <tt>true</tt> if pairs have equal local and equal remote
-     * candidates and <tt>false</tt> otherwise.
+     * @param obj the Object that we'd like to compare this pair to.
+     * @return true if pairs have equal local and equal remote
+     * candidates and false otherwise.
      */
     @Override
     public boolean equals(Object obj) {
@@ -405,7 +405,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns a String representation of this <tt>CandidatePair</tt>.
+     * Returns a String representation of this CandidatePair.
      *
      * @return a String representation of the object.
      */
@@ -415,7 +415,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns a short String representation of this <tt>CandidatePair</tt>.
+     * Returns a short String representation of this CandidatePair.
      *
      * @return a short String representation of the object.
      */
@@ -424,18 +424,18 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * A <tt>Comparator</tt> using the <tt>compareTo</tt> method of the
-     * <tt>CandidatePair</tt>
+     * A Comparator using the compareTo method of the
+     * CandidatePair
      */
     public static class PairComparator implements Comparator<CandidatePair> {
         /**
-         * Compares <tt>pair1</tt> and <tt>pair2</tt> for order. Returns a
-         * negative integer, zero, or a positive integer as <tt>pair1</tt>'s
+         * Compares pair1 and pair2 for order. Returns a
+         * negative integer, zero, or a positive integer as pair1's
          * priority is greater than, equal to, or less than the one of the
          * pair2, thus insuring that higher priority pairs will come first.
          *
-         * @param pair1 the first <tt>CandidatePair</tt> to be compared.
-         * @param pair2 the second <tt>CandidatePair</tt> to be compared.
+         * @param pair1 the first CandidatePair to be compared.
+         * @param pair2 the second CandidatePair to be compared.
          *
          * @return  a negative integer, zero, or a positive integer as the first
          * pair's priority priority is greater than, equal to, or less than
@@ -451,15 +451,15 @@ public class CandidatePair implements Comparable<CandidatePair> {
         /**
          * Indicates whether some other object is &quot;equal to&quot; to this
          * Comparator.  This method must obey the general contract of
-         * <tt>Object.equals(Object)</tt>.  Additionally, this method can return
-         * <tt>true</tt> <i>only</i> if the specified Object is also a
+         * Object.equals(Object).  Additionally, this method can return
+         * true <i>only</i> if the specified Object is also a
          * comparator and it imposes the same ordering as this comparator. Thus,
          * <code>comp1.equals(comp2)</code> implies that
-         * <tt>sgn(comp1.compare(o1,o2))==sgn(comp2.compare(o1, o2))</tt> for
-         * every object reference <tt>o1</tt> and <tt>o2</tt>.<p>
+         * sgn(comp1.compare(o1,o2))==sgn(comp2.compare(o1, o2)) for
+         * every object reference o1 and o2.<p>
          *
          * Note that it is <i>always</i> safe <i>not</i> to override
-         * <tt>Object.equals(Object)</tt>.  However, overriding this method may,
+         * Object.equals(Object).  However, overriding this method may,
          * in some cases, improve performance by allowing programs to determine
          * that two distinct Comparators impose the same order.
          *
@@ -477,9 +477,9 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns the <tt>Component</tt> that this pair belongs to.
+     * Returns the Component that this pair belongs to.
      *
-     * @return the <tt>Component</tt> that this pair belongs to.
+     * @return the Component that this pair belongs to.
      */
     public Component getParentComponent() {
         return getLocalCandidate().getParentComponent();
@@ -488,12 +488,12 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns the {@link TransactionID} used in the connectivity check
      * associated with this {@link CandidatePair} when it's in the
-     * {@link CandidatePairState#IN_PROGRESS} or <tt>null</tt> if it's in
+     * {@link CandidatePairState#IN_PROGRESS} or null if it's in
      * any other state.
      *
      * @return the {@link TransactionID} used in the connectivity check
      * associated with this {@link CandidatePair} when it's in the
-     * {@link CandidatePairState#IN_PROGRESS} or <tt>null</tt> if it's in
+     * {@link CandidatePairState#IN_PROGRESS} or null if it's in
      * any other state.
      */
     public TransactionID getConnectivityCheckTransaction() {
@@ -501,43 +501,43 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Raises the <tt>useCandidateSent</tt> flag for this pair.
+     * Raises the useCandidateSent flag for this pair.
      */
     public void setUseCandidateSent() {
         this.useCandidateSent = true;
     }
 
     /**
-     * Returns <tt>true</tt> if someone has previously raised this pair's
-     * <tt>useCandidateSent</tt> flag and <tt>false</tt> otherwise.
+     * Returns true if someone has previously raised this pair's
+     * useCandidateSent flag and false otherwise.
      *
-     * @return <tt>true</tt> if someone has previously raised this pair's
-     * <tt>useCandidate</tt> flag and <tt>false</tt> otherwise.
+     * @return true if someone has previously raised this pair's
+     * useCandidate flag and false otherwise.
      */
     public boolean useCandidateSent() {
         return useCandidateSent;
     }
 
     /**
-     * Raises the <tt>useCandidate</tt> flag for this pair.
+     * Raises the useCandidate flag for this pair.
      */
     public void setUseCandidateReceived() {
         this.useCandidate = true;
     }
 
     /**
-     * Returns <tt>true</tt> if someone has previously raised this pair's
-     * <tt>useCandidate</tt> flag and <tt>false</tt> otherwise.
+     * Returns true if someone has previously raised this pair's
+     * useCandidate flag and false otherwise.
      *
-     * @return <tt>true</tt> if someone has previously raised this pair's
-     * <tt>useCandidate</tt> flag and <tt>false</tt> otherwise.
+     * @return true if someone has previously raised this pair's
+     * useCandidate flag and false otherwise.
      */
     public boolean useCandidateReceived() {
         return useCandidate;
     }
 
     /**
-     * Sets this pair's nominated flag to <tt>true</tt>. If a valid candidate
+     * Sets this pair's nominated flag to true. If a valid candidate
      * pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      */
@@ -553,19 +553,19 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      *
-     * @return <tt>true</tt> if this pair has already been nominated for
-     * selection and <tt>false</tt> otherwise.
+     * @return true if this pair has already been nominated for
+     * selection and false otherwise.
      */
     public boolean isNominated() {
         return this.isNominated;
     }
 
     /**
-     * Returns <tt>true</tt> if this pair has been confirmed by a connectivity
-     * check response and <tt>false</tt> otherwise.
+     * Returns true if this pair has been confirmed by a connectivity
+     * check response and false otherwise.
      *
-     * @return <tt>true</tt> if this pair has been confirmed by a connectivity
-     * check response and <tt>false</tt> otherwise.
+     * @return true if this pair has been confirmed by a connectivity
+     * check response and false otherwise.
      */
     public boolean isValid() {
         return isValid;
@@ -603,7 +603,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * confirmation to a specific time.
      *
      * @param consentFreshness the time in milliseconds of the latest consent
-     * freshness to be set on this <tt>CandidatePair</tt>
+     * freshness to be set on this CandidatePair
      */
     void setConsentFreshness(long consentFreshness) {
         if (this.consentFreshness != consentFreshness) {

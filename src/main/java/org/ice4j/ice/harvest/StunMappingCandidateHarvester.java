@@ -23,7 +23,7 @@ import org.ice4j.stunclient.SimpleAddressDetector;
  */
 public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
     /**
-     * The <tt>Logger</tt> used by the <tt>StunMappingCandidateHarvester</tt>
+     * The Logger used by the StunMappingCandidateHarvester
      * class and its instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(StunMappingCandidateHarvester.class.getName());

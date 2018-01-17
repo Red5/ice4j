@@ -36,11 +36,11 @@ public interface TrickleCallback
 {
 
     /**
-     * Notifies the callback that a new batch of <tt>LocalCandidate</tt>s has
+     * Notifies the callback that a new batch of LocalCandidates has
      * been discovered and should be advertised to the remove party.
      *
      * @param iceCandidates the newly discovered list of candidates or,
-     * similarly to WebRTC, <tt>null</tt> in case all candidate harvesting is
+     * similarly to WebRTC, null in case all candidate harvesting is
      * now completed.
      */
     public void onIceCandidates(Collection<LocalCandidate> iceCandidates);

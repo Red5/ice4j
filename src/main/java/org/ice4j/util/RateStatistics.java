@@ -66,7 +66,7 @@ public class RateStatistics
     /**
      * @param windowSizeMs window size in ms for the rate estimation
      * @param scale coefficient to convert counts/ms to desired units. For
-     * example, if counts represents bytes, use <tt>8*1000</tt> to go to bits/s.
+     * example, if counts represents bytes, use 8*1000 to go to bits/s.
      */
     public RateStatistics(int windowSizeMs, float scale)
     { 

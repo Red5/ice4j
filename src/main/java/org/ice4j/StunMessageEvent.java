@@ -1,24 +1,14 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j;
 
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
+import org.ice4j.message.Message;
+import org.ice4j.stack.RawMessage;
+import org.ice4j.stack.StunStack;
 
 /**
  * The class is used to dispatch incoming stun messages. Apart from the message
@@ -29,9 +19,7 @@ import org.ice4j.stack.*;
  *
  * @author Emil Ivov
  */
-public class StunMessageEvent
-    extends BaseStunMessageEvent
-{
+public class StunMessageEvent extends BaseStunMessageEvent {
     /**
      * Serial version UID for this Serializable class.
      */
@@ -45,29 +33,24 @@ public class StunMessageEvent
     /**
      * Constructs a StunMessageEvent according to the specified message.
      *
-     * @param stunStack the <tt>StunStack</tt> to be associated with the new
+     * @param stunStack the StunStack to be associated with the new
      * instance
      * @param rawMessage the crude message we got off the wire.
      * @param parsedMessage the message itself
      */
-    public StunMessageEvent(
-            StunStack stunStack,
-            RawMessage rawMessage,
-            Message parsedMessage)
-    {
+    public StunMessageEvent(StunStack stunStack, RawMessage rawMessage, Message parsedMessage) {
         super(stunStack, rawMessage.getLocalAddress(), parsedMessage);
 
         this.rawMessage = rawMessage;
     }
 
     /**
-     * Returns a <tt>TransportAddress</tt> referencing the access point where
+     * Returns a TransportAddress referencing the access point where
      * the message was received.
      *
      * @return a descriptor of the access point where the message arrived.
      */
-    public TransportAddress getLocalAddress()
-    {
+    public TransportAddress getLocalAddress() {
         return getSourceAddress();
     }
 
@@ -76,27 +59,23 @@ public class StunMessageEvent
      *
      * @return the address that sent the message.
      */
-    public TransportAddress getRemoteAddress()
-    {
+    public TransportAddress getRemoteAddress() {
         return rawMessage.getRemoteAddress();
     }
 
     /**
-     * Returns a <tt>String</tt> representation of this event, containing the
+     * Returns a String representation of this event, containing the
      * corresponding message, remote and local addresses.
      *
-     * @return a <tt>String</tt> representation of this event, containing the
+     * @return a String representation of this event, containing the
      * corresponding message, remote and local addresses.
      */
     @Override
-    public String toString()
-    {
-        StringBuffer buff = new StringBuffer("StunMessageEvent:\n\tMessage=");
-
+    public String toString() {
+        StringBuilder buff = new StringBuilder("StunMessageEvent:\n\tMessage=");
         buff.append(getMessage());
         buff.append(" remoteAddr=").append(getRemoteAddress());
         buff.append(" localAddr=").append(getLocalAddress());
-
         return buff.toString();
     }
 
@@ -105,8 +84,7 @@ public class StunMessageEvent
      *
      * @return the {@link RawMessage} that caused this event.
      */
-    public RawMessage getRawMessage()
-    {
+    public RawMessage getRawMessage() {
         return rawMessage;
     }
 }

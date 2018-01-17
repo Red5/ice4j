@@ -33,7 +33,7 @@ public class AwsCandidateHarvester
     extends MappingCandidateHarvester
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>AwsCandidateHarvester</tt>
+     * The Logger used by the AwsCandidateHarvester
      * class and its instances for logging output.
      */
     private static final Logger logger
@@ -88,8 +88,8 @@ public class AwsCandidateHarvester
 
     /**
      * Sends HTTP GET queries to
-     * <tt>http://169.254.169.254/latest/meta-data/local-ipv4</tt> and
-     * <tt>http://169.254.169.254/latest/meta-data/public-ipv4</tt> to learn the
+     * http://169.254.169.254/latest/meta-data/local-ipv4 and
+     * http://169.254.169.254/latest/meta-data/public-ipv4 to learn the
      * private (face) and public (mask) addresses of this EC2 instance.
      */
     private static synchronized void obtainEC2Addresses()
@@ -158,10 +158,10 @@ public class AwsCandidateHarvester
 
     /**
      * Determines if there is a decent chance for the box executing this
-     * application to be an AWS EC2 instance and returns <tt>true</tt> if so.
+     * application to be an AWS EC2 instance and returns true if so.
      *
-     * @return <tt>true</tt> if there appear to be decent chances for this
-     * machine to be an AWS EC2 and <tt>false</tt> otherwise.
+     * @return true if there appear to be decent chances for this
+     * machine to be an AWS EC2 and false otherwise.
      */
     public synchronized static boolean smellsLikeAnEC2()
     {
@@ -176,7 +176,7 @@ public class AwsCandidateHarvester
      * Tries to connect to an Amazon EC2-specific URL in order to determine
      * whether we are running on EC2.
      *
-     * @return <tt>true</tt> if the connection succeeded, <tt>false</tt>
+     * @return true if the connection succeeded, false
      * otherwise.
      */
     private static boolean doTestEc2()
@@ -197,7 +197,7 @@ public class AwsCandidateHarvester
     }
 
     /**
-     * Retrieves the content at the specified <tt>url</tt>. No more, no less.
+     * Retrieves the content at the specified url. No more, no less.
      *
      * @param url the URL we'd like to open and query.
      *

@@ -69,7 +69,7 @@ public class FingerprintAttribute
     private byte[] crc;
 
     /**
-     * Creates a <tt>FingerPrintAttribute</tt> instance.
+     * Creates a FingerPrintAttribute instance.
      */
     FingerprintAttribute()
     {
@@ -81,7 +81,7 @@ public class FingerprintAttribute
      * sense for incoming messages and hence only set for them.
      *
      * @return the CRC32 checksum that this attribute is carrying or
-     * <tt>null</tt> if it has not been set.
+     * null if it has not been set.
      */
     public byte[] getChecksum()
     {
@@ -143,16 +143,16 @@ public class FingerprintAttribute
     /**
      * Returns a binary representation of this attribute.
      *
-     * @param stunStack the <tt>StunStack</tt> in the context of which the
-     * request to encode this <tt>ContentDependentAttribute</tt> is being made
+     * @param stunStack the StunStack in the context of which the
+     * request to encode this ContentDependentAttribute is being made
      * @param content the content of the message that this attribute will be
      * transported in
-     * @param offset the <tt>content</tt>-related offset where the actual
+     * @param offset the content-related offset where the actual
      * content starts.
-     * @param length the length of the content in the <tt>content</tt> array.
+     * @param length the length of the content in the content array.
      *
      * @return a binary representation of this attribute valid for the message
-     * with the specified <tt>content</tt>.
+     * with the specified content.
      */
     public byte[] encode(
             StunStack stunStack,
@@ -213,16 +213,16 @@ public class FingerprintAttribute
     }
 
     /**
-     * Calculates and returns the CRC32 checksum for <tt>message</tt> after
-     * applying the <tt>XOR_MASK</tt> specified by RFC 5389.
+     * Calculates and returns the CRC32 checksum for message after
+     * applying the XOR_MASK specified by RFC 5389.
      *
      * @param message the message whose checksum we'd like to have
-     * @param offset the location in <tt>message</tt> where the actual message
+     * @param offset the location in message where the actual message
      * starts.
-     * @param len the number of message bytes in <tt>message</tt>
+     * @param len the number of message bytes in message
      *
-     * @return the CRC value that should be sent in a <tt>FINGERPRINT</tt>
-     * attribute traveling in the <tt>message</tt> message.
+     * @return the CRC value that should be sent in a FINGERPRINT
+     * attribute traveling in the message message.
      */
     public static byte[] calculateXorCRC32(byte[] message, int offset, int len)
     {

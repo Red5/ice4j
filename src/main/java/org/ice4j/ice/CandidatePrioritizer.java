@@ -15,16 +15,16 @@ import java.util.*;
  */
 class CandidatePrioritizer implements Comparator<Candidate<?>> {
     /**
-     * Compares the two <tt>Candidate</tt>s based on their priority and
+     * Compares the two Candidates based on their priority and
      * returns a negative integer, zero, or a positive integer as the first
-     * <tt>Candidate</tt> has a lower, equal, or greater priority than the
+     * Candidate has a lower, equal, or greater priority than the
      * second.
      *
-     * @param c1 the first <tt>Candidate</tt> to compare.
-     * @param c2 the second <tt>Candidate</tt> to compare.
+     * @param c1 the first Candidate to compare.
+     * @param c2 the second Candidate to compare.
      *
      * @return a negative integer, zero, or a positive integer as the first
-     *         <tt>Candidate</tt> has a lower, equal,
+     *         Candidate has a lower, equal,
      *         or greater priority than the
      *         second.
      */
@@ -39,16 +39,16 @@ class CandidatePrioritizer implements Comparator<Candidate<?>> {
     }
 
     /**
-     * Compares the two <tt>Candidate</tt>s based on their priority and
+     * Compares the two Candidates based on their priority and
      * returns a negative integer, zero, or a positive integer as the first
-     * <tt>Candidate</tt> has a lower, equal, or greater priority than the
+     * Candidate has a lower, equal, or greater priority than the
      * second.
      *
-     * @param c1 the first <tt>Candidate</tt> to compare.
-     * @param c2 the second <tt>Candidate</tt> to compare.
+     * @param c1 the first Candidate to compare.
+     * @param c2 the second Candidate to compare.
      *
      * @return a negative integer, zero, or a positive integer as the first
-     *         <tt>Candidate</tt> has a lower, equal,
+     *         Candidate has a lower, equal,
      *         or greater priority than the
      *         second.
      */
@@ -59,15 +59,15 @@ class CandidatePrioritizer implements Comparator<Candidate<?>> {
     /**
      * Indicates whether some other object is &quot;equal to&quot; this
      * Comparator.  This method must obey the general contract of
-     * <tt>Object.equals(Object)</tt>.  Additionally, this method can return
-     * <tt>true</tt> <i>only</i> if the specified Object is also a
+     * Object.equals(Object).  Additionally, this method can return
+     * true <i>only</i> if the specified Object is also a
      * comparator and it imposes the same ordering as this comparator. Thus,
      * <code>comp1.equals(comp2)</code> implies that
-     * <tt>sgn(comp1.compare(o1, o2))==sgn(comp2.compare(o1, o2))</tt> for
-     * every object reference <tt>o1</tt> and <tt>o2</tt>.<p>
+     * sgn(comp1.compare(o1, o2))==sgn(comp2.compare(o1, o2)) for
+     * every object reference o1 and o2.<p>
      * <p>
      * Note that it is <i>always</i> safe <i>not</i> to override
-     * <tt>Object.equals(Object)</tt>.  However, overriding this method may,
+     * Object.equals(Object).  However, overriding this method may,
      * in some cases, improve performance by allowing programs to determine
      * that two distinct Comparators impose the same order.
      * </p>

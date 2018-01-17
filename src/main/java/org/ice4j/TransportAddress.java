@@ -32,10 +32,10 @@ public class TransportAddress extends InetSocketAddress {
      * Creates an address instance address from an IP address and a port number.
      * <p>
      * A valid port value is between 0 and 65535.
-     * A port number of <tt>zero</tt> will let the system pick up an
-     * ephemeral port in a <tt>bind</tt> operation.
+     * A port number of zero will let the system pick up an
+     * ephemeral port in a bind operation.
      * <P>
-     * A <tt>null</tt> address will assign the <i>wildcard</i> address.
+     * A null address will assign the <i>wildcard</i> address.
      * <p>
      * @param   hostname    The IP address
      * @param   port        The port number
@@ -53,14 +53,14 @@ public class TransportAddress extends InetSocketAddress {
      * address and a port number.
      * <p>
      * A valid port value is between 0 and 65535.
-     * A port number of <tt>zero</tt> will let the system pick up an
-     * ephemeral port in a <tt>bind</tt> operation.
+     * A port number of zero will let the system pick up an
+     * ephemeral port in a bind operation.
      * <P>
-     * A <tt>null</tt> address will assign the <i>wildcard</i> address.
+     * A null address will assign the <i>wildcard</i> address.
      * <p>
      * @param    ipAddress The IP address
      * @param    port      The port number
-     * @param    transport The <tt>Transport</tt> to use with this address.
+     * @param    transport The Transport to use with this address.
      *
      * @throws UnknownHostException UnknownHostException  if IP address is of
      * illegal length
@@ -70,14 +70,14 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Creates an address instance from an <tt>InetSocketAddress</tt>.
+     * Creates an address instance from an InetSocketAddress.
      *
      * @param    address   the address and port.
      * @param    transport the transport to use with this address.
      *
      * @throws IllegalArgumentException if the port parameter is outside the
      * range of valid port values, or if the host name parameter is
-     * <tt>null</tt>.
+     * null.
      */
     public TransportAddress(InetSocketAddress address, Transport transport) {
         this(address.getAddress(), address.getPort(), transport);
@@ -90,7 +90,7 @@ public class TransportAddress extends InetSocketAddress {
      * If that attempt fails, the address will be flagged as <I>unresolved</I>.
      * <p>
      * A valid port value is between 0 and 65535. A port number of zero will
-     * let the system pick up an ephemeral port in a <tt>bind</tt> operation.
+     * let the system pick up an ephemeral port in a bind operation.
      * <p>
      * @param    address   the address itself
      * @param    port      the port number
@@ -98,7 +98,7 @@ public class TransportAddress extends InetSocketAddress {
      *
      * @throws IllegalArgumentException if the port parameter is outside the
      * range of valid port values, or if the host name parameter is
-     * <tt>null</tt>.
+     * null.
      */
     public TransportAddress(InetAddress address, int port, Transport transport) {
         super(address, port);
@@ -163,13 +163,13 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Determines whether this <tt>TransportAddress</tt> is value equal to a
-     * specific <tt>TransportAddress</tt>.
+     * Determines whether this TransportAddress is value equal to a
+     * specific TransportAddress.
      *
-     * @param transportAddress the <tt>TransportAddress</tt> to test for value
-     * equality with this <tt>TransportAddress</tt>
-     * @return <tt>true</tt> if this <tt>TransportAddress</tt> is value equal to
-     * the specified <tt>transportAddress</tt>; otherwise, <tt>false</tt>
+     * @param transportAddress the TransportAddress to test for value
+     * equality with this TransportAddress
+     * @return true if this TransportAddress is value equal to
+     * the specified transportAddress; otherwise, false
      * @see #equalsTransportAddress(Object)
      */
     public boolean equals(TransportAddress transportAddress) {
@@ -178,19 +178,19 @@ public class TransportAddress extends InetSocketAddress {
 
     /**
      * Compares this object against the specified object. The result is
-     * <tt>true</tt> if and only if the argument is not <tt>null</tt> and it
+     * true if and only if the argument is not null and it
      * represents the same address.
      * <p>
-     * Two instances of <tt>TransportAddress</tt> represent the same
+     * Two instances of TransportAddress represent the same
      * address if both the InetAddresses (or hostnames if it is unresolved),
-     * port numbers, and <tt>Transport</tt>s are equal.
+     * port numbers, and Transports are equal.
      *
      * If both addresses are unresolved, then the hostname, the port and
-     * the <tt>Transport</tt> are compared.
+     * the Transport are compared.
      *
      * @param   obj   the object to compare against.
-     * @return  <tt>true</tt> if the objects are the same and
-     * <tt>false</tt> otherwise.
+     * @return  true if the objects are the same and
+     * false otherwise.
      * @see java.net.InetAddress#equals(java.lang.Object)
      */
     public boolean equalsTransportAddress(Object obj) {
@@ -198,10 +198,10 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Returns <tt>true</tt> if this is an IPv6 address and <tt>false</tt>
+     * Returns true if this is an IPv6 address and false
      * otherwise.
      *
-     * @return <tt>true</tt> if this is an IPv6 address and <tt>false</tt>
+     * @return true if this is an IPv6 address and false
      * otherwise.
      */
     public boolean isIPv6() {
@@ -209,16 +209,16 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Determines whether this <tt>TransportAddress</tt> is theoretically
-     * capable of communicating with <tt>dst</tt>. An address is certain not
+     * Determines whether this TransportAddress is theoretically
+     * capable of communicating with dst. An address is certain not
      * to be able to communicate with another if they do not have the same
-     * <tt>Transport</tt> or family.
+     * Transport or family.
      *
-     * @param dst the <tt>TransportAddress</tt> that we'd like to check for
+     * @param dst the TransportAddress that we'd like to check for
      * reachability from this one.
      *
-     * @return <tt>true</tt> if this {@link TransportAddress} shares the same
-     * <tt>Transport</tt> and family as <tt>dst</tt> or <tt>false</tt>
+     * @return true if this {@link TransportAddress} shares the same
+     * Transport and family as dst or false
      * otherwise.
      *
      */

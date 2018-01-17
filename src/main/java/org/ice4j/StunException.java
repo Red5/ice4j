@@ -18,7 +18,7 @@
 package org.ice4j;
 
 /**
- * A <tt>StunException</tt> is thrown when a general STUN exception is
+ * A StunException is thrown when a general STUN exception is
  * encountered.
  *
  * @author Emil Ivov
@@ -26,7 +26,7 @@ package org.ice4j;
 public class StunException extends Exception
 {
     /**
-     * Serial version UID for this <tt>Serializable</tt> class.
+     * Serial version UID for this Serializable class.
      */
     private static final long serialVersionUID = 35367793L;
 

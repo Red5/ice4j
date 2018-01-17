@@ -22,9 +22,9 @@ import org.ice4j.ice.harvest.*;
 import org.ice4j.socket.*;
 
 /**
- * <tt>ServerReflexiveCandidate</tt>s are candidates whose IP address and port
+ * ServerReflexiveCandidates are candidates whose IP address and port
  * are a binding allocated by a NAT for an agent when it sent a packet through
- * the NAT to a server. <tt>ServerReflexiveCandidate</tt>s can be learned by
+ * the NAT to a server. ServerReflexiveCandidates can be learned by
  * STUN servers using the Binding Request, or TURN servers, which provides both
  * a Relayed and Server Reflexive candidate.
  * <p>
@@ -43,10 +43,10 @@ public class ServerReflexiveCandidate
     private final StunCandidateHarvest stunHarvest;
 
     /**
-     * Creates a <tt>ServerReflexiveCandidate</tt> for the specified transport
+     * Creates a ServerReflexiveCandidate for the specified transport
      * address, and base.
      *
-     * @param address the {@link TransportAddress} that this <tt>Candidate</tt>
+     * @param address the {@link TransportAddress} that this Candidate
      * is representing.
      * @param base the {@link HostCandidate} that this server reflexive
      * candidate was obtained through.
@@ -71,10 +71,10 @@ public class ServerReflexiveCandidate
     }
 
     /**
-     * Creates a <tt>ServerReflexiveCandidate</tt> for the specified transport
+     * Creates a ServerReflexiveCandidate for the specified transport
      * address, and base.
      *
-     * @param address the {@link TransportAddress} that this <tt>Candidate</tt>
+     * @param address the {@link TransportAddress} that this Candidate
      * is representing.
      * @param base the {@link HostCandidate} that this server reflexive
      * candidate was obtained through.
@@ -114,9 +114,9 @@ public class ServerReflexiveCandidate
 
     /**
      * Frees resources allocated by this candidate such as its
-     * <tt>DatagramSocket</tt>, for example. The <tt>socket</tt> of this
-     * <tt>LocalCandidate</tt> is closed only if it is not the <tt>socket</tt>
-     * of the <tt>base</tt> of this <tt>LocalCandidate</tt>.
+     * DatagramSocket, for example. The socket of this
+     * LocalCandidate is closed only if it is not the socket
+     * of the base of this LocalCandidate.
      */
     @Override
     public void free()

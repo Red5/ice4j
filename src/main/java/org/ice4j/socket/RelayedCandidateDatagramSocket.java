@@ -40,10 +40,10 @@ import org.ice4j.stack.TransactionID;
 
 /**
  * Represents an application-purposed (as opposed to an ICE-specific)
- * <tt>DatagramSocket</tt> for a <tt>RelayedCandidate</tt> harvested by a
- * <tt>TurnCandidateHarvest</tt> (and its associated
- * <tt>TurnCandidateHarvester</tt>, of course).
- * <tt>RelayedCandidateDatagramSocket</tt> is associated with a successful
+ * DatagramSocket for a RelayedCandidate harvested by a
+ * TurnCandidateHarvest (and its associated
+ * TurnCandidateHarvester, of course).
+ * RelayedCandidateDatagramSocket is associated with a successful
  * Allocation on a TURN server and implements sends and receives through it
  * using TURN messages to and from that TURN server.
  *
@@ -52,7 +52,7 @@ import org.ice4j.stack.TransactionID;
 public class RelayedCandidateDatagramSocket extends DatagramSocket implements MessageEventHandler {
 
     /**
-     * The <tt>Logger</tt> used by the <tt>RelayedCandidateDatagramSocket</tt>
+     * The Logger used by the RelayedCandidateDatagramSocket
      * class and its instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(RelayedCandidateDatagramSocket.class.getName());
@@ -76,13 +76,13 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * The maximum channel number which is valid for TURN ChannelBind
-     * <tt>Request</tt>.
+     * Request.
      */
     private static final char MAX_CHANNEL_NUMBER = 0x7FFF;
 
     /**
      * The minimum channel number which is valid for TURN ChannelBind
-     * <tt>Request</tt>s.
+     * Requests.
      */
     private static final char MIN_CHANNEL_NUMBER = 0x4000;
 
@@ -94,27 +94,27 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * The time in milliseconds before a TURN permission expires that a
-     * <tt>RelayedCandidateDatagramSocket</tt> is to try to reinstall it.
+     * RelayedCandidateDatagramSocket is to try to reinstall it.
      */
     private static final long PERMISSION_LIFETIME_LEEWAY = 60 /* seconds */* 1000L;
 
     /**
-     * The <tt>DatagramSocket</tt> through which this
-     * <tt>RelayedCandidateDatagramSocket</tt> actually sends and receives the
+     * The DatagramSocket through which this
+     * RelayedCandidateDatagramSocket actually sends and receives the
      * data it has been asked to {@link #send(DatagramPacket)} and
      * {@link #receive(DatagramPacket)}. Since data can be exchanged with a TURN
      * server using STUN messages (i.e. Send and Data indications),
-     * <tt>RelayedCandidateDatagramSocket</tt> may send and receive data using
-     * the associated <tt>StunStack</tt> and not <tt>channelDataSocket</tt>.
-     * However, using <tt>channelDataSocket</tt> is supposed to be more
-     * efficient than using <tt>StunStack</tt>.
+     * RelayedCandidateDatagramSocket may send and receive data using
+     * the associated StunStack and not channelDataSocket.
+     * However, using channelDataSocket is supposed to be more
+     * efficient than using StunStack.
      */
     private final DatagramSocket channelDataSocket;
 
     /**
-     * The list of per-peer <tt>Channel</tt>s through which this
-     * <tt>RelayedCandidateDatagramSocket</tt>s relays data send to it to
-     * peer <tt>TransportAddress</tt>es.
+     * The list of per-peer Channels through which this
+     * RelayedCandidateDatagramSockets relays data send to it to
+     * peer TransportAddresses.
      */
     private final List<Channel> channels = new LinkedList<>();
 
@@ -125,9 +125,9 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     private boolean closed = false;
 
     /**
-     * The <tt>DatagramPacketFilter</tt> which is able to determine whether a
-     * specific <tt>DatagramPacket</tt> sent through a
-     * <tt>RelayedCandidateDatagramSocket</tt> is part of the ICE connectivity
+     * The DatagramPacketFilter which is able to determine whether a
+     * specific DatagramPacket sent through a
+     * RelayedCandidateDatagramSocket is part of the ICE connectivity
      * checks. The recognizing is necessary because RFC 5245 says that "it is
      * RECOMMENDED that the agent defer creation of a TURN channel until ICE
      * completes."
@@ -141,56 +141,56 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     private char nextChannelNumber = MIN_CHANNEL_NUMBER;
 
     /**
-     * The <tt>DatagramPacket</tt>s which are to be received through this
-     * <tt>DatagramSocket</tt> upon calls to its
+     * The DatagramPackets which are to be received through this
+     * DatagramSocket upon calls to its
      * {@link #receive(DatagramPacket)} method. They have been received from the
      * TURN server in the form of Data indications.
      */
     private final List<DatagramPacket> packetsToReceive = new LinkedList<>();
 
     /**
-     * The <tt>DatagramSocket</tt>s which have been sent through this
-     * <tt>DatagramSocket</tt> using its {@link #send(DatagramPacket)} method
+     * The DatagramSockets which have been sent through this
+     * DatagramSocket using its {@link #send(DatagramPacket)} method
      * and which are to be relayed through its associated TURN server in the
      * form of Send indications.
      */
     private final List<DatagramPacket> packetsToSend = new LinkedList<>();
 
     /**
-     * The <tt>Thread</tt> which receives <tt>DatagramPacket</tt>s from
+     * The Thread which receives DatagramPackets from
      * {@link #channelDataSocket} and queues them in {@link #packetsToReceive}.
      */
     private Thread receiveChannelDataThread;
 
     /**
-     * The <tt>RelayedCandidate</tt> which uses this instance as the value of
-     * its <tt>socket</tt> property.
+     * The RelayedCandidate which uses this instance as the value of
+     * its socket property.
      */
     private final RelayedCandidate relayedCandidate;
 
     /**
-     * The <tt>Thread</tt> which is to send the {@link #packetsToSend} to the
+     * The Thread which is to send the {@link #packetsToSend} to the
      * associated TURN server.
      */
     private Thread sendThread;
 
     /**
-     * The <tt>TurnCandidateHarvest</tt> which has harvested
+     * The TurnCandidateHarvest which has harvested
      * {@link #relayedCandidate}.
      */
     private final TurnCandidateHarvest turnCandidateHarvest;
 
     /**
-     * Initializes a new <tt>RelayedCandidateDatagramSocket</tt> instance which
-     * is to be the <tt>socket</tt> of a specific <tt>RelayedCandidate</tt>
-     * harvested by a specific <tt>TurnCandidateHarvest</tt>.
+     * Initializes a new RelayedCandidateDatagramSocket instance which
+     * is to be the socket of a specific RelayedCandidate
+     * harvested by a specific TurnCandidateHarvest.
      *
-     * @param relayedCandidate the <tt>RelayedCandidate</tt> which is to use the
-     * new instance as the value of its <tt>socket</tt> property
-     * @param turnCandidateHarvest the <tt>TurnCandidateHarvest</tt> which has
-     * harvested <tt>relayedCandidate</tt>
+     * @param relayedCandidate the RelayedCandidate which is to use the
+     * new instance as the value of its socket property
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has
+     * harvested relayedCandidate
      * @throws SocketException if anything goes wrong while initializing the new
-     * <tt>RelayedCandidateDatagramSocket</tt> instance
+     * RelayedCandidateDatagramSocket instance
      */
     public RelayedCandidateDatagramSocket(RelayedCandidate relayedCandidate, TurnCandidateHarvest turnCandidateHarvest) throws SocketException {
         super(/* bindaddr */(SocketAddress) null);
@@ -220,17 +220,17 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Determines whether a specific <tt>DatagramPacket</tt> is accepted by
-     * {@link #channelDataSocket} (i.e. whether <tt>channelDataSocket</tt>
-     * understands <tt>p</tt> and <tt>p</tt> is meant to be received by
-     * <tt>channelDataSocket</tt>).
+     * Determines whether a specific DatagramPacket is accepted by
+     * {@link #channelDataSocket} (i.e. whether channelDataSocket
+     * understands p and p is meant to be received by
+     * channelDataSocket).
      *
-     * @param p the <tt>DatagramPacket</tt> which is to be checked whether it is
-     * accepted by <tt>channelDataSocket</tt>
-     * @return <tt>true</tt> if <tt>channelDataSocket</tt> accepts <tt>p</tt>
-     * (i.e. <tt>channelDataSocket</tt> understands <tt>p</tt> and <tt>p</tt> is
-     * meant to be received by <tt>channelDataSocket</tt>); otherwise,
-     * <tt>false</tt>
+     * @param p the DatagramPacket which is to be checked whether it is
+     * accepted by channelDataSocket
+     * @return true if channelDataSocket accepts p
+     * (i.e. channelDataSocket understands p and p is
+     * meant to be received by channelDataSocket); otherwise,
+     * false
      */
     private boolean channelDataSocketAccept(DatagramPacket p) {
         // Is it from our TURN server?
@@ -271,14 +271,14 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Determines whether {@link #channelDataSocket} accepts
-     * <tt>DatagramPacket</tt>s which represent STUN messages with a specific
+     * DatagramPackets which represent STUN messages with a specific
      * method.
      *
      * @param method the method of the STUN messages represented in
-     * <tt>DatagramPacket</tt>s which is accepted by <tt>channelDataSocket</tt>
-     * @return <tt>true</tt> if <tt>channelDataSocket</tt> accepts
-     * <tt>DatagramPacket</tt>s which represent STUN messages with the specified
-     * <tt>method</tt>; otherwise, <tt>false</tt>
+     * DatagramPackets which is accepted by channelDataSocket
+     * @return true if channelDataSocket accepts
+     * DatagramPackets which represent STUN messages with the specified
+     * method; otherwise, false
      */
     private boolean channelDataSocketAcceptMethod(char method) {
         // Accept only ChannelData messages for now. ChannelData messages are not STUN messages so they do not have a method associated with them.
@@ -311,7 +311,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Creates {@link #receiveChannelDataThread} which is to receive
-     * <tt>DatagramPacket</tt>s from {@link #channelDataSocket} and queue them
+     * DatagramPackets from {@link #channelDataSocket} and queue them
      * in {@link #packetsToReceive}.
      */
     private void createReceiveChannelDataThread() {
@@ -368,17 +368,17 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Gets the local address to which the socket is bound.
-     * <tt>RelayedCandidateDatagramSocket</tt> returns the <tt>address</tt> of
-     * its <tt>localSocketAddress</tt>.
+     * RelayedCandidateDatagramSocket returns the address of
+     * its localSocketAddress.
      * <p>
-     * If there is a security manager, its <tt>checkConnect</tt> method is first
-     * called with the host address and <tt>-1</tt> as its arguments to see if
+     * If there is a security manager, its checkConnect method is first
+     * called with the host address and -1 as its arguments to see if
      * the operation is allowed.
      * </p>
      *
      * @return the local address to which the socket is bound, or an
-     * <tt>InetAddress</tt> representing any local address if either the socket
-     * is not bound, or the security manager <tt>checkConnect</tt> method does
+     * InetAddress representing any local address if either the socket
+     * is not bound, or the security manager checkConnect method does
      * not allow the operation
      * @see #getLocalSocketAddress()
      * @see DatagramSocket#getLocalAddress()
@@ -390,8 +390,8 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Returns the port number on the local host to which this socket is bound.
-     * <tt>RelayedCandidateDatagramSocket</tt> returns the <tt>port</tt> of its
-     * <tt>localSocketAddress</tt>.
+     * RelayedCandidateDatagramSocket returns the port of its
+     * localSocketAddress.
      *
      * @return the port number on the local host to which this socket is bound
      * @see #getLocalSocketAddress()
@@ -404,14 +404,14 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Returns the address of the endpoint this socket is bound to, or
-     * <tt>null</tt> if it is not bound yet. Since
-     * <tt>RelayedCandidateDatagramSocket</tt> represents an
-     * application-purposed <tt>DatagramSocket</tt> relaying data to and from a
-     * TURN server, the <tt>localSocketAddress</tt> is the
-     * <tt>transportAddress</tt> of the respective <tt>RelayedCandidate</tt>.
+     * null if it is not bound yet. Since
+     * RelayedCandidateDatagramSocket represents an
+     * application-purposed DatagramSocket relaying data to and from a
+     * TURN server, the localSocketAddress is the
+     * transportAddress of the respective RelayedCandidate.
      *
-     * @return a <tt>SocketAddress</tt> representing the local endpoint of this
-     * socket, or <tt>null</tt> if it is not bound yet
+     * @return a SocketAddress representing the local endpoint of this
+     * socket, or null if it is not bound yet
      * @see DatagramSocket#getLocalSocketAddress()
      */
     @Override
@@ -420,11 +420,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Gets the next free channel number to be allocated to a <tt>Channel</tt>
+     * Gets the next free channel number to be allocated to a Channel
      * and marked as non-free.
      *
      * @return the next free channel number to be allocated to a
-     * <tt>Channel</tt> and marked as non-free.
+     * Channel and marked as non-free.
      */
     private char getNextChannelNumber() {
         char nextChannelNumber;
@@ -439,24 +439,24 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Gets the <tt>RelayedCandidate</tt> which uses this instance as the value
-     * of its <tt>socket</tt> property.
+     * Gets the RelayedCandidate which uses this instance as the value
+     * of its socket property.
      *
-     * @return the <tt>RelayedCandidate</tt> which uses this instance as the
-     * value of its <tt>socket</tt> property
+     * @return the RelayedCandidate which uses this instance as the
+     * value of its socket property
      */
     public final RelayedCandidate getRelayedCandidate() {
         return relayedCandidate;
     }
 
     /**
-     * Notifies this <tt>MessageEventHandler</tt> that a specific STUN message
+     * Notifies this MessageEventHandler that a specific STUN message
      * has been received, parsed and is ready for delivery.
-     * <tt>RelayedCandidateDatagramSocket</tt> handles STUN indications sent
+     * RelayedCandidateDatagramSocket handles STUN indications sent
      * from the associated TURN server and received at the associated local
-     * <tt>TransportAddress</tt>.
+     * TransportAddress.
      *
-     * @param e a <tt>StunMessageEvent</tt> which encapsulates the received STUN
+     * @param e a StunMessageEvent which encapsulates the received STUN
      * message
      */
     public void handleMessageEvent(StunMessageEvent e) {
@@ -532,16 +532,16 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Notifies this <tt>RelayedCandidateDatagramSocket</tt> that a specific
-     * <tt>Request</tt> it has sent has either failed or received a STUN error
-     * <tt>Response</tt>.
+     * Notifies this RelayedCandidateDatagramSocket that a specific
+     * Request it has sent has either failed or received a STUN error
+     * Response.
      *
-     * @param response the <tt>Response</tt> which responds to <tt>request</tt>
-     * @param request the <tt>Request</tt> sent by this instance to which
-     * <tt>response</tt> responds
-     * @return <tt>true</tt> if the failure or error condition has been handled
+     * @param response the Response which responds to request
+     * @param request the Request sent by this instance to which
+     * response responds
+     * @return true if the failure or error condition has been handled
      * and the caller should assume this instance has recovered from it;
-     * otherwise, <tt>false</tt>
+     * otherwise, false
      */
     public boolean processErrorOrFailure(Response response, Request request) {
         switch (request.getMessageType()) {
@@ -558,13 +558,13 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Notifies this <tt>RelayedCandidateDatagramSocket</tt> that a specific
-     * <tt>Request</tt> it has sent has received a STUN success
-     * <tt>Response</tt>.
+     * Notifies this RelayedCandidateDatagramSocket that a specific
+     * Request it has sent has received a STUN success
+     * Response.
      *
-     * @param response the <tt>Response</tt> which responds to <tt>request</tt>
-     * @param request the <tt>Request</tt> sent by this instance to which
-     * <tt>response</tt> responds
+     * @param response the Response which responds to request
+     * @param request the Request sent by this instance to which
+     * response responds
      */
     public void processSuccess(Response response, Request request) {
         switch (request.getMessageType()) {
@@ -581,11 +581,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Receives a datagram packet from this socket. When this method returns,
-     * the <tt>DatagramPacket</tt>'s buffer is filled with the data received.
+     * the DatagramPacket's buffer is filled with the data received.
      * The datagram packet also contains the sender's IP address, and the port
      * number on the sender's machine.
      *
-     * @param p the <tt>DatagramPacket</tt> into which to place the incoming
+     * @param p the DatagramPacket into which to place the incoming
      * data
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#receive(DatagramPacket)
@@ -617,11 +617,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Runs in {@link #receiveChannelDataThread} to receive
-     * <tt>DatagramPacket</tt>s from {@link #channelDataSocket} and queue them
+     * DatagramPackets from {@link #channelDataSocket} and queue them
      * in {@link #packetsToReceive}.
      *
      * @throws SocketException if anything goes wrong while receiving
-     * <tt>DatagramPacket</tt>s from {@link #channelDataSocket} and
+     * DatagramPackets from {@link #channelDataSocket} and
      * {@link #receiveChannelDataThread} is to no longer exist
      */
     private void runInReceiveChannelDataThread() throws SocketException {
@@ -816,11 +816,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Sends a datagram packet from this socket. The <tt>DatagramPacket</tt>
+     * Sends a datagram packet from this socket. The DatagramPacket
      * includes information indicating the data to be sent, its length, the IP
      * address of the remote host, and the port number on the remote host.
      *
-     * @param p the <tt>DatagramPacket</tt> to be sent
+     * @param p the DatagramPacket to be sent
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#send(DatagramPacket)
      */
@@ -840,13 +840,13 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Sets the <tt>bound</tt> property of a <tt>Channel</tt> the installation
-     * of which has been attempted by sending a specific <tt>Request</tt>.
+     * Sets the bound property of a Channel the installation
+     * of which has been attempted by sending a specific Request.
      *
-     * @param request the <tt>Request</tt> which has been attempted in order to
-     * install a <tt>Channel</tt>
-     * @param bound <tt>true</tt> if the <tt>bound</tt> property of the
-     * <tt>Channel</tt> is to be set to <tt>true</tt>; otherwise, <tt>false</tt>
+     * @param request the Request which has been attempted in order to
+     * install a Channel
+     * @param bound true if the bound property of the
+     * Channel is to be set to true; otherwise, false
      */
     private void setChannelBound(Request request, boolean bound) {
         XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
@@ -869,14 +869,14 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Sets the <tt>channelNumberIsConfirmed</tt> property of a <tt>Channel</tt>
+     * Sets the channelNumberIsConfirmed property of a Channel
      * which has attempted to allocate a specific channel number by sending a
-     * specific ChannelBind <tt>Request</tt>.
+     * specific ChannelBind Request.
      *
-     * @param request the <tt>Request</tt> which has been sent to allocate a
-     * specific channel number for a <tt>Channel</tt>
-     * @param channelNumberIsConfirmed <tt>true</tt> if the channel number has
-     * been successfully allocated; otherwise, <tt>false</tt>
+     * @param request the Request which has been sent to allocate a
+     * specific channel number for a Channel
+     * @param channelNumberIsConfirmed true if the channel number has
+     * been successfully allocated; otherwise, false
      */
     private void setChannelNumberIsConfirmed(Request request, boolean channelNumberIsConfirmed) {
         XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
@@ -900,77 +900,77 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
     /**
      * Represents a channel which relays data sent through this
-     * <tt>RelayedCandidateDatagramSocket</tt> to a specific
-     * <tt>TransportAddress</tt> via the TURN server associated with this
-     * <tt>RelayedCandidateDatagramSocket</tt>.
+     * RelayedCandidateDatagramSocket to a specific
+     * TransportAddress via the TURN server associated with this
+     * RelayedCandidateDatagramSocket.
      */
     private class Channel {
         /**
          * The time stamp in milliseconds at which {@link #bindingTransactionID}
-         * has been used to bind/install this <tt>Channel</tt>.
+         * has been used to bind/install this Channel.
          */
         private long bindingTimeStamp = -1;
 
         /**
          * The ID of the transaction with which a CreatePermission
-         * <tt>Request</tt> has been sent to bind/install this <tt>Channel</tt>.
+         * Request has been sent to bind/install this Channel.
          */
         private byte[] bindingTransactionID;
 
         /**
          * The indication which determines whether a confirmation has been
-         * received that this <tt>Channel</tt> has been bound.
+         * received that this Channel has been bound.
          */
         private boolean bound = false;
 
         /**
-         * The value of the <tt>data</tt> property of
+         * The value of the data property of
          * {@link #channelDataPacket}.
          */
         private byte[] channelData;
 
         /**
-         * The indicator which determines whether this <tt>Channel</tt> is set
-         * to prefer sending <tt>DatagramPacket</tt>s using TURN ChannelData
+         * The indicator which determines whether this Channel is set
+         * to prefer sending DatagramPackets using TURN ChannelData
          * messages instead of Send indications.
          */
         private boolean channelDataIsPreferred = false;
 
         /**
-         * The <tt>DatagramPacket</tt> in which this <tt>Channel</tt> sends TURN
+         * The DatagramPacket in which this Channel sends TURN
          * ChannelData messages through
          * {@link RelayedCandidateDatagramSocket#channelDataSocket}.
          */
         private DatagramPacket channelDataPacket;
 
         /**
-         * The TURN channel number of this <tt>Channel</tt> which is to be or
-         * has been allocated using a ChannelBind <tt>Request</tt>.
+         * The TURN channel number of this Channel which is to be or
+         * has been allocated using a ChannelBind Request.
          */
         private char channelNumber = CHANNEL_NUMBER_NOT_SPECIFIED;
 
         /**
          * The indicator which determines whether the associated TURN server has
          * confirmed the allocation of {@link #channelNumber} by us receiving a
-         * success <tt>Response</tt> to our ChannelBind <tt>Request</tt>.
+         * success Response to our ChannelBind Request.
          */
         private boolean channelNumberIsConfirmed;
 
         /**
-         * The <tt>TransportAddress</tt> of the peer to which this
-         * <tt>Channel</tt> provides a permission of this
-         * <tt>RelayedCandidateDatagramSocket</tt> to send data to.
+         * The TransportAddress of the peer to which this
+         * Channel provides a permission of this
+         * RelayedCandidateDatagramSocket to send data to.
          */
         public final TransportAddress peerAddress;
 
         /**
-         * Initializes a new <tt>Channel</tt> instance which is to provide this
-         * <tt>RelayedCandidateDatagramSocket</tt> with a permission to send
-         * to a specific peer <tt>TransportAddress</tt>.
+         * Initializes a new Channel instance which is to provide this
+         * RelayedCandidateDatagramSocket with a permission to send
+         * to a specific peer TransportAddress.
          *
-         * @param peerAddress the <tt>TransportAddress</tt> of the peer to which
+         * @param peerAddress the TransportAddress of the peer to which
          * the new instance is to provide a permission of this
-         * <tt>RelayedCandidateDatagramSocket</tt> to send data to
+         * RelayedCandidateDatagramSocket to send data to
          */
         public Channel(TransportAddress peerAddress) {
             this.peerAddress = peerAddress;
@@ -978,8 +978,8 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
         /**
          * Binds/installs this channel so that it provides this
-         * <tt>RelayedCandidateDatagramSocket</tt> with a permission to send
-         * data to the <tt>TransportAddress</tt> associated with this instance.
+         * RelayedCandidateDatagramSocket with a permission to send
+         * data to the TransportAddress associated with this instance.
          *
          * @throws StunException if anything goes wrong while binding/installing
          * this channel
@@ -1020,25 +1020,25 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         }
 
         /**
-         * Determines whether the channel number of this <tt>Channel</tt> is
+         * Determines whether the channel number of this Channel is
          * value equal to a specific channel number.
          *
          * @param channelNumber the channel number to be compared to the channel
-         * number of this <tt>Channel</tt> for value equality
-         * @return <tt>true</tt> if the specified <tt>channelNumber</tt> is
-         * equal to the channel number of this <tt>Channel</tt>
+         * number of this Channel for value equality
+         * @return true if the specified channelNumber is
+         * equal to the channel number of this Channel
          */
         public boolean channelNumberEquals(char channelNumber) {
             return (this.channelNumber == channelNumber);
         }
 
         /**
-         * Gets the indicator which determines whether this <tt>Channel</tt> is
-         * set to prefer sending <tt>DatagramPacket</tt>s using TURN ChannelData
+         * Gets the indicator which determines whether this Channel is
+         * set to prefer sending DatagramPackets using TURN ChannelData
          * messages instead of Send indications.
          *
-         * @return the indicator which determines whether this <tt>Channel</tt>
-         * is set to prefer sending <tt>DatagramPacket</tt>s using TURN
+         * @return the indicator which determines whether this Channel
+         * is set to prefer sending DatagramPackets using TURN
          * ChannelData messages instead of Send indications
          */
         public boolean getChannelDataIsPreferred() {
@@ -1050,9 +1050,9 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
          * binding/installing itself and has not received a confirmation that it
          * has succeeded in doing so yet.
          *
-         * @return <tt>true</tt> if this instance has started binding/installing
+         * @return true if this instance has started binding/installing
          * itself and has not received a confirmation that it has succeeded in
-         * doing so yet; otherwise, <tt>false</tt>
+         * doing so yet; otherwise, false
          */
         public boolean isBinding() {
             return (bindingTransactionID != null);
@@ -1062,8 +1062,8 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
          * Gets the indication which determines whether this instance is
          * currently considered bound/installed.
          *
-         * @return <tt>true</tt> if this instance is currently considered
-         * bound/installed; otherwise, <tt>false</tt>
+         * @return true if this instance is currently considered
+         * bound/installed; otherwise, false
          */
         public boolean isBound() {
             if ((bindingTimeStamp == -1) || (bindingTimeStamp + PERMISSION_LIFETIME - PERMISSION_LIFETIME_LEEWAY) < System.currentTimeMillis())
@@ -1072,16 +1072,16 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         }
 
         /**
-         * Determines whether the <tt>peerAddress</tt> property of this instance
-         * is considered by this <tt>Channel</tt> to be equal to a specific
-         * <tt>TransportAddress</tt>.
+         * Determines whether the peerAddress property of this instance
+         * is considered by this Channel to be equal to a specific
+         * TransportAddress.
          *
-         * @param peerAddress the <tt>TransportAddress</tt> which is to be
-         * checked for equality (as defined by this <tt>Channel</tt> and not
-         * necessarily by the <tt>TransportAddress</tt> class)
-         * @return <tt>true</tt> if the specified <tt>TransportAddress</tt> is
-         * considered by this <tt>Channel</tt> to be equal to its
-         * <tt>peerAddress</tt> property; otherwise, <tt>false</tt>
+         * @param peerAddress the TransportAddress which is to be
+         * checked for equality (as defined by this Channel and not
+         * necessarily by the TransportAddress class)
+         * @return true if the specified TransportAddress is
+         * considered by this Channel to be equal to its
+         * peerAddress property; otherwise, false
          */
         public boolean peerAddressEquals(TransportAddress peerAddress) {
             /*
@@ -1096,15 +1096,15 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         }
 
         /**
-         * Sends a specific <tt>DatagramPacket</tt> through this
-         * <tt>Channel</tt> to a specific peer <tt>TransportAddress</tt>.
+         * Sends a specific DatagramPacket through this
+         * Channel to a specific peer TransportAddress.
          *
-         * @param p the <tt>DatagramPacket</tt> to be sent
-         * @param peerAddress the <tt>TransportAddress</tt> of the peer to which
-         * the <tt>DatagramPacket</tt> is to be sent
+         * @param p the DatagramPacket to be sent
+         * @param peerAddress the TransportAddress of the peer to which
+         * the DatagramPacket is to be sent
          * @throws StunException if anything goes wrong while sending the
-         * specified <tt>DatagramPacket</tt> to the specified peer
-         * <tt>TransportAddress</tt>
+         * specified DatagramPacket to the specified peer
+         * TransportAddress
          */
         public void send(DatagramPacket p, TransportAddress peerAddress) throws StunException {
             byte[] pData = p.getData();
@@ -1158,12 +1158,12 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         }
 
         /**
-         * Sets the indicator which determines whether this <tt>Channel</tt> is
+         * Sets the indicator which determines whether this Channel is
          * bound/installed.
          *
-         * @param bound <tt>true</tt> if this <tt>Channel</tt> is to be marked
-         * as bound/installed; otherwise, <tt>false</tt>
-         * @param boundTransactionID an array of <tt>byte</tt>s which represents
+         * @param bound true if this Channel is to be marked
+         * as bound/installed; otherwise, false
+         * @param boundTransactionID an array of bytes which represents
          * the ID of the transaction with which the confirmation about the
          * binding/installing has arrived
          */
@@ -1175,12 +1175,12 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         }
 
         /**
-         * Sets the indicator which determines whether this <tt>Channel</tt> is
-         * set to prefer sending <tt>DatagramPacket</tt>s using TURN ChannelData
+         * Sets the indicator which determines whether this Channel is
+         * set to prefer sending DatagramPackets using TURN ChannelData
          * messages instead of Send indications.
          *
-         * @param channelDataIsPreferred <tt>true</tt> if this <tt>Channel</tt>
-         * is to be set to prefer sending <tt>DatagramPacket</tt>s using TURN
+         * @param channelDataIsPreferred true if this Channel
+         * is to be set to prefer sending DatagramPackets using TURN
          * ChannelData messages instead of Send indications
          */
         public void setChannelDataIsPreferred(boolean channelDataIsPreferred) {
@@ -1189,15 +1189,15 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
 
         /**
          * Sets the indicator which determines whether the associated TURN
-         * server has confirmed the allocation of the <tt>channelNumber</tt> of
-         * this <tt>Channel</tt> by us receiving a success <tt>Response</tt> to
-         * our ChannelBind <tt>Request</tt>.
+         * server has confirmed the allocation of the channelNumber of
+         * this Channel by us receiving a success Response to
+         * our ChannelBind Request.
          *
-         * @param channelNumberIsConfirmed <tt>true</tt> if allocation of the
-         * channel number has been confirmed by a success <tt>Response</tt> to
-         * our ChannelBind <tt>Request</tt>
+         * @param channelNumberIsConfirmed true if allocation of the
+         * channel number has been confirmed by a success Response to
+         * our ChannelBind Request
          * @param channelNumberIsConfirmedTransactionID an array of
-         * <tt>byte</tt>s which represents the ID of the transaction with which
+         * bytes which represents the ID of the transaction with which
          * the confirmation about the allocation of the channel number has
          * arrived
          */

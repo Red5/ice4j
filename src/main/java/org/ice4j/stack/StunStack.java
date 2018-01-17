@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 public class StunStack implements MessageEventHandler {
 
     /**
-     * The <tt>Logger</tt> used by the <tt>StunStack</tt> class and its instances for logging output.
+     * The Logger used by the StunStack class and its instances for logging output.
      */
     private static final Logger logger = LoggerFactory.getLogger(StunStack.class);
 
@@ -83,7 +83,7 @@ public class StunStack implements MessageEventHandler {
     private final ConcurrentMap<TransactionID, StunClientTransaction> clientTransactions = new ConcurrentHashMap<>();
 
     /**
-     * The <tt>Thread</tt> which expires the <tt>StunServerTransaction</tt>s of this <tt>StunStack</tt> and removes them from
+     * The Thread which expires the StunServerTransactions of this StunStack and removes them from
      * {@link #serverTransactions}.
      */
     private Thread serverTransactionExpireThread;
@@ -104,10 +104,8 @@ public class StunStack implements MessageEventHandler {
     private static PacketLogger packetLogger;
 
     static {
-        /*
-         * The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after we get a response because the
-         * delay may cause the transaction to fail.
-         */
+        // The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after
+        // we get a response because the delay may cause the transaction to fail.
         try {
             mac = Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM);
         } catch (NoSuchAlgorithmException nsaex) {
@@ -156,7 +154,7 @@ public class StunStack implements MessageEventHandler {
      *
      * @param localAddr the local address of the socket to remove.
      * @param remoteAddr the remote address of the socket to remove. Use
-     * <tt>null</tt> for UDP.
+     * null for UDP.
      */
     public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
         //first cancel all transactions using this address.
@@ -165,8 +163,8 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns the transaction with the specified <tt>transactionID</tt> or
-     * <tt>null</tt> if no such transaction exists.
+     * Returns the transaction with the specified transactionID or
+     * null if no such transaction exists.
      *
      * @param transactionID the ID of the transaction we are looking for.
      *
@@ -178,8 +176,8 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns the transaction with the specified <tt>transactionID</tt> or
-     * <tt>null</tt> if no such transaction exists.
+     * Returns the transaction with the specified transactionID or
+     * null if no such transaction exists.
      *
      * @param transactionID the ID of the transaction we are looking for.
      *
@@ -187,9 +185,7 @@ public class StunStack implements MessageEventHandler {
      */
     protected StunServerTransaction getServerTransaction(TransactionID transactionID) {
         StunServerTransaction serverTransaction = serverTransactions.get(transactionID);
-        /*
-         * If a StunServerTransaction is expired, do not return it. It will be removed from serverTransactions soon.
-         */
+        // If a StunServerTransaction is expired, do not return it. It will be removed from serverTransactions soon.
         if (serverTransaction != null && serverTransaction.isExpired()) {
             serverTransaction = null;
         }
@@ -198,7 +194,7 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Cancels the {@link StunClientTransaction} with the specified
-     * <tt>transactionID</tt>. Cancellation means that the stack will not
+     * transactionID. Cancellation means that the stack will not
      * retransmit the request, will not treat the lack of response to be a
      * failure, but will wait the duration of the transaction timeout for a
      * response.
@@ -214,15 +210,15 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Stops all transactions for the specified <tt>localAddr</tt> so that they
+     * Stops all transactions for the specified localAddr so that they
      * won't send messages through any longer and so that we could remove the
      * associated socket.
      *
-     * @param localAddr the <tt>TransportAddress</tt> that we'd like to remove
+     * @param localAddr the TransportAddress that we'd like to remove
      * transactions for.
-     * @param remoteAddr the remote <tt>TransportAddress</tt> that we'd like to
-     * remove transactions for. If <tt>null</tt>, then it will not be taken
-     * into account (that is, all transactions with for <tt>localAddr</tt> will
+     * @param remoteAddr the remote TransportAddress that we'd like to
+     * remove transactions for. If null, then it will not be taken
+     * into account (that is, all transactions with for localAddr will
      * be cancelled).
      */
     private void cancelTransactionsForAddress(TransportAddress localAddr, TransportAddress remoteAddr) {
@@ -245,13 +241,13 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Initializes a new <tt>StunStack</tt> instance with given
+     * Initializes a new StunStack instance with given
      * peerUdpMessageEventHandler and channelDataEventHandler.
      * 
-     * @param peerUdpMessageEventHandler the <tt>PeerUdpMessageEventHandler</tt>
+     * @param peerUdpMessageEventHandler the PeerUdpMessageEventHandler
      *            that will handle incoming UDP messages which are not STUN
      *            messages and ChannelData messages.
-     * @param channelDataEventHandler the <tt>ChannelDataEventHandler</tt> that
+     * @param channelDataEventHandler the ChannelDataEventHandler that
      *            will handle incoming UDP messages which are ChannelData
      *            messages.
      */
@@ -260,7 +256,7 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Initializes a new <tt>StunStack</tt> instance.
+     * Initializes a new StunStack instance.
      */
     public StunStack() {
         this(null, null);
@@ -275,21 +271,21 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends a specific STUN <tt>Indication</tt> to a specific destination
-     * <tt>TransportAddress</tt> through a socket registered with this
-     * <tt>StunStack</tt> using a specific <tt>TransportAddress</tt>.
+     * Sends a specific STUN Indication to a specific destination
+     * TransportAddress through a socket registered with this
+     * StunStack using a specific TransportAddress.
      *
-     * @param channelData the STUN <tt>Indication</tt> to be sent to the
-     * specified destination <tt>TransportAddress</tt> through the socket with
-     * the specified <tt>TransportAddress</tt>
-     * @param sendTo the <tt>TransportAddress</tt> of the destination to which
-     * the specified <tt>indication</tt> is to be sent
-     * @param sendThrough the <tt>TransportAddress</tt> of the socket registered
-     * with this <tt>StunStack</tt> through which the specified
-     * <tt>indication</tt> is to be sent
+     * @param channelData the STUN Indication to be sent to the
+     * specified destination TransportAddress through the socket with
+     * the specified TransportAddress
+     * @param sendTo the TransportAddress of the destination to which
+     * the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered
+     * with this StunStack through which the specified
+     * indication is to be sent
      * @throws StunException if anything goes wrong while sending the specified
-     * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
-     * identified by <tt>sendThrough</tt>
+     * indication to the destination sendTo through the socket
+     * identified by sendThrough
      */
     public void sendChannelData(ChannelData channelData, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
         try {
@@ -304,21 +300,21 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends a specific STUN <tt>Indication</tt> to a specific destination
-     * <tt>TransportAddress</tt> through a socket registered with this
-     * <tt>StunStack</tt> using a specific <tt>TransportAddress</tt>.
+     * Sends a specific STUN Indication to a specific destination
+     * TransportAddress through a socket registered with this
+     * StunStack using a specific TransportAddress.
      *
-     * @param udpMessage the <tt>RawMessage</tt> to be sent to the
-     * specified destination <tt>TransportAddress</tt> through the socket with
-     * the specified <tt>TransportAddress</tt>
-     * @param sendTo the <tt>TransportAddress</tt> of the destination to which
-     * the specified <tt>indication</tt> is to be sent
-     * @param sendThrough the <tt>TransportAddress</tt> of the socket registered
-     * with this <tt>StunStack</tt> through which the specified
-     * <tt>indication</tt> is to be sent
+     * @param udpMessage the RawMessage to be sent to the
+     * specified destination TransportAddress through the socket with
+     * the specified TransportAddress
+     * @param sendTo the TransportAddress of the destination to which
+     * the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered
+     * with this StunStack through which the specified
+     * indication is to be sent
      * @throws StunException if anything goes wrong while sending the specified
-     * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
-     * identified by <tt>sendThrough</tt>
+     * indication to the destination sendTo through the socket
+     * identified by sendThrough
      */
     public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
         try {
@@ -331,21 +327,21 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends a specific STUN <tt>Indication</tt> to a specific destination
-     * <tt>TransportAddress</tt> through a socket registered with this
-     * <tt>StunStack</tt> using a specific <tt>TransportAddress</tt>.
+     * Sends a specific STUN Indication to a specific destination
+     * TransportAddress through a socket registered with this
+     * StunStack using a specific TransportAddress.
      *
-     * @param indication the STUN <tt>Indication</tt> to be sent to the
-     * specified destination <tt>TransportAddress</tt> through the socket with
-     * the specified <tt>TransportAddress</tt>
-     * @param sendTo the <tt>TransportAddress</tt> of the destination to which
-     * the specified <tt>indication</tt> is to be sent
-     * @param sendThrough the <tt>TransportAddress</tt> of the socket registered
-     * with this <tt>StunStack</tt> through which the specified
-     * <tt>indication</tt> is to be sent
+     * @param indication the STUN Indication to be sent to the
+     * specified destination TransportAddress through the socket with
+     * the specified TransportAddress
+     * @param sendTo the TransportAddress of the destination to which
+     * the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered
+     * with this StunStack through which the specified
+     * indication is to be sent
      * @throws StunException if anything goes wrong while sending the specified
-     * <tt>indication</tt> to the destination <tt>sendTo</tt> through the socket
-     * identified by <tt>sendThrough</tt>
+     * indication to the destination sendTo through the socket
+     * identified by sendThrough
      */
     public void sendIndication(Indication indication, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
         if (indication.getTransactionID() == null) {
@@ -369,7 +365,7 @@ public class StunStack implements MessageEventHandler {
      * @param  collector   the instance to notify when a response arrives or the
      *                     the transaction timeouts
      *
-     * @return the <tt>TransactionID</tt> of the <tt>StunClientTransaction</tt>
+     * @return the TransactionID of the StunClientTransaction
      * that we used in order to send the request.
      *
      * @throws IOException  if an error occurs while sending message bytes
@@ -393,7 +389,7 @@ public class StunStack implements MessageEventHandler {
      * in case the application created it in order to use it for application
      * data correlation.
      *
-     * @return the <tt>TransactionID</tt> of the <tt>StunClientTransaction</tt>
+     * @return the TransactionID of the StunClientTransaction
      * that we used in order to send the request.
      *
      * @throws IllegalArgumentException if the apDescriptor references an
@@ -423,7 +419,7 @@ public class StunStack implements MessageEventHandler {
      * @param maxRetransmissions Maximum number of retransmissions. Once this
      * number is reached and if no response is received after maxWaitInterval
      * milliseconds the request is considered unanswered.
-     * @return the <tt>TransactionID</tt> of the <tt>StunClientTransaction</tt>
+     * @return the TransactionID of the StunClientTransaction
      * that we used in order to send the request.
      *
      * @throws IllegalArgumentException if the apDescriptor references an
@@ -457,7 +453,7 @@ public class StunStack implements MessageEventHandler {
      * @param  collector   the instance to notify when a response arrives or the
      *                     the transaction timeouts
      *
-     * @return the <tt>TransactionID</tt> of the <tt>StunClientTransaction</tt>
+     * @return the TransactionID of the StunClientTransaction
      * that we used in order to send the request.
      *
      * @throws IOException  if an error occurs while sending message bytes
@@ -500,30 +496,30 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Adds a new <tt>MessageEventHandler</tt> which is to be notified about
-     * STUN indications received at a specific local <tt>TransportAddress</tt>.
+     * Adds a new MessageEventHandler which is to be notified about
+     * STUN indications received at a specific local TransportAddress.
      *
-     * @param localAddr the <tt>TransportAddress</tt> of the local socket for
+     * @param localAddr the TransportAddress of the local socket for
      * which received STUN indications are to be reported to the specified
-     * <tt>MessageEventHandler</tt>
-     * @param indicationListener the <tt>MessageEventHandler</tt> which is to be
+     * MessageEventHandler
+     * @param indicationListener the MessageEventHandler which is to be
      * registered for notifications about STUN indications received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     public void addIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
         eventDispatcher.addIndicationListener(localAddr, indicationListener);
     }
 
     /**
-     * Adds a new <tt>MessageEventHandler</tt> which is to be notified about
-     * old indications received at a specific local <tt>TransportAddress</tt>.
+     * Adds a new MessageEventHandler which is to be notified about
+     * old indications received at a specific local TransportAddress.
      *
-     * @param localAddr the <tt>TransportAddress</tt> of the local socket for
+     * @param localAddr the TransportAddress of the local socket for
      * which received STUN indications are to be reported to the specified
-     * <tt>MessageEventHandler</tt>
-     * @param indicationListener the <tt>MessageEventHandler</tt> which is to be
+     * MessageEventHandler
+     * @param indicationListener the MessageEventHandler which is to be
      * registered for notifications about old indications received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     public void addOldIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
         eventDispatcher.addOldIndicationListener(localAddr, indicationListener);
@@ -538,16 +534,16 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Removes an existing <tt>MessageEventHandler</tt> to no longer be notified
+     * Removes an existing MessageEventHandler to no longer be notified
      * about STUN indications received at a specific local
-     * <tt>TransportAddress</tt>.
+     * TransportAddress.
      *
-     * @param localAddr the <tt>TransportAddress</tt> of the local socket for
+     * @param localAddr the TransportAddress of the local socket for
      * which received STUN indications are to no longer be reported to the
-     * specified <tt>MessageEventHandler</tt>
-     * @param indicationListener the <tt>MessageEventHandler</tt> which is to be
+     * specified MessageEventHandler
+     * @param indicationListener the MessageEventHandler which is to be
      * unregistered for notifications about STUN indications received at the
-     * specified local <tt>TransportAddress</tt>
+     * specified local TransportAddress
      */
     public void removeIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
     }
@@ -567,7 +563,7 @@ public class StunStack implements MessageEventHandler {
      * The listener will be invoked only when a request event is received on
      * that specific property.
      *
-     * @param localAddress The local <tt>TransportAddress</tt> that we would
+     * @param localAddress The local TransportAddress that we would
      * like to listen on.
      * @param listener The ConfigurationChangeListener to be added
      */
@@ -577,7 +573,7 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Removes a client transaction from this providers client transactions
-     * list. The method is used by <tt>StunClientTransaction</tt>s themselves
+     * list. The method is used by StunClientTransactions themselves
      * when a timeout occurs.
      *
      * @param tran the transaction to remove.
@@ -754,7 +750,7 @@ public class StunStack implements MessageEventHandler {
      * Request} that we need to validate.
      *
      * @throws IllegalArgumentException if there's something in the
-     * <tt>attribute</tt> that caused us to discard the whole message (e.g. an
+     * attribute that caused us to discard the whole message (e.g. an
      * invalid checksum
      * or username)
      * @throws StunException if we fail while sending an error response.
@@ -807,7 +803,7 @@ public class StunStack implements MessageEventHandler {
 
         //look for unknown attributes.
         List<Attribute> allAttributes = request.getAttributes();
-        StringBuffer sBuff = new StringBuffer();
+        StringBuilder sBuff = new StringBuilder();
         for (Attribute attr : allAttributes) {
             if (attr instanceof OptionalAttribute && attr.getAttributeType().getType() < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType())
                 sBuff.append(attr.getAttributeType());
@@ -823,26 +819,20 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Recalculates the HMAC-SHA1 signature of the <tt>message</tt> array so
-     * that we could compare it with the value brought by the
+     * Recalculates the HMAC-SHA1 signature of the message array so that we could compare it with the value brought by the
      * {@link MessageIntegrityAttribute}.
      *
      * @param msgInt the attribute that we need to validate.
-     * @param username the user name that the message integrity checksum is
-     * supposed to have been built for.
-     * @param shortTermCredentialMechanism <tt>true</tt> if <tt>msgInt</tt> is
-     * to be validated as part of the STUN short-term credential mechanism or
-     * <tt>false</tt> for the STUN long-term credential mechanism
+     * @param username the user name that the message integrity checksum is supposed to have been built for.
+     * @param shortTermCredentialMechanism true if msgInt is to be validated as part of the STUN short-term credential mechanism or
+     * false for the STUN long-term credential mechanism
      * @param message the message whose SHA1 checksum we'd need to recalculate.
-     *
-     * @return <tt>true</tt> if <tt>msgInt</tt> contains a valid SHA1 value and
-     * <tt>false</tt> otherwise.
+     * @return true if msgInt contains a valid SHA1 value and false otherwise.
      */
     public boolean validateMessageIntegrity(MessageIntegrityAttribute msgInt, String username, boolean shortTermCredentialMechanism, RawMessage message) {
         if (logger.isDebugEnabled()) {
             logger.debug("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
             logger.debug("RawMessage: {}\n{}", message.getMessageLength(), toHexString(message.getBytes()));
-
         }
         if ((username == null) || (username.length() < 1) || (shortTermCredentialMechanism && !username.contains(":"))) {
             logger.debug("Received a message with an improperly formatted username");
@@ -892,12 +882,12 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns a <tt>String</tt> representation of a specific <tt>byte</tt>
+     * Returns a String representation of a specific byte
      * array as an unsigned integer in base 16.
      *
-     * @param bytes the <tt>byte</tt> to get the <tt>String</tt> representation
+     * @param bytes the byte to get the String representation
      * of as an unsigned integer in base 16
-     * @return a <tt>String</tt> representation of the specified <tt>byte</tt>
+     * @return a String representation of the specified byte
      * array as an unsigned integer in base 16
      */
     public static String toHexString(byte[] bytes) {
@@ -918,12 +908,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Asserts the validity of a specific username (e.g. which we've received in
-     * a USERNAME attribute).
+     * Asserts the validity of a specific username (e.g. which we've received in a USERNAME attribute).
      *
      * @param username the username to be validated
-     * @return <tt>true</tt> if <tt>username</tt> contains a valid username;
-     * <tt>false</tt>, otherwise
+     * @return true if username contains a valid username; false, otherwise
      */
     private boolean validateUsername(String username) {
         int colon = username.indexOf(":");
@@ -958,16 +946,14 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Checks whether packet logger is set and enabled.
-     * @return <tt>true</tt> if we have a packet logger instance and
-     *  it is enabled.
+     * @return true if we have a packet logger instance and it is enabled.
      */
     public static boolean isPacketLoggerEnabled() {
         return packetLogger != null && packetLogger.isEnabled();
     }
 
     /**
-     * Initializes and starts {@link #serverTransactionExpireThread} if
-     * necessary.
+     * Initializes and starts {@link #serverTransactionExpireThread} if necessary.
      */
     private void maybeStartServerTransactionExpireThread() {
         if (!serverTransactions.isEmpty() && (serverTransactionExpireThread == null)) {
@@ -996,7 +982,7 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Runs in {@link #serverTransactionExpireThread} and expires the
-     * <tt>StunServerTransaction</tt>s of this <tt>StunStack</tt> and removes
+     * StunServerTransactions of this StunStack and removes
      * them from {@link #serverTransactions}.
      */
     private void runInServerTransactionExpireThread() {
@@ -1008,10 +994,7 @@ public class StunStack implements MessageEventHandler {
                     Thread.sleep(StunServerTransaction.LIFETIME);
                 } catch (InterruptedException ie) {
                 }
-
-                /*
-                 * Is the current Thread still designated to expire the StunServerTransactions of this StunStack?
-                 */
+                // Is the current Thread still designated to expire the StunServerTransactions of this StunStack?
                 if (Thread.currentThread() != serverTransactionExpireThread)
                     break;
 
@@ -1045,9 +1028,7 @@ public class StunStack implements MessageEventHandler {
         } finally {
             if (serverTransactionExpireThread == Thread.currentThread())
                 serverTransactionExpireThread = null;
-            /*
-             * If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
-             */
+            // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
             if (serverTransactionExpireThread == null)
                 maybeStartServerTransactionExpireThread();
         }
@@ -1077,16 +1058,12 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Logs a specific <tt>DatagramPacket</tt> using the packet logger of the
-     * <tt>StunStack</tt>.
+     * Logs a specific DatagramPacket using the packet logger of the StunStack.
      *
-     * @param p The <tt>DatagramPacket</tt> to log.
-     * @param isSent <tt>true</tt> if the packet is sent, or <tt>false</tt>
-     * if the packet is received.
-     * @param interfaceAddress The <tt>InetAddress</tt> to use as source (if
-     * the packet was sent) or destination (if the packet was received).
-     * @param interfacePort The port to use as source (if the packet was sent)
-     * or destination (if the packet was received).
+     * @param p The DatagramPacket to log.
+     * @param isSent true if the packet is sent, or false if the packet is received.
+     * @param interfaceAddress The InetAddress to use as source (if the packet was sent) or destination (if the packet was received).
+     * @param interfacePort The port to use as source (if the packet was sent) or destination (if the packet was received).
      */
     public static void logPacketToPcap(DatagramPacket p, boolean isSent, InetAddress interfaceAddress, int interfacePort) {
         if (interfaceAddress != null && isPacketLoggerEnabled()) {

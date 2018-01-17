@@ -15,15 +15,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The class that would be handling and responding to incoming connectivity
- * checks.
+ * The class that would be handling and responding to incoming connectivity checks.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
 class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     /**
-     * The <tt>Logger</tt> used by the <tt>ConnectivityCheckServer</tt>
+     * The Logger used by the ConnectivityCheckServer
      * class and its instances for logging output.
      * Note that this shouldn't be used directly by instances of
      * {@link ConnectivityCheckServer}, because it doesn't take into account
@@ -32,11 +31,11 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckServer.class);
 
     /**
-     * Compares <tt>a</tt> and <tt>b</tt> as unsigned long values. Serves the
-     * same purpose as the <tt>Long.compareUnsigned</tt> method available in
+     * Compares a and b as unsigned long values. Serves the
+     * same purpose as the Long.compareUnsigned method available in
      * Java 1.8.
-     * @return <tt>-1</tt> if <tt>a</tt> is less than <tt>b</tt>, <tt>0</tt> if
-     * they are equal and <tt>1</tt> if <tt>a</tt> is bigger.
+     * @return -1 if a is less than b, 0 if
+     * they are equal and 1 if a is bigger.
      */
     private static int compareUnsignedLong(long a, long b) {
         if (a == b)
@@ -54,12 +53,12 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
 
     /**
      * The indicator which determines whether this
-     * <tt>ConnectivityCheckServer</tt> is currently started.
+     * ConnectivityCheckServer is currently started.
      */
     private boolean started;
 
     /**
-     * The <tt>StunStack </tt> that we will use for connectivity checks.
+     * The StunStack  that we will use for connectivity checks.
      */
     private final StunStack stunStack;
 
@@ -69,11 +68,11 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     private boolean alive;
 
     /**
-     * Creates a new <tt>ConnectivityCheckServer</tt> setting
-     * <tt>parentAgent</tt> as the agent that will be used for retrieving
+     * Creates a new ConnectivityCheckServer setting
+     * parentAgent as the agent that will be used for retrieving
      * information such as user fragments for example.
      *
-     * @param parentAgent the <tt>Agent</tt> that is creating this instance.
+     * @param parentAgent the Agent that is creating this instance.
      */
     public ConnectivityCheckServer(Agent parentAgent) {
         this.parentAgent = parentAgent;
@@ -102,7 +101,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Handles the {@link Request} delivered in <tt>evt</tt> by possibly
+     * Handles the {@link Request} delivered in evt by possibly
      * queuing a triggered check and sending a success or an error response
      * depending on how processing goes.
      *
@@ -178,13 +177,13 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Returns the value of the {@link PriorityAttribute} in <tt>request</tt> if
-     * there is one or throws an <tt>IllegalArgumentException</tt> with the
+     * Returns the value of the {@link PriorityAttribute} in request if
+     * there is one or throws an IllegalArgumentException with the
      * corresponding message.
      *
      * @param request the {@link Request} whose priority we'd like to obtain.
      *
-     * @return the value of the {@link PriorityAttribute} in <tt>request</tt> if
+     * @return the value of the {@link PriorityAttribute} in request if
      * there is one
      *
      * @throws IllegalArgumentException if the request does not contain a
@@ -210,19 +209,19 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Resolves a role conflicts by either sending a <tt>487 Role Conflict</tt>
+     * Resolves a role conflicts by either sending a 487 Role Conflict
      * response or by changing this server's parent agent role. The method
-     * returns <tt>true</tt> if the role conflict is silently resolved and
-     * processing can continue. It returns <tt>false</tt> if we had to reply
+     * returns true if the role conflict is silently resolved and
+     * processing can continue. It returns false if we had to reply
      * with a 487 and processing needs to stop until a repaired request is
      * received.
      *
      * @param evt the {@link StunMessageEvent} containing the
-     * <tt>ICE-CONTROLLING</tt> or <tt>ICE-CONTROLLED</tt> attribute that
+     * ICE-CONTROLLING or ICE-CONTROLLED attribute that
      * allowed us to detect the role conflict.
      *
-     * @return <tt>true</tt> if the role conflict is silently resolved and
-     * processing can continue and <tt>false</tt> otherwise.
+     * @return true if the role conflict is silently resolved and
+     * processing can continue and false otherwise.
      */
     private boolean repairRoleConflict(StunMessageEvent evt) {
         Message req = evt.getMessage();
@@ -301,13 +300,13 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Verifies whether <tt>username</tt> is currently known to this server
-     * and returns <tt>true</tt> if so. Returns <tt>false</tt> otherwise.
+     * Verifies whether username is currently known to this server
+     * and returns true if so. Returns false otherwise.
      *
      * @param username the user name whose validity we'd like to check.
      *
-     * @return <tt>true</tt> if <tt>username</tt> is known to this
-     * <tt>ConnectivityCheckServer</tt> and <tt>false</tt> otherwise.
+     * @return true if username is known to this
+     * ConnectivityCheckServer and false otherwise.
      */
     public boolean checkLocalUserName(String username) {
         String ufrag = username.split(":")[0];
@@ -317,13 +316,13 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     /**
      * Implements the {@link CredentialsAuthority#getLocalKey(String)} method in
      * a way that would return this handler's parent agent password if
-     * <tt>username</tt> is either the local ufrag or the username that the
+     * username is either the local ufrag or the username that the
      * agent's remote peer was expected to use.
      *
      * @param username the local ufrag that we should return a password for.
      *
-     * @return this handler's parent agent local password if <tt>username</tt>
-     * equals the local ufrag and <tt>null</tt> otherwise.
+     * @return this handler's parent agent local password if username
+     * equals the local ufrag and null otherwise.
      */
     public byte[] getLocalKey(String username) {
         return checkLocalUserName(username) ? parentAgent.getLocalPassword().getBytes() : null;
@@ -332,14 +331,14 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     /**
      * Implements the {@link CredentialsAuthority#getRemoteKey(String, String)}
      * method in a way that would return this handler's parent agent remote
-     * password if <tt>username</tt> is either the remote ufrag or the username
+     * password if username is either the remote ufrag or the username
      * that we are expected to use when querying the remote peer.
      *
      * @param username the remote ufrag that we should return a password for.
      * @param media the media name that we want to get remote key.
      *
-     * @return this handler's parent agent remote password if <tt>username</tt>
-     * equals the remote ufrag and <tt>null</tt> otherwise.
+     * @return this handler's parent agent remote password if username
+     * equals the remote ufrag and null otherwise.
      */
     public byte[] getRemoteKey(String username, String media) {
         IceMediaStream stream = parentAgent.getStream(media);
@@ -366,7 +365,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Starts this <tt>ConnectivityCheckServer</tt>. If it is not currently
+     * Starts this ConnectivityCheckServer. If it is not currently
      * running, does nothing.
      */
     public void start() {
@@ -377,8 +376,8 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Stops this <tt>ConnectivityCheckServer</tt>. A stopped
-     * <tt>ConnectivityCheckServer</tt> can be restarted by calling
+     * Stops this ConnectivityCheckServer. A stopped
+     * ConnectivityCheckServer can be restarted by calling
      * {@link #start()} on it.
      */
     public void stop() {

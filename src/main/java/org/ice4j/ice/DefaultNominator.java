@@ -59,8 +59,8 @@ public class DefaultNominator
     private final static Logger logger = LoggerFactory.getLogger(DefaultNominator.class);
 
     /**
-     * Creates a new instance of this nominator using <tt>parentAgent</tt> as
-     * a reference to the <tt>Agent</tt> instance that we should use to
+     * Creates a new instance of this nominator using parentAgent as
+     * a reference to the Agent instance that we should use to
      * nominate pairs.
      *
      * @param parentAgent the {@link Agent} that created us.

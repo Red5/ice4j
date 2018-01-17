@@ -19,9 +19,7 @@ import java.util.logging.Logger;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * If supported by the runtime, initializes {@link ServerSocketChannel}s which
- * are capable of sharing their listening endpoints with multiple others like
- * them.
+ * If supported by the runtime, initializes {@link ServerSocketChannel}s which are capable of sharing their listening endpoints with multiple others like them.
  *
  * @author Lyubomir Marinov
  */

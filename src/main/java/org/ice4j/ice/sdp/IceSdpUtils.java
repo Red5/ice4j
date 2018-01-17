@@ -1,29 +1,34 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.sdp;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
-import org.opentelecoms.javax.sdp.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import javax.sdp.*;
-import java.util.*;
-import java.util.logging.*;
+import javax.sdp.Attribute;
+import javax.sdp.Connection;
+import javax.sdp.MediaDescription;
+import javax.sdp.Origin;
+import javax.sdp.SdpConstants;
+import javax.sdp.SdpException;
+import javax.sdp.SdpFactory;
+import javax.sdp.SessionDescription;
+
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Agent;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.LocalCandidate;
+import org.opentelecoms.javax.sdp.NistSdpFactory;
 
 /**
  * A number of utility methods that WebRTC or SIP applications may find useful
@@ -31,8 +36,7 @@ import java.util.logging.*;
  *
  * @author Emil Ivov
  */
-public class IceSdpUtils
-{
+public class IceSdpUtils {
     /**
      * The name of the SDP attribute that contains an ICE user fragment.
      */
@@ -75,11 +79,10 @@ public class IceSdpUtils
     private static final SdpFactory sdpFactory = new NistSdpFactory();
 
     /**
-     * The <tt>Logger</tt> used by the <tt>IceSdpUtils</tt>
+     * The Logger used by the IceSdpUtils
      * class and its instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(IceSdpUtils.class.getName());
+    private static final Logger logger = Logger.getLogger(IceSdpUtils.class.getName());
 
     /**
      * Sets the specified ICE user fragment and password as attributes of the
@@ -94,20 +97,14 @@ public class IceSdpUtils
      *
      * @throws NullPointerException if the either of the parameters is null
      */
-    @SuppressWarnings("unchecked") // SDP legacy
-    public static void setIceCredentials(SessionDescription sDes,
-                                         String             uFrag,
-                                         String             pwd)
-        throws NullPointerException
-    {
-        if (sDes == null || uFrag == null || pwd == null)
-        {
-            throw new NullPointerException(
-                "sDes, uFrag and pwd, cannot be null");
+    @SuppressWarnings("unchecked")
+    // SDP legacy
+    public static void setIceCredentials(SessionDescription sDes, String uFrag, String pwd) throws NullPointerException {
+        if (sDes == null || uFrag == null || pwd == null) {
+            throw new NullPointerException("sDes, uFrag and pwd, cannot be null");
         }
 
-        try
-        {
+        try {
             Vector<Attribute> sessionAttributes = sDes.getAttributes(true);
 
             //ice u-frag and password
@@ -115,20 +112,16 @@ public class IceSdpUtils
             sessionAttributes.add(sdpFactory.createAttribute(ICE_PWD, pwd));
 
             sDes.setAttributes(sessionAttributes);
-        }
-        catch (Exception cause)
-        {
-           // this is very unlikely to happen but we should still log.
-           // Just in case.
-           logger.log(Level.INFO,
-               "Failed to set ICE credentials for some weird reason",
-               cause);
+        } catch (Exception cause) {
+            // this is very unlikely to happen but we should still log.
+            // Just in case.
+            logger.log(Level.INFO, "Failed to set ICE credentials for some weird reason", cause);
         }
     }
 
     /**
      * Reflects the candidates from the various components in
-     * <tt>iceMediaStream</tt> into the specified m-line. Also sets default
+     * iceMediaStream into the specified m-line. Also sets default
      * candidates into m= lines and c= lines. This method uses media level
      * c= lines. They override session level making them pointless. This
      * shouldn't be causing problems, but for good taste, make sure you don't
@@ -140,69 +133,49 @@ public class IceSdpUtils
      * from.
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static void initMediaDescription(MediaDescription mediaDescription,
-                                            IceMediaStream   iceMediaStream)
-    {
-        try
-        {
+    public static void initMediaDescription(MediaDescription mediaDescription, IceMediaStream iceMediaStream) {
+        try {
             //set mid-s
             mediaDescription.setAttribute(MID, iceMediaStream.getName());
 
             Component firstComponent = null;
 
             //add candidates
-            for(Component component : iceMediaStream.getComponents())
-            {
+            for (Component component : iceMediaStream.getComponents()) {
                 //if this is the first component, remember it so that we can
                 //later use it for default candidates.
-                if(firstComponent == null)
+                if (firstComponent == null)
                     firstComponent = component;
 
                 Vector attributes = mediaDescription.getAttributes(true);
-                for(Candidate<?> candidate : component.getLocalCandidates())
-                {
+                for (Candidate<?> candidate : component.getLocalCandidates()) {
                     attributes.add(new CandidateAttribute(candidate));
                 }
             }
 
             //set the default candidate
-            TransportAddress defaultAddress = firstComponent
-                .getDefaultCandidate().getTransportAddress();
+            TransportAddress defaultAddress = firstComponent.getDefaultCandidate().getTransportAddress();
 
-            mediaDescription.getMedia().setMediaPort(
-                defaultAddress.getPort());
+            mediaDescription.getMedia().setMediaPort(defaultAddress.getPort());
 
-            String addressFamily = defaultAddress.isIPv6()
-                                ? Connection.IP6
-                                : Connection.IP4;
+            String addressFamily = defaultAddress.isIPv6() ? Connection.IP6 : Connection.IP4;
 
-            mediaDescription.setConnection(sdpFactory.createConnection(
-                "IN", defaultAddress.getHostAddress(), addressFamily));
+            mediaDescription.setConnection(sdpFactory.createConnection("IN", defaultAddress.getHostAddress(), addressFamily));
 
-            //now check if the RTCP port for the default candidate is different
-            //than RTP.port +1, in which case we need to mention it.
-            Component rtcpComponent
-                = iceMediaStream.getComponent(Component.RTCP);
+            //now check if the RTCP port for the default candidate is different than RTP.port +1, in which case we need to mention it.
+            Component rtcpComponent = iceMediaStream.getComponent(2);
 
-            if( rtcpComponent != null )
-            {
-                TransportAddress defaultRtcpCandidate = rtcpComponent
-                    .getDefaultCandidate().getTransportAddress();
+            if (rtcpComponent != null) {
+                TransportAddress defaultRtcpCandidate = rtcpComponent.getDefaultCandidate().getTransportAddress();
 
-                if(defaultRtcpCandidate.getPort() != defaultAddress.getPort()+1)
-                {
-                    mediaDescription.setAttribute(
-                        RTCP, Integer.toString(defaultRtcpCandidate.getPort()));
+                if (defaultRtcpCandidate.getPort() != defaultAddress.getPort() + 1) {
+                    mediaDescription.setAttribute(RTCP, Integer.toString(defaultRtcpCandidate.getPort()));
                 }
             }
-        }
-        catch (SdpException exc)
-        {
+        } catch (SdpException exc) {
             //this shouldn't happen but let's rethrow an SDP exception just
             //in case.
-            throw new IllegalArgumentException(
-                "Something went wrong when setting default candidates",
-                exc);
+            throw new IllegalArgumentException("Something went wrong when setting default candidates", exc);
         }
     }
 
@@ -218,53 +191,40 @@ public class IceSdpUtils
      * @throws  IllegalArgumentException Obviously, if there's a problem with
      * the arguments ... duh!
      */
-    @SuppressWarnings("unchecked") // jain-sdp legacy
-    public static void initSessionDescription(SessionDescription sDes,
-                                              Agent              agent)
-        throws IllegalArgumentException
-    {
+    @SuppressWarnings("unchecked")
+    // jain-sdp legacy
+    public static void initSessionDescription(SessionDescription sDes, Agent agent) throws IllegalArgumentException {
         //now add ICE options
         StringBuilder allOptionsBuilder = new StringBuilder();
 
         //if(agent.supportsTrickle())
-            allOptionsBuilder.append(ICE_OPTION_TRICKLE).append(" ");
+        allOptionsBuilder.append(ICE_OPTION_TRICKLE).append(" ");
 
         String allOptions = allOptionsBuilder.toString().trim();
 
-        try
-        {
-            if (allOptions.length() > 0)
-            {
+        try {
+            if (allOptions.length() > 0) {
                 //get the attributes so that we could easily modify them
                 Vector<Attribute> sessionAttributes = sDes.getAttributes(true);
 
-                sessionAttributes.add(
-                    sdpFactory.createAttribute(ICE_OPTIONS, allOptions));
+                sessionAttributes.add(sdpFactory.createAttribute(ICE_OPTIONS, allOptions));
             }
 
             //take care of the origin: first extract one of the default
             // addresses so that we could set the origin.
-            TransportAddress defaultAddress = agent.getStreams().get(0)
-                .getComponent(Component.RTP).getDefaultCandidate()
-                    .getTransportAddress();
+            TransportAddress defaultAddress = agent.getStreams().get(0).getComponent(1).getDefaultCandidate().getTransportAddress();
 
-            String addressFamily = defaultAddress.isIPv6()
-                                        ? Connection.IP6
-                                        : Connection.IP4;
+            String addressFamily = defaultAddress.isIPv6() ? Connection.IP6 : Connection.IP4;
 
             //origin
             Origin o = sDes.getOrigin();
 
-            if( o == null || "user".equals(o.getUsername()))
-            {
+            if (o == null || "user".equals(o.getUsername())) {
                 //looks like there wasn't any origin set: jain-sdp creates a
                 //default origin that has "user" as the user name so we use this
                 //to detect it. it's quite hacky but couldn't fine another way.
-                o = sdpFactory.createOrigin("ice4j.org", 0, 0, "IN",
-                        addressFamily, defaultAddress.getHostAddress());
-            }
-            else
-            {
+                o = sdpFactory.createOrigin("ice4j.org", 0, 0, "IN", addressFamily, defaultAddress.getHostAddress());
+            } else {
                 //if an origin existed, we just make sure it has the right
                 // address now and are care ful not to touch anything else.
                 o.setAddress(defaultAddress.getHostAddress());
@@ -275,39 +235,30 @@ public class IceSdpUtils
 
             //m lines
             List<IceMediaStream> streams = agent.getStreams();
-            Vector<MediaDescription> mDescs
-                = new Vector<>(agent.getStreamCount());
-            for(IceMediaStream stream : streams)
-            {
-               MediaDescription mLine = sdpFactory.createMediaDescription(
-                               stream.getName(), 0, //default port comes later
-                               1, SdpConstants.RTP_AVP, new int[]{0});
+            Vector<MediaDescription> mDescs = new Vector<>(agent.getStreamCount());
+            for (IceMediaStream stream : streams) {
+                MediaDescription mLine = sdpFactory.createMediaDescription(stream.getName(), 0, //default port comes later
+                        1, SdpConstants.RTP_AVP, new int[] { 0 });
 
-               IceSdpUtils.initMediaDescription(mLine, stream);
+                IceSdpUtils.initMediaDescription(mLine, stream);
 
-               mDescs.add(mLine);
+                mDescs.add(mLine);
             }
 
             sDes.setMediaDescriptions(mDescs);
-        }
-        catch (SdpException exc)
-        {
+        } catch (SdpException exc) {
             //this shouldn't happen but let's rethrow an SDP exception just
             //in case.
-            throw new IllegalArgumentException(
-                "Something went wrong when setting ICE options",
-                exc);
+            throw new IllegalArgumentException("Something went wrong when setting ICE options", exc);
         }
 
         //first set credentials
-        setIceCredentials(
-            sDes, agent.getLocalUfrag(), agent.getLocalPassword());
+        setIceCredentials(sDes, agent.getLocalUfrag(), agent.getLocalPassword());
     }
-
 
     /**
      * Generates and returns a set of attributes that can be used for a trickle
-     * update, such as a SIP INFO, with the specified <tt>localCandidates</tt>.
+     * update, such as a SIP INFO, with the specified localCandidates.
      *
      * @param localCandidates the list of {@link LocalCandidate}s that we'd like
      * to generate the update for.
@@ -315,16 +266,12 @@ public class IceSdpUtils
      * @return a collection of {@link CandidateAttribute}s and an MID attribute
      * that we can use in a SIP INFO trickle update.
      */
-    public static Collection<Attribute> createTrickleUpdate(
-                                Collection<LocalCandidate> localCandidates)
-    {
+    public static Collection<Attribute> createTrickleUpdate(Collection<LocalCandidate> localCandidates) {
         List<Attribute> trickleUpdate = null;
 
-        if(localCandidates == null || localCandidates.size() == 0)
-        {
+        if (localCandidates == null || localCandidates.size() == 0) {
             trickleUpdate = new ArrayList<>(1);
-            trickleUpdate.add(
-                sdpFactory.createAttribute(END_OF_CANDIDATES, null));
+            trickleUpdate.add(sdpFactory.createAttribute(END_OF_CANDIDATES, null));
 
             return trickleUpdate;
         }
@@ -333,10 +280,8 @@ public class IceSdpUtils
 
         String streamName = null;
 
-        for(LocalCandidate candidate : localCandidates)
-        {
-           streamName = candidate.getParentComponent()
-               .getParentStream().getName();
+        for (LocalCandidate candidate : localCandidates) {
+            streamName = candidate.getParentComponent().getParentStream().getName();
 
             trickleUpdate.add(new CandidateAttribute(candidate));
         }
