@@ -33,11 +33,6 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     private Thread acceptThread = null;
 
     /**
-     * The wrapped TCP ServerSocketChannel.
-     */
-    private final ServerSocketChannel serverChannel;
-
-    /**
      * If the socket is still listening.
      */
     private boolean isRun;
@@ -58,8 +53,8 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      * @param serverSocket TCP ServerSocket
      * @param component related Component
      */
-    public IceTcpServerSocketWrapper(ServerSocket serverChannel, Component component) {
-        this.serverChannel = serverChannel;
+    public IceTcpServerSocketWrapper(ServerSocket serverSocket, Component component) {
+        super(serverSocket.getChannel());
         this.component = component;
         acceptThread = new ThreadAccept();
         acceptThread.start();
@@ -88,7 +83,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     public void close() {
         try {
             isRun = false;
-            serverChannel.close();
+            channel.close();
             for (SocketChannel s : channels) {
                 s.close();
             }
@@ -101,7 +96,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public InetAddress getLocalAddress() {
-        return serverChannel.socket().getInetAddress();
+        return ((ServerSocketChannel) channel).socket().getInetAddress();
     }
 
     /**
@@ -109,7 +104,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public int getLocalPort() {
-        return serverChannel.socket().getLocalPort();
+        return ((ServerSocketChannel) channel).socket().getLocalPort();
     }
 
     /**
@@ -117,7 +112,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        return serverChannel.socket().getLocalSocketAddress();
+        return ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
     }
 
     /** {@inheritDoc} */
@@ -134,8 +129,9 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public TransportAddress getTransportAddress() {
-        if (transportAddress == null && serverChannel != null) {
-            transportAddress = new TransportAddress(serverChannel.socket().getInetAddress(), serverChannel.socket().getLocalPort(), Transport.TCP);
+        if (transportAddress == null && channel != null) {
+            ServerSocket socket = ((ServerSocketChannel) channel).socket();
+            transportAddress = new TransportAddress(socket.getInetAddress(), socket.getLocalPort(), Transport.TCP);
         }
         return transportAddress;
     }
@@ -150,7 +146,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
             isRun = true;
             while (isRun) {
                 try {
-                    SocketChannel tcpChannel = serverChannel.accept();
+                    SocketChannel tcpChannel = ((ServerSocketChannel) channel).accept();
                     if (tcpChannel != null) {
                         MultiplexingSocket multiplexingSocket = new MultiplexingSocket(tcpChannel);
                         component.getParentStream().getParentAgent().getStunStack().addSocket(new IceTcpSocketWrapper(multiplexingSocket));

@@ -119,78 +119,61 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     private final List<Channel> channels = new LinkedList<>();
 
     /**
-     * The indicator which determines whether this instance has started
-     * executing or has executed its {@link #close()} method.
+     * The indicator which determines whether this instance has started executing or has executed its {@link #close()} method.
      */
-    private boolean closed = false;
+    private boolean closed;
 
     /**
-     * The DatagramPacketFilter which is able to determine whether a
-     * specific DatagramPacket sent through a
-     * RelayedCandidateDatagramSocket is part of the ICE connectivity
-     * checks. The recognizing is necessary because RFC 5245 says that "it is
-     * RECOMMENDED that the agent defer creation of a TURN channel until ICE
-     * completes."
+     * The DatagramPacketFilter which is able to determine whether a specific DatagramPacket sent through a
+     * RelayedCandidateDatagramSocket is part of the ICE connectivity checks. The recognizing is necessary because RFC 5245 says that "it is
+     * RECOMMENDED that the agent defer creation of a TURN channel until ICE completes."
      */
     private static final DatagramPacketFilter connectivityCheckRecognizer = new StunDatagramPacketFilter();
 
     /**
-     * The next free channel number to be returned by
-     * {@link #getNextChannelNumber()} and marked as non-free.
+     * The next free channel number to be returned by {@link #getNextChannelNumber()} and marked as non-free.
      */
     private char nextChannelNumber = MIN_CHANNEL_NUMBER;
 
     /**
-     * The DatagramPackets which are to be received through this
-     * DatagramSocket upon calls to its
-     * {@link #receive(DatagramPacket)} method. They have been received from the
-     * TURN server in the form of Data indications.
+     * The DatagramPackets which are to be received through this DatagramSocket upon calls to its
+     * {@link #receive(DatagramPacket)} method. They have been received from the TURN server in the form of Data indications.
      */
     private final List<DatagramPacket> packetsToReceive = new LinkedList<>();
 
     /**
-     * The DatagramSockets which have been sent through this
-     * DatagramSocket using its {@link #send(DatagramPacket)} method
-     * and which are to be relayed through its associated TURN server in the
-     * form of Send indications.
+     * The DatagramSockets which have been sent through this DatagramSocket using its {@link #send(DatagramPacket)} method
+     * and which are to be relayed through its associated TURN server in the form of Send indications.
      */
     private final List<DatagramPacket> packetsToSend = new LinkedList<>();
 
     /**
-     * The Thread which receives DatagramPackets from
-     * {@link #channelDataSocket} and queues them in {@link #packetsToReceive}.
+     * The Thread which receives DatagramPackets from {@link #channelDataSocket} and queues them in {@link #packetsToReceive}.
      */
     private Thread receiveChannelDataThread;
 
     /**
-     * The RelayedCandidate which uses this instance as the value of
-     * its socket property.
+     * The RelayedCandidate which uses this instance as the value of its socket property.
      */
     private final RelayedCandidate relayedCandidate;
 
     /**
-     * The Thread which is to send the {@link #packetsToSend} to the
-     * associated TURN server.
+     * The Thread which is to send the {@link #packetsToSend} to the associated TURN server.
      */
     private Thread sendThread;
 
     /**
-     * The TurnCandidateHarvest which has harvested
-     * {@link #relayedCandidate}.
+     * The TurnCandidateHarvest which has harvested {@link #relayedCandidate}.
      */
     private final TurnCandidateHarvest turnCandidateHarvest;
 
     /**
-     * Initializes a new RelayedCandidateDatagramSocket instance which
-     * is to be the socket of a specific RelayedCandidate
+     * Initializes a new RelayedCandidateDatagramSocket instance which is to be the socket of a specific RelayedCandidate
      * harvested by a specific TurnCandidateHarvest.
      *
-     * @param relayedCandidate the RelayedCandidate which is to use the
-     * new instance as the value of its socket property
-     * @param turnCandidateHarvest the TurnCandidateHarvest which has
-     * harvested relayedCandidate
-     * @throws SocketException if anything goes wrong while initializing the new
-     * RelayedCandidateDatagramSocket instance
+     * @param relayedCandidate the RelayedCandidate which is to use the new instance as the value of its socket property
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has harvested relayedCandidate
+     * @throws SocketException if anything goes wrong while initializing the new RelayedCandidateDatagramSocket instance
      */
     public RelayedCandidateDatagramSocket(RelayedCandidate relayedCandidate, TurnCandidateHarvest turnCandidateHarvest) throws SocketException {
         super(/* bindaddr */(SocketAddress) null);
@@ -220,17 +203,12 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Determines whether a specific DatagramPacket is accepted by
-     * {@link #channelDataSocket} (i.e. whether channelDataSocket
-     * understands p and p is meant to be received by
-     * channelDataSocket).
+     * Determines whether a specific DatagramPacket is accepted by {@link #channelDataSocket} (i.e. whether channelDataSocket
+     * understands p and p is meant to be received by channelDataSocket).
      *
-     * @param p the DatagramPacket which is to be checked whether it is
-     * accepted by channelDataSocket
-     * @return true if channelDataSocket accepts p
-     * (i.e. channelDataSocket understands p and p is
-     * meant to be received by channelDataSocket); otherwise,
-     * false
+     * @param p the DatagramPacket which is to be checked whether it is accepted by channelDataSocket
+     * @return true if channelDataSocket accepts p (i.e. channelDataSocket understands p and p is
+     * meant to be received by channelDataSocket); otherwise, false
      */
     private boolean channelDataSocketAccept(DatagramPacket p) {
         // Is it from our TURN server?
@@ -270,14 +248,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Determines whether {@link #channelDataSocket} accepts
-     * DatagramPackets which represent STUN messages with a specific
+     * Determines whether {@link #channelDataSocket} accepts DatagramPackets which represent STUN messages with a specific
      * method.
      *
-     * @param method the method of the STUN messages represented in
-     * DatagramPackets which is accepted by channelDataSocket
-     * @return true if channelDataSocket accepts
-     * DatagramPackets which represent STUN messages with the specified
+     * @param method the method of the STUN messages represented in DatagramPackets which is accepted by channelDataSocket
+     * @return true if channelDataSocket accepts DatagramPackets which represent STUN messages with the specified
      * method; otherwise, false
      */
     private boolean channelDataSocketAcceptMethod(char method) {
@@ -310,8 +285,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Creates {@link #receiveChannelDataThread} which is to receive
-     * DatagramPackets from {@link #channelDataSocket} and queue them
+     * Creates {@link #receiveChannelDataThread} which is to receive DatagramPackets from {@link #channelDataSocket} and queue them
      * in {@link #packetsToReceive}.
      */
     private void createReceiveChannelDataThread() {
@@ -341,8 +315,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Creates {@link #sendThread} which is to send {@link #packetsToSend} to
-     * the associated TURN server.
+     * Creates {@link #sendThread} which is to send {@link #packetsToSend} to the associated TURN server.
      */
     private void createSendThread() {
         sendThread = new Thread() {

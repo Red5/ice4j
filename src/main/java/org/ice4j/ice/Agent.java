@@ -545,7 +545,7 @@ public class Agent {
             //if we have received connectivity checks before RUNNING state,
             //trigger a check for those candidate pairs.
             if (this.preDiscoveredPairsQueue.size() > 0) {
-                logger.info("Trigger checks for pairs that were received before " + "running state");
+                logger.info("Trigger checks for pairs that were received beforerunning state");
 
                 for (CandidatePair cp : preDiscoveredPairsQueue) {
                     triggerCheck(cp);
@@ -1276,7 +1276,7 @@ public class Agent {
             } else //Running, Connected or Terminated.
             {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Received check from " + triggeredPair.toShortString() + " triggered a check. " + "Local ufrag " + getLocalUfrag());
+                    logger.debug("Received check from " + triggeredPair.toShortString() + " triggered a check.Local ufrag " + getLocalUfrag());
                 }
 
                 // We have been started, and have not failed (yet). If this is

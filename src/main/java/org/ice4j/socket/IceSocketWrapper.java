@@ -120,7 +120,7 @@ public abstract class IceSocketWrapper {
      * 
      * @param datagramChannel
      * @return IceUdpSocketWrapper
-     * @throws IOException 
+     * @throws IOException
      */
     public final static IceSocketWrapper build(DatagramChannel datagramChannel) throws IOException {
         return new IceUdpSocketWrapper(datagramChannel);
@@ -131,7 +131,7 @@ public abstract class IceSocketWrapper {
      * 
      * @param socketChannel
      * @return IceTcpSocketWrapper
-     * @throws IOException 
+     * @throws IOException
      */
     public final static IceSocketWrapper build(SocketChannel socketChannel) throws IOException {
         return new IceTcpSocketWrapper(socketChannel);

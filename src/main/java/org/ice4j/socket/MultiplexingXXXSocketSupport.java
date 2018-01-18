@@ -22,18 +22,13 @@ import java.util.logging.Logger;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
- * Implements functionality common to TCP and UDP implementations of
- * (de)multiplexing sockets i.e. sockets which provide
- * {@code DatagramPacket}-based views of the packets they receive in the forms
- * of pseudo sockets.
+ * Implements functionality common to TCP and UDP implementations of (de)multiplexing sockets i.e. sockets which provide
+ * {@code DatagramPacket}-based views of the packets they receive in the forms of pseudo sockets.
  *
  * @author Lyubomir Marinov
  */
 abstract class MultiplexingXXXSocketSupport<MultiplexedXXXSocketT extends MultiplexedXXXSocket> {
-    /**
-     * The {@code Logger} used by the {@code MultiplexingXXXSocketSupport} class
-     * and its instances for logging output.
-     */
+
     private static final Logger logger = Logger.getLogger(MultiplexingXXXSocketSupport.class.getName());
 
     /**

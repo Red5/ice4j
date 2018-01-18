@@ -10,9 +10,12 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SocketChannel;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -149,9 +152,8 @@ public class MergingDatagramSocket extends DatagramSocket {
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * The current implementation delegates to the first container, but this is
-     * subject to change.
+     * <br>
+     * The current implementation delegates to the first container, but this is subject to change.
      *
      * @param pkt the datagram to send.
      * @throws IOException
@@ -167,29 +169,27 @@ public class MergingDatagramSocket extends DatagramSocket {
     }
 
     /**
-     * Adds a {@link DelegatingSocket} instance to this merging socket. Note
-     * that this will start a thread reading from the added socket.
-     * @param socket the socket to add.
+     * Adds the socket instance wrapped by {@code wrapper} to this merging socket. Note that this will start a thread reading from the added socket.
+     * 
+     * @param wrapper the wrapper of the socket to add.
      */
-    public void add(DelegatingSocket socket) {
-        Objects.requireNonNull(socket, "socket");
-        if (logger.isDebugEnabled()) {
-            logger.debug("Adding a DelegatingSocket instance: {}", socket.getLocalAddress());
+    public void add(IceUdpSocketWrapper wrapper) {
+        DatagramSocket socket = ((DatagramChannel) wrapper.getChannel()).socket();
+        if (socket == null) {
+            doAdd(socket);
         }
-        doAdd(socket);
     }
 
     /**
-     * Adds the socket instance wrapped by {@code wrapper} to this merging
-     * socket. Note that this will start a thread reading from the added socket.
+     * Adds the socket instance wrapped by {@code wrapper} to this merging socket. Note that this will start a thread reading from the added socket.
+     * 
      * @param wrapper the wrapper of the socket to add.
      */
-    public void add(IceSocketWrapper wrapper) {
-        Object socket = wrapper.getUDPSocket();
+    public void add(IceTcpSocketWrapper wrapper) {
+        Socket socket = ((SocketChannel) wrapper.getChannel()).socket();
         if (socket == null) {
-            socket = wrapper.getTCPSocket();
+            doAdd(socket);
         }
-        doAdd(socket);
     }
 
     /**
@@ -213,47 +213,27 @@ public class MergingDatagramSocket extends DatagramSocket {
      */
     private void doAdd(Object socket) {
         Objects.requireNonNull(socket, "socket");
-
-        if (!(socket instanceof DelegatingSocket) && !(socket instanceof DatagramSocket)) {
+        if (!(socket instanceof DatagramSocket)) {
             throw new IllegalStateException("Socket type not supported: " + socket.getClass().getName());
         }
-
         synchronized (socketContainersSyncRoot) {
             if (indexOf(socketContainers, socket) != -1) {
                 logger.warn("Socket already added.");
                 return;
             }
-
-            SocketContainer socketContainer;
-            if (socket instanceof DelegatingSocket) {
-                socketContainer = new SocketContainer((DelegatingSocket) socket);
-            } else {
-                socketContainer = new SocketContainer((DatagramSocket) socket);
-            }
-
+            SocketContainer socketContainer = new SocketContainer((DatagramSocket) socket);
             SocketContainer[] newSocketContainers = new SocketContainer[socketContainers.length + 1];
             System.arraycopy(socketContainers, 0, newSocketContainers, 0, socketContainers.length);
             newSocketContainers[socketContainers.length] = socketContainer;
-
             socketContainers = newSocketContainers;
         }
     }
 
     /**
-     * Removes a specific {@link DatagramSocket} from the list of sockets
-     * merged by this {@link MergingDatagramSocket}.
+     * Removes a specific {@link DatagramSocket} from the list of sockets merged by this {@link MergingDatagramSocket}.
      * @param socket the {@link DatagramSocket} to remove.
      */
     public void remove(DatagramSocket socket) {
-        doRemove(socket);
-    }
-
-    /**
-     * Removes a specific {@link DelegatingSocket} from the list of sockets
-     * merged by this {@link MergingDatagramSocket}.
-     * @param socket the {@link DelegatingSocket} to remove.
-     */
-    public void remove(DelegatingSocket socket) {
         doRemove(socket);
     }
 
@@ -300,18 +280,16 @@ public class MergingDatagramSocket extends DatagramSocket {
     }
 
     /**
-     * Returns the index in {@link #socketContainers} of the
-     * {@link SocketContainer} with socket equal to {@code socket}, or -1 if
+     * Returns the index in {@link #socketContainers} of the {@link SocketContainer} with socket equal to {@code socket}, or -1 if
      * such a {@link SocketContainer} doesn't exist.
      *
      * @param socket the {@link DatagramSocket} to get the index of.
-     * @return the index in {@link #socketContainers} of the
-     * {@link SocketContainer} with socket equal to {@code socket}, or -1 if
+     * @return the index in {@link #socketContainers} of the {@link SocketContainer} with socket equal to {@code socket}, or -1 if
      * such a {@link SocketContainer} doesn't exist.
      */
     private int indexOf(SocketContainer[] socketContainers, Object socket) {
         for (int i = 0; i < socketContainers.length; i++) {
-            if (socketContainers[i].datagramSocket == socket || socketContainers[i].delegatingSocket == socket) {
+            if (socketContainers[i].datagramSocket == socket) {
                 return i;
             }
         }
@@ -327,9 +305,8 @@ public class MergingDatagramSocket extends DatagramSocket {
 
     /**
      * {@inheritDoc}
-     * </p>
-     * Delegates to the "active" socket, if one exists. Else returns
-     * {@code null}.
+     * <br>
+     * Delegates to the "active" socket, if one exists. Else returns {@code null}.
      */
     @Override
     public InetAddress getLocalAddress() {
@@ -339,11 +316,9 @@ public class MergingDatagramSocket extends DatagramSocket {
 
     /**
      * {@inheritDoc}
-     * </p>
-     * Delegates to the "active" socket, if one exists. Else returns
-     * {@code 0}.
-     * TODO: should we return 0 (unbound) or -1 (closed) if there are no
-     * sockets?
+     * <br>
+     * Delegates to the "active" socket, if one exists. Else returns {@code 0}.
+     * TODO: should we return 0 (unbound) or -1 (closed) if there are no sockets?
      */
     @Override
     public int getLocalPort() {
@@ -353,9 +328,8 @@ public class MergingDatagramSocket extends DatagramSocket {
 
     /**
      * {@inheritDoc}
-     * </p>
-     * Delegates to the "active" socket, if one exists. Else returns
-     * {@code null}.
+     * <br>
+     * Delegates to the "active" socket, if one exists. Else returns {@code null}.
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
@@ -371,14 +345,13 @@ public class MergingDatagramSocket extends DatagramSocket {
      * @return {@code true} iff {@code p} should be accepted.
      */
     protected boolean accept(DatagramPacket p) {
-        // By default we accept all packets, and allow extending classes to
-        // override
+        // By default we accept all packets, and allow extending classes to override
         return true;
     }
 
     /**
      * {@inheritDoc}
-     * </p>
+     * <br>
      * Copies into {@code p} a packet already received from one of the
      * underlying sockets. The socket is chosen on the base of the timestamp
      * of the reception of the first packet in its queue (so that earlier
@@ -404,7 +377,6 @@ public class MergingDatagramSocket extends DatagramSocket {
                 if (isClosed()) {
                     throw new SocketClosedException();
                 }
-
                 // Find the input socket with the oldest packet
                 SocketContainer[] socketContainers = this.socketContainers;
                 SocketContainer socketToReceiveFrom = null;
@@ -418,11 +390,9 @@ public class MergingDatagramSocket extends DatagramSocket {
                         }
                     }
                 }
-
                 // If a packet is available, receive it
                 if (socketToReceiveFrom != null) {
                     socketToReceiveFrom.receive(p);
-
                     if (accept(p)) {
                         socketToReceiveFrom.accepted(p);
                         return;
@@ -431,7 +401,6 @@ public class MergingDatagramSocket extends DatagramSocket {
                         if (numDiscardedPackets % 100 == 1) {
                             logger.info("Discarded " + numDiscardedPackets + " packets. Last remote address:" + p.getSocketAddress());
                         }
-
                         // Go on and receive the next packet in p.
                         continue;
                     }
@@ -441,17 +410,16 @@ public class MergingDatagramSocket extends DatagramSocket {
                     long waitTimeout = 500;
                     if (soTimeout > 0) {
                         long remaining = start + soTimeout - System.currentTimeMillis();
-                        if (remaining <= 0)
+                        if (remaining <= 0) {
                             throw new SocketTimeoutException();
-
+                        }
                         waitTimeout = Math.min(waitTimeout, remaining);
                     }
                     try {
                         receiveLock.wait(waitTimeout);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        // We haven't received a packet, but what else can we
-                        // do?
+                        // We haven't received a packet, but what else can we do?
                         return;
                     }
                 }
@@ -461,22 +429,15 @@ public class MergingDatagramSocket extends DatagramSocket {
 
     /**
      * Initializes the active socket of this {@link MergingDatagramSocket}.
-     * @param socketWrapper the {@link IceSocketWrapper} instance wrapping the
-     * actual socket that should be used. Used to find the correct
+     * @param socketWrapper the {@link IceSocketWrapper} instance wrapping the actual socket that should be used. Used to find the correct
      * {@link SocketContainer}
-     * @param remoteAddress the remote address which was selected by ICE and
-     * and which should be used as the target.
+     * @param remoteAddress the remote address which was selected by ICE and and which should be used as the target.
      */
     protected void initializeActive(IceSocketWrapper socketWrapper, TransportAddress remoteAddress) {
-        Object socket = socketWrapper.getTCPSocket();
-        if (socket == null) {
-            socket = socketWrapper.getUDPSocket();
-        }
-
+        DatagramSocket socket = ((DatagramChannel) socketWrapper.getChannel()).socket();
         if (logger.isDebugEnabled()) {
             logger.debug("Initializing the active container, socket=" + socket + "; remote address=" + remoteAddress);
         }
-
         synchronized (socketContainersSyncRoot) {
             if (active != null) {
                 // This means that we've received data before ICE completed.
@@ -485,48 +446,34 @@ public class MergingDatagramSocket extends DatagramSocket {
                 // Still, go on and replace the active socket with whatever ICE selected.
                 logger.warn("Active socket already initialized.");
             }
-
             SocketContainer newActive = null;
             for (SocketContainer container : socketContainers) {
-                if (socket == container.datagramSocket || socket == container.delegatingSocket) {
+                if (socket == container.datagramSocket) {
                     newActive = container;
                     break;
                 }
             }
-
             if (newActive == null) {
                 logger.warn("No SocketContainer found!");
                 return;
             }
-
             newActive.remoteAddress = remoteAddress;
             active = newActive;
-
         }
     }
 
     /**
-     * Contains one of the sockets which this {@link MergingDatagramSocket}
-     * merges, and objects associated with the socket, including a thread
+     * Contains one of the sockets which this {@link MergingDatagramSocket} merges, and objects associated with the socket, including a thread
      * which loops reading from it.
      *
-     * The socket is either a {@link DatagramSocket} or a
-     * {@link DelegatingSocket} instance, stored in {@link #datagramSocket} or
-     * {@link #delegatingSocket} respectively. Exactly one of these fields must
-     * be null.
+     * The socket is either a {@link DatagramSocket} or a {@link DelegatingSocket} instance, stored in {@link #datagramSocket} or
+     * {@link #delegatingSocket} respectively. Exactly one of these fields must be null.
      */
     private class SocketContainer {
         /**
-         * Either the socket represented by this instance, if it is a {@link
-         * DatagramSocket} instance, or {@code null} if it is not.
+         * Either the socket represented by this instance, if it is a {@link DatagramSocket} instance, or {@code null} if it is not.
          */
         private final DatagramSocket datagramSocket;
-
-        /**
-         * Either the socket represented by this instance, if it is a {@link
-         * DelegatingSocket} instance, or {@code null}if it is not.
-         */
-        private final DelegatingSocket delegatingSocket;
 
         /**
          * The queue to which packets received from this instance's socket are added.
@@ -541,7 +488,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         /**
          * A flag used to signal to {@link #thread} to finish.
          */
-        private boolean closed = false;
+        private boolean closed;
 
         /**
          * The remote address of the last received packet.
@@ -549,7 +496,7 @@ public class MergingDatagramSocket extends DatagramSocket {
          * not when a packet is received from the underlying socket by its read thread. This is in order to prevent poisoning of the remote
          * address, since the verification of the address is performed by the {@link MergingDatagramSocket} after it invokes {@link #receive(DatagramPacket)}.
          */
-        private SocketAddress remoteAddress = null;
+        private SocketAddress remoteAddress;
 
         /**
          * The thread which reads packets from this instance's socket and adds them to {@link #queue}. If the queue is filled up, it will stop
@@ -558,24 +505,12 @@ public class MergingDatagramSocket extends DatagramSocket {
         private Thread thread;
 
         /**
-         * Initializes a {@link SocketContainer} instance using a {@link DelegatingSocket} as its socket.
-         *
-         * @param socket the socket.
-         */
-        SocketContainer(DelegatingSocket socket) {
-            this.datagramSocket = null;
-            this.delegatingSocket = Objects.requireNonNull(socket, "socket");
-            init();
-        }
-
-        /**
          * Initializes a {@link SocketContainer} instance using a {@link DatagramSocket} as its socket.
          *
          * @param socket the socket.
          */
         SocketContainer(DatagramSocket socket) {
             this.datagramSocket = Objects.requireNonNull(socket, "socket");
-            this.delegatingSocket = null;
             init();
         }
 
@@ -603,8 +538,9 @@ public class MergingDatagramSocket extends DatagramSocket {
          */
         private Buffer getFreeBuffer() {
             Buffer buffer = pool.poll();
-            if (buffer == null)
+            if (buffer == null) {
                 buffer = new Buffer();
+            }
             buffer.reset();
             return buffer;
         }
@@ -641,8 +577,7 @@ public class MergingDatagramSocket extends DatagramSocket {
                 }
             }
 
-            // The receive thread is terminating, no reason to keep this
-            // container anymore.
+            // The receive thread is terminating, no reason to keep this container anymore.
             close(true);
 
             if (logger.isDebugEnabled()) {
@@ -651,14 +586,11 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Tries to receive a packet from the underlying socket into {@code
-         * buffer}.
+         * Tries to receive a packet from the underlying socket into {@code buffer}.
          *
          * @param buffer the buffer into which to receive.
-         * @return {@code true} if the method succeeded, or {@code false} if the
-         * thread was interrupted or this {@link SocketContainer} was closed.
-         * @throws IOException if receiving failed due to an I/O error from the
-         * underlying socket.
+         * @return {@code true} if the method succeeded, or {@code false} if the thread was interrupted or this {@link SocketContainer} was closed.
+         * @throws IOException if receiving failed due to an I/O error from the underlying socket.
          */
         private boolean doReceive(Buffer buffer) throws IOException {
             while (true) {
@@ -667,25 +599,19 @@ public class MergingDatagramSocket extends DatagramSocket {
                 try {
                     if (datagramSocket != null) {
                         datagramSocket.receive(buffer.pkt);
-                    } else {
-                        delegatingSocket.receive(buffer.pkt);
                     }
-
                     buffer.receivedTime = System.currentTimeMillis();
-
                     maybeUpdateActive();
                     return true;
                 } catch (SocketTimeoutException ste) {
                     // Ignore timeouts and loop.
                 }
             }
-
             return false;
         }
 
         /**
-         * Makes this {@link SocketContainer} the active socket container for
-         * this {@link MergingDatagramSocket}, if it isn't already the active
+         * Makes this {@link SocketContainer} the active socket container for this {@link MergingDatagramSocket}, if it isn't already the active
          * socket.
          */
         private void maybeUpdateActive() {
@@ -703,8 +629,7 @@ public class MergingDatagramSocket extends DatagramSocket {
         }
 
         /**
-         * Copies a packet from this {@link SocketContainer}'s queue into
-         * {@code p}. Does not block.
+         * Copies a packet from this {@link SocketContainer}'s queue into {@code p}. Does not block.
          *
          * @param p the {@link DatagramPacket} to receive into.
          */
@@ -713,15 +638,12 @@ public class MergingDatagramSocket extends DatagramSocket {
             if (buffer == null) {
                 throw new IllegalStateException("Queue empty.");
             }
-
             byte[] dest = p.getData();
             int destOffset = p.getOffset();
             int len = Math.min(dest.length - destOffset, buffer.pkt.getLength());
-
             System.arraycopy(buffer.pkt.getData(), buffer.pkt.getOffset(), dest, destOffset, len);
             p.setLength(len);
             p.setSocketAddress(buffer.pkt.getSocketAddress());
-
             pool.offer(buffer);
         }
 
@@ -738,43 +660,39 @@ public class MergingDatagramSocket extends DatagramSocket {
 
         /**
          * {@inheritDoc}
-         * <p>
-         * Delegates to the underlying socket (either {@link #datagramSocket} or {@link #delegatingSocket}).
+         * <br>
+         * Delegates to the underlying socket (either {@link #datagramSocket} or null).
          */
         private InetAddress getLocalAddress() {
-            return datagramSocket != null ? datagramSocket.getLocalAddress() : delegatingSocket.getLocalAddress();
+            return datagramSocket != null ? datagramSocket.getLocalAddress() : null;
         }
 
         /**
          * {@inheritDoc}
-         * <p>
-         * Delegates to the underlying socket (either {@link #datagramSocket} or
-         * {@link #delegatingSocket}).
+         * <br>
+         * Delegates to the underlying socket (either {@link #datagramSocket} or null).
          */
         private int getLocalPort() {
-            return datagramSocket != null ? datagramSocket.getLocalPort() : delegatingSocket.getLocalPort();
+            return datagramSocket != null ? datagramSocket.getLocalPort() : null;
         }
 
         /**
          * {@inheritDoc}
-         * <p>
-         * Delegates to the underlying socket (either {@link #datagramSocket} or
-         * {@link #delegatingSocket}).
+         * <br>
+         * Delegates to the underlying socket (either {@link #datagramSocket} or null).
          */
         public SocketAddress getLocalSocketAddress() {
-            return datagramSocket != null ? datagramSocket.getLocalSocketAddress() : delegatingSocket.getLocalSocketAddress();
+            return datagramSocket != null ? datagramSocket.getLocalSocketAddress() : null;
         }
 
         /**
-         * Returns a {@link String} representation of this {@link
-         * SocketContainer}.
+         * Returns a {@link String} representation of this {@link SocketContainer}.
          */
         public String toString() {
             if (datagramSocket != null) {
                 return datagramSocket.getLocalSocketAddress() + " -> " + remoteAddress;
-            } else {
-                return delegatingSocket.getLocalSocketAddress() + " -> " + remoteAddress;
             }
+            return null;
         }
 
         /**
@@ -788,8 +706,6 @@ public class MergingDatagramSocket extends DatagramSocket {
             setTarget(pkt);
             if (datagramSocket != null) {
                 datagramSocket.send(pkt);
-            } else {
-                delegatingSocket.send(pkt);
             }
         }
 
@@ -798,13 +714,11 @@ public class MergingDatagramSocket extends DatagramSocket {
          * @param pkt the packet for which to set the socket address.
          */
         private void setTarget(DatagramPacket pkt) {
-            SocketAddress target;
+            SocketAddress target = null;
             // If the socket already has a remote address, use it. If this is the case, the DatagramPacket instance's remote address is likely
             // to be ignored, anyway.
             if (datagramSocket != null) {
                 target = datagramSocket.getRemoteSocketAddress();
-            } else {
-                target = delegatingSocket.getRemoteSocketAddress();
             }
             // The socket doesn't always have a remote address (e.g. if it is an unconnected UDP socket from HostCandidateHarvester).
             // In this case, we send to the source address of the last packet which was received and accepted, or to the address that was
@@ -828,7 +742,7 @@ public class MergingDatagramSocket extends DatagramSocket {
          * @return the underlying socket of this {@link SocketContainer}.
          */
         private Object getSocket() {
-            return datagramSocket != null ? datagramSocket : delegatingSocket;
+            return datagramSocket != null ? datagramSocket : null;
         }
 
         /**

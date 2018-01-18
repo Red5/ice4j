@@ -27,7 +27,7 @@ import org.ice4j.socket.filter.DatagramPacketFilter;
  *
  * @author Sebastien Vincent
  */
-public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXXXSocket {
+public class MultiplexedSocket implements MultiplexedXXXSocket {
     /**
      * The Logger used by the MultiplexedSocket class and its
      * instances for logging output.
@@ -84,11 +84,9 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
          * Even if MultiplexingSocket allows MultiplexedSocket to perform bind, binding in the super will not execute correctly this early in the construction because the
          * multiplexing field is not set yet. That is why MultiplexedSocket does not currently support bind at construction time.
          */
-        super(multiplexing);
-
-        if (multiplexing == null)
+        if (multiplexing == null) {
             throw new NullPointerException("multiplexing");
-
+        }
         this.multiplexing = multiplexing;
         this.filter = filter;
     }
@@ -96,13 +94,11 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
     /**
      * Closes this datagram socket.
      * <p>
-     * Any thread currently blocked in {@link #receive(DatagramPacket)} upon
-     * this socket will throw a {@link SocketException}.
+     * Any thread currently blocked in {@link #receive(DatagramPacket)} upon this socket will throw a {@link SocketException}.
      * </p>
      *
      * @see Socket#close()
      */
-    @Override
     public void close() {
         multiplexing.close(this);
     }
@@ -115,32 +111,22 @@ public class MultiplexedSocket extends DelegatingSocket implements MultiplexedXX
         return filter;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public InputStream getInputStream() {
         return inputStream;
     }
 
     /**
-     * Receives a datagram packet from this socket. When this method returns,
-     * the DatagramPacket's buffer is filled with the data received.
-     * The datagram packet also contains the sender's IP address, and the port
-     * number on the sender's machine.
+     * Receives a datagram packet from this socket. When this method returns, the DatagramPacket's buffer is filled with the data received.
+     * The datagram packet also contains the sender's IP address, and the port number on the sender's machine.
      * <p>
-     * This method blocks until a datagram is received. The length
-     * field of the datagram packet object contains the length of the received
-     * message. If the message is longer than the packet's length, the message
-     * is truncated.
+     * This method blocks until a datagram is received. The length field of the datagram packet object contains the length of the received
+     * message. If the message is longer than the packet's length, the message is truncated.
      * </p>
      *
-     * @param p the DatagramPacket into which to place the incoming
-     * data
+     * @param p the DatagramPacket into which to place the incoming data
      * @throws IOException if an I/O error occurs
      * @see MultiplexingSocket#receive(DatagramPacket)
      */
-    @Override
     public void receive(DatagramPacket p) throws IOException {
         multiplexing.receive(this, p);
     }

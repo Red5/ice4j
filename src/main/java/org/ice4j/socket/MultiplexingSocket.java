@@ -29,7 +29,7 @@ import org.ice4j.socket.filter.DatagramPacketFilter;
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
  */
-public class MultiplexingSocket extends DelegatingSocket {
+public class MultiplexingSocket {
     /**
      * The Logger used by the MultiplexingSocket class and its
      * instances for logging output.
@@ -91,7 +91,7 @@ public class MultiplexingSocket extends DelegatingSocket {
     /**
      * Custom OutputStream for this Socket.
      */
-    private TCPOutputStream outputStream = null;
+    private TCPOutputStream outputStream;
 
     /**
      * The list of DatagramPackets to be received through this

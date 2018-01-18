@@ -205,7 +205,7 @@ public class NetworkConfigurationDiscoveryProcess {
                 if (evt == null) {
                     evt = doTestI(backupServerAddress);
                     if (evt == null) {
-                        logger.info("Failed to receive a response from " + "backup stun server!");
+                        logger.info("Failed to receive a response frombackup stun server!");
                         return report;
                     }
                     TransportAddress mappedAddress2 = ((MappedAddressAttribute) evt.getMessage().getAttribute(Attribute.Type.MAPPED_ADDRESS)).getAddress();
@@ -330,7 +330,7 @@ public class NetworkConfigurationDiscoveryProcess {
      */
     private void checkStarted() throws StunException {
         if (!started)
-            throw new StunException(StunException.ILLEGAL_STATE, "The Discoverer must be started before " + "launching the discovery process!");
+            throw new StunException(StunException.ILLEGAL_STATE, "The Discoverer must be started beforelaunching the discovery process!");
     }
 
     //---------- main

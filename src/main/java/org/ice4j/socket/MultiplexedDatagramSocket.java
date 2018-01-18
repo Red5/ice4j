@@ -26,7 +26,7 @@ import org.ice4j.socket.filter.DatagramPacketFilter;
  *
  * @author Lyubomir Marinov
  */
-public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implements MultiplexedXXXSocket {
+public class MultiplexedDatagramSocket implements MultiplexedXXXSocket {
     /**
      * The DatagramPacketFilter which determines which
      * DatagramPackets read from the network by {@link #multiplexing}
@@ -74,11 +74,9 @@ public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implemen
          * Even if MultiplexingDatagramSocket allows MultiplexedDatagramSocket to perform bind, binding in the super will not execute correctly this early in the construction
          * because the multiplexing field is not set yet. That is why MultiplexedDatagramSocket does not currently support bind at construction time.
          */
-        super(multiplexing);
-
-        if (multiplexing == null)
+        if (multiplexing == null){
             throw new NullPointerException("multiplexing");
-
+        }
         this.multiplexing = multiplexing;
         this.filter = filter;
     }
@@ -92,10 +90,8 @@ public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implemen
      *
      * @see DatagramSocket#close()
      */
-    @Override
     public void close() {
         multiplexing.close(this);
-        super.close();
     }
 
     /**
@@ -127,7 +123,6 @@ public class MultiplexedDatagramSocket extends DelegatingDatagramSocket implemen
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#receive(DatagramPacket)
      */
-    @Override
     public void receive(DatagramPacket p) throws IOException {
         multiplexing.receive(this, p);
     }

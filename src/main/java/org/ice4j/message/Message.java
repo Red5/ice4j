@@ -1013,7 +1013,7 @@ public abstract class Message {
         //CRC validation.
         if (!Arrays.equals(incomingCrcBytes, realCrcBytes)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("An incoming message arrived with a wrong FINGERPRINT " + "attribute value. " + "CRC Was:" + Arrays.toString(incomingCrcBytes) + ". Should have been:" + Arrays.toString(realCrcBytes) + ". Will ignore.");
+                logger.debug("An incoming message arrived with a wrong FINGERPRINTattribute value.CRC Was:" + Arrays.toString(incomingCrcBytes) + ". Should have been:" + Arrays.toString(realCrcBytes) + ". Will ignore.");
             }
 
             return false;

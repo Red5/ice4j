@@ -24,30 +24,23 @@ import org.ice4j.socket.filter.DatagramPacketFilter;
  * @author Lyubomir Marinov
  */
 public class MuxServerSocketChannelFactory {
-    /**
-     * The {@code Logger} used by the {@code MuxServerSocketChannelFactory}
-     * class (and its instances) to print debug information.
-     */
+
     private static final Logger logger = Logger.getLogger(MuxServerSocketChannelFactory.class.getName());
 
     /**
-     * The reflection of the {@code openAndBind} method of the
-     * {@code MuxServerSocketChannel} class.
+     * The reflection of the {@code openAndBind} method of the  {@code MuxServerSocketChannel} class.
      */
     private static final Method OPEN_AND_BIND_METHOD;
 
     /**
-     * The maximum number of milliseconds to wait for an accepted
-     * {@code SocketChannel} to provide incoming/readable data before it is
+     * The maximum number of milliseconds to wait for an accepted {@code SocketChannel} to provide incoming/readable data before it is
      * considered abandoned by the client.
      */
     public static final int SOCKET_CHANNEL_READ_TIMEOUT = 15 * 1000;
 
     /**
-     * The name of the {@code boolean} property of the {@code socket} property
-     * of the {@code ServerSocketChannel} returned by
-     * {@link #openAndBindMuxServerSocketChannel(Map, SocketAddress, int,
-     * DatagramPacketFilter)} which specifies the value of the
+     * The name of the {@code boolean} property of the {@code socket} property of the {@code ServerSocketChannel} returned by
+     * {@link #openAndBindMuxServerSocketChannel(Map, SocketAddress, int, DatagramPacketFilter)} which specifies the value of the
      * {@code SO_REUSEADDR} socket option.
      */
     public static final String SOCKET_REUSE_ADDRESS_PROPERTY_NAME = "socket.reuseAddress";

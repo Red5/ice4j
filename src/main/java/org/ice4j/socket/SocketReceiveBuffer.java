@@ -1,44 +1,29 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.socket;
 
-import java.net.*;
-import java.util.*;
+import java.net.DatagramPacket;
+import java.net.SocketException;
+import java.util.LinkedList;
 
 /**
- * Implements a list of DatagramPackets received by a
- * DatagramSocket or a Socket. The list enforces the
- * SO_RCVBUF option for the associated DatagramSocket or
- * Socket.
+ * Implements a list of DatagramPackets received by a DatagramSocket or a Socket. The list enforces the SO_RCVBUF option
+ * for the associated DatagramSocket or Socket.
  *
  * @author Lyubomir Marinov
  */
-abstract class SocketReceiveBuffer
-    extends LinkedList<DatagramPacket>
-{
+abstract class SocketReceiveBuffer extends LinkedList<DatagramPacket> {
+
     private static final int DEFAULT_RECEIVE_BUFFER_SIZE = 1024 * 1024;
 
     private static final long serialVersionUID = 2804762379509257652L;
 
     /**
-     * The value of the SO_RCVBUF option for the associated
-     * DatagramSocket or Socket. Cached for the sake of
-     * performance.
+     * The value of the SO_RCVBUF option for the associated DatagramSocket or Socket. Cached for the sake of performance.
      */
     private int receiveBufferSize;
 
@@ -51,60 +36,38 @@ abstract class SocketReceiveBuffer
      * {@inheritDoc}
      */
     @Override
-    public boolean add(DatagramPacket p)
-    {
+    public boolean add(DatagramPacket p) {
         boolean added = super.add(p);
-
-        // Keep track of the (total) size in bytes of this receive buffer in
-        // order to be able to enforce SO_RCVBUF.
-        if (added && (p != null))
-        {
+        // Keep track of the (total) size in bytes of this receive buffer in order to be able to enforce SO_RCVBUF.
+        if (added && (p != null)) {
             int pSize = p.getLength();
-
-            if (pSize > 0)
-            {
+            if (pSize > 0) {
                 size += pSize;
-
-                // If the added packet is the only element of this list, do not
-                // drop it because of the enforcement of SO_RCVBUF.
-                if (size() > 1)
-                {
-                    // For the sake of performance, do not invoke the method
-                    // getReceiveBufferSize() of DatagramSocket or Socket on
+                // If the added packet is the only element of this list, do not drop it because of the enforcement of SO_RCVBUF.
+                if (size() > 1) {
+                    // For the sake of performance, do not invoke the method getReceiveBufferSize() of DatagramSocket or Socket on
                     // every packet added to this buffer.
                     int receiveBufferSize = this.receiveBufferSize;
-
-                    if ((receiveBufferSize <= 0) || (modCount % 1000 == 0))
-                    {
-                        try
-                        {
+                    if ((receiveBufferSize <= 0) || (modCount % 1000 == 0)) {
+                        try {
                             receiveBufferSize = getReceiveBufferSize();
+                        } catch (SocketException sex) {
                         }
-                        catch (SocketException sex)
-                        {
-                        }
-                        if (receiveBufferSize <= 0)
-                        {
+                        if (receiveBufferSize <= 0) {
                             receiveBufferSize = DEFAULT_RECEIVE_BUFFER_SIZE;
-                        }
-                        else if (receiveBufferSize
-                                < DEFAULT_RECEIVE_BUFFER_SIZE)
-                        {
-                            // Well, a manual page on SO_RCVBUF talks about
-                            // doubling. In order to stay on the safe side and
-                            // given that there was no limit on the size of the
-                            // buffer before, double the receive buffer size.
+                        } else if (receiveBufferSize < DEFAULT_RECEIVE_BUFFER_SIZE) {
+                            // Well, a manual page on SO_RCVBUF talks about doubling. In order to stay on the safe side and
+                            // given that there was no limit on the size of the buffer before, double the receive buffer size.
                             receiveBufferSize *= 2;
-                            if (receiveBufferSize <= 0)
-                            {
-                                receiveBufferSize
-                                    = DEFAULT_RECEIVE_BUFFER_SIZE;
+                            if (receiveBufferSize <= 0) {
+                                receiveBufferSize = DEFAULT_RECEIVE_BUFFER_SIZE;
                             }
                         }
                         this.receiveBufferSize = receiveBufferSize;
                     }
-                    if (size > receiveBufferSize)
+                    if (size > receiveBufferSize) {
                         remove(0);
+                    }
                 }
             }
         }
@@ -112,37 +75,26 @@ abstract class SocketReceiveBuffer
     }
 
     /**
-     * Gets the value of the SO_RCVBUF option for the associated
-     * DatagramSocket or Socket which is the buffer size used
-     * by the platform for input on the DatagramSocket or
-     * Socket.
+     * Gets the value of the SO_RCVBUF option for the associated DatagramSocket or Socket which is the buffer size used
+     * by the platform for input on the DatagramSocket or Socket.
      *
-     * @return the value of the SO_RCVBUF option for the associated
-     * DatagramSocket or Socket
+     * @return the value of the SO_RCVBUF option for the associated DatagramSocket or Socket
      * @throws SocketException if there is an error in the underlying protocol
      */
-    public abstract int getReceiveBufferSize()
-        throws SocketException;
+    public abstract int getReceiveBufferSize() throws SocketException;
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
-    public DatagramPacket remove(int index)
-    {
+    public DatagramPacket remove(int index) {
         DatagramPacket p = super.remove(index);
-
-        // Keep track of the (total) size in bytes of this receive buffer in
-        // order to be able to enforce SO_RCVBUF.
-        if (p != null)
-        {
+        // Keep track of the (total) size in bytes of this receive buffer in order to be able to enforce SO_RCVBUF.
+        if (p != null) {
             int pSize = p.getLength();
-
-            if (pSize > 0)
-            {
+            if (pSize > 0) {
                 size -= pSize;
-                if (size < 0)
+                if (size < 0) {
                     size = 0;
+                }
             }
         }
         return p;

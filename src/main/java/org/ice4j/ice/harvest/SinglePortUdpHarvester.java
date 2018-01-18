@@ -66,7 +66,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             try {
                 harvesters.add(new SinglePortUdpHarvester(address));
             } catch (IOException ioe) {
-                logger.info("Failed to create SinglePortUdpHarvester for " + "address " + address + ": " + ioe);
+                logger.info("Failed to create SinglePortUdpHarvester foraddress " + address + ": " + ioe);
             }
         }
         return harvesters;

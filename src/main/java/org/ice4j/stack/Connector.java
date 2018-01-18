@@ -16,10 +16,8 @@ import org.ice4j.*;
 import org.ice4j.socket.*;
 
 /**
- * The Network Access Point is the most outward part of the stack. It is
- * constructed around a datagram socket and takes care of forwarding incoming
- * messages to the MessageProcessor as well as sending datagrams to the STUN
- * server specified by the original NetAccessPointDescriptor.
+ * The Network Access Point is the most outward part of the stack. It is constructed around a datagram socket and takes care of forwarding incoming
+ * messages to the MessageProcessor as well as sending datagrams to the STUN server specified by the original NetAccessPointDescriptor.
  *
  * @author Emil Ivov
  */
@@ -36,12 +34,6 @@ class Connector implements Runnable {
      * The socket object that used by this access point to access the network.
      */
     private IceSocketWrapper sock;
-
-    /**
-     * The object that we use to lock socket operations (since the socket itself
-     * is often null)
-     */
-    //private final Object sockLock = new Object();
 
     /**
      * A flag that is set to false to exit the message processor.
@@ -65,24 +57,21 @@ class Connector implements Runnable {
 
     /**
      * Creates a network access point.
-     * @param socket the socket that this access point is supposed to use for
-     * communication.
-     * @param remoteAddress the remote address of the socket of this
-     * {@link Connector} if it is a TCP socket, or null if it is UDP.
+     * @param socket the socket that this access point is supposed to use for communication.
+     * @param remoteAddress the remote address of the socket of this {@link Connector} if it is a TCP socket, or null if it is UDP.
      * @param messageQueue the Queue where incoming messages should be queued
      * @param errorHandler the instance to notify when errors occur.
      */
     protected Connector(IceSocketWrapper socket, TransportAddress remoteAddress, BlockingQueue<RawMessage> messageQueue, ErrorHandler errorHandler) {
         this.sock = socket;
+        this.remoteAddress = remoteAddress;
         this.messageQueue = messageQueue;
         this.errorHandler = errorHandler;
-        this.remoteAddress = remoteAddress;
         listenAddress = socket.getTransportAddress();
     }
 
     /**
-     * Returns the DatagramSocket that contains the port and address
-     * associated with this access point.
+     * Returns the DatagramSocket that contains the port and address associated with this access point.
      *
      * @return the DatagramSocket associated with this AP.
      */
