@@ -6,7 +6,8 @@
  */
 package org.ice4j.ice.harvest;
 
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -24,7 +25,6 @@ import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceTcpSocketWrapper;
-import org.ice4j.socket.MultiplexingSocket;
 import org.ice4j.stack.StunStack;
 
 /**
@@ -367,15 +367,15 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      */
     protected HostCandidate getHostCandidate(HostCandidate hostCand) {
         HostCandidate cand;
-
         // create a new TCP HostCandidate
         if (hostCand.getTransport() == Transport.TCP) {
             try {
-                Socket sock = new Socket(stunServer.getAddress(), stunServer.getPort());
-                MultiplexingSocket multiplexing = new MultiplexingSocket(sock);
-                cand = new HostCandidate(new IceTcpSocketWrapper(multiplexing), hostCand.getParentComponent(), Transport.TCP);
+                SocketChannel socketChannel = SocketChannel.open();
+                socketChannel.bind(new InetSocketAddress(stunServer.getAddress(), stunServer.getPort()));
+                IceTcpSocketWrapper sock = new IceTcpSocketWrapper(socketChannel);
+                cand = new HostCandidate(sock, hostCand.getParentComponent(), Transport.TCP);
                 hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(cand.getStunSocket(null));
-                hostCand.getParentComponent().getComponentSocket().add(multiplexing);
+                hostCand.getParentComponent().getComponentSocket().setSocket(sock);
             } catch (Exception io) {
                 logger.info("Exception TCP client connect: " + io);
                 return null;
@@ -383,7 +383,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         } else {
             cand = hostCand;
         }
-
         return cand;
     }
+
 }

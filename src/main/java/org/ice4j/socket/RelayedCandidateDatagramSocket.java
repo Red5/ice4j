@@ -34,17 +34,14 @@ import org.ice4j.message.Request;
 import org.ice4j.message.Response;
 import org.ice4j.socket.filter.DatagramPacketFilter;
 import org.ice4j.socket.filter.StunDatagramPacketFilter;
-import org.ice4j.socket.filter.TurnDatagramPacketFilter;
 import org.ice4j.stack.MessageEventHandler;
 import org.ice4j.stack.TransactionID;
+import org.ice4j.util.DatagramUtil;
 
 /**
- * Represents an application-purposed (as opposed to an ICE-specific)
- * DatagramSocket for a RelayedCandidate harvested by a
- * TurnCandidateHarvest (and its associated
- * TurnCandidateHarvester, of course).
- * RelayedCandidateDatagramSocket is associated with a successful
- * Allocation on a TURN server and implements sends and receives through it
+ * Represents an application-purposed (as opposed to an ICE-specific) DatagramSocket for a RelayedCandidate harvested by a
+ * TurnCandidateHarvest (and its associated TurnCandidateHarvester, of course).
+ * RelayedCandidateDatagramSocket is associated with a successful Allocation on a TURN server and implements sends and receives through it
  * using TURN messages to and from that TURN server.
  *
  * @author Lyubomir Marinov
@@ -177,14 +174,11 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
      */
     public RelayedCandidateDatagramSocket(RelayedCandidate relayedCandidate, TurnCandidateHarvest turnCandidateHarvest) throws SocketException {
         super(/* bindaddr */(SocketAddress) null);
-
         this.relayedCandidate = relayedCandidate;
         this.turnCandidateHarvest = turnCandidateHarvest;
-
         this.turnCandidateHarvest.harvester.getStunStack().addIndicationListener(this.turnCandidateHarvest.hostCandidate.getTransportAddress(), this);
-
-        DatagramSocket hostSocket = this.turnCandidateHarvest.hostCandidate.getCandidateIceSocketWrapper().getUDPSocket();
-
+        /* XXX check back on this when we do TURN
+        IceSocketWrapper hostSocket = this.turnCandidateHarvest.hostCandidate.getCandidateIceSocketWrapper();
         if (hostSocket instanceof MultiplexingDatagramSocket) {
             channelDataSocket = ((MultiplexingDatagramSocket) hostSocket).getSocket(new TurnDatagramPacketFilter(this.turnCandidateHarvest.harvester.stunServer) {
                 @Override
@@ -200,6 +194,8 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         } else {
             channelDataSocket = null;
         }
+        */
+        channelDataSocket = null;
     }
 
     /**
@@ -210,6 +206,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
      * @return true if channelDataSocket accepts p (i.e. channelDataSocket understands p and p is
      * meant to be received by channelDataSocket); otherwise, false
      */
+    @SuppressWarnings("unused")
     private boolean channelDataSocketAccept(DatagramPacket p) {
         // Is it from our TURN server?
         if (turnCandidateHarvest.harvester.stunServer.equals(p.getSocketAddress())) {
@@ -255,6 +252,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
      * @return true if channelDataSocket accepts DatagramPackets which represent STUN messages with the specified
      * method; otherwise, false
      */
+    @SuppressWarnings("unused")
     private boolean channelDataSocketAcceptMethod(char method) {
         // Accept only ChannelData messages for now. ChannelData messages are not STUN messages so they do not have a method associated with them.
         return false;
@@ -347,7 +345,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
      * If there is a security manager, its checkConnect method is first
      * called with the host address and -1 as its arguments to see if
      * the operation is allowed.
-     * </p>
+     * <br>
      *
      * @return the local address to which the socket is bound, or an
      * InetAddress representing any local address if either the socket
@@ -553,13 +551,10 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Receives a datagram packet from this socket. When this method returns,
-     * the DatagramPacket's buffer is filled with the data received.
-     * The datagram packet also contains the sender's IP address, and the port
-     * number on the sender's machine.
+     * Receives a datagram packet from this socket. When this method returns, the DatagramPacket's buffer is filled with the data received.
+     * The datagram packet also contains the sender's IP address, and the port number on the sender's machine.
      *
-     * @param p the DatagramPacket into which to place the incoming
-     * data
+     * @param p the DatagramPacket into which to place the incoming data
      * @throws IOException if an I/O error occurs
      * @see DatagramSocket#receive(DatagramPacket)
      */
@@ -567,9 +562,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     public void receive(DatagramPacket p) throws IOException {
         synchronized (packetsToReceive) {
             do {
-                /*
-                 * According to the javadoc of DatagramSocket#close(), any thread currently blocked in #receive(DatagramPacket) upon this socket will throw a SocketException.
-                 */
+                // According to the javadoc of DatagramSocket#close(), any thread currently blocked in #receive(DatagramPacket) upon this socket will throw a SocketException
                 if (closed) {
                     throw new SocketException(RelayedCandidateDatagramSocket.class.getSimpleName() + " has been closed.");
                 } else if (packetsToReceive.isEmpty()) {
@@ -579,8 +572,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
                     }
                 } else {
                     DatagramPacket packetToReceive = packetsToReceive.remove(0);
-
-                    MultiplexingXXXSocketSupport.copy(packetToReceive, p);
+                    DatagramUtil.copy(packetToReceive, p);
                     packetsToReceive.notifyAll();
                     break;
                 }
@@ -622,9 +614,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
                     // Death is the end of life no matter what.
                     throw (ThreadDeath) t;
                 } else if (t instanceof SocketException) {
-                    /*
-                     * If the channelDataSocket has gone unusable, put an end to receiving from it.
-                     */
+                    // If the channelDataSocket has gone unusable, put an end to receiving from it.
                     throw (SocketException) t;
                 } else {
                     if (logger.isLoggable(Level.WARNING)) {
@@ -803,7 +793,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
             if (closed) {
                 throw new IOException(RelayedCandidateDatagramSocket.class.getSimpleName() + " has been closed.");
             } else {
-                packetsToSend.add(MultiplexingXXXSocketSupport.clone(p));
+                packetsToSend.add(DatagramUtil.clone(p, true));
                 if (sendThread == null)
                     createSendThread();
                 else

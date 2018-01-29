@@ -161,6 +161,7 @@ public abstract class AbstractUdpListener {
 
         socket = new DatagramSocket(localAddress);
 
+        // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
         int receiveBufferSize = StackProperties.getInt(SO_RCVBUF_PNAME, -1);
         if (receiveBufferSize > 0) {
             socket.setReceiveBufferSize(receiveBufferSize);
@@ -358,7 +359,7 @@ public abstract class AbstractUdpListener {
 
         /**
          * {@inheritDoc}
-         * </p>
+     * <br>
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override
@@ -368,7 +369,7 @@ public abstract class AbstractUdpListener {
 
         /**
          * {@inheritDoc}
-         * </p>
+     * <br>
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override
@@ -378,7 +379,7 @@ public abstract class AbstractUdpListener {
 
         /**
          * {@inheritDoc}
-         * </p>
+     * <br>
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
         @Override

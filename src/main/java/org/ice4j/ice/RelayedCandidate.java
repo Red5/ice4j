@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -32,25 +21,20 @@ import org.ice4j.socket.*;
  *
  * @author Lubomir Marinov
  */
-public class RelayedCandidate
-    extends LocalCandidate
-{
+public class RelayedCandidate extends LocalCandidate {
 
     /**
-     * The RelayedCandidateDatagramSocket of this
-     * RelayedCandidate.
+     * The RelayedCandidateDatagramSocket of this RelayedCandidate.
      */
     private RelayedCandidateDatagramSocket relayedCandidateDatagramSocket;
 
     /**
-     * The application-purposed DatagramSocket associated with this
-     * Candidate.
+     * The application-purposed DatagramSocket associated with this Candidate.
      */
     private IceSocketWrapper socket;
 
     /**
-     * The TurnCandidateHarvest which has harvested this
-     * RelayedCandidate.
+     * The TurnCandidateHarvest which has harvested this RelayedCandidate.
      */
     private final TurnCandidateHarvest turnCandidateHarvest;
 
@@ -68,18 +52,8 @@ public class RelayedCandidate
      * TURN server with the delivery of the replayed transportAddress
      * to be represented by the new instance
      */
-    public RelayedCandidate(
-            TransportAddress transportAddress,
-            TurnCandidateHarvest turnCandidateHarvest,
-            TransportAddress mappedAddress)
-    {
-        super(
-            transportAddress,
-            turnCandidateHarvest.hostCandidate.getParentComponent(),
-            CandidateType.RELAYED_CANDIDATE,
-            CandidateExtendedType.TURN_RELAYED_CANDIDATE,
-            turnCandidateHarvest.hostCandidate.getParentComponent()
-                .findLocalCandidate(mappedAddress));
+    public RelayedCandidate(TransportAddress transportAddress, TurnCandidateHarvest turnCandidateHarvest, TransportAddress mappedAddress) {
+        super(transportAddress, turnCandidateHarvest.hostCandidate.getParentComponent(), CandidateType.RELAYED_CANDIDATE, CandidateExtendedType.TURN_RELAYED_CANDIDATE, turnCandidateHarvest.hostCandidate.getParentComponent().findLocalCandidate(mappedAddress));
 
         this.turnCandidateHarvest = turnCandidateHarvest;
 
@@ -90,31 +64,18 @@ public class RelayedCandidate
     }
 
     /**
-     * Gets the RelayedCandidateDatagramSocket of this
-     * RelayedCandidate.
+     * Gets the RelayedCandidateDatagramSocket of this RelayedCandidate.
      * <p>
-     * <b>Note</b>: The method is part of the internal API of
-     * RelayedCandidate and TurnCandidateHarvest and is not
-     * intended for public use.
-     * </p>
+     * <b>Note</b>: The method is part of the internal API of RelayedCandidate and TurnCandidateHarvest and is not intended for public use.
+     * <br>
      *
-     * @return the RelayedCandidateDatagramSocket of this
-     * RelayedCandidate
+     * @return the RelayedCandidateDatagramSocket of this RelayedCandidate
      */
-    private synchronized RelayedCandidateDatagramSocket
-        getRelayedCandidateDatagramSocket()
-    {
-        if (relayedCandidateDatagramSocket == null)
-        {
-            try
-            {
-                relayedCandidateDatagramSocket
-                    = new RelayedCandidateDatagramSocket(
-                            this,
-                            turnCandidateHarvest);
-            }
-            catch (SocketException sex)
-            {
+    private synchronized RelayedCandidateDatagramSocket getRelayedCandidateDatagramSocket() {
+        if (relayedCandidateDatagramSocket == null) {
+            try {
+                relayedCandidateDatagramSocket = new RelayedCandidateDatagramSocket(this, turnCandidateHarvest);
+            } catch (SocketException sex) {
                 throw new UndeclaredThrowableException(sex);
             }
         }
@@ -122,27 +83,14 @@ public class RelayedCandidate
     }
 
     /**
-     * Gets the application-purposed DatagramSocket associated with
-     * this Candidate.
+     * Gets the application-purposed DatagramSocket associated with this Candidate.
      *
-     * @return the DatagramSocket associated with this
-     * Candidate
+     * @return the DatagramSocket associated with this Candidate
      */
     @Override
-    public synchronized IceSocketWrapper getCandidateIceSocketWrapper()
-    {
-        if (socket == null)
-        {
-            try
-            {
-                socket
-                    = new IceUdpSocketWrapper(new MultiplexingDatagramSocket(
-                            getRelayedCandidateDatagramSocket()));
-            }
-            catch (SocketException sex)
-            {
-                throw new UndeclaredThrowableException(sex);
-            }
+    public synchronized IceSocketWrapper getCandidateIceSocketWrapper() {
+        if (socket == null) {
+            socket = new IceUdpSocketWrapper(getRelayedCandidateDatagramSocket().getChannel());
         }
         return socket;
     }

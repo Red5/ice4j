@@ -12,12 +12,15 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
+import java.util.LinkedList;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
  * Abstract socket wrapper that define a socket that could be UDP, TCP...
@@ -33,6 +36,18 @@ public abstract class IceSocketWrapper {
     protected final SelectableChannel channel;
 
     protected TransportAddress transportAddress;
+
+    protected TransportAddress remoteTransportAddress;
+
+    /**
+     * Packet filters.
+     */
+    protected LinkedList<DatagramPacketFilter> filters = new LinkedList<>();
+
+    /**
+     * Socket timeout.
+     */
+    protected int soTimeout;
 
     public IceSocketWrapper(SelectableChannel channel) {
         this.channel = channel;
@@ -55,6 +70,33 @@ public abstract class IceSocketWrapper {
      * @throws IOException if something goes wrong
      */
     public abstract void receive(DatagramPacket p) throws IOException;
+
+    /**
+     * Adds a filter to manipulate data on the wrapped socket.
+     * 
+     * @param datagramPacketFilter
+     * @return true if added and false otherwise
+     */
+    public boolean addFilter(DatagramPacketFilter datagramPacketFilter) {
+        return filters.offer(datagramPacketFilter);
+    }
+
+    /**
+     * Removes a filter matching the given class if one exists.
+     * 
+     * @param filterClass
+     * @return true if removed and false otherwise
+     */
+    public boolean removeFilter(Class<DatagramPacketFilter> filterClass) {
+        boolean removed = false;
+        for (DatagramPacketFilter filter : filters) {
+            if (filterClass.isInstance(filter)) {
+                removed = filters.remove(filter);
+                break;
+            }
+        }
+        return removed;
+    }
 
     /**
      * Closes the channel.
@@ -113,6 +155,22 @@ public abstract class IceSocketWrapper {
             }
         }
         return transportAddress;
+    }
+
+    /**
+     * Sets the TransportAddress of the remote end-point.
+     * 
+     * @param remoteAddress address
+     */
+    public void setRemoteTransportAddress(TransportAddress remoteAddress) {
+        this.remoteTransportAddress = remoteAddress;
+    }
+
+    /**
+     * Sets the socket timeout.
+     */
+    public void setSoTimeout(int timeout) throws SocketException {
+        soTimeout = timeout;
     }
 
     /**

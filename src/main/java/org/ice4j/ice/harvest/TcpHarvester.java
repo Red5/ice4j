@@ -38,7 +38,6 @@ import org.ice4j.ice.ServerReflexiveCandidate;
 import org.ice4j.ice.TcpHostCandidate;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
-import org.ice4j.socket.MultiplexingSocket;
 import org.ice4j.socket.filter.StunDatagramPacketFilter;
 
 /**
@@ -285,7 +284,7 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * Saves a (weak) reference to Component, so that it can be notified if/when a socket for one of it LocalCandidates is accepted.
      * <p>
      * The method does not perform any network operations and should return quickly.
-     * </p>
+     * <br>
      */
     @Override
     public Collection<LocalCandidate> harvest(Component component) {
@@ -353,23 +352,18 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
             logger.fine("Adding a socket to an Agent in state " + state);
         }
         // Socket to add to the candidate
-        IceSocketWrapper candidateSocket = null;
+        IceSocketWrapper candidateSocket = new IceTcpSocketWrapper(socket.getChannel());
         // STUN-only filtered socket to add to the StunStack
-        IceSocketWrapper stunSocket = null;
-        MultiplexingSocket multiplexing = new MultiplexingSocket(socket);
-        candidateSocket = new IceTcpSocketWrapper(multiplexing);
-        stunSocket = new IceTcpSocketWrapper(multiplexing.getSocket(new StunDatagramPacketFilter()));
-        //stunSocket = new PushBackIceSocketWrapper(stunSocket, datagramPacket);
+        candidateSocket.addFilter(new StunDatagramPacketFilter());
         TcpHostCandidate candidate = findCandidate(component, socket);
         if (candidate == null) {
             throw new IOException("Failed to find the local candidate for socket: " + socket);
         }
-        component.getParentStream().getParentAgent().getStunStack().addSocket(stunSocket);
+        component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket);
         candidate.addSocket(candidateSocket);
         // TODO: Maybe move this code to the candidate.
-        component.getComponentSocket().add(multiplexing);
-        // the socket is not our responsibility anymore. It is up to
-        // the candidate/component to close/free it.
+        component.getComponentSocket().setSocket(candidateSocket);
+        // the socket is not our responsibility anymore. It is up to the candidate/component to close/free it.
     }
 
     /**

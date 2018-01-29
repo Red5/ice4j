@@ -484,7 +484,7 @@ public class MessageFactory {
      * account for the calculation of the MESSAGE-INTEGRITY value. For example,
      * the FINGERPRINT Attribute may still safely be added afterwards,
      * because it is known to appear after the MESSAGE-INTEGRITY.
-     * </p>
+     * <br>
      *
      * @param request the Request in which the Attributes of
      * the STUN long-term credential mechanism are to be added

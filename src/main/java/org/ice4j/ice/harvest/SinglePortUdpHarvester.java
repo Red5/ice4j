@@ -31,7 +31,6 @@ import org.ice4j.ice.IceProcessingState;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
-import org.ice4j.socket.MultiplexingDatagramSocket;
 import org.ice4j.socket.filter.StunDatagramPacketFilter;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -175,7 +174,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         /**
          * The collection of IceSocketWrappers that can potentially be used by the ice4j user to read/write from/to this candidate.
          * The keys are the remote addresses for each socket.
-         * <p>
+         * <br>
          * There are wrappers over MultiplexedDatagramSockets over a corresponding socket in {@link #sockets}.
          */
         private final ConcurrentMap<SocketAddress, IceSocketWrapper> candidateSockets = new ConcurrentHashMap<>();
@@ -183,7 +182,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         /**
          * The collection of DatagramSockets added to this candidate.
          * The keys are the remote addresses for each socket.
-         * <p>
+         * <br>
          * These are the "raw" sockets, before any wrappers are added for the STUN stack or the user of ice4j.
          */
         private final ConcurrentMap<SocketAddress, DatagramSocket> sockets = new ConcurrentHashMap<>();
@@ -201,7 +200,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
 
         /**
          * {@inheritDoc}
-         * <p>
+         * <br>
          * Closes all sockets in use by this LocalCandidate.
          */
         @Override
@@ -229,8 +228,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         }
 
         /**
-         * Adds a new Socket to this candidate, which is associated
-         * with a particular remote address.
+         * Adds a new Socket to this candidate, which is associated with a particular remote address.
          *
          * @param socket the socket to add.
          * @param remoteAddress the remote address for the socket.
@@ -249,19 +247,17 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             } else if (state != null && state.isOver()) {
                 logger.debug("Adding a socket to a completed Agent, state: ", state);
             }
-
-            MultiplexingDatagramSocket multiplexing = new MultiplexingDatagramSocket(socket);
             // Socket to add to the candidate
-            IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(multiplexing);
+            IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(socket.getChannel());
             // STUN-only filtered socket to add to the StunStack
-            IceSocketWrapper stunSocket = new IceUdpSocketWrapper(multiplexing.getSocket(new StunDatagramPacketFilter()));
-            component.getParentStream().getParentAgent().getStunStack().addSocket(stunSocket, new TransportAddress(remoteAddress, Transport.UDP));
+            candidateSocket.addFilter(new StunDatagramPacketFilter());
+            component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP));
             // TODO: maybe move this code to the candidates.
-            component.getComponentSocket().add(multiplexing);
+            component.getComponentSocket().setSocket(candidateSocket);
 
             IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
             if (oldSocket != null) {
-                logger.warn("Replacing the socket for remote address " + remoteAddress);
+                logger.info("Replacing the socket for remote address {}", remoteAddress);
                 oldSocket.close();
             }
             sockets.put(remoteAddress, socket);

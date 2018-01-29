@@ -11,6 +11,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -36,6 +37,10 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     public IceTcpSocketWrapper(SocketChannel channel) throws IOException {
         super(channel);
+        try {
+            channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+        } catch (SocketException ex) {
+        }
     }
 
     /** {@inheritDoc} */

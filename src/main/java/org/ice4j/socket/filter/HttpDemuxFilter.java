@@ -6,10 +6,10 @@
  */
 package org.ice4j.socket.filter;
 
-import java.net.*;
-import java.nio.charset.*;
+import java.net.DatagramPacket;
+import java.nio.charset.Charset;
 
-import org.ice4j.ice.harvest.*;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
 
 /**
  * Implements a {@link DatagramPacketFilter} which allows demultiplexing HTTP(S)
@@ -180,7 +180,7 @@ public class HttpDemuxFilter implements DatagramPacketFilter {
                 return accept;
             }
             if (sslv2) {
-                final byte[] googleTurnSslTcp = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
+                final byte[] googleTurnSslTcp = TurnCandidateHarvester.SSL_CLIENT_HANDSHAKE;
 
                 // 2 bytes  uint15 length
                 // 1 byte   uint8 msg_type = 1

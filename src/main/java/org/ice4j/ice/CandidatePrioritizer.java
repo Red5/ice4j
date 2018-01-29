@@ -70,7 +70,7 @@ class CandidatePrioritizer implements Comparator<Candidate<?>> {
      * Object.equals(Object).  However, overriding this method may,
      * in some cases, improve performance by allowing programs to determine
      * that two distinct Comparators impose the same order.
-     * </p>
+     * <br>
      *
      * @param obj the reference object with which to compare.
      *

@@ -10,10 +10,11 @@ import java.io.*;
 import java.net.*;
 import java.nio.channels.*;
 import java.util.concurrent.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.socket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The Network Access Point is the most outward part of the stack. It is constructed around a datagram socket and takes care of forwarding incoming
@@ -23,7 +24,7 @@ import org.ice4j.socket.*;
  */
 class Connector implements Runnable {
  
-    private static final Logger logger = Logger.getLogger(Connector.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(Connector.class);
 
     /**
      * The message queue is where incoming messages are added.
@@ -109,11 +110,11 @@ class Connector implements Runnable {
                 if (!running) {
                     return;
                 }
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest("received datagram packet - addr: " + packet.getAddress() + " port: " + packet.getPort());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("received datagram packet - addr: " + packet.getAddress() + " port: " + packet.getPort());
                 }
                 if (packet.getPort() < 0) {
-                    logger.warning("Out of range packet port, resetting to 0");
+                    logger.warn("Out of range packet port, resetting to 0");
                     // force a minimum port of 0 to prevent out of range errors
                     packet.setPort(0);
                 }
@@ -123,7 +124,7 @@ class Connector implements Runnable {
                 messageQueue.add(rawMessage);
             } catch (SocketException ex) {
                 if (running) {
-                    logger.log(Level.WARNING, "Connector died: " + listenAddress + " -> " + remoteAddress, ex);
+                    logger.warn("Connector died: " + listenAddress + " -> " + remoteAddress, ex);
                     stop();
                     //Something wrong has happened
                     errorHandler.handleFatalError(this, "A socket exception was thrown while trying to receive a message.", ex);
@@ -141,11 +142,11 @@ class Connector implements Runnable {
                     errorHandler.handleFatalError(this, "The socket was closed:", null);
                 }
             } catch (IOException ex) {
-                logger.log(Level.WARNING, "A net access point has gone useless:", ex);
+                logger.warn("A net access point has gone useless:", ex);
                 errorHandler.handleError(ex.getMessage(), ex);
                 //do not stop the thread;
             } catch (Throwable ex) {
-                logger.log(Level.WARNING, "A net access point has gone useless:", ex);
+                logger.warn("A net access point has gone useless:", ex);
                 stop();
                 errorHandler.handleFatalError(this, "Unknown error occurred while listening for messages!", ex);
             }

@@ -6,17 +6,21 @@
  */
 package org.ice4j.socket;
 
-import java.io.*;
-import java.net.*;
-import java.nio.channels.SelectableChannel;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
-import java.util.logging.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.*;
+import org.ice4j.ice.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TCP Server Socket wrapper.
@@ -25,7 +29,7 @@ import org.ice4j.ice.*;
  */
 public class IceTcpServerSocketWrapper extends IceSocketWrapper {
 
-    private static final Logger logger = Logger.getLogger(IceTcpServerSocketWrapper.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(IceTcpServerSocketWrapper.class);
 
     /**
      * Thread that will wait new connections.
@@ -148,15 +152,17 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
                 try {
                     SocketChannel tcpChannel = ((ServerSocketChannel) channel).accept();
                     if (tcpChannel != null) {
-                        MultiplexingSocket multiplexingSocket = new MultiplexingSocket(tcpChannel);
-                        component.getParentStream().getParentAgent().getStunStack().addSocket(new IceTcpSocketWrapper(multiplexingSocket));
-                        component.getComponentSocket().add(multiplexingSocket);
-                        channels.add(multiplexingSocket);
+                        IceTcpSocketWrapper multiplexingSocket = new IceTcpSocketWrapper(tcpChannel);
+                        component.getParentStream().getParentAgent().getStunStack().addSocket(multiplexingSocket);
+                        component.getComponentSocket().setSocket(multiplexingSocket);
+                        channels.add(tcpChannel);
                     }
                 } catch (IOException e) {
-                    logger.info("Failed to accept TCP socket " + e);
+                    logger.warn("Failed to accept TCP socket", e);
                 }
             }
         }
+
     }
+
 }

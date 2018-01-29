@@ -445,7 +445,7 @@ public class Agent {
      * Not that the method would only use existing harvesters so make sure
      * you've registered all harvesters that you would want to use before
      * calling it.
-     * </p>
+     * <br>
      * @param component the Component that we'd like to gather
      * candidates for.
      * @param preferredPort the port number that should be tried first when

@@ -533,7 +533,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * specification, this only happens for multihomed hosts.  If a host is
      * multihomed because it is dual stacked, the local preference SHOULD be
      * set equal to the precedence value for IP addresses described in RFC 3484.
-     * </p>
+     * <br>
      * @return the local preference for this Candidate.
      */
     private int getLocalPreference()
@@ -831,7 +831,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * as calling:
      * <p>
      *  getTransportAddress().canReach(dst.getTransportAddress())
-     * </p>
+     * <br>
      *
      * @param dst the Candidate that we'd like to check for
      * reachability from this one.

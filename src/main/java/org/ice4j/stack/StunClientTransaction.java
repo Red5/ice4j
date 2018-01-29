@@ -263,7 +263,7 @@ public class StunClientTransaction
      * sent, we consider the transaction to have failed.
      * <p>
      * The method acquires {@link #lock} and invokes {@link #runLocked()}.
-     * </p>
+     * <br>
      */
     @Override
     public void run()
@@ -289,7 +289,7 @@ public class StunClientTransaction
      * <p>
      * The method assumes that the current thread has already acquired
      * {@link #lock}.
-     * </p>
+     * <br>
      */
     private void runLocked()
     {

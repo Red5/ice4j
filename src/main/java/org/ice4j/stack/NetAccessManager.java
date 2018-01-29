@@ -7,6 +7,7 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
+import java.nio.channels.DatagramChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -253,9 +254,9 @@ class NetAccessManager implements ErrorHandler {
      */
     protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
         try {
-            logger.info("addSocket: {}", socket.getUDPChannel().getLocalAddress());
+            logger.info("addSocket: {}", ((DatagramChannel) socket.getChannel()).getLocalAddress());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.warn("Exception getting channels local address", e);
         }
         TransportAddress localAddress = socket.getTransportAddress();
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;

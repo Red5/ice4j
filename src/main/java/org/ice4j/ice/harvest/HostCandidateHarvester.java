@@ -257,15 +257,12 @@ public class HostCandidateHarvester {
 
             while (addresses.hasMoreElements()) {
                 InetAddress addr = addresses.nextElement();
-
                 if (!isAddressAllowed(addr)) {
                     continue;
                 }
-
                 if (isIPv6LinkLocalDisabled && (addr instanceof Inet6Address) && addr.isLinkLocalAddress()) {
                     continue;
                 }
-
                 if ((addr instanceof Inet4Address) || !isIPv6Disabled) {
                     IceSocketWrapper sock = null;
                     try {
@@ -273,8 +270,9 @@ public class HostCandidateHarvester {
                             sock = createDatagramSocket(addr, preferredPort, minPort, maxPort);
                             boundAtLeastOneSocket = true;
                         } else if (transport == Transport.TCP) {
-                            if (addr instanceof Inet6Address)
+                            if (addr instanceof Inet6Address) {
                                 continue;
+                            }
                             sock = createServerSocket(addr, preferredPort, minPort, maxPort, component);
                             boundAtLeastOneSocket = true;
                         }
@@ -285,56 +283,43 @@ public class HostCandidateHarvester {
                         logger.warn("Failed to create a socket for:" + "\naddr:" + addr + "\npreferredPort:" + preferredPort + "\nminPort:" + minPort + "\nmaxPort:" + maxPort + "\nprotocol:" + transport + "\nContinuing with next address");
                         continue;
                     }
-
                     HostCandidate candidate = new HostCandidate(sock, component, transport);
                     candidate.setVirtual(NetworkUtils.isInterfaceVirtual(iface));
                     component.addLocalCandidate(candidate);
-
                     if (transport == Transport.TCP) {
                         // have to wait a client connection to add a STUN socket to the StunStack
                         continue;
                     }
-
                     // We are most certainly going to use all local host candidates for sending and receiving STUN connectivity
                     // checks. In case we have enabled STUN, we are going to use them as well while harvesting reflexive candidates.
                     createAndRegisterStunSocket(candidate);
-                    component.getComponentSocket().add(sock);
+                    component.getComponentSocket().setSocket(sock);
                 }
             }
         }
-
         if (!boundAtLeastOneSocket) {
             throw new IOException("Failed to bind even a single host candidate for component:" + component + " preferredPort=" + preferredPort + " minPort=" + minPort + " maxPort=" + maxPort);
         }
-
         this.harvestStatistics.stopHarvestTiming(component.getLocalCandidateCount());
     }
 
     /**
-     * Returns a boolean value indicating whether ice4j should allocate a host
-     * candidate for the specified interface.
+     * Returns a boolean value indicating whether ice4j should allocate a host candidate for the specified interface.
      *
      * @param iface The {@link NetworkInterface}.
      *
-     * @return true if the {@link NetworkInterface} is listed in the
-     * org.ice4j.ice.harvest.ALLOWED_INTERFACES list. If that list
-     * isn't defined, returns true if it's not listed in the
-     * org.ice4j.ice.harvest.BLOCKED_INTERFACES list. It returns
+     * @return true if the {@link NetworkInterface} is listed in the org.ice4j.ice.harvest.ALLOWED_INTERFACES list. If that list
+     * isn't defined, returns true if it's not listed in the org.ice4j.ice.harvest.BLOCKED_INTERFACES list. It returns
      * false otherwise.
      */
     static boolean isInterfaceAllowed(NetworkInterface iface) {
-        if (iface == null)
+        if (iface == null) {
             throw new IllegalArgumentException("iface cannot be null");
-
-        // gp: use getDisplayName() on Windows and getName() on Linux. Also
-        // see NetworkAddressManagementServiceImpl in Jitsi.
+        }
+        // gp: use getDisplayName() on Windows and getName() on Linux. Also see NetworkAddressManagementServiceImpl in Jitsi.
         String ifName = (System.getProperty("os.name") == null || System.getProperty("os.name").startsWith("Windows")) ? iface.getDisplayName() : iface.getName();
-
         String[] allowedInterfaces = getAllowedInterfaces();
-
-        // NOTE The blocked interfaces list is taken into account only if the
-        // allowed interfaces list is not defined.
-
+        // NOTE The blocked interfaces list is taken into account only if the allowed interfaces list is not defined.
         // getAllowedInterfaces returns null if the array is empty.
         if (allowedInterfaces != null) {
             // A list of allowed interfaces exists.
@@ -342,48 +327,41 @@ public class HostCandidateHarvester {
         } else {
             // A list of allowed interfaces does not exist.
             String[] blockedInterfaces = getBlockedInterfaces();
-
             // getBlockedInterfaces returns null if the array is empty.
             if (blockedInterfaces != null) {
                 // but a list of blocked interfaces exists.
                 return !Arrays.asList(blockedInterfaces).contains(ifName);
             }
         }
-
         return true;
     }
 
     /**
-     * Returns true if address is allowed to be used by this
-     * HostCandidateHarvester for the purposes of candidate allocation,
+     * Returns true if address is allowed to be used by this HostCandidateHarvester for the purposes of candidate allocation,
      * and false otherwise.
      *
      * An address is considered allowed, if
      * 1. It is not a loopback address.
-     * 2. Either no addresses have explicitly been configured allowed (via the
-     * StackProperties.ALLOWED_ADDRESSES property), or address
+     * 2. Either no addresses have explicitly been configured allowed (via the StackProperties.ALLOWED_ADDRESSES property), or address
      * is explicitly configured allowed.
-     * 3. address is not explicitly configured blocked (via the
-     * StackProperties.BLOCKED_ADDRESSES property).
+     * 3. address is not explicitly configured blocked (via the StackProperties.BLOCKED_ADDRESSES property).
      *
      * @param address the address to check
-     * @return true if address is allowed to be used by this
-     * HostCandidateHarvester.
+     * @return true if address is allowed to be used by this HostCandidateHarvester.
      */
     static boolean isAddressAllowed(InetAddress address) {
         if (address.isLoopbackAddress()) {
             return false;
         }
-
         boolean ret = true;
         List<InetAddress> allowed = getAllowedAddresses();
         List<InetAddress> blocked = getBlockedAddresses();
-
-        if (allowed != null)
+        if (allowed != null) {
             ret = allowed.contains(address);
-        if (blocked != null)
+        }
+        if (blocked != null) {
             ret = ret && !blocked.contains(address);
-
+        }
         return ret;
     }
 
@@ -469,28 +447,23 @@ public class HostCandidateHarvester {
     private IceSocketWrapper createDatagramSocket(InetAddress laddr, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException, BindException {
         // make sure port numbers are valid.
         this.checkPorts(preferredPort, minPort, maxPort);
-
         int bindRetries = StackProperties.getInt(StackProperties.BIND_RETRIES, StackProperties.BIND_RETRIES_DEFAULT_VALUE);
-
         int port = preferredPort;
         for (int i = 0; i < bindRetries; i++) {
             try {
-                IceSocketWrapper sock = new IceUdpSocketWrapper(new MultiplexingDatagramSocket(port, laddr));
-
+                IceSocketWrapper sock = new IceUdpSocketWrapper(laddr, port);
                 if (logger.isTraceEnabled()) {
-                    logger.trace("just bound to: ", sock.getLocalSocketAddress());
+                    logger.trace("just bound to: {}", sock.getLocalSocketAddress());
                 }
                 return sock;
             } catch (SocketException se) {
-                logger.warn("Retrying a bind because of a failure to bind to" + " address " + laddr + " and port " + port, se);
+                logger.warn("Retrying a bind because of a failure to bind to address {}:{}", laddr, port, se);
             }
-
             port++;
-
-            if (port > maxPort)
+            if (port > maxPort) {
                 port = minPort;
+            }
         }
-
         throw new BindException("Could not bind to any port between " + minPort + " and " + (port - 1));
     }
 
@@ -506,7 +479,6 @@ public class HostCandidateHarvester {
      */
     private void createAndRegisterStunSocket(HostCandidate candidate) {
         IceSocketWrapper stunSocket = candidate.getStunSocket(null);
-
         candidate.getStunStack().addSocket(stunSocket);
     }
 

@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -28,9 +17,19 @@ import org.ice4j.security.*;
  * @author Emil Ivov
  * @author Lubomir Marinov
  */
-public class TurnCandidateHarvester
-    extends StunCandidateHarvester
-{
+public class TurnCandidateHarvester extends StunCandidateHarvester {
+
+    /**
+     * Data for the SSL message sent by the server.
+     */
+    static final byte[] SSL_SERVER_HANDSHAKE = { 0x16, 0x03, 0x01, 0x00, 0x4a, 0x02, 0x00, 0x00, 0x46, 0x03, 0x01, 0x42, (byte) 0x85, 0x45, (byte) 0xa7, 0x27, (byte) 0xa9, 0x5d, (byte) 0xa0, (byte) 0xb3, (byte) 0xc5, (byte) 0xe7, 0x53, (byte) 0xda, 0x48, 0x2b, 0x3f, (byte) 0xc6, 0x5a, (byte) 0xca, (byte) 0x89, (byte) 0xc1, 0x58, 0x52, (byte) 0xa1, 0x78, 0x3c, 0x5b, 0x17, 0x46, 0x00, (byte) 0x85, 0x3f, 0x20, 0x0e,
+            (byte) 0xd3, 0x06, 0x72, 0x5b, 0x5b, 0x1b, 0x5f, 0x15, (byte) 0xac, 0x13, (byte) 0xf9, (byte) 0x88, 0x53, (byte) 0x9d, (byte) 0x9b, (byte) 0xe8, 0x3d, 0x7b, 0x0c, 0x30, 0x32, 0x6e, 0x38, 0x4d, (byte) 0xa2, 0x75, 0x57, 0x41, 0x6c, 0x34, 0x5c, 0x00, 0x04, 0x00 };
+
+    /**
+     * Data for the SSL message sent by the client.
+     */
+    public static final byte[] SSL_CLIENT_HANDSHAKE = { (byte) 0x80, 0x46, 0x01, 0x03, 0x01, 0x00, 0x2d, 0x00, 0x00, 0x00, 0x10, 0x01, 0x00, (byte) 0x80, 0x03, 0x00, (byte) 0x80, 0x07, 0x00, (byte) 0xc0, 0x06, 0x00, 0x40, 0x02, 0x00, (byte) 0x80, 0x04, 0x00, (byte) 0x80, 0x00, 0x00, 0x04, 0x00, (byte) 0xfe, (byte) 0xff, 0x00, 0x00, 0x0a, 0x00, (byte) 0xfe, (byte) 0xfe, 0x00, 0x00, 0x09, 0x00, 0x00, 0x64, 0x00, 0x00,
+            0x62, 0x00, 0x00, 0x03, 0x00, 0x00, 0x06, 0x1f, 0x17, 0x0c, (byte) 0xa6, 0x2f, 0x00, 0x78, (byte) 0xfc, 0x46, 0x55, 0x2e, (byte) 0xb1, (byte) 0x83, 0x39, (byte) 0xf1, (byte) 0xea };
 
     /**
      * The LongTermCredential to be used with the TURN server with
@@ -45,8 +44,7 @@ public class TurnCandidateHarvester
      * @param turnServer the TransportAddress of the TURN server the
      * new instance is to work with
      */
-    public TurnCandidateHarvester(TransportAddress turnServer)
-    {
+    public TurnCandidateHarvester(TransportAddress turnServer) {
         this(turnServer, (LongTermCredential) null);
     }
 
@@ -62,10 +60,7 @@ public class TurnCandidateHarvester
      * long-term credential mechanism is not determined at the time of the
      * initialization of the new TurnCandidateHarvester instance
      */
-    public TurnCandidateHarvester(
-            TransportAddress turnServer,
-            LongTermCredential longTermCredential)
-    {
+    public TurnCandidateHarvester(TransportAddress turnServer, LongTermCredential longTermCredential) {
         super(turnServer);
 
         this.longTermCredential = longTermCredential;
@@ -83,10 +78,7 @@ public class TurnCandidateHarvester
      * null if the use of the STUN short-term credential mechanism is
      * not determined at the time of the construction of the new instance
      */
-    public TurnCandidateHarvester(
-            TransportAddress turnServer,
-            String shortTermCredentialUsername)
-    {
+    public TurnCandidateHarvester(TransportAddress turnServer, String shortTermCredentialUsername) {
         super(turnServer, shortTermCredentialUsername);
 
         this.longTermCredential = null;
@@ -103,8 +95,7 @@ public class TurnCandidateHarvester
      * @see StunCandidateHarvester#createHarvest(HostCandidate)
      */
     @Override
-    protected TurnCandidateHarvest createHarvest(HostCandidate hostCandidate)
-    {
+    protected TurnCandidateHarvest createHarvest(HostCandidate hostCandidate) {
         return new TurnCandidateHarvest(this, hostCandidate);
     }
 
@@ -129,10 +120,7 @@ public class TurnCandidateHarvester
      * StunCandidateHarvest,byte[])
      */
     @Override
-    protected LongTermCredential createLongTermCredential(
-            StunCandidateHarvest harvest,
-            byte[] realm)
-    {
+    protected LongTermCredential createLongTermCredential(StunCandidateHarvest harvest, byte[] realm) {
         return longTermCredential;
     }
- }
+}

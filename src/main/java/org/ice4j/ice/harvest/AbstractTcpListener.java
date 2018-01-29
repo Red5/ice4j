@@ -11,6 +11,7 @@ import java.net.DatagramPacket;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
@@ -19,6 +20,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,8 +31,6 @@ import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.message.Message;
-import org.ice4j.socket.MuxServerSocketChannelFactory;
-import org.ice4j.socket.filter.DatagramPacketFilter;
 
 /**
  * An abstract class that binds on a set of sockets and accepts sessions that start with a STUN Binding Request (preceded by an optional fake SSL
@@ -48,12 +48,22 @@ public abstract class AbstractTcpListener {
     private static final Logger logger = Logger.getLogger(AbstractTcpListener.class.getName());
 
     /**
+     * The maximum number of milliseconds to wait for an accepted {@code SocketChannel} to provide incoming/readable data before it is
+     * considered abandoned by the client.
+     */
+    public static final int SOCKET_CHANNEL_READ_TIMEOUT = 15 * 1000;
+
+    /**
      * Closes a {@code Channel} and swallows any {@link IOException}.
      *
      * @param channel the {@code Channel} to close
      */
     static void closeNoExceptions(Channel channel) {
-        MuxServerSocketChannelFactory.closeNoExceptions(channel);
+        try {
+            channel.close();
+        } catch (IOException ioe) {
+            // close a Channel without caring about any possible IOException
+        }
     }
 
     /**
@@ -79,6 +89,7 @@ public abstract class AbstractTcpListener {
      * @return {@code true} if {@code p} looks like the first {@code DatagramPacket} expected to be received from an accepted
      * {@code SocketChannel} by this {@code TcpHarvester}; otherwise, {@code false}
      */
+    @SuppressWarnings("unused")
     private static boolean isFirstDatagramPacket(DatagramPacket p) {
         int len = p.getLength();
         boolean b = false;
@@ -86,7 +97,7 @@ public abstract class AbstractTcpListener {
             byte[] buf = p.getData();
             int off = p.getOffset();
             // Check for Google TURN SSLTCP
-            final byte[] googleTurnSslTcp = GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE;
+            final byte[] googleTurnSslTcp = TurnCandidateHarvester.SSL_CLIENT_HANDSHAKE;
             if (len >= googleTurnSslTcp.length) {
                 b = true;
                 for (int i = 0, iEnd = googleTurnSslTcp.length, j = off; i < iEnd; i++, j++) {
@@ -181,6 +192,19 @@ public abstract class AbstractTcpListener {
      * if an I/O error occurs.
      */
     public AbstractTcpListener(List<TransportAddress> transportAddresses) throws IOException {
+        addLocalAddresses(transportAddresses);
+        init();
+    }
+
+    public AbstractTcpListener(int port, List<NetworkInterface> interfaces) throws IOException {
+        List<TransportAddress> transportAddresses = new LinkedList<>();
+        for (NetworkInterface iface : interfaces) {
+            Enumeration<InetAddress> addresses = iface.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress address = addresses.nextElement();
+                transportAddresses.add(new TransportAddress(address, port, Transport.TCP));
+            }
+        }
         addLocalAddresses(transportAddresses);
         init();
     }
@@ -288,14 +312,16 @@ public abstract class AbstractTcpListener {
      * @throws IOException if an I/O error occurs
      */
     private void addSocketChannel(InetSocketAddress address) throws IOException {
-        ServerSocketChannel channel = MuxServerSocketChannelFactory.openAndBindMuxServerSocketChannel(
-        /* properties */null, address,
-        /* backlog */0, new DatagramPacketFilter() {
+        ServerSocketChannel channel = ServerSocketChannel.open();
+        channel.bind(address, 0);
+        // XXX if we need to add a datagram filter
+        /* new DatagramPacketFilter() {
             @Override
             public boolean accept(DatagramPacket p) {
                 return isFirstDatagramPacket(p);
             }
-        });
+        };
+        */
         serverSocketChannels.add(channel);
     }
 
@@ -501,7 +527,7 @@ public abstract class AbstractTcpListener {
 
                 long lastActive = channelDesc.lastActive;
 
-                if (lastActive != -1 && now - lastActive > MuxServerSocketChannelFactory.SOCKET_CHANNEL_READ_TIMEOUT) {
+                if (lastActive != -1 && now - lastActive > SOCKET_CHANNEL_READ_TIMEOUT) {
                     // De-register from the Selector.
                     key.cancel();
 
@@ -533,7 +559,7 @@ public abstract class AbstractTcpListener {
             if (channel.buffer == null) {
                 // Set up a buffer with a pre-determined size
                 if (!channel.checkedForSSLHandshake && channel.length == -1) {
-                    channel.buffer = ByteBuffer.allocate(GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE.length);
+                    channel.buffer = ByteBuffer.allocate(TurnCandidateHarvester.SSL_CLIENT_HANDSHAKE.length);
                 } else if (channel.length == -1) {
                     channel.buffer = ByteBuffer.allocate(2);
                 } else {
@@ -552,7 +578,7 @@ public abstract class AbstractTcpListener {
                 if (!channel.buffer.hasRemaining()) {
                     // We've filled in the buffer.
                     if (!channel.checkedForSSLHandshake) {
-                        byte[] bytesRead = new byte[GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE.length];
+                        byte[] bytesRead = new byte[TurnCandidateHarvester.SSL_CLIENT_HANDSHAKE.length];
 
                         channel.buffer.flip();
                         channel.buffer.get(bytesRead);
@@ -561,8 +587,8 @@ public abstract class AbstractTcpListener {
                         channel.buffer = null;
                         channel.checkedForSSLHandshake = true;
 
-                        if (Arrays.equals(bytesRead, GoogleTurnSSLCandidateHarvester.SSL_CLIENT_HANDSHAKE)) {
-                            ByteBuffer byteBuffer = ByteBuffer.wrap(GoogleTurnSSLCandidateHarvester.SSL_SERVER_HANDSHAKE);
+                        if (Arrays.equals(bytesRead, TurnCandidateHarvester.SSL_CLIENT_HANDSHAKE)) {
+                            ByteBuffer byteBuffer = ByteBuffer.wrap(TurnCandidateHarvester.SSL_SERVER_HANDSHAKE);
                             channel.channel.write(byteBuffer);
                         } else {
                             int fb = bytesRead[0];
@@ -681,7 +707,7 @@ public abstract class AbstractTcpListener {
                 // We read from all SocketChannels.
                 readSelector.selectedKeys().clear();
                 try {
-                    readSelector.select(MuxServerSocketChannelFactory.SOCKET_CHANNEL_READ_TIMEOUT / 2);
+                    readSelector.select(SOCKET_CHANNEL_READ_TIMEOUT / 2);
                 } catch (IOException ioe) {
                     logger.info("Failed to select a read-ready channel.");
                 }
