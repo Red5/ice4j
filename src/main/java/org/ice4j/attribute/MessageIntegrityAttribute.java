@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.attribute;
 
@@ -84,10 +73,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Emil Ivov
  */
-public class MessageIntegrityAttribute
-    extends Attribute
-    implements ContentDependentAttribute
-{
+public class MessageIntegrityAttribute extends Attribute implements ContentDependentAttribute {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
 
@@ -121,8 +107,7 @@ public class MessageIntegrityAttribute
     /**
      * Creates a MessageIntegrityAttribute.
      */
-    protected MessageIntegrityAttribute()
-    {
+    protected MessageIntegrityAttribute() {
         super(Attribute.Type.MESSAGE_INTEGRITY);
     }
 
@@ -135,8 +120,7 @@ public class MessageIntegrityAttribute
      * key (password) that the {@link #encode()} method should use when
      * creating the content of this message.
      */
-    public void setUsername(String username)
-    {
+    public void setUsername(String username) {
         this.username = username;
     }
 
@@ -146,8 +130,7 @@ public class MessageIntegrityAttribute
      *
      * @param media name
      */
-    public void setMedia(String media)
-    {
+    public void setMedia(String media) {
         this.media = media;
     }
 
@@ -156,8 +139,7 @@ public class MessageIntegrityAttribute
      *
      * @return the HMAC-SHA1 value stored in this attribute.
      */
-    public byte[] getHmacSha1Content()
-    {
+    public byte[] getHmacSha1Content() {
         return hmacSha1Content;
     }
 
@@ -180,19 +162,12 @@ public class MessageIntegrityAttribute
      *
      * @throws IllegalArgumentException if the encoding fails for some reason.
      */
-    public static byte[] calculateHmacSha1(byte[] message,
-                                           int    offset,
-                                           int    length,
-                                           byte[] key)
-        throws IllegalArgumentException
-    {
+    public static byte[] calculateHmacSha1(byte[] message, int offset, int length, byte[] key) throws IllegalArgumentException {
         byte[] hmac;
 
-        try
-        {
+        try {
             // get an HMAC-SHA1 key from the raw key bytes
-            SecretKeySpec signingKey
-                = new SecretKeySpec(key, HMAC_SHA1_ALGORITHM);
+            SecretKeySpec signingKey = new SecretKeySpec(key, HMAC_SHA1_ALGORITHM);
             // get an HMAC-SHA1 Mac instance and initialize it with the key
             Mac mac = Mac.getInstance(HMAC_SHA1_ALGORITHM);
 
@@ -206,11 +181,8 @@ public class MessageIntegrityAttribute
             //actually need to work with.
             System.arraycopy(message, offset, macInput, 0, length);
             hmac = mac.doFinal(macInput);
-        }
-        catch (Exception exc)
-        {
-            throw new IllegalArgumentException(
-                        "Could not create HMAC-SHA1 request encoding: ", exc);
+        } catch (Exception exc) {
+            throw new IllegalArgumentException("Could not create HMAC-SHA1 request encoding: ", exc);
         }
         return hmac;
     }
@@ -226,9 +198,7 @@ public class MessageIntegrityAttribute
      * @param length the length of the binary array.
      * the start of this attribute.
      */
-    public void decodeAttributeBody(byte[] attributeValue,
-            int offset, int length)
-    {
+    public void decodeAttributeBody(byte[] attributeValue, int offset, int length) {
         hmacSha1Content = new byte[length];
         System.arraycopy(attributeValue, offset, hmacSha1Content, 0, length);
     }
@@ -241,12 +211,8 @@ public class MessageIntegrityAttribute
      * ContentDependentAttribute}s should be encoded through the content
      * dependent encode method.
      */
-    public byte[] encode()
-        throws UnsupportedOperationException
-    {
-        throw new UnsupportedOperationException(
-                        "ContentDependentAttributes should be encoded "
-                        + "through the content-dependent encode method");
+    public byte[] encode() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("ContentDependentAttributes should be encoded " + "through the content-dependent encode method");
     }
 
     /**
@@ -263,12 +229,8 @@ public class MessageIntegrityAttribute
      * @return a binary representation of this attribute valid for the message
      * with the specified content.
      */
-    public byte[] encode(
-            StunStack stunStack,
-            byte[] content, int offset, int length)
-    {
-        if(logger.isDebugEnabled())
-        {
+    public byte[] encode(StunStack stunStack, byte[] content, int offset, int length) {
+        if (logger.isDebugEnabled()) {
             logger.debug("encode - offset: {} length: {}\n{}", offset, length, StunStack.toHexString(content));
         }
 
@@ -276,24 +238,20 @@ public class MessageIntegrityAttribute
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
 
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         byte[] key = null;
         char msgType = (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
         // PR124
-        if(Message.isRequestType(msgType) || Message.isIndicationType(msgType))
-        {
+        if (Message.isRequestType(msgType) || Message.isIndicationType(msgType)) {
             /* attribute part of a request, use the remote key */
             key = stunStack.getCredentialsManager().getRemoteKey(username, media);
-        }
-        else if(Message.isSuccessResponseType(msgType) ||
-                Message.isErrorResponseType(msgType))
-        {
+        } else if (Message.isSuccessResponseType(msgType) || Message.isErrorResponseType(msgType)) {
             /* attribute part of a response, use the local key */
             key = stunStack.getCredentialsManager().getLocalKey(username);
         }
@@ -312,8 +270,7 @@ public class MessageIntegrityAttribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH;
     }
 
@@ -324,18 +281,15 @@ public class MessageIntegrityAttribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof MessageIntegrityAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof MessageIntegrityAttribute))
             return false;
 
         if (obj == this)
             return true;
 
         MessageIntegrityAttribute att = (MessageIntegrityAttribute) obj;
-        if (att.getAttributeType() != getAttributeType()
-                || att.getDataLength() != getDataLength()
-                || !Arrays.equals(att.hmacSha1Content, hmacSha1Content))
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength() || !Arrays.equals(att.hmacSha1Content, hmacSha1Content))
             return false;
 
         return true;

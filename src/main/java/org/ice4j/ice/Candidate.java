@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -36,9 +25,7 @@ import org.ice4j.*;
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
-public abstract class Candidate<T extends Candidate<?>>
-    implements Comparable<T>
-{
+public abstract class Candidate<T extends Candidate<?>> implements Comparable<T> {
     /**
      * The maximum value for a candidate's type preference.
      */
@@ -80,7 +67,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * same foundation pairs are likely to have similar network
      * characteristics. Foundations are used in the frozen algorithm.
      */
-    private String foundation = null;
+    private String foundation;
 
     /**
      * The base of a server reflexive candidate is the host candidate
@@ -88,7 +75,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * a base, equal to that candidate itself. Similarly, the base of a
      * relayed candidate is that candidate itself.
      */
-    private T base = null;
+    private T base;
 
     /**
      * A unique priority number that MUST be a positive integer between 1 and
@@ -105,7 +92,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * however (that is when running a more recent JVM) we will reflect it in
      * this property.
      */
-    private boolean virtual = false;
+    private boolean virtual;
 
     /**
      * The component that this candidate was created for. Every candidate is
@@ -118,21 +105,21 @@ public abstract class Candidate<T extends Candidate<?>>
      * Candidate. Will be null if this is not a server
      * reflexive candidate.
      */
-    private TransportAddress stunServerAddress = null;
+    private TransportAddress stunServerAddress;
 
     /**
      * The address of the relay server (i.e. TURN, Jingle Nodes, ...) that was
      * used to obtain this Candidate. Will be null if this is
      * not a relayed candidate.
      */
-    private TransportAddress relayServerAddress = null;
+    private TransportAddress relayServerAddress;
 
     /**
      * The address that our TURN/STUN server returned as mapped if this is a
      * relayed or a reflexive Candidate. Will remain null if
      * this is a host candidate.
      */
-    private TransportAddress mappedAddress = null;
+    private TransportAddress mappedAddress;
 
     /**
      * The related candidate:
@@ -143,34 +130,26 @@ public abstract class Candidate<T extends Candidate<?>>
      * - null for a peer reflexive candidate : there is no way to know the
      * related address.
      */
-    private T relatedCandidate = null;
+    private T relatedCandidate;
 
     /**
      * The CandidateTcpType for this Candidate.
      */
-    private CandidateTcpType tcpType = null;
+    private CandidateTcpType tcpType;
 
     /**
      * Creates a candidate for the specified transport address and properties.
      *
-     * @param transportAddress  the transport address that this candidate is
-     * encapsulating.
-     * @param parentComponent the Component that this candidate
-     * belongs to.
+     * @param transportAddress  the transport address that this candidate is encapsulating.
+     * @param parentComponent the Component that this candidate belongs to.
      * @param type the CandidateType for this Candidate.
      * @param relatedCandidate The related candidate:
      * - null for a host candidate,
      * - the base address (host candidate) for a reflexive candidate,
-     * - the mapped address (the mapped address of the TURN allocate response)
-     * for a relayed candidate.
-     * - null for a peer reflexive candidate : there is no way to know the
-     * related address.
+     * - the mapped address (the mapped address of the TURN allocate response) for a relayed candidate.
+     * - null for a peer reflexive candidate : there is no way to know the related address.
      */
-    public Candidate(TransportAddress transportAddress,
-                     Component        parentComponent,
-                     CandidateType    type,
-                     T relatedCandidate)
-    {
+    public Candidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, T relatedCandidate) {
         this.transportAddress = transportAddress;
         this.parentComponent = parentComponent;
         this.candidateType = type;
@@ -178,100 +157,75 @@ public abstract class Candidate<T extends Candidate<?>>
     }
 
     /**
-     * Returns the type of this candidate which should be an instance of the
-     * {@link CandidateType} enumeration.
+     * Returns the type of this candidate which should be an instance of the {@link CandidateType} enumeration.
      *
-     * @return a CandidateType indicating the type of this
-     * Candidate.
+     * @return a CandidateType indicating the type of this Candidate.
      */
-    public CandidateType getType()
-    {
+    public CandidateType getType() {
         return candidateType;
     }
 
     /**
-     * Sets the type of this candidate which should be an instance of the
-     * {@link CandidateType} enumeration.
+     * Sets the type of this candidate which should be an instance of the {@link CandidateType} enumeration.
      *
-     * @param candidateType a CandidateType instance indicating the
-     * type of this Candidate.
+     * @param candidateType a CandidateType instance indicating the type of this Candidate.
      */
-    public void setCandidateType(CandidateType candidateType)
-    {
+    public void setCandidateType(CandidateType candidateType) {
         this.candidateType = candidateType;
     }
 
     /**
-     * Returns a String containing the foundation of this
-     * Candidate. A foundation is an arbitrary String that is
-     * the same for candidates that have the same type, base IP address,
-     * transport protocol (UDP, TCP, etc.) and STUN or TURN server. If any of
-     * these are different then the foundation will be different. Two candidate
-     * pairs with the same foundation pairs are likely to have similar network
-     * characteristics. Typically, candidates for RTP and RTCP streams will
-     * share the same foundation. Foundations are used in the frozen algorithm.
+     * Returns a String containing the foundation of this Candidate. A foundation is an arbitrary String that is
+     * the same for candidates that have the same type, base IP address, transport protocol (UDP, TCP, etc.) and STUN or TURN server. If any of
+     * these are different then the foundation will be different. Two candidate pairs with the same foundation pairs are likely to have similar network
+     * characteristics. Typically, candidates for RTP and RTCP streams will share the same foundation. Foundations are used in the frozen algorithm.
      *
      * @return the foundation of this Candidate.
      */
-    public String getFoundation()
-    {
+    public String getFoundation() {
         return foundation;
     }
 
     /**
-     * Sets this Candidate's foundation. A foundation is an arbitrary
-     * string that is always the same for candidates that have the same type,
-     * base IP address, protocol (UDP, TCP, etc.) and STUN or TURN server. If
-     * any of these are different then the foundation will be different. Two
-     * candidate pairs with the same foundation pairs are likely to have similar
-     * network characteristics. Foundations are used in the frozen algorithm.
+     * Sets this Candidate's foundation. A foundation is an arbitrary string that is always the same for candidates that have the same type,
+     * base IP address, protocol (UDP, TCP, etc.) and STUN or TURN server. If any of these are different then the foundation will be different. Two
+     * candidate pairs with the same foundation pairs are likely to have similar network characteristics. Foundations are used in the frozen algorithm.
      *
      * @param foundation the foundation of this Candidate.
      */
-    public void setFoundation(String foundation)
-    {
+    public void setFoundation(String foundation) {
         this.foundation = foundation;
     }
 
     /**
-     * Returns this Candidate's base. The base of a server
-     * reflexive candidate is the host candidate from which it was derived.
-     * A host candidate is also said to have a base, equal to that candidate
-     * itself. Similarly, the base of a relayed candidate is that candidate
+     * Returns this Candidate's base. The base of a server reflexive candidate is the host candidate from which it was derived.
+     * A host candidate is also said to have a base, equal to that candidate itself. Similarly, the base of a relayed candidate is that candidate
      * itself.
      *
      * @return the base Candidate for this Candidate.
      */
-    public T getBase()
-    {
+    public T getBase() {
         return base;
     }
 
     /**
-     * Sets this Candidate's base. The base of a server
-     * reflexive candidate is the host candidate from which it was derived.
-     * A host candidate is also said to have a base, equal to that candidate
-     * itself. Similarly, the base of a relayed candidate is that candidate
+     * Sets this Candidate's base. The base of a server reflexive candidate is the host candidate from which it was derived.
+     * A host candidate is also said to have a base, equal to that candidate itself. Similarly, the base of a relayed candidate is that candidate
      * itself.
      *
      * @param base the base Candidate of this Candidate.
      */
-    public void setBase(T base)
-    {
+    public void setBase(T base) {
         this.base = base;
     }
 
     /**
-     * Returns the priority of this candidate. Priority is a unique priority
-     * number that MUST be a positive integer between 1 and (2**32 - 1). This
-     * priority will be set and used by ICE algorithms to  determine the order
-     * of the connectivity checks and the relative preference for candidates.
+     * Returns the priority of this candidate. Priority is a unique priority number that MUST be a positive integer between 1 and (2**32 - 1). This
+     * priority will be set and used by ICE algorithms to  determine the order of the connectivity checks and the relative preference for candidates.
      *
-     * @return a number between 1 and (2**32 - 1) indicating the priority of
-     * this candidate.
+     * @return a number between 1 and (2**32 - 1) indicating the priority of this candidate.
      */
-    public long getPriority()
-    {
+    public long getPriority() {
         return priority;
     }
 
@@ -280,36 +234,30 @@ public abstract class Candidate<T extends Candidate<?>>
      *
      * @return the TransportAddress encapsulated by this Candidate.
      */
-    public TransportAddress getTransportAddress()
-    {
+    public TransportAddress getTransportAddress() {
         return transportAddress;
     }
 
     /**
-     * Indicates whether some other Candidate is "equal to" this one. We
-     * consider candidates equal when they are redundant, i.e.
+     * Indicates whether some other Candidate is "equal to" this one. We consider candidates equal when they are redundant, i.e.
      * <p>
      * @param obj the reference object with which to compare.
      * <p>
-     * @return <code>true</code> if this Candidate is equal to the
-     * obj argument; <code>false</code> otherwise.
-     *
+     * @return <code>true</code> if this Candidate is equal to the obj argument; <code>false</code> otherwise.
      * @throws java.lang.NullPointerException if obj is null;
      */
     @Override
-    public boolean equals(Object obj)
-        throws NullPointerException
-    {
+    public boolean equals(Object obj) throws NullPointerException {
         if (obj == this)
             return true;
 
-        if (! (obj instanceof Candidate))
+        if (!(obj instanceof Candidate))
             return false;
 
         Candidate<?> candidate = (Candidate<?>) obj;
 
         //compare candidate addresses
-        if (! candidate.getTransportAddress().equals(getTransportAddress()))
+        if (!candidate.getTransportAddress().equals(getTransportAddress()))
             return false;
 
         //compare bases
@@ -317,81 +265,57 @@ public abstract class Candidate<T extends Candidate<?>>
         Candidate<?> candidateBase = candidate.getBase();
         boolean baseEqualsCandidateBase;
 
-        if (base == null)
-        {
+        if (base == null) {
             if (candidateBase != null)
                 return false;
             else
                 baseEqualsCandidateBase = true;
-        }
-        else
-        {
+        } else {
             // If this and candidate are bases of themselves, their bases are
             // considered equal.
-            baseEqualsCandidateBase
-                = (base == this && candidateBase == candidate)
-                    || base.equals(candidateBase);
+            baseEqualsCandidateBase = (base == this && candidateBase == candidate) || base.equals(candidateBase);
         }
 
         //compare other properties
-        return
-            baseEqualsCandidateBase
-                && getPriority() == candidate.getPriority()
-                && getType() == candidate.getType()
-                && getFoundation().equals(candidate.getFoundation());
+        return baseEqualsCandidateBase && getPriority() == candidate.getPriority() && getType() == candidate.getType() && getFoundation().equals(candidate.getFoundation());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int hashCode()
-    {
-        // Even if the following hashCode algorithm has drawbacks because of it
-        // simplicity, it is better than nothing because at least it allows
-        // Candidate and, respectively, CandidatePair to be used as HashMap
-        // keys.
-        return
-            getParentComponent().hashCode() + getTransportAddress().hashCode();
+    public int hashCode() {
+        // Even if the following hashCode algorithm has drawbacks because of it simplicity, it is better than nothing because at least it allows
+        // Candidate and, respectively, CandidatePair to be used as HashMap keys.
+        return getParentComponent().hashCode() + getTransportAddress().hashCode();
     }
 
     /**
-     * Returns a reference to the Component that this candidate belongs
-     * to.
+     * Returns a reference to the Component that this candidate belongs to.
      *
-     * @return a reference to the Component that this candidate belongs
-     * to.
+     * @return a reference to the Component that this candidate belongs to.
      */
-    public Component getParentComponent()
-    {
+    public Component getParentComponent() {
         return parentComponent;
     }
 
     /**
-     * Computes the priority for this Candidate based on the procedures
-     * defined in the ICE specification..
+     * Computes the priority for this Candidate based on the procedures defined in the ICE specification..
      *
-     * @return the priority for this Candidate as per the procedures
-     * defined in the ICE specification..
+     * @return the priority for this Candidate as per the procedures defined in the ICE specification..
      */
-    public long computePriority()
-    {
+    public long computePriority() {
         this.priority = computePriorityForType(getType());
-
         return this.priority;
     }
 
     /**
-     * Computes the priority for this Candidate based on the procedures
-     * defined in the Google Talk specification.
+     * Computes the priority for this Candidate based on the procedures defined in the Google Talk specification.
      *
-     * @return the priority for this Candidate as per the procedures
-     * defined in the ICE specification..
+     * @return the priority for this Candidate as per the procedures defined in the ICE specification..
      */
-    public long computeGTalkPriority()
-    {
+    public long computeGTalkPriority() {
         this.priority = computeGTalkPriorityForType(getType());
-
         return this.priority;
     }
 
@@ -409,16 +333,13 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return the priority this Candidate would have had if it were
      * of the specified candidateType.
      */
-    public long computePriorityForType(CandidateType candidateType)
-    {
+    public long computePriorityForType(CandidateType candidateType) {
         //According to the ICE spec we compute priority this way:
         //priority = (2^24)*(type preference) +
         //           (2^8)*(local preference) +
         //           (2^0)*(256 - component ID)
 
-        return (long) (getTypePreference(candidateType)  << 24) +
-               (long) (getLocalPreference()              << 8 ) +
-               (long) (256 - getParentComponent().getComponentID());
+        return (long) (getTypePreference(candidateType) << 24) + (long) (getLocalPreference() << 8) + (long) (256 - getParentComponent().getComponentID());
     }
 
     /**
@@ -431,30 +352,18 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return the priority this Candidate would have had if it were
      * of the specified candidateType.
      */
-    public long computeGTalkPriorityForType(CandidateType candidateType)
-    {
+    public long computeGTalkPriorityForType(CandidateType candidateType) {
         long priority = 0;
-
-        /* Google Talk priority is in range 0 - 1, we multiply this by 1000
-         * to have a long rather than float
-         */
-        if(candidateType == CandidateType.HOST_CANDIDATE)
+        // Google Talk priority is in range 0 - 1, we multiply this by 1000 to have a long rather than float
+        if (candidateType == CandidateType.HOST_CANDIDATE) {
+            priority += 0.95 * 1000 - (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
+        } else if (candidateType == CandidateType.PEER_REFLEXIVE_CANDIDATE) {
+            priority += (long) (0.9 * 1000) - (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
+        } else if (candidateType == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
+            priority += (long) (0.9 * 1000);
+        } else //relayed candidates
         {
-           priority += 0.95 * 1000 -
-               (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
-        }
-        else if(candidateType == CandidateType.PEER_REFLEXIVE_CANDIDATE)
-        {
-            priority += (long)(0.9 * 1000) -
-                (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
-        }
-        else if(candidateType == CandidateType.SERVER_REFLEXIVE_CANDIDATE)
-        {
-            priority += (long)(0.9 * 1000);
-        }
-        else //relayed candidates
-        {
-            priority += (long)(0.5 * 1000);
+            priority += (long) (0.5 * 1000);
         }
 
         priority -= getParentComponent().getComponentID() - 1;
@@ -462,13 +371,10 @@ public abstract class Candidate<T extends Candidate<?>>
         InetAddress addr = getTransportAddress().getAddress();
 
         // IPv6 has better priority than IPv4
-        if(addr instanceof Inet6Address)
-        {
-            if(addr.isLinkLocalAddress())
-            {
+        if (addr instanceof Inet6Address) {
+            if (addr.isLinkLocalAddress()) {
                 priority += 40;
-            }
-            else
+            } else
                 priority += 50;
         }
 
@@ -495,25 +401,18 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return the type preference for this Candidate as per the
      * procedures in the ICE specification.
      */
-    private static int getTypePreference(CandidateType candidateType)
-    {
+    private static int getTypePreference(CandidateType candidateType) {
         int typePreference;
 
-        if(candidateType == CandidateType.HOST_CANDIDATE)
-        {
+        if (candidateType == CandidateType.HOST_CANDIDATE) {
             typePreference = MAX_TYPE_PREFERENCE; // 126
-        }
-        else if(candidateType == CandidateType.PEER_REFLEXIVE_CANDIDATE)
-        {
+        } else if (candidateType == CandidateType.PEER_REFLEXIVE_CANDIDATE) {
             typePreference = 110;
-        }
-        else if(candidateType == CandidateType.SERVER_REFLEXIVE_CANDIDATE)
-        {
+        } else if (candidateType == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
             typePreference = 100;
-        }
-        else //relayed candidates
+        } else //relayed candidates
         {
-            typePreference =  MIN_TYPE_PREFERENCE; // 0
+            typePreference = MIN_TYPE_PREFERENCE; // 0
         }
 
         return typePreference;
@@ -536,17 +435,16 @@ public abstract class Candidate<T extends Candidate<?>>
      * <br>
      * @return the local preference for this Candidate.
      */
-    private int getLocalPreference()
-    {
+    private int getLocalPreference() {
         //The ICE spec says: When there is only a single IP address, this value
         //SHOULD be set to.
-        if(getParentComponent().countLocalHostCandidates() < 2)
+        if (getParentComponent().countLocalHostCandidates() < 2)
             return MAX_LOCAL_PREFERENCE;
 
         //The ICE spec also says: Furthermore, if an agent is multi-homed and
         //has multiple IP addresses, the local preference for host candidates
         //from a VPN interface SHOULD have a priority of 0.
-        if(isVirtual())
+        if (isVirtual())
             return MIN_LOCAL_PREFERENCE;
 
         InetAddress addr = getTransportAddress().getAddress();
@@ -556,16 +454,13 @@ public abstract class Candidate<T extends Candidate<?>>
         //Johnnie seems to think.
 
         //prefer IPv6 to IPv4
-        if(addr instanceof Inet6Address)
-        {
+        if (addr instanceof Inet6Address) {
             //prefer link local addresses to global ones
-            if(addr.isLinkLocalAddress())
+            if (addr.isLinkLocalAddress())
                 return 30;
             else
                 return 40;
-        }
-        else
-        {
+        } else {
             //IPv4
             return 10;
         }
@@ -585,8 +480,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * associated with this Candidate comes from a virtual interface
      * and false if otherwise.
      */
-    public boolean isVirtual()
-    {
+    public boolean isVirtual() {
         return virtual;
     }
 
@@ -604,8 +498,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * address associated with this Candidate comes from a virtual
      * interface and false if otherwise.
      */
-    public void setVirtual(boolean virtual)
-    {
+    public void setVirtual(boolean virtual) {
         this.virtual = virtual;
     }
 
@@ -618,8 +511,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * Candidate or null if this is not a server reflexive
      * candidate.
      */
-    public TransportAddress getStunServerAddress()
-    {
+    public TransportAddress getStunServerAddress() {
         return stunServerAddress;
     }
 
@@ -631,8 +523,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * this Candidate or null if this is not a server
      * reflexive candidate.
      */
-    protected void setStunServerAddress(TransportAddress address)
-    {
+    protected void setStunServerAddress(TransportAddress address) {
         this.stunServerAddress = address;
     }
 
@@ -644,8 +535,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return the address of the relay server that was used to obtain this
      * Candidate or null if this is not a relayed candidate.
      */
-    public TransportAddress getRelayServerAddress()
-    {
+    public TransportAddress getRelayServerAddress() {
         return relayServerAddress;
     }
 
@@ -658,8 +548,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * this Candidate or null if this is not a relayed
      * candidate.
      */
-    protected void setRelayServerAddress(TransportAddress address)
-    {
+    protected void setRelayServerAddress(TransportAddress address) {
         this.relayServerAddress = address;
     }
 
@@ -674,8 +563,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * is a relayed or a reflexive Candidate or null if this
      * is a host candidate.
      */
-    public TransportAddress getMappedAddress()
-    {
+    public TransportAddress getMappedAddress() {
         return mappedAddress;
     }
 
@@ -686,8 +574,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * @param address the address that our TURN/STUN server returned as mapped
      * if this is a relayed or a reflexive Candidate.
      */
-    protected void setMappedAddress(TransportAddress address)
-    {
+    protected void setMappedAddress(TransportAddress address) {
         this.mappedAddress = address;
     }
 
@@ -699,8 +586,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return the Transport that this Candidate was obtained
      * for/with.
      */
-    public Transport getTransport()
-    {
+    public Transport getTransport() {
         return getTransportAddress().getTransport();
     }
 
@@ -717,10 +603,8 @@ public abstract class Candidate<T extends Candidate<?>>
      * candidate, the mapped address in the case of a relayed candidate, and
      * null if this is a host or a remote candidate.
      */
-    public TransportAddress getRelatedAddress()
-    {
-        if(getRelatedCandidate() != null)
-        {
+    public TransportAddress getRelatedAddress() {
+        if (getRelatedCandidate() != null) {
             return getRelatedCandidate().getTransportAddress();
         }
         return null;
@@ -756,8 +640,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return a String representation of this Candidate.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder buff = new StringBuilder("candidate:");
 
         buff.append(getFoundation());
@@ -770,8 +653,7 @@ public abstract class Candidate<T extends Candidate<?>>
 
         TransportAddress relAddr = getRelatedAddress();
 
-        if(relAddr != null)
-        {
+        if (relAddr != null) {
             buff.append(" raddr ").append(relAddr.getHostAddress());
             buff.append(" rport ").append(relAddr.getPort());
         }
@@ -783,8 +665,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * Returns short String representation of this Candidate.
      * @return short String representation of this Candidate.
      */
-    public String toShortString()
-    {
+    public String toShortString() {
         return getTransportAddress() + "/" + getType();
     }
 
@@ -795,8 +676,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return an integer indicating the preference that this Candidate
      * should be considered with for becoming a default candidate.
      */
-    protected int getDefaultPreference()
-    {
+    protected int getDefaultPreference() {
         // https://tools.ietf.org/html/rfc5245#section-4.1.4
         //
         // It is RECOMMENDED that default candidates be chosen based on the
@@ -806,22 +686,21 @@ public abstract class Candidate<T extends Candidate<?>>
         // reflexive candidates (if server reflexive candidates are available),
         // and finally host candidates.
 
-        switch (getType())
-        {
-        case RELAYED_CANDIDATE:
-            return 30;
+        switch (getType()) {
+            case RELAYED_CANDIDATE:
+                return 30;
 
-        case SERVER_REFLEXIVE_CANDIDATE:
-            return 20;
+            case SERVER_REFLEXIVE_CANDIDATE:
+                return 20;
 
-        case HOST_CANDIDATE:
-            // Prefer IPv4 as default since many servers would still freak out
-            // when seeing IPv6 address.
-            return getTransportAddress().isIPv6() ? 10 : 15;
+            case HOST_CANDIDATE:
+                // Prefer IPv4 as default since many servers would still freak out
+                // when seeing IPv6 address.
+                return getTransportAddress().isIPv6() ? 10 : 15;
 
-        default:
-            // WTF?
-            return 5;
+            default:
+                // WTF?
+                return 5;
         }
     }
 
@@ -841,8 +720,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * otherwise.
      *
      */
-    public boolean canReach(Candidate<?> dst)
-    {
+    public boolean canReach(Candidate<?> dst) {
         return getTransportAddress().canReach(dst.getTransportAddress());
     }
 
@@ -868,25 +746,20 @@ public abstract class Candidate<T extends Candidate<?>>
      *
      * @return This candidate host address.
      */
-    public TransportAddress getHostAddress()
-    {
-        switch (getType())
-        {
+    public TransportAddress getHostAddress() {
+        switch (getType()) {
             case SERVER_REFLEXIVE_CANDIDATE:
-                if(getBase() != null)
-                {
+                if (getBase() != null) {
                     return getBase().getHostAddress();
                 }
                 break;
             case PEER_REFLEXIVE_CANDIDATE:
-                if(getBase() != null)
-                {
+                if (getBase() != null) {
                     return getBase().getHostAddress();
                 }
                 break;
             case RELAYED_CANDIDATE:
-                if(getRelatedCandidate() != null)
-                {
+                if (getRelatedCandidate() != null) {
                     return getRelatedCandidate().getHostAddress();
                 }
                 break;
@@ -902,18 +775,15 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return This candidate reflexive address. Null if this candidate
      * does not use a peer/server reflexive address.
      */
-    public TransportAddress getReflexiveAddress()
-    {
-        switch (getType())
-        {
+    public TransportAddress getReflexiveAddress() {
+        switch (getType()) {
             case SERVER_REFLEXIVE_CANDIDATE:
                 return getTransportAddress();
             case PEER_REFLEXIVE_CANDIDATE:
                 return getTransportAddress();
             case RELAYED_CANDIDATE:
                 // Corresponding to getMappedAddress();
-                if(getRelatedCandidate() != null)
-                {
+                if (getRelatedCandidate() != null) {
                     return getRelatedCandidate().getReflexiveAddress();
                 }
                 break;
@@ -929,10 +799,8 @@ public abstract class Candidate<T extends Candidate<?>>
      * @return This candidate relayed address. Null if this candidate
      * does not use a relay.
      */
-    public TransportAddress getRelayedAddress()
-    {
-        switch (getType())
-        {
+    public TransportAddress getRelayedAddress() {
+        switch (getType()) {
             case SERVER_REFLEXIVE_CANDIDATE:
                 return null;
             case PEER_REFLEXIVE_CANDIDATE:
@@ -963,31 +831,26 @@ public abstract class Candidate<T extends Candidate<?>>
      * - null for a peer reflexive candidate : there is no way to know the
      * related address.
      */
-    public T getRelatedCandidate()
-    {
-        if(this.relatedCandidate == null)
-        {
+    public T getRelatedCandidate() {
+        if (this.relatedCandidate == null) {
             TransportAddress relatedAddress = null;
-            switch (getType())
-            {
-            case SERVER_REFLEXIVE_CANDIDATE:
-                if(getBase() != null)
-                {
-                    relatedAddress = getBase().getTransportAddress();
-                }
-                break;
-            case PEER_REFLEXIVE_CANDIDATE:
-                if(getBase() != null)
-                {
-                    relatedAddress = getBase().getTransportAddress();
-                }
-                break;
-            case RELAYED_CANDIDATE:
-                relatedAddress = getMappedAddress();
-                break;
-            default:
-                //host candidate
-                return null;
+            switch (getType()) {
+                case SERVER_REFLEXIVE_CANDIDATE:
+                    if (getBase() != null) {
+                        relatedAddress = getBase().getTransportAddress();
+                    }
+                    break;
+                case PEER_REFLEXIVE_CANDIDATE:
+                    if (getBase() != null) {
+                        relatedAddress = getBase().getTransportAddress();
+                    }
+                    break;
+                case RELAYED_CANDIDATE:
+                    relatedAddress = getMappedAddress();
+                    break;
+                default:
+                    //host candidate
+                    return null;
             }
             // Update the related candidate conforming to the related address.
             this.relatedCandidate = findRelatedCandidate(relatedAddress);
@@ -1008,8 +871,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * Candidate has a lower, equal, or greater priority than the
      * second.
      */
-    public int compareTo(T candidate)
-    {
+    public int compareTo(T candidate) {
         return CandidatePrioritizer.compareCandidates(this, candidate);
     }
 
@@ -1017,8 +879,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * Gets the CandidateTcpType for this Candidate.
      * @return the CandidateTcpType for this Candidate.
      */
-    public CandidateTcpType getTcpType()
-    {
+    public CandidateTcpType getTcpType() {
         return tcpType;
     }
 
@@ -1026,8 +887,7 @@ public abstract class Candidate<T extends Candidate<?>>
      * Sets the CandidateTcpType for this Candidate.
      * @param tcpType the CandidateTcpType to set.
      */
-    public void setTcpType(CandidateTcpType tcpType)
-    {
+    public void setTcpType(CandidateTcpType tcpType) {
         this.tcpType = tcpType;
     }
 }

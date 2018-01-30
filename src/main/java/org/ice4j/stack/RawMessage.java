@@ -1,16 +1,11 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.stack;
 
 import org.ice4j.*;
 
 /**
- * The class represents a binary STUN message as well as the address and port of the host that sent it and the address and port where it was received
- * (locally).
+ * The class represents a binary STUN message as well as the address and port of the host that sent it and the address 
+ * and port where it was received (locally).
  *
  * @author Emil Ivov
  */
@@ -46,9 +41,8 @@ public class RawMessage {
      * @throws NullPointerException if one or more of the parameters were null.
      */
     RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
-        /*
-         * Let NullPointerException go out. The length of the array messgeBytes may be enormous while messageLength may be tiny so it does not make sense to clone messageBytes.
-         */
+        // Let NullPointerException go out. The length of the array messgeBytes may be enormous while messageLength may
+        // be tiny so it does not make sense to clone messageBytes.
         this.messageBytes = new byte[messageLength];
         System.arraycopy(messageBytes, 0, this.messageBytes, 0, messageLength);
         this.messageLength = messageLength;

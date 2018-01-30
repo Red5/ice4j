@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -39,9 +28,9 @@ import org.slf4j.LoggerFactory;
  * different locations. This class therefore stores pairs in a Vector
  * @author Emil Ivov
  */
-public class CheckList
-    extends Vector<CandidatePair>
-{
+public class CheckList extends Vector<CandidatePair> {
+
+    private final static Logger logger = LoggerFactory.getLogger(CheckList.class);
 
     /**
      * A dummy serialization id.
@@ -82,20 +71,13 @@ public class CheckList
      * Contains {@link PropertyChangeListener}s registered with this {@link
      * Agent} and following its changes of state.
      */
-    private final List<PropertyChangeListener> stateListeners
-        = new LinkedList<>();
+    private final List<PropertyChangeListener> stateListeners = new LinkedList<>();
 
     /**
      * Contains {@link PropertyChangeListener}s registered with this {@link
      * Agent} and following its changes of state.
      */
-    private final List<PropertyChangeListener> checkListeners
-        = new LinkedList<>();
-
-    /**
-     * The {@link Logger} used by {@link CheckList} instances.
-     */
-    private final static Logger logger = LoggerFactory.getLogger(CheckList.class);
+    private final List<PropertyChangeListener> checkListeners = new LinkedList<>();
 
     /**
      * Creates a check list with the specified name.
@@ -103,8 +85,7 @@ public class CheckList
      * @param parentStream a reference to the parent {@link IceMediaStream}
      * that created us and that we belong to.
      */
-    protected CheckList(IceMediaStream parentStream)
-    {
+    protected CheckList(IceMediaStream parentStream) {
         this.parentStream = parentStream;
     }
 
@@ -113,8 +94,7 @@ public class CheckList
      *
      * @return the CheckListState of this check list.
      */
-    public CheckListState getState()
-    {
+    public CheckListState getState() {
         return state;
     }
 
@@ -123,8 +103,7 @@ public class CheckList
      *
      * @param newState the CheckListState for this list.
      */
-    protected void setState(CheckListState newState)
-    {
+    protected void setState(CheckListState newState) {
         CheckListState oldState = this.state;
         this.state = newState;
 
@@ -138,12 +117,9 @@ public class CheckList
      *
      * @param pair the pair to schedule a triggered check for.
      */
-    protected void scheduleTriggeredCheck(CandidatePair pair)
-    {
-        synchronized(triggeredCheckQueue)
-        {
-            if(!triggeredCheckQueue.contains(pair))
-            {
+    protected void scheduleTriggeredCheck(CandidatePair pair) {
+        synchronized (triggeredCheckQueue) {
+            if (!triggeredCheckQueue.contains(pair)) {
                 triggeredCheckQueue.add(pair);
                 pair.setStateWaiting();
             }
@@ -157,11 +133,9 @@ public class CheckList
      * @return the first {@link CandidatePair} in the triggered check queue or
      * null if that queue is empty.
      */
-    protected CandidatePair popTriggeredCheck()
-    {
-        synchronized(triggeredCheckQueue)
-        {
-            if(triggeredCheckQueue.size() > 0)
+    protected CandidatePair popTriggeredCheck() {
+        synchronized (triggeredCheckQueue) {
+            if (triggeredCheckQueue.size() > 0)
                 return triggeredCheckQueue.remove(0);
         }
         return null;
@@ -178,35 +152,26 @@ public class CheckList
      * Waiting pair or, when there's no such pair, the highest priority
      * Frozen pair or null otherwise
      */
-    protected synchronized CandidatePair getNextOrdinaryPairToCheck()
-    {
+    protected synchronized CandidatePair getNextOrdinaryPairToCheck() {
         if (size() < 1)
             return null;
 
         CandidatePair highestPriorityPair = null;
 
-        for (CandidatePair pair : this)
-        {
-            if (pair.getState() == CandidatePairState.WAITING)
-            {
-                if(highestPriorityPair == null
-                   || pair.getPriority() > highestPriorityPair.getPriority())
-                {
+        for (CandidatePair pair : this) {
+            if (pair.getState() == CandidatePairState.WAITING) {
+                if (highestPriorityPair == null || pair.getPriority() > highestPriorityPair.getPriority()) {
                     highestPriorityPair = pair;
                 }
             }
         }
 
-        if(highestPriorityPair != null)
+        if (highestPriorityPair != null)
             return highestPriorityPair;
 
-        for (CandidatePair pair : this)
-        {
-            if (pair.getState() == CandidatePairState.FROZEN)
-            {
-                if(highestPriorityPair == null
-                   || pair.getPriority() > highestPriorityPair.getPriority())
-                {
+        for (CandidatePair pair : this) {
+            if (pair.getState() == CandidatePairState.FROZEN) {
+                if (highestPriorityPair == null || pair.getPriority() > highestPriorityPair.getPriority()) {
                     highestPriorityPair = pair;
                     pair.setStateWaiting();
                 }
@@ -224,10 +189,8 @@ public class CheckList
      * @return true if this list is active and false
      * otherwise.
      */
-    public synchronized boolean isActive()
-    {
-        for (CandidatePair pair : this)
-        {
+    public synchronized boolean isActive() {
+        for (CandidatePair pair : this) {
             if (pair.getState() == CandidatePairState.WAITING)
                 return true;
         }
@@ -242,15 +205,11 @@ public class CheckList
      * succeeded or failed (but non are are currently waiting or in progress)
      * or false otherwise..
      */
-    public synchronized boolean allChecksCompleted()
-    {
-        for (CandidatePair pair : this)
-        {
+    public synchronized boolean allChecksCompleted() {
+        for (CandidatePair pair : this) {
             CandidatePairState pairState = pair.getState();
 
-            if ((pairState != CandidatePairState.SUCCEEDED)
-                    && (pairState != CandidatePairState.FAILED))
-            {
+            if ((pairState != CandidatePairState.SUCCEEDED) && (pairState != CandidatePairState.FAILED)) {
                 return false;
             }
         }
@@ -265,10 +224,8 @@ public class CheckList
      * @return true if all pairs in this list are frozen and
      * false otherwise.
      */
-    public synchronized boolean isFrozen()
-    {
-        for (CandidatePair pair : this)
-        {
+    public synchronized boolean isFrozen() {
+        for (CandidatePair pair : this) {
             if (pair.getState() != CandidatePairState.FROZEN)
                 return false;
         }
@@ -285,8 +242,7 @@ public class CheckList
      * @return A String representation of this collection.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder buff = new StringBuilder("CheckList. (num pairs=");
         buff.append(size()).append(")\n");
 
@@ -302,20 +258,17 @@ public class CheckList
      * component ID to Waiting. If there is more than one such pair, the one
      * with the highest priority is used.
      */
-    protected synchronized void computeInitialCheckListPairStates()
-    {
+    protected synchronized void computeInitialCheckListPairStates() {
         Map<String, CandidatePair> pairsToWait = new Hashtable<>();
 
         //first, determine the pairs that we'd need to put in the waiting state.
-        for(CandidatePair pair : this)
-        {
+        for (CandidatePair pair : this) {
             //we need to check whether the pair is already in the wait list. if
             //so we'll compare it with this one and determine which of the two
             //needs to stay.
             CandidatePair prevPair = pairsToWait.get(pair.getFoundation());
 
-            if(prevPair == null)
-            {
+            if (prevPair == null) {
                 //first pair with this foundation.
                 pairsToWait.put(pair.getFoundation(), pair);
                 continue;
@@ -324,19 +277,13 @@ public class CheckList
             //we already have a pair with the same foundation. determine which
             //of the two has the lower component id and higher priority and
             //keep that one in the list.
-            if( prevPair.getParentComponent() == pair.getParentComponent())
-            {
-                if(pair.getPriority() > prevPair.getPriority())
-                {
+            if (prevPair.getParentComponent() == pair.getParentComponent()) {
+                if (pair.getPriority() > prevPair.getPriority()) {
                     //need to replace the pair in the list.
                     pairsToWait.put(pair.getFoundation(), pair);
                 }
-            }
-            else
-            {
-                if(pair.getParentComponent().getComponentID()
-                            < prevPair.getParentComponent().getComponentID())
-                {
+            } else {
+                if (pair.getParentComponent().getComponentID() < prevPair.getParentComponent().getComponentID()) {
                     //need to replace the pair in the list.
                     pairsToWait.put(pair.getFoundation(), pair);
                 }
@@ -353,10 +300,9 @@ public class CheckList
      * useful when an agent changes its isControlling property as a
      * result of a role conflict.
      */
-    protected synchronized void recomputePairPriorities()
-    {
+    protected synchronized void recomputePairPriorities() {
         //first, determine the pairs that we'd need to put in the waiting state.
-        for(CandidatePair pair : this)
+        for (CandidatePair pair : this)
             pair.computePriority();
     }
 
@@ -381,50 +327,30 @@ public class CheckList
      * @param nominatedPair the {@link CandidatePair} whose nomination we need
      * to handle.
      */
-    protected synchronized void handleNominationConfirmed(
-                                                    CandidatePair nominatedPair)
-    {
+    protected synchronized void handleNominationConfirmed(CandidatePair nominatedPair) {
         Component cmp = nominatedPair.getParentComponent();
 
-        if(cmp.getSelectedPair() != null)
-        {
+        if (cmp.getSelectedPair() != null) {
             return;
         }
 
-        logger.info(
-                "Selected pair for stream " + cmp.toShortString() + ": "
-                    + nominatedPair.toShortString());
+        logger.info("Selected pair for stream " + cmp.toShortString() + ": " + nominatedPair.toShortString());
 
         cmp.setSelectedPair(nominatedPair);
 
         Iterator<CandidatePair> pairsIter = iterator();
-        while(pairsIter.hasNext())
-        {
+        while (pairsIter.hasNext()) {
             CandidatePair pair = pairsIter.next();
-            if (pair.getParentComponent() == cmp
-                 &&( pair.getState() == CandidatePairState.WAITING
-                     || pair.getState() == CandidatePairState.FROZEN
-                     || (pair.getState() == CandidatePairState.IN_PROGRESS
-                         && pair.getPriority() < nominatedPair.getPriority())))
-            {
+            if (pair.getParentComponent() == cmp && (pair.getState() == CandidatePairState.WAITING || pair.getState() == CandidatePairState.FROZEN || (pair.getState() == CandidatePairState.IN_PROGRESS && pair.getPriority() < nominatedPair.getPriority()))) {
                 pairsIter.remove();
             }
         }
 
-        synchronized(triggeredCheckQueue)
-        {
-            Iterator<CandidatePair> triggeredPairsIter
-                = triggeredCheckQueue.iterator();
-            while(triggeredPairsIter.hasNext())
-            {
+        synchronized (triggeredCheckQueue) {
+            Iterator<CandidatePair> triggeredPairsIter = triggeredCheckQueue.iterator();
+            while (triggeredPairsIter.hasNext()) {
                 CandidatePair pair = triggeredPairsIter.next();
-                if (pair.getParentComponent() == cmp
-                    &&( pair.getState() == CandidatePairState.WAITING
-                        || pair.getState() == CandidatePairState.FROZEN
-                        || (pair.getState() == CandidatePairState.IN_PROGRESS
-                            && pair.getPriority() < nominatedPair
-                                                        .getPriority())))
-                {
+                if (pair.getParentComponent() == cmp && (pair.getState() == CandidatePairState.WAITING || pair.getState() == CandidatePairState.FROZEN || (pair.getState() == CandidatePairState.IN_PROGRESS && pair.getPriority() < nominatedPair.getPriority()))) {
                     triggeredPairsIter.remove();
                 }
             }
@@ -438,8 +364,7 @@ public class CheckList
      * @return a name for this check list that we could use to distinguish it
      * from other check lists while debugging.
      */
-    public String getName()
-    {
+    public String getName() {
         return parentStream.getName();
     }
 
@@ -459,11 +384,8 @@ public class CheckList
      * appears in checklist but in valid list.
      */
     @Deprecated
-    public synchronized boolean containsNomineeForComponent(
-                                                        Component component)
-    {
-        for (CandidatePair pair : this)
-        {
+    public synchronized boolean containsNomineeForComponent(Component component) {
+        for (CandidatePair pair : this) {
             if (pair.isNominated() && pair.getParentComponent() == component)
                 return true;
         }
@@ -477,11 +399,9 @@ public class CheckList
      *
      * @param l the listener to register.
      */
-    public void addStateChangeListener(PropertyChangeListener l)
-    {
-        synchronized(stateListeners)
-        {
-            if(!stateListeners.contains(l))
+    public void addStateChangeListener(PropertyChangeListener l) {
+        synchronized (stateListeners) {
+            if (!stateListeners.contains(l))
                 this.stateListeners.add(l);
         }
     }
@@ -492,10 +412,8 @@ public class CheckList
      *
      * @param l the listener to remove.
      */
-    public void removeStateChangeListener(PropertyChangeListener l)
-    {
-        synchronized(stateListeners)
-        {
+    public void removeStateChangeListener(PropertyChangeListener l) {
+        synchronized (stateListeners) {
             this.stateListeners.remove(l);
         }
     }
@@ -507,21 +425,16 @@ public class CheckList
      * @param oldState the {@link CheckListState} we had before the change
      * @param newState the {@link CheckListState} we had after the change
      */
-    private void fireStateChange(CheckListState oldState,
-                                 CheckListState newState)
-    {
+    private void fireStateChange(CheckListState oldState, CheckListState newState) {
         List<PropertyChangeListener> listenersCopy;
 
-        synchronized(stateListeners)
-        {
+        synchronized (stateListeners) {
             listenersCopy = new LinkedList<>(stateListeners);
         }
 
-        PropertyChangeEvent evt = new PropertyChangeEvent(
-                        this, PROPERTY_CHECK_LIST_STATE, oldState, newState);
+        PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_CHECK_LIST_STATE, oldState, newState);
 
-        for(PropertyChangeListener l : listenersCopy)
-        {
+        for (PropertyChangeListener l : listenersCopy) {
             l.propertyChange(evt);
         }
     }
@@ -532,12 +445,9 @@ public class CheckList
      *
      * @param l CheckListener to add
      */
-    public void addChecksListener(PropertyChangeListener l)
-    {
-        synchronized(checkListeners)
-        {
-            if(!checkListeners.contains(l))
-            {
+    public void addChecksListener(PropertyChangeListener l) {
+        synchronized (checkListeners) {
+            if (!checkListeners.contains(l)) {
                 checkListeners.add(l);
             }
         }
@@ -548,12 +458,9 @@ public class CheckList
      *
      * @param l CheckListener to remove
      */
-    public void removeChecksListener(PropertyChangeListener l)
-    {
-        synchronized(checkListeners)
-        {
-            if(checkListeners.contains(l))
-            {
+    public void removeChecksListener(PropertyChangeListener l) {
+        synchronized (checkListeners) {
+            if (checkListeners.contains(l)) {
                 checkListeners.remove(l);
             }
         }
@@ -563,20 +470,16 @@ public class CheckList
      * Creates a new {@link PropertyChangeEvent} and delivers it to all
      * currently registered checks listeners.
      */
-    protected void fireEndOfOrdinaryChecks()
-    {
+    protected void fireEndOfOrdinaryChecks() {
         List<PropertyChangeListener> listenersCopy;
 
-        synchronized(checkListeners)
-        {
+        synchronized (checkListeners) {
             listenersCopy = new LinkedList<>(checkListeners);
         }
 
-        PropertyChangeEvent evt = new PropertyChangeEvent(
-                        this, PROPERTY_CHECK_LIST_CHECKS, false, true);
+        PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_CHECK_LIST_CHECKS, false, true);
 
-        for(PropertyChangeListener l : listenersCopy)
-        {
+        for (PropertyChangeListener l : listenersCopy) {
             l.propertyChange(evt);
         }
     }
@@ -588,8 +491,7 @@ public class CheckList
      * @return a reference to the {@link IceMediaStream} that this list belongs
      * to.
      */
-    public IceMediaStream getParentStream()
-    {
+    public IceMediaStream getParentStream() {
         return parentStream;
     }
 }

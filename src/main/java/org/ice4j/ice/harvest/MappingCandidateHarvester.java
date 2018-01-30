@@ -1,41 +1,41 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
 
-import java.util.*;
-import java.util.logging.*;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidateExtendedType;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.HostCandidate;
+import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.ServerReflexiveCandidate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Uses a list of addresses as a predefined static mask in order to generate
  * {@link TransportAddress}es. This harvester is meant for use in situations
  * where servers are deployed behind a NAT or in a DMZ with static port mapping.
- * <p>
+ * <br>
  * Every time the {@link #harvest(Component)} method is called, the mapping
  * harvester will return a list of candidates that provide masked alternatives
  * for every host candidate in the component. Kind of like a STUN server.
- * <p>
+ * <br>
  * Example: You run this on a server with address 192.168.0.1, that is behind
  * a NAT with public IP: 93.184.216.119. You allocate a host candidate
  * 192.168.0.1/UDP/5000. This harvester is going to then generate an address
  * 93.184.216.119/UDP/5000
- * <p>
+ * <br>
  * This harvester is instant and does not introduce any harvesting latency.
  *
  * @author Emil Ivov
  */
 public class MappingCandidateHarvester extends AbstractCandidateHarvester {
-    /**
-     * The Logger used by the StunCandidateHarvester class and
-     * its instances for logging output.
-     */
-    private static final Logger logger = Logger.getLogger(StunCandidateHarvester.class.getName());
+
+    private static final Logger logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
 
     /**
      * The addresses that we will use as a mask
@@ -80,7 +80,7 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
         TransportAddress mask = getMask();
         TransportAddress face = getFace();
         if (face == null || mask == null) {
-            logger.warning("Harvester not configured: face=" + face + ", mask=" + mask);
+            logger.info("Harvester not configured: face={}, mask={}", face, mask);
             return null;
         }
 

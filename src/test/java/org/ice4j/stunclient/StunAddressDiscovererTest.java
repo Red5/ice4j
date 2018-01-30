@@ -112,7 +112,7 @@ public class StunAddressDiscovererTest
 
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a Symmetric NAT.
      * @throws Exception if anything goes wrong ( surprised? ).
      */
@@ -147,7 +147,7 @@ public class StunAddressDiscovererTest
     }
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a Port Restricted Cone.
      * @throws Exception if anything goes wrong ( surprised? ).
      */
@@ -181,7 +181,7 @@ public class StunAddressDiscovererTest
     }
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a Restricted Cone.
      * @throws Exception if anything goes wrong ( surprised? ).
      */
@@ -215,7 +215,7 @@ public class StunAddressDiscovererTest
     }
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a Full Cone.
      * @throws Exception if anything goes wrong ( surprised? ).
      */
@@ -244,7 +244,7 @@ public class StunAddressDiscovererTest
     }
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a UDP Symmetric Firewall.
      *
      * @throws Exception if anything goes wrong ( surprised? ).
@@ -274,7 +274,7 @@ public class StunAddressDiscovererTest
     }
 
     /**
-     * Performs a test where no responces are given the stun client so that
+     * Performs a test where no responses are given the stun client so that
      * it concludes it is behind a Open Internet.
      *
      * @throws Exception if anything goes wrong ( surprised? ).

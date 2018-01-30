@@ -20,21 +20,21 @@ package test.signalling;
 import java.net.*;
 
 /**
- * A simple signalling utility that we use for ICE tests.
+ * A simple signaling utility that we use for ICE tests.
  *
  * @author Emil Ivov
  */
 public class Signalling
 {
     /**
-     * The socket where we send and receive signalling
+     * The socket where we send and receive signaling
      */
 //    private final Socket signallingSocket;
 
 //    private final SignallingCallback signallingCallback;
 
     /**
-     * Creates a signalling instance over the specified socket.
+     * Creates a signaling instance over the specified socket.
      *
      * @param socket the socket that this instance should use for signalling
      */

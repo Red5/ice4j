@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.stack;
 
 import java.io.*;
@@ -23,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  */
 class Connector implements Runnable {
- 
+
     private static final Logger logger = LoggerFactory.getLogger(Connector.class);
 
     /**
@@ -85,27 +80,23 @@ class Connector implements Runnable {
      */
     @Override
     public void run() {
-        this.running = true;
+        running = true;
         Thread.currentThread().setName("IceConnector@" + hashCode());
-        DatagramPacket packet = null;
-        while (this.running) {
+        // Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
+        int receiveBufferSize = 1500;
+        DatagramPacket packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
+        while (running) {
             try {
-                // Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
-                int receiveBufferSize = 1500;
-                if (packet == null) {
-                    packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
+                byte[] packetData = packet.getData();
+                if (packetData == null || packetData.length < receiveBufferSize) {
+                    packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
                 } else {
-                    byte[] packetData = packet.getData();
-                    if (packetData == null || packetData.length < receiveBufferSize) {
-                        packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
-                    } else {
-                        // XXX Tell the packet it is large enough because the socket will not look at the length of the 
-                        //data array property and will just respect the length property.
-                        packet.setLength(receiveBufferSize);
-                    }
+                    // XXX Tell the packet it is large enough because the socket will not look at the length of the 
+                    //data array property and will just respect the length property.
+                    packet.setLength(receiveBufferSize);
                 }
                 // blocking
-                this.sock.receive(packet);
+                sock.receive(packet);
                 //get lost if we are no longer running.
                 if (!running) {
                     return;
@@ -118,9 +109,7 @@ class Connector implements Runnable {
                     // force a minimum port of 0 to prevent out of range errors
                     packet.setPort(0);
                 }
-
                 RawMessage rawMessage = new RawMessage(packet.getData(), packet.getLength(), new TransportAddress(packet.getAddress(), packet.getPort(), listenAddress.getTransport()), listenAddress);
-
                 messageQueue.add(rawMessage);
             } catch (SocketException ex) {
                 if (running) {
@@ -142,11 +131,11 @@ class Connector implements Runnable {
                     errorHandler.handleFatalError(this, "The socket was closed:", null);
                 }
             } catch (IOException ex) {
-                logger.warn("A net access point has gone useless:", ex);
+                logger.warn("A net access point has gone useless", ex);
                 errorHandler.handleError(ex.getMessage(), ex);
                 //do not stop the thread;
             } catch (Throwable ex) {
-                logger.warn("A net access point has gone useless:", ex);
+                logger.warn("A net access point has gone useless", ex);
                 stop();
                 errorHandler.handleFatalError(this, "Unknown error occurred while listening for messages!", ex);
             }
@@ -169,21 +158,11 @@ class Connector implements Runnable {
      *
      * @param message the bytes to send.
      * @param address message destination.
-     *
      * @throws IOException if an exception occurs while sending the message.
      */
     void sendMessage(byte[] message, TransportAddress address) throws IOException {
         DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
         sock.send(datagramPacket);
-    }
-
-    /**
-     * Returns a String representation of the object.
-     * @return a String representation of the object.
-     */
-    @Override
-    public String toString() {
-        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not running" : "running");
     }
 
     /**
@@ -202,5 +181,14 @@ class Connector implements Runnable {
      */
     TransportAddress getRemoteAddress() {
         return remoteAddress;
+    }
+
+    /**
+     * Returns a String representation of the object.
+     * @return a String representation of the object.
+     */
+    @Override
+    public String toString() {
+        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not running" : "running");
     }
 }

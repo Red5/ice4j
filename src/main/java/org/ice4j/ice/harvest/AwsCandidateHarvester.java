@@ -1,66 +1,41 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
 import org.ice4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.*;
-import java.util.logging.*;
 
 /**
- * Uses the Amazon AWS APIs to retrieve the public and private IPv4 addresses
- * for an EC2 instance.
+ * Uses the Amazon AWS APIs to retrieve the public and private IPv4 addresses for an EC2 instance.
  *
  * @author Emil Ivov
  */
-public class AwsCandidateHarvester
-    extends MappingCandidateHarvester
-{
-    /**
-     * The Logger used by the AwsCandidateHarvester
-     * class and its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(AwsCandidateHarvester.class.getName());
+public class AwsCandidateHarvester extends MappingCandidateHarvester {
+
+    private static final Logger logger = LoggerFactory.getLogger(AwsCandidateHarvester.class);
 
     /**
      * The URL where one obtains AWS public addresses.
      */
-    private static final String PUBLIC_IP_URL
-        = "http://169.254.169.254/latest/meta-data/public-ipv4";
+    private static final String PUBLIC_IP_URL = "http://169.254.169.254/latest/meta-data/public-ipv4";
 
     /**
      * The URL where one obtains AWS private/local addresses.
      */
-    private static final String LOCAL_IP_URL
-        = "http://169.254.169.254/latest/meta-data/local-ipv4";
+    private static final String LOCAL_IP_URL = "http://169.254.169.254/latest/meta-data/local-ipv4";
 
     /**
      * The URL to use to test whether we are running on Amazon EC2.
      */
-    private static final String EC2_TEST_URL
-        = "http://169.254.169.254/latest/meta-data/";
+    private static final String EC2_TEST_URL = "http://169.254.169.254/latest/meta-data/";
 
     /**
      * Whether we are running on Amazon EC2.
      */
-    private static Boolean RUNNING_ON_EC2 = null;
+    private static Boolean RUNNING_ON_EC2;
 
     /**
      * The addresses that we will use as a mask
@@ -75,14 +50,13 @@ public class AwsCandidateHarvester
     /**
      * Whether we have already checked and found the mapping addresses.
      */
-    private static boolean addressChecked = false;
+    private static boolean addressChecked;
 
     /**
      * Creates an AWS harvester. The actual addresses wil be retrieved later,
      * during the first harvest.
      */
-    public AwsCandidateHarvester()
-    {
+    public AwsCandidateHarvester() {
         super();
     }
 
@@ -92,8 +66,7 @@ public class AwsCandidateHarvester
      * http://169.254.169.254/latest/meta-data/public-ipv4 to learn the
      * private (face) and public (mask) addresses of this EC2 instance.
      */
-    private static synchronized void obtainEC2Addresses()
-    {
+    private static synchronized void obtainEC2Addresses() {
         if (addressChecked)
             return;
         addressChecked = true;
@@ -101,28 +74,17 @@ public class AwsCandidateHarvester
         String localIPStr = null;
         String publicIPStr = null;
 
-        try
-        {
+        try {
             localIPStr = fetch(LOCAL_IP_URL);
             publicIPStr = fetch(PUBLIC_IP_URL);
-
-            //now let's cross our fingers and hope that what we got above are
-            //real IP addresses
+            //now let's cross our fingers and hope that what we got above are real IP addresses
             face = new TransportAddress(localIPStr, 9, Transport.UDP);
             mask = new TransportAddress(publicIPStr, 9, Transport.UDP);
-
-            logger.info("Detected AWS local IP: " + face);
-            logger.info("Detected AWS public IP: " + mask);
-
-
-        }
-        catch (Exception exc)
-        {
+            logger.info("Detected AWS IP's local: {} public: {}", face, mask);
+        } catch (Exception exc) {
             //whatever happens, we just log and fail
-            logger.log(Level.INFO, "We failed to obtain EC2 instance addresses "
-                + "for the following reason: ", exc);
-            logger.info("String for local IP: " + localIPStr);
-            logger.info("String for public IP: " + publicIPStr);
+            logger.info("IP Strings for local: {} public: {}", localIPStr, publicIPStr);
+            logger.warn("We failed to obtain EC2 instance addresses for the following reason", exc);
         }
     }
 
@@ -131,10 +93,8 @@ public class AwsCandidateHarvester
      * @return the public (mask) address, or null.
      */
     @Override
-    public TransportAddress getMask()
-    {
-        if (smellsLikeAnEC2())
-        {
+    public TransportAddress getMask() {
+        if (smellsLikeAnEC2()) {
             obtainEC2Addresses();
             return mask;
         }
@@ -146,10 +106,8 @@ public class AwsCandidateHarvester
      * @return the local (face) address, or null.
      */
     @Override
-    public TransportAddress getFace()
-    {
-        if (smellsLikeAnEC2())
-        {
+    public TransportAddress getFace() {
+        if (smellsLikeAnEC2()) {
             obtainEC2Addresses();
             return face;
         }
@@ -163,10 +121,8 @@ public class AwsCandidateHarvester
      * @return true if there appear to be decent chances for this
      * machine to be an AWS EC2 and false otherwise.
      */
-    public synchronized static boolean smellsLikeAnEC2()
-    {
-        if (RUNNING_ON_EC2 == null)
-        {
+    public synchronized static boolean smellsLikeAnEC2() {
+        if (RUNNING_ON_EC2 == null) {
             RUNNING_ON_EC2 = doTestEc2();
         }
         return RUNNING_ON_EC2;
@@ -179,18 +135,13 @@ public class AwsCandidateHarvester
      * @return true if the connection succeeded, false
      * otherwise.
      */
-    private static boolean doTestEc2()
-    {
-        try
-        {
+    private static boolean doTestEc2() {
+        try {
             URLConnection conn = new URL(EC2_TEST_URL).openConnection();
             conn.setConnectTimeout(500); //don't hang for too long
             conn.getContent();
-
             return true;
-        }
-        catch(Exception exc)
-        {
+        } catch (Exception exc) {
             //ah! I knew you weren't one of those ...
             return false;
         }
@@ -205,17 +156,11 @@ public class AwsCandidateHarvester
      *
      * @throws Exception if anything goes wrong.
      */
-    private static String fetch(String url)
-        throws Exception
-    {
+    private static String fetch(String url) throws Exception {
         URLConnection conn = new URL(url).openConnection();
-        BufferedReader in = new BufferedReader(new InputStreamReader(
-                    conn.getInputStream(), "UTF-8"));
-
+        BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
         String retString = in.readLine();
-
         in.close();
-
         return retString;
     }
 }

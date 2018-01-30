@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import java.net.*;
@@ -27,13 +22,7 @@ import org.slf4j.LoggerFactory;
  * @author Lyubomir Marinov
  */
 class ConnectivityCheckClient implements ResponseCollector {
-    /**
-     * The Logger used by the ConnectivityCheckClient
-     * class for logging output.
-     * Note that this shouldn't be used directly by instances of
-     * {@link ConnectivityCheckClient}, because it doesn't take into account
-     * the per-instance log level. Instances should use {@link #logger} instead.
-     */
+
     private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckClient.class);
 
     /**
@@ -98,7 +87,6 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     public void startChecks() {
         List<IceMediaStream> streamsWithPendingConnectivityEstablishment = parentAgent.getStreamsWithPendingConnectivityEstablishment();
-
         if (streamsWithPendingConnectivityEstablishment.size() > 0) {
             logger.info("Start connectivity checks. Local ufrag " + parentAgent.getLocalUfrag());
             startChecks(streamsWithPendingConnectivityEstablishment.get(0).getCheckList());

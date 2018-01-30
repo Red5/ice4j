@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import org.ice4j.*;
@@ -21,30 +16,8 @@ import org.slf4j.LoggerFactory;
  * @author Lyubomir Marinov
  */
 class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
-    /**
-     * The Logger used by the ConnectivityCheckServer
-     * class and its instances for logging output.
-     * Note that this shouldn't be used directly by instances of
-     * {@link ConnectivityCheckServer}, because it doesn't take into account
-     * the per-instance log level. Instances should use {@link #logger} instead.
-     */
-    private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckServer.class);
 
-    /**
-     * Compares a and b as unsigned long values. Serves the
-     * same purpose as the Long.compareUnsigned method available in
-     * Java 1.8.
-     * @return -1 if a is less than b, 0 if
-     * they are equal and 1 if a is bigger.
-     */
-    private static int compareUnsignedLong(long a, long b) {
-        if (a == b)
-            return 0;
-        else if ((a + Long.MIN_VALUE) < (b + Long.MIN_VALUE))
-            return -1;
-        else
-            return 1;
-    }
+    private static final Logger logger = LoggerFactory.getLogger(ConnectivityCheckServer.class);
 
     /**
      * The agent that created us.
@@ -243,7 +216,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
             // contents of the ICE-CONTROLLING attribute, the agent generates
             // a Binding error response and includes an ERROR-CODE attribute
             // with a value of 487 (Role Conflict) but retains its role.
-            if (compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0) {
+            if (Long.compareUnsigned(ourTieBreaker, theirTieBreaker) >= 0) {
                 Response response = MessageFactory.createBindingErrorResponse(ErrorCodeAttribute.ROLE_CONFLICT);
 
                 try {
@@ -274,7 +247,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
             //If the agent's tie-breaker is larger than or equal to the
             //contents of the ICE-CONTROLLED attribute, the agent switches to
             //the controlling role.
-            if (compareUnsignedLong(ourTieBreaker, theirTieBreaker) >= 0) {
+            if (Long.compareUnsigned(ourTieBreaker, theirTieBreaker) >= 0) {
                 logger.debug("Switching to controlling because theirTieBreaker=" + theirTieBreaker + " and ourTieBreaker=" + ourTieBreaker);
                 parentAgent.setControlling(true);
                 return true;

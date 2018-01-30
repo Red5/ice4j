@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.stack;
 
 import java.io.IOException;
@@ -43,23 +38,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The entry point to the Stun4J stack. The class is used to start, stop and
- * configure the stack.
+ * The entry point to the Stun4J stack. The class is used to start, stop and configure the stack.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
- * @author Aakash Garg.
+ * @author Aakash Garg
+ * @author Paul Gregoire
  */
 public class StunStack implements MessageEventHandler {
 
-    /**
-     * The Logger used by the StunStack class and its instances for logging output.
-     */
     private static final Logger logger = LoggerFactory.getLogger(StunStack.class);
 
     /**
-     * The indicator which determines whether <code>Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM)</code>
-     * has been called.
+     * HMAC_SHA1 instance via <pre>Mac.getInstance(MessageIntegrityAttribute.HMAC_SHA1_ALGORITHM)</pre>
      *
      * @see #StunStack()
      */
@@ -72,8 +63,7 @@ public class StunStack implements MessageEventHandler {
     private final NetAccessManager netAccessManager;
 
     /**
-     * The {@link CredentialsManager} that we are using for retrieving
-     * passwords.
+     * The {@link CredentialsManager} that we are using for retrieving passwords.
      */
     private final CredentialsManager credentialsManager = new CredentialsManager();
 
@@ -83,8 +73,7 @@ public class StunStack implements MessageEventHandler {
     private final ConcurrentMap<TransactionID, StunClientTransaction> clientTransactions = new ConcurrentHashMap<>();
 
     /**
-     * The Thread which expires the StunServerTransactions of this StunStack and removes them from
-     * {@link #serverTransactions}.
+     * The Thread which expires the StunServerTransactions of this StunStack and removes them from {@link #serverTransactions}.
      */
     private Thread serverTransactionExpireThread;
 
@@ -113,6 +102,10 @@ public class StunStack implements MessageEventHandler {
         }
     }
 
+    public StunStack() {
+        netAccessManager = new NetAccessManager(this);
+    }
+
     /**
      * Creates and starts a Network Access Point (Connector) based on the
      * specified socket.
@@ -124,12 +117,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Creates and starts a Network Access Point (Connector) based on the
-     * specified socket and the specified remote address.
+     * Creates and starts a Network Access Point (Connector) based on the specified socket and the specified remote address.
      *
      * @param sock The socket that the new access point should represent.
-     * @param remoteAddress the remote address of the socket of the
-     * {@link Connector} to be created if it is a TCP socket, or null if it
+     * @param remoteAddress the remote address of the socket of the Connector to be created if it is a TCP socket, or null if it
      * is UDP.
      */
     public void addSocket(IceSocketWrapper sock, TransportAddress remoteAddress) {
@@ -138,8 +129,7 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Stops and deletes the connector listening on the specified local address.
-     * Note this removes connectors with UDP sockets only, use
-     * {@link #removeSocket(org.ice4j.TransportAddress, org.ice4j.TransportAddress)}
+     * Note this removes connectors with UDP sockets only, use {@link #removeSocket(org.ice4j.TransportAddress, org.ice4j.TransportAddress)}
      * with the appropriate remote address for TCP.
      *
      * @param localAddr the local address of the socket to remove.
@@ -149,12 +139,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Stops and deletes the connector listening on the specified local address
-     * and remote address.
+     * Stops and deletes the connector listening on the specified local address and remote address.
      *
      * @param localAddr the local address of the socket to remove.
-     * @param remoteAddr the remote address of the socket to remove. Use
-     * null for UDP.
+     * @param remoteAddr the remote address of the socket to remove. Use null for UDP.
      */
     public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
         //first cancel all transactions using this address.
@@ -163,12 +151,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns the transaction with the specified transactionID or
-     * null if no such transaction exists.
+     * Returns the transaction with the specified transactionID or null if no such transaction exists.
      *
-     * @param transactionID the ID of the transaction we are looking for.
-     *
-     * @return the {@link StunClientTransaction} we are looking for.
+     * @param transactionID the ID of the transaction we are looking for
+     * @return the {@link StunClientTransaction} we are looking for
      */
     protected StunClientTransaction getClientTransaction(TransactionID transactionID) {
         StunClientTransaction clientTransaction = clientTransactions.get(transactionID);
@@ -176,12 +162,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns the transaction with the specified transactionID or
-     * null if no such transaction exists.
+     * Returns the transaction with the specified transactionID or null if no such transaction exists.
      *
-     * @param transactionID the ID of the transaction we are looking for.
-     *
-     * @return the {@link StunServerTransaction} we are looking for.
+     * @param transactionID the ID of the transaction we are looking for
+     * @return the {@link StunServerTransaction} we are looking for
      */
     protected StunServerTransaction getServerTransaction(TransactionID transactionID) {
         StunServerTransaction serverTransaction = serverTransactions.get(transactionID);
@@ -193,14 +177,11 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Cancels the {@link StunClientTransaction} with the specified
-     * transactionID. Cancellation means that the stack will not
-     * retransmit the request, will not treat the lack of response to be a
-     * failure, but will wait the duration of the transaction timeout for a
+     * Cancels the {@link StunClientTransaction} with the specified transactionID. Cancellation means that the stack will not
+     * retransmit the request, will not treat the lack of response to be a failure, but will wait the duration of the transaction timeout for a
      * response.
      *
-     * @param transactionID the {@link TransactionID} of the
-     * {@link StunClientTransaction} to cancel
+     * @param transactionID the {@link TransactionID} of the {@link StunClientTransaction} to cancel
      */
     public void cancelTransaction(TransactionID transactionID) {
         StunClientTransaction clientTransaction = clientTransactions.get(transactionID);
@@ -210,16 +191,12 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Stops all transactions for the specified localAddr so that they
-     * won't send messages through any longer and so that we could remove the
+     * Stops all transactions for the specified localAddr so that they won't send messages through any longer and so that we could remove the
      * associated socket.
      *
-     * @param localAddr the TransportAddress that we'd like to remove
-     * transactions for.
-     * @param remoteAddr the remote TransportAddress that we'd like to
-     * remove transactions for. If null, then it will not be taken
-     * into account (that is, all transactions with for localAddr will
-     * be cancelled).
+     * @param localAddr the TransportAddress that we'd like to remove transactions for.
+     * @param remoteAddr the remote TransportAddress that we'd like to remove transactions for. If null, then it will not be taken
+     * into account (that is, all transactions with for localAddr will be cancelled).
      */
     private void cancelTransactionsForAddress(TransportAddress localAddr, TransportAddress remoteAddr) {
         for (StunClientTransaction tran : clientTransactions.values()) {
@@ -241,50 +218,23 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Initializes a new StunStack instance with given
-     * peerUdpMessageEventHandler and channelDataEventHandler.
-     * 
-     * @param peerUdpMessageEventHandler the PeerUdpMessageEventHandler
-     *            that will handle incoming UDP messages which are not STUN
-     *            messages and ChannelData messages.
-     * @param channelDataEventHandler the ChannelDataEventHandler that
-     *            will handle incoming UDP messages which are ChannelData
-     *            messages.
-     */
-    public StunStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler, ChannelDataEventHandler channelDataEventHandler) {
-        netAccessManager = new NetAccessManager(this, peerUdpMessageEventHandler, channelDataEventHandler);
-    }
-
-    /**
-     * Initializes a new StunStack instance.
-     */
-    public StunStack() {
-        this(null, null);
-    }
-
-    /**
      * Returns the currently active instance of NetAccessManager.
-     * @return the currently active instance of NetAccessManager.
+     * @return NetAccessManager
      */
     NetAccessManager getNetAccessManager() {
         return netAccessManager;
     }
 
     /**
-     * Sends a specific STUN Indication to a specific destination
-     * TransportAddress through a socket registered with this
+     * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
      * StunStack using a specific TransportAddress.
      *
-     * @param channelData the STUN Indication to be sent to the
-     * specified destination TransportAddress through the socket with
+     * @param channelData the STUN Indication to be sent to the specified destination TransportAddress through the socket with
      * the specified TransportAddress
-     * @param sendTo the TransportAddress of the destination to which
-     * the specified indication is to be sent
-     * @param sendThrough the TransportAddress of the socket registered
-     * with this StunStack through which the specified
+     * @param sendTo the TransportAddress of the destination to which the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered with this StunStack through which the specified
      * indication is to be sent
-     * @throws StunException if anything goes wrong while sending the specified
-     * indication to the destination sendTo through the socket
+     * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
      * identified by sendThrough
      */
     public void sendChannelData(ChannelData channelData, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
@@ -300,20 +250,15 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends a specific STUN Indication to a specific destination
-     * TransportAddress through a socket registered with this
+     * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
      * StunStack using a specific TransportAddress.
      *
-     * @param udpMessage the RawMessage to be sent to the
-     * specified destination TransportAddress through the socket with
+     * @param udpMessage the RawMessage to be sent to the specified destination TransportAddress through the socket with
      * the specified TransportAddress
-     * @param sendTo the TransportAddress of the destination to which
-     * the specified indication is to be sent
-     * @param sendThrough the TransportAddress of the socket registered
-     * with this StunStack through which the specified
+     * @param sendTo the TransportAddress of the destination to which the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered with this StunStack through which the specified
      * indication is to be sent
-     * @throws StunException if anything goes wrong while sending the specified
-     * indication to the destination sendTo through the socket
+     * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
      * identified by sendThrough
      */
     public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
@@ -429,18 +374,17 @@ public class StunStack implements MessageEventHandler {
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) throws IllegalArgumentException, IOException {
         StunClientTransaction clientTransaction = new StunClientTransaction(this, request, sendTo, sendThrough, collector, transactionID);
-
-        if (originalWaitInterval > 0)
+        if (originalWaitInterval > 0) {
             clientTransaction.originalWaitInterval = originalWaitInterval;
-        if (maxWaitInterval > 0)
+        }
+        if (maxWaitInterval > 0) {
             clientTransaction.maxWaitInterval = maxWaitInterval;
-        if (maxRetransmissions >= 0)
+        }
+        if (maxRetransmissions >= 0) {
             clientTransaction.maxRetransmissions = maxRetransmissions;
-
+        }
         clientTransactions.put(clientTransaction.getTransactionID(), clientTransaction);
-
         clientTransaction.sendRequest();
-
         return clientTransaction.getTransactionID();
     }
 

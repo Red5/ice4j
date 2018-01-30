@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
 import java.io.IOException;
@@ -65,7 +60,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             try {
                 harvesters.add(new SinglePortUdpHarvester(address));
             } catch (IOException ioe) {
-                logger.info("Failed to create SinglePortUdpHarvester foraddress " + address + ": " + ioe);
+                logger.warn("Failed to create SinglePortUdpHarvester foraddress {}", address, ioe);
             }
         }
         return harvesters;
@@ -89,7 +84,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
      */
     public SinglePortUdpHarvester(TransportAddress localAddress) throws IOException {
         super(localAddress);
-        logger.info("Initialized SinglePortUdpHarvester with address " + localAddress);
+        logger.info("Initialized SinglePortUdpHarvester with address {}", localAddress);
     }
 
     /**
@@ -105,7 +100,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
      * Looks for an ICE candidate registered with this harvester, which has a local ufrag of {@code ufrag}, and if one is found it accepts the new
      * socket and adds it to the candidate.
      */
-    protected void maybeAcceptNewSession(Buffer buf, InetSocketAddress remoteAddress, String ufrag) {
+    protected void maybeAcceptNewSession(byte[] buf, InetSocketAddress remoteAddress, String ufrag) {
         MyCandidate candidate = candidates.get(ufrag);
         if (candidate == null) {
             // A STUN Binding Request with an unknown USERNAME. Drop it.
@@ -121,9 +116,9 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             // 4. Add the original datagram to the new socket.
             newSocket.addBuffer(buf);
         } catch (SocketException se) {
-            logger.info("Could not create a socket: " + se);
+            logger.warn("Could not create a socket", se);
         } catch (IOException ioe) {
-            logger.info("Failed to handle new socket: " + ioe);
+            logger.warn("Failed to handle new socket", ioe);
         }
     }
 
@@ -136,10 +131,8 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         Agent agent = stream.getParentAgent();
         String ufrag = agent.getLocalUfrag();
         if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1) {
-            /*
-             * SinglePortUdpHarvester only works with streams with a single component, and agents with a single stream. This is because we use the local "ufrag" from an incoming
-             * STUN packet to setup de-multiplexing based on remote transport address.
-             */
+            // SinglePortUdpHarvester only works with streams with a single component, and agents with a single stream.
+            // This is because we use the local "ufrag" from an incoming STUN packet to setup de-multiplexing based on remote transport address.
             logger.info("More than one Component for an Agent, cannot harvest.");
             return new LinkedList<>();
         }
@@ -199,6 +192,42 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         }
 
         /**
+         * Adds a new Socket to this candidate, which is associated with a particular remote address.
+         *
+         * @param socket the socket to add.
+         * @param remoteAddress the remote address for the socket.
+         */
+        private void addSocket(DatagramSocket socket, InetSocketAddress remoteAddress) throws IOException {
+            if (freed.get()) {
+                throw new IOException("Candidate freed");
+            }
+            Component component = getParentComponent();
+            if (component == null) {
+                throw new IOException("No parent component");
+            }
+            IceProcessingState state = component.getParentStream().getParentAgent().getState();
+            if (state == IceProcessingState.FAILED) {
+                throw new IOException("Cannot add socket to an Agent in state FAILED.");
+            } else if (state != null && state.isOver()) {
+                logger.debug("Adding a socket to a completed Agent, state: {}", state);
+            }
+            // Socket to add to the candidate
+            IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(socket.getChannel());
+            // STUN-only filtered socket to add to the StunStack
+            candidateSocket.addFilter(new StunDatagramPacketFilter());
+            component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP));
+            // TODO: maybe move this code to the candidates.
+            component.getComponentSocket().setSocket(candidateSocket);
+            // if a socket already exists, it will be returned and closed after being replaced in the map
+            IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
+            if (oldSocket != null) {
+                logger.info("Replacing the socket for remote address {}", remoteAddress);
+                oldSocket.close();
+            }
+            sockets.put(remoteAddress, socket);
+        }
+
+        /**
          * {@inheritDoc}
          * <br>
          * Closes all sockets in use by this LocalCandidate.
@@ -225,42 +254,6 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
                 candidateSockets.clear();
                 super.free();
             }
-        }
-
-        /**
-         * Adds a new Socket to this candidate, which is associated with a particular remote address.
-         *
-         * @param socket the socket to add.
-         * @param remoteAddress the remote address for the socket.
-         */
-        private void addSocket(DatagramSocket socket, InetSocketAddress remoteAddress) throws IOException {
-            if (freed.get()) {
-                throw new IOException("Candidate freed");
-            }
-            Component component = getParentComponent();
-            if (component == null) {
-                throw new IOException("No parent component");
-            }
-            IceProcessingState state = component.getParentStream().getParentAgent().getState();
-            if (state == IceProcessingState.FAILED) {
-                throw new IOException("Cannot add socket to an Agent in state FAILED.");
-            } else if (state != null && state.isOver()) {
-                logger.debug("Adding a socket to a completed Agent, state: ", state);
-            }
-            // Socket to add to the candidate
-            IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(socket.getChannel());
-            // STUN-only filtered socket to add to the StunStack
-            candidateSocket.addFilter(new StunDatagramPacketFilter());
-            component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP));
-            // TODO: maybe move this code to the candidates.
-            component.getComponentSocket().setSocket(candidateSocket);
-
-            IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
-            if (oldSocket != null) {
-                logger.info("Replacing the socket for remote address {}", remoteAddress);
-                oldSocket.close();
-            }
-            sockets.put(remoteAddress, socket);
         }
 
         /**

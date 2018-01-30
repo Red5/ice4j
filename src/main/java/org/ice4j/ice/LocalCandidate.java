@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import java.io.IOException;
@@ -23,17 +18,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * LocalCandidates are obtained by an agent for every stream component
- * and are then included in outgoing offers or answers.
+ * LocalCandidates are obtained by an agent for every stream component and are then included in outgoing offers or answers.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
 public abstract class LocalCandidate extends Candidate<LocalCandidate> {
 
+    private final static Logger logger = LoggerFactory.getLogger(LocalCandidate.class);
+
     /**
-     * The type of method used to discover this candidate ("host", "upnp", "stun
-     * peer reflexive", "stun server reflexive", "turn relayed", "google turn
+     * The type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed", "google turn
      * relayed", "google tcp turn relayed" or "jingle node").
      */
     private CandidateExtendedType extendedType;
@@ -49,13 +44,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     private boolean isSSL;
 
     /**
-     * The {@link Logger} used by {@link LocalCandidate} instances.
-     */
-    private final static Logger logger = LoggerFactory.getLogger(LocalCandidate.class);
-
-    /**
-     * Creates a LocalCandidate instance for the specified transport
-     * address and properties.
+     * Creates a LocalCandidate instance for the specified transport address and properties.
      *
      * @param transportAddress  the transport address that this candidate is
      * encapsulating.
@@ -215,27 +204,20 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     }
 
     /**
-     * Returns the type of method used to discover this candidate ("host",
-     * "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
+     * Returns the type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
      * "google turn relayed", "google tcp turn relayed" or "jingle node").
      *
-     * @return The type of method used to discover this candidate ("host",
-     * "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed",
-     * "google turn relayed", "google tcp turn relayed" or "jingle node").
+     * @return The type of method used to discover this candidate
      */
     public CandidateExtendedType getExtendedType() {
         return this.extendedType;
     }
 
     /**
-     * Sets the type of method used to discover this candidate ("host", "upnp",
-     * "stun peer reflexive", "stun server reflexive", "turn relayed", "google
+     * Sets the type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed", "google
      * turn relayed", "google tcp turn relayed" or "jingle node").
      *
      * @param extendedType The type of method used to discover this candidate
-     * ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn
-     * relayed", "google turn relayed", "google tcp turn relayed" or "jingle
-     * node").
      */
     public void setExtendedType(CandidateExtendedType extendedType) {
         this.extendedType = extendedType;
@@ -247,19 +229,14 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * @param relatedAddress The related address:
      * - null for a host candidate,
      * - the base address (host candidate) for a reflexive candidate,
-     * - the mapped address (the mapped address of the TURN allocate response)
-     * for a relayed candidate.
-     * - null for a peer reflexive candidate : there is no way to know the
-     * related address.
+     * - the mapped address (the mapped address of the TURN allocate response) for a relayed candidate.
+     * - null for a peer reflexive candidate : there is no way to know the related address.
      *
-     * @return The related candidate corresponding to the address given in
-     * parameter:
+     * @return The related candidate corresponding to the address given in parameter:
      * - null for a host candidate,
      * - the base address (host candidate) for a reflexive candidate,
-     * - the mapped address (the mapped address of the TURN allocate response)
-     * for a relayed candidate.
-     * - null for a peer reflexive candidate : there is no way to know the
-     * related address.
+     * - the mapped address (the mapped address of the TURN allocate response) for a relayed candidate.
+     * - null for a peer reflexive candidate : there is no way to know the related address.
      */
     @Override
     protected LocalCandidate findRelatedCandidate(TransportAddress relatedAddress) {
