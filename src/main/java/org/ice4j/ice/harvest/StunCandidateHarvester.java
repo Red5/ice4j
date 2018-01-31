@@ -1,15 +1,12 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
-import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -19,8 +16,10 @@ import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.security.LongTermCredential;
-import org.ice4j.socket.IceTcpSocketWrapper;
+import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements a CandidateHarvester which gathers Candidates
@@ -32,11 +31,7 @@ import org.ice4j.stack.StunStack;
  */
 public class StunCandidateHarvester extends AbstractCandidateHarvester {
 
-    /**
-     * The Logger used by the StunCandidateHarvester class and
-     * its instances for logging output.
-     */
-    private static final Logger logger = Logger.getLogger(StunCandidateHarvester.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
 
     /**
      * The list of StunCandidateHarvests which have been successfully
@@ -212,8 +207,8 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      */
     @Override
     public Collection<LocalCandidate> harvest(Component component) {
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("starting " + component.toShortString() + " harvest for: " + toString());
+        if (logger.isDebugEnabled()) {
+            logger.debug("starting " + component.toShortString() + " harvest for: " + toString());
         }
         stunStack = component.getParentStream().getParentAgent().getStunStack();
 
@@ -242,7 +237,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             completedHarvests.clear();
         }
 
-        logger.finest("Completed " + component.toShortString() + " harvest: " + toString() + ". Found " + candidates.size() + " candidates: " + listCandidates(candidates));
+        logger.debug("Completed " + component.toShortString() + " harvest: " + toString() + ". Found " + candidates.size() + " candidates: " + listCandidates(candidates));
 
         return candidates;
     }
@@ -265,44 +260,34 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     private void startResolvingCandidate(HostCandidate hostCand) {
         //first of all, make sure that the STUN server and the Candidate
         //address are of the same type and that they can communicate.
-        if (!hostCand.getTransportAddress().canReach(stunServer))
+        if (!hostCand.getTransportAddress().canReach(stunServer)) {
             return;
-
+        }
         HostCandidate cand = getHostCandidate(hostCand);
-
         if (cand == null) {
             logger.info("server/candidate address type mismatch," + " skipping candidate in this harvester");
             return;
         }
-
         StunCandidateHarvest harvest = createHarvest(cand);
-
         if (harvest == null) {
-            logger.warning("failed to create harvest");
+            logger.warn("failed to create harvest");
             return;
         }
-
         synchronized (startedHarvests) {
             startedHarvests.add(harvest);
-
             boolean started = false;
-
             try {
                 started = harvest.startResolvingCandidate();
             } catch (Exception ex) {
                 started = false;
-                if (logger.isLoggable(Level.INFO)) {
-                    logger.log(Level.INFO, "Failed to start resolving host candidate " + hostCand, ex);
-                }
+                logger.warn("Failed to start resolving host candidate {}", hostCand, ex);
             } finally {
                 if (!started) {
                     try {
                         startedHarvests.remove(harvest);
-                        logger.warning("harvest did not start, removed: " + harvest);
+                        logger.warn("harvest did not start, removed: {}", harvest);
                     } finally {
-                        /*
-                         * For the sake of completeness, explicitly close the harvest.
-                         */
+                        // For the sake of completeness, explicitly close the harvest.
                         try {
                             harvest.close();
                         } catch (Exception ex) {
@@ -366,13 +351,13 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         if (hostCand.getTransport() == Transport.TCP) {
             try {
                 SocketChannel socketChannel = SocketChannel.open();
-                socketChannel.bind(new InetSocketAddress(stunServer.getAddress(), stunServer.getPort()));
-                IceTcpSocketWrapper sock = new IceTcpSocketWrapper(socketChannel);
+                socketChannel.bind(stunServer);
+                IceSocketWrapper sock = IceSocketWrapper.build(socketChannel);
                 cand = new HostCandidate(sock, hostCand.getParentComponent(), Transport.TCP);
                 hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(cand.getStunSocket(null));
                 hostCand.getParentComponent().getComponentSocket().setSocket(sock);
             } catch (Exception io) {
-                logger.info("Exception TCP client connect: " + io);
+                logger.warn("Exception TCP client connect", io);
                 return null;
             }
         } else {

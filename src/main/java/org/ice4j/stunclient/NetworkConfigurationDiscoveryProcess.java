@@ -1,14 +1,23 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stunclient;
 
-import java.io.*;
-import java.util.logging.*;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ChangeRequestAttribute;
+import org.ice4j.attribute.ChangedAddressAttribute;
+import org.ice4j.attribute.MappedAddressAttribute;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.stack.StunStack;
 
 /**
  * <p>
@@ -75,7 +84,7 @@ import org.ice4j.stack.*;
  * @author Emil Ivov
  */
 public class NetworkConfigurationDiscoveryProcess {
- 
+
     private static final Logger logger = Logger.getLogger(NetworkConfigurationDiscoveryProcess.class.getName());
 
     /**
@@ -113,17 +122,16 @@ public class NetworkConfigurationDiscoveryProcess {
     private final StunStack stunStack;
 
     /**
-     * Initializes a StunAddressDiscoverer with a specific
-     * StunStack. In order to use it one must first start it.
+     * Initializes a StunAddressDiscoverer with a specific StunStack. In order to use it one must first start it.
      *
      * @param stunStack the StunStack to be used by the new instance
      * @param localAddress  the address where the stack should bind.
      * @param serverAddress the address of the server to interrogate.
      */
     public NetworkConfigurationDiscoveryProcess(StunStack stunStack, TransportAddress localAddress, TransportAddress serverAddress) {
-        if (stunStack == null)
+        if (stunStack == null) {
             throw new NullPointerException("stunStack");
-
+        }
         this.stunStack = stunStack;
         this.localAddress = localAddress;
         this.serverAddress = serverAddress;
@@ -324,35 +332,9 @@ public class NetworkConfigurationDiscoveryProcess {
      * @throws StunException ILLEGAL_STATE if the discoverer is not operational.
      */
     private void checkStarted() throws StunException {
-        if (!started)
+        if (!started) {
             throw new StunException(StunException.ILLEGAL_STATE, "The Discoverer must be started beforelaunching the discovery process!");
+        }
     }
 
-    //---------- main
-    /**
-     * Runs the discoverer and shows a message dialog with the returned report.
-     * @param args args[0] - stun server address, args[1] - port. in the case of
-     * no args - defaults are provided.
-     * @throws java.lang.Exception if an exception occurs during the discovery
-     * process.
-     */
-    /*
-     * public static void main(String[] args) throws Exception { StunAddress localAddr = null; StunAddress serverAddr = null; if(args.length == 4) { localAddr = new
-     * StunAddress(args[2], Integer.valueOf(args[3]).intValue()); serverAddr = new StunAddress(args[0], Integer.valueOf(args[1]).intValue()); } else { localAddr = new
-     * StunAddress(InetAddress.getLocalHost(), 5678); serverAddr = new StunAddress("stun01bak.sipphone.com.", 3479); } NetworkConfigurationDiscoveryProcess addressDiscovery = new
-     * NetworkConfigurationDiscoveryProcess(localAddr, serverAddr); addressDiscovery.start(); StunDiscoveryReport report = addressDiscovery.determineAddress();
-     * System.out.println(report); }
-     */
 }
-/**
- * Sample run results.
- *
- * TEST I res=/69.0.209.22:3478 - stun01bak.sipphone.com
- * mapped address is=193.108.24.226./193.108.24.226:5678,  name=193.108.24.226.
- * backup server address is=69.0.208.27./69.0.208.27:3478, name=69.0.208.27.
- * NO RESPONSE received to Test II.
- * TEST I res=/69.0.208.27:3478 - stun01.sipphone.com
- * NO RESPONSE received to Test III.
- * The detected network configuration is: Port Restricted Cone NAT
- * Your mapped public address is: 193.108.24.226./193.
- */

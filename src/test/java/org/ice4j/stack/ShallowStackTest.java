@@ -45,17 +45,17 @@ public class ShallowStackTest extends TestCase {
      */
     private StunStack stunStack;
 
-    private MsgFixture msgFixture = null;
+    private MsgFixture msgFixture;
 
-    private TransportAddress dummyServerAddress = null;
+    private TransportAddress dummyServerAddress;
 
-    private TransportAddress localAddress = null;
+    private TransportAddress localAddress;
 
     private DatagramCollector dgramCollector = new DatagramCollector();
 
-    private IceSocketWrapper localSock = null;
+    private IceSocketWrapper localSock;
 
-    private DatagramSocket dummyServerSocket = null;
+    private DatagramSocket dummyServerSocket;
 
     /**
      * Creates a test instance for the method with the specified name.
@@ -154,8 +154,7 @@ public class ShallowStackTest extends TestCase {
         assertTrue("The stack did not retransmit a Binding Request", (receivedPacket.getLength() > 0));
 
         receivedRequest = (Request) Request.decode(receivedPacket.getData(), (char) 0, (char) receivedPacket.getLength());
-        assertEquals("The retransmitted request did not match the original.", bindingRequest, //expected
-                receivedRequest); // actual
+        assertEquals("The retransmitted request did not match the original.", bindingRequest, receivedRequest);
     }
 
     /**
@@ -226,8 +225,7 @@ public class ShallowStackTest extends TestCase {
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
 
         Response receivedResponse = (Response) Response.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
-        assertEquals("The received request did not match the one that was sent.", bindingResponse, //expected
-                receivedResponse); // actual
+        assertEquals("The received request did not match the one that was sent.", bindingResponse, receivedResponse);
     }
 
     /**

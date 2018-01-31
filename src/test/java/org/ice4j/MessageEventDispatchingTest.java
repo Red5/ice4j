@@ -139,8 +139,7 @@ public class MessageEventDispatchingTest extends TestCase {
 
         assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.get(0), "timeout");
 
-        //restore the retransmissions prop in case others are counting on
-        //defaults.
+        //restore the retransmissions prop in case others are counting on defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
         else

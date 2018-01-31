@@ -35,7 +35,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      */
     public IceUdpSocketWrapper(TransportAddress address) throws IOException {
         super(DatagramChannel.open());
-        ((DatagramChannel) channel).socket().bind(new InetSocketAddress(address.getHostAddress(), address.getPort()));
+        ((DatagramChannel) channel).socket().bind(address);
     }
 
     /**

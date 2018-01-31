@@ -30,10 +30,7 @@ import org.slf4j.LoggerFactory;
  * @author Lyubomir Marinov
  */
 public class Ice {
-    /**
-     * The Logger used by the Ice
-     * class and its instances for logging output.
-     */
+
     private static final Logger logger = LoggerFactory.getLogger(Ice.class);
 
     /**
@@ -56,6 +53,9 @@ public class Ice {
      * @throws Throwable if bad stuff happens.
      */
     public static void main(String[] args) throws Throwable {
+        // disable IPv6 for this test
+        System.setProperty("org.ice4j.ipv6.DISABLED", "true");
+
         startTime = System.currentTimeMillis();
 
         Agent localAgent = createAgent(9090, false);
@@ -84,24 +84,26 @@ public class Ice {
             stream.setRemotePassword(localAgent.getLocalPassword());
         }
 
-        logger.info("Total candidate gathering time: " + (endTime - startTime) + "ms");
-        logger.info("LocalAgent:\n" + localAgent);
+        logger.info("Total candidate gathering time: {}ms", (endTime - startTime));
+        logger.info("LocalAgent:\n{}", localAgent);
 
         localAgent.startConnectivityEstablishment();
 
         if (START_CONNECTIVITY_ESTABLISHMENT_OF_REMOTE_PEER)
             remotePeer.startConnectivityEstablishment();
 
-        logger.info("Local audio clist:\n" + localAgent.getStream("audio").getCheckList());
+        logger.info("Local audio clist:\n{}", localAgent.getStream("audio").getCheckList());
 
         IceMediaStream videoStream = localAgent.getStream("video");
 
         if (videoStream != null)
-            logger.info("Local video clist:\n" + videoStream.getCheckList());
+            logger.info("Local video clist:\n{}", videoStream.getCheckList());
 
         //Give processing enough time to finish. We'll System.exit() anyway
         //as soon as localAgent enters a final state.
         Thread.sleep(60000);
+        logger.info("Finished");
+        System.exit(0);
     }
 
     /**
@@ -144,11 +146,8 @@ public class Ice {
 
                 logger.info("Total ICE processing time to completion: " + (System.currentTimeMillis() - startTime));
             } else if (iceProcessingState == IceProcessingState.TERMINATED || iceProcessingState == IceProcessingState.FAILED) {
-                /*
-                 * Though the process will be instructed to die, demonstrate that Agent instances are to be explicitly prepared for garbage collection.
-                 */
+                // Though the process will be instructed to die, demonstrate that Agent instances are to be explicitly prepared for garbage collection.
                 ((Agent) evt.getSource()).free();
-
                 logger.info("Total ICE processing time: " + (System.currentTimeMillis() - startTime));
                 System.exit(0);
             }
@@ -276,16 +275,15 @@ public class Ice {
         if (harvesters == null) {
             // STUN
             StunCandidateHarvester stunHarv = new StunCandidateHarvester(new TransportAddress("stun.jitsi.net", 3478, Transport.UDP));
-            StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
+            //StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
 
             agent.addCandidateHarvester(stunHarv);
-            agent.addCandidateHarvester(stun6Harv);
+            //agent.addCandidateHarvester(stun6Harv);
 
             // TURN
             String[] hostnames = new String[] { "stun.jitsi.net", "stun6.jitsi.net" };
             int port = 3478;
             LongTermCredential longTermCredential = new LongTermCredential("guest", "anonymouspower!!");
-
             for (String hostname : hostnames) {
                 agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, Transport.UDP), longTermCredential));
             }

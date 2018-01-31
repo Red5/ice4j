@@ -1,13 +1,14 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
-import java.io.*;
-import java.net.*;
-import java.nio.channels.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.SocketException;
+import java.nio.channels.ClosedChannelException;
+import java.util.Queue;
 
-import org.ice4j.*;
-import org.ice4j.socket.*;
+import org.ice4j.TransportAddress;
+import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,10 +22,12 @@ class Connector implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(Connector.class);
 
+    private final NetAccessManager netAccessManager;
+
     /**
      * The message queue is where incoming messages are added.
      */
-    private final BlockingQueue<RawMessage> messageQueue;
+    private final Queue<RawMessage> messageQueue;
 
     /**
      * The socket object that used by this access point to access the network.
@@ -35,11 +38,6 @@ class Connector implements Runnable {
      * A flag that is set to false to exit the message processor.
      */
     private boolean running;
-
-    /**
-     * The instance to be notified if errors occur in the network listening thread.
-     */
-    private final ErrorHandler errorHandler;
 
     /**
      * The address that we are listening to.
@@ -56,13 +54,12 @@ class Connector implements Runnable {
      * @param socket the socket that this access point is supposed to use for communication.
      * @param remoteAddress the remote address of the socket of this {@link Connector} if it is a TCP socket, or null if it is UDP.
      * @param messageQueue the Queue where incoming messages should be queued
-     * @param errorHandler the instance to notify when errors occur.
      */
-    protected Connector(IceSocketWrapper socket, TransportAddress remoteAddress, BlockingQueue<RawMessage> messageQueue, ErrorHandler errorHandler) {
+    protected Connector(IceSocketWrapper socket, TransportAddress remoteAddress, NetAccessManager netAccessManager, Queue<RawMessage> messageQueue) {
         this.sock = socket;
         this.remoteAddress = remoteAddress;
+        this.netAccessManager = netAccessManager;
         this.messageQueue = messageQueue;
-        this.errorHandler = errorHandler;
         listenAddress = socket.getTransportAddress();
     }
 
@@ -102,7 +99,7 @@ class Connector implements Runnable {
                     return;
                 }
                 if (logger.isTraceEnabled()) {
-                    logger.trace("received datagram packet - addr: " + packet.getAddress() + " port: " + packet.getPort());
+                    logger.trace("received datagram packet - {}:{}", packet.getAddress(), packet.getPort());
                 }
                 if (packet.getPort() < 0) {
                     logger.warn("Out of range packet port, resetting to 0");
@@ -113,31 +110,23 @@ class Connector implements Runnable {
                 messageQueue.add(rawMessage);
             } catch (SocketException ex) {
                 if (running) {
-                    logger.warn("Connector died: " + listenAddress + " -> " + remoteAddress, ex);
+                    logger.warn("Connector died: {} -> {}", listenAddress, remoteAddress, ex);
                     stop();
-                    //Something wrong has happened
-                    errorHandler.handleFatalError(this, "A socket exception was thrown while trying to receive a message.", ex);
-                } else {
-                    //The exception was most probably caused by calling
-                    //this.stop().
                 }
             } catch (ClosedChannelException cce) {
-                // The socket was closed, possibly by the remote peer.
-                // If we were already stopped, just ignore it.
+                // The socket was closed, possibly by the remote peer. If we were already stopped, just ignore it.
                 if (running) {
                     // We could be the first thread to realize that the socket was closed. But that's normal operation, so don't
                     // complain too much.
+                    logger.warn("The socket was closed");
                     stop();
-                    errorHandler.handleFatalError(this, "The socket was closed:", null);
                 }
             } catch (IOException ex) {
                 logger.warn("A net access point has gone useless", ex);
-                errorHandler.handleError(ex.getMessage(), ex);
-                //do not stop the thread;
+                // do not stop the thread
             } catch (Throwable ex) {
-                logger.warn("A net access point has gone useless", ex);
+                logger.warn("Unknown error occurred while listening for messages!", ex);
                 stop();
-                errorHandler.handleFatalError(this, "Unknown error occurred while listening for messages!", ex);
             }
         }
     }
@@ -147,6 +136,7 @@ class Connector implements Runnable {
      */
     protected void stop() {
         running = false;
+        netAccessManager.removeSocket(listenAddress, remoteAddress);
         if (sock != null) {
             sock.close();
             sock = null;
@@ -156,9 +146,9 @@ class Connector implements Runnable {
     /**
      * Sends message through this access point's socket.
      *
-     * @param message the bytes to send.
-     * @param address message destination.
-     * @throws IOException if an exception occurs while sending the message.
+     * @param message the bytes to send
+     * @param address message destination
+     * @throws IOException if an exception occurs while sending the message
      */
     void sendMessage(byte[] message, TransportAddress address) throws IOException {
         DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);

@@ -3,9 +3,8 @@ package org.ice4j.socket;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.DatagramChannel;
@@ -16,6 +15,8 @@ import java.util.LinkedList;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.filter.DatagramPacketFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract socket wrapper that define a socket that could be UDP, TCP...
@@ -24,6 +25,8 @@ import org.ice4j.socket.filter.DatagramPacketFilter;
  * @author Paul Gregoire
  */
 public abstract class IceSocketWrapper {
+
+    protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
     /**
      * NIO channel for this wrapper; will be one of type DatagramChannel for UDP or SocketChannel for TCP.
@@ -140,13 +143,22 @@ public abstract class IceSocketWrapper {
      * @return transport address
      */
     public TransportAddress getTransportAddress() {
+        logger.debug("getTransportAddress: {} channel: {}", transportAddress, channel);
         if (transportAddress == null && channel != null) {
             if (channel instanceof DatagramChannel) {
-                DatagramSocket socket = ((DatagramChannel) channel).socket();
-                transportAddress = new TransportAddress(socket.getInetAddress(), socket.getLocalPort(), Transport.UDP);
+                //DatagramSocket socket = ((DatagramChannel) channel).socket();
+                try {
+                    transportAddress = new TransportAddress((InetSocketAddress) ((DatagramChannel) channel).getLocalAddress(), Transport.UDP);
+                } catch (IOException e) {
+                    logger.warn("Exception configuring transport address", e);
+                }
             } else {
-                Socket socket = ((SocketChannel) channel).socket();
-                transportAddress = new TransportAddress(socket.getInetAddress(), socket.getLocalPort(), Transport.TCP);
+                //Socket socket = ((SocketChannel) channel).socket();
+                try {
+                    transportAddress = new TransportAddress((InetSocketAddress) ((SocketChannel) channel).getLocalAddress(), Transport.TCP);
+                } catch (IOException e) {
+                    logger.warn("Exception configuring transport address", e);
+                }
             }
         }
         return transportAddress;
@@ -161,11 +173,33 @@ public abstract class IceSocketWrapper {
         this.remoteTransportAddress = remoteAddress;
     }
 
+    public TransportAddress getRemoteTransportAddress() {
+        return remoteTransportAddress;
+    }
+
     /**
      * Sets the socket timeout.
      */
     public void setSoTimeout(int timeout) throws SocketException {
         soTimeout = timeout;
+    }
+
+    /**
+     * Returns whether or not this is a TCP wrapper, based on the instance type.
+     * 
+     * @return true if TCP and false otherwise
+     */
+    public boolean isTCP() {
+        return (this instanceof IceTcpSocketWrapper);
+    }
+
+    /**
+     * Returns whether or not this is a UDP wrapper, based on the instance type.
+     * 
+     * @return true if UDP and false otherwise
+     */
+    public boolean isUDP() {
+        return (this instanceof IceUdpSocketWrapper);
     }
 
     /**

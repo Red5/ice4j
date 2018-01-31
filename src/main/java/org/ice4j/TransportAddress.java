@@ -12,22 +12,18 @@ import org.ice4j.ice.*;
  * @author Lubomir Marinov
  */
 public class TransportAddress extends InetSocketAddress {
-    /**
-     * our serial version UID;
-     */
+
     private static final long serialVersionUID = 5076001401234631237L;
 
     /**
-     * The variable that we are using to store the transport that this address
-     * is pertaining to.
+     * The variable that we are using to store the transport that this address is pertaining to.
      */
     private final Transport transport;
 
     /**
      * Creates an address instance address from an IP address and a port number.
      * <p>
-     * A valid port value is between 0 and 65535.
-     * A port number of zero will let the system pick up an
+     * A valid port value is between 0 and 65535. A port number of zero will let the system pick up an
      * ephemeral port in a bind operation.
      * <P>
      * A null address will assign the <i>wildcard</i> address.
@@ -150,21 +146,17 @@ public class TransportAddress extends InetSocketAddress {
     /**
      * The transport that this transport address is suggesting.
      *
-     * @return one of the transport strings (UDP/TCP/...) defined as contants
-     * in this class.
+     * @return one of the transport strings (UDP/TCP/...) defined as contants in this class.
      */
     public Transport getTransport() {
         return transport;
     }
 
     /**
-     * Determines whether this TransportAddress is value equal to a
-     * specific TransportAddress.
+     * Determines whether this TransportAddress is value equal to a specific TransportAddress.
      *
-     * @param transportAddress the TransportAddress to test for value
-     * equality with this TransportAddress
-     * @return true if this TransportAddress is value equal to
-     * the specified transportAddress; otherwise, false
+     * @param transportAddress the TransportAddress to test for value equality with this TransportAddress
+     * @return true if this TransportAddress is value equal to the specified transportAddress; otherwise, false
      * @see #equalsTransportAddress(Object)
      */
     public boolean equals(TransportAddress transportAddress) {
@@ -172,20 +164,16 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Compares this object against the specified object. The result is
-     * true if and only if the argument is not null and it
+     * Compares this object against the specified object. The result is true if and only if the argument is not null and it
      * represents the same address.
      * <p>
-     * Two instances of TransportAddress represent the same
-     * address if both the InetAddresses (or hostnames if it is unresolved),
+     * Two instances of TransportAddress represent the same address if both the InetAddresses (or hostnames if it is unresolved),
      * port numbers, and Transports are equal.
      *
-     * If both addresses are unresolved, then the hostname, the port and
-     * the Transport are compared.
+     * If both addresses are unresolved, then the hostname, the port and the Transport are compared.
      *
      * @param   obj   the object to compare against.
-     * @return  true if the objects are the same and
-     * false otherwise.
+     * @return  true if the objects are the same and false otherwise.
      * @see java.net.InetAddress#equals(java.lang.Object)
      */
     public boolean equalsTransportAddress(Object obj) {
@@ -193,41 +181,31 @@ public class TransportAddress extends InetSocketAddress {
     }
 
     /**
-     * Returns true if this is an IPv6 address and false
-     * otherwise.
+     * Returns true if this is an IPv6 address and false otherwise.
      *
-     * @return true if this is an IPv6 address and false
-     * otherwise.
+     * @return true if this is an IPv6 address and false otherwise.
      */
     public boolean isIPv6() {
         return getAddress() instanceof Inet6Address;
     }
 
     /**
-     * Determines whether this TransportAddress is theoretically
-     * capable of communicating with dst. An address is certain not
-     * to be able to communicate with another if they do not have the same
-     * Transport or family.
+     * Determines whether this TransportAddress is theoretically capable of communicating with dst. An address is certain not
+     * to be able to communicate with another if they do not have the same Transport or family.
      *
-     * @param dst the TransportAddress that we'd like to check for
-     * reachability from this one.
-     *
-     * @return true if this {@link TransportAddress} shares the same
-     * Transport and family as dst or false
-     * otherwise.
-     *
+     * @param dst the TransportAddress that we'd like to check for reachability from this one
+     * @return true if this {@link TransportAddress} shares the same Transport and family as dst or false otherwise
      */
     public boolean canReach(TransportAddress dst) {
-        if (getTransport() != dst.getTransport())
+        if (getTransport() != dst.getTransport()) {
             return false;
-
-        if (isIPv6() != dst.isIPv6())
+        }
+        if (isIPv6() != dst.isIPv6()) {
             return false;
-
+        }
         if (isIPv6()) {
             Inet6Address srcAddr = (Inet6Address) getAddress();
             Inet6Address dstAddr = (Inet6Address) dst.getAddress();
-
             if (srcAddr.isLinkLocalAddress() != dstAddr.isLinkLocalAddress()) {
                 //this one may actually work if for example we are contacting
                 //the public address of someone in our local network. however
@@ -239,9 +217,7 @@ public class TransportAddress extends InetSocketAddress {
                 return Boolean.getBoolean(StackProperties.ALLOW_LINK_TO_GLOBAL_REACHABILITY);
             }
         }
-
         //may add more unreachability conditions here in the future;
-
         return true;
     }
 

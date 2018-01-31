@@ -19,24 +19,24 @@ import org.ice4j.stack.*;
  * @author Emil Ivov
  */
 public class SimpleAddressDetector {
- 
+
     private static final Logger logger = Logger.getLogger(SimpleAddressDetector.class.getName());
 
     /**
      * The stack to use for STUN communication.
      */
-    private StunStack stunStack = null;
+    private StunStack stunStack;
 
     /**
      * The address of the stun server
      */
-    private TransportAddress serverAddress = null;
+    private TransportAddress serverAddress;
 
     /**
      * A utility used to flatten the multi-threaded architecture of the Stack
      * and execute the discovery process in a synchronized manner
      */
-    private BlockingRequestSender requestSender = null;
+    private BlockingRequestSender requestSender;
 
     /**
      * Creates a StunAddressDiscoverer. In order to use it one must start the
@@ -75,14 +75,12 @@ public class SimpleAddressDetector {
     }
 
     /**
-     * Creates a listening point for the specified socket and attempts to
-     * discover how its local address is NAT mapped.
-     * @param socket the socket whose address needs to be resolved.
-     * @return a StunAddress object containing the mapped address or null if
-     * discovery failed.
-     *
-     * @throws IOException if something fails along the way.
-     * @throws BindException if we cannot bind the socket.
+     * Creates a listening point for the specified socket and attempts to discover how its local address is NAT mapped.
+     * 
+     * @param socket the socket whose address needs to be resolved
+     * @return a StunAddress object containing the mapped address or null if discovery failed
+     * @throws IOException if something fails along the way
+     * @throws BindException if we cannot bind the socket
      */
     public TransportAddress getMappingFor(IceSocketWrapper socket) throws IOException, BindException {
         TransportAddress localAddress = socket.getTransportAddress();
@@ -92,35 +90,30 @@ public class SimpleAddressDetector {
         try {
             evt = requestSender.sendRequestAndWaitForResponse(MessageFactory.createBindingRequest(), serverAddress);
         } catch (StunException exc) {
-            //this shouldn't be happening since we are the one that constructed the request, so let's catch it here and not oblige users to
-            //handle exception they are not responsible for.
+            // this shouldn't be happening since we are the one that constructed the request, so let's catch it here and not oblige users to
+            // handle exception they are not responsible for.
             logger.log(Level.SEVERE, "Internal Error. We apparently constructed a faulty request.", exc);
             return null;
         } finally {
             stunStack.removeSocket(localAddress);
         }
-
         if (evt != null) {
             Response res = (Response) evt.getMessage();
-
-            /* in classic STUN, the response contains a MAPPED-ADDRESS */
+            // in classic STUN, the response contains a MAPPED-ADDRESS
             MappedAddressAttribute maAtt = (MappedAddressAttribute) res.getAttribute(Attribute.Type.MAPPED_ADDRESS);
             if (maAtt != null) {
                 return maAtt.getAddress();
             }
-
-            /* in STUN bis, the response contains a XOR-MAPPED-ADDRESS */
+            // in STUN bis, the response contains a XOR-MAPPED-ADDRESS
             XorMappedAddressAttribute xorAtt = (XorMappedAddressAttribute) res.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
             if (xorAtt != null) {
                 byte xoring[] = new byte[16];
-
                 System.arraycopy(Message.MAGIC_COOKIE, 0, xoring, 0, 4);
                 System.arraycopy(res.getTransactionID(), 0, xoring, 4, 12);
-
                 return xorAtt.applyXor(xoring);
             }
         }
-
         return null;
     }
+
 }

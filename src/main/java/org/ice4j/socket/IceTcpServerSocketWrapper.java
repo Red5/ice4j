@@ -29,7 +29,7 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     /**
      * Thread that will wait new connections.
      */
-    private Thread acceptThread = null;
+    private Thread acceptThread;
 
     /**
      * If the socket is still listening.

@@ -107,8 +107,7 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Creates and starts a Network Access Point (Connector) based on the
-     * specified socket.
+     * Creates and starts a Network Access Point (Connector) based on the specified socket.
      *
      * @param sock The socket that the new access point should represent.
      */
@@ -567,8 +566,7 @@ public class StunStack implements MessageEventHandler {
             StunServerTransaction sTran = getServerTransaction(serverTid);
             if (sTran != null) {
                 logger.warn("Stored server transaction id: {} rfc3489: {}", sTran.getTransactionID().toString(), sTran.getTransactionID().isRFC3489Compatible());
-                //requests from this transaction have already been seen
-                //retransmit the response if there was any
+                //requests from this transaction have already been seen retransmit the response if there was any
                 logger.trace("found an existing transaction");
                 try {
                     sTran.retransmitResponse();
@@ -584,11 +582,8 @@ public class StunStack implements MessageEventHandler {
             } else {
                 logger.trace("existing transaction not found");
                 sTran = new StunServerTransaction(this, serverTid, ev.getLocalAddress(), ev.getRemoteAddress());
-
-                // if there is an OOM error here, it will lead to
-                // NetAccessManager.handleFatalError that will stop the
-                // MessageProcessor thread and restart it that will lead again
-                // to an OOM error and so on... So stop here right now
+                // if there is an OOM error here, it will lead to NetAccessManager.handleFatalError that will stop the
+                // MessageProcessor thread and restart it that will lead again to an OOM error and so on... So stop here right now
                 try {
                     sTran.start();
                 } catch (OutOfMemoryError t) {
@@ -598,22 +593,20 @@ public class StunStack implements MessageEventHandler {
                 serverTransactions.put(serverTid, sTran);
                 maybeStartServerTransactionExpireThread();
             }
-
-            //validate attributes that need validation.
+            // validate attributes that need validation.
             try {
                 validateRequestAttributes(ev);
             } catch (Exception exc) {
-                //validation failed. log get lost.
+                // validation failed. log get lost.
                 logger.warn("Failed to validate msg: {}", ev, exc);
                 // remove failed transaction to account for Edge
                 removeServerTransaction(sTran);
                 return;
             }
-
             try {
                 eventDispatcher.fireMessageEvent(ev);
             } catch (Throwable t) {
-                logger.warn("Received an invalid request.", t);
+                logger.warn("Received an invalid request", t);
                 Throwable cause = t.getCause();
                 if (((t instanceof StunException) && ((StunException) t).getID() == StunException.TRANSACTION_ALREADY_ANSWERED) || ((cause instanceof StunException) && ((StunException) cause).getID() == StunException.TRANSACTION_ALREADY_ANSWERED)) {
                     // do not try to send an error response since we will
@@ -626,7 +619,6 @@ public class StunStack implements MessageEventHandler {
                 } else {
                     error = createCorrespondingErrorResponse(msg.getMessageType(), ErrorCodeAttribute.SERVER_ERROR, "Oops! Something went wrong on our side :(");
                 }
-
                 try {
                     sendResponse(serverTid.getBytes(), error, ev.getLocalAddress(), ev.getRemoteAddress());
                 } catch (Exception exc) {
@@ -900,26 +892,24 @@ public class StunStack implements MessageEventHandler {
      * Initializes and starts {@link #serverTransactionExpireThread} if necessary.
      */
     private void maybeStartServerTransactionExpireThread() {
-        if (!serverTransactions.isEmpty() && (serverTransactionExpireThread == null)) {
+        if (!serverTransactions.isEmpty() && serverTransactionExpireThread == null) {
             Thread t = new Thread() {
                 @Override
                 public void run() {
                     runInServerTransactionExpireThread();
                 }
             };
-
             t.setDaemon(true);
             t.setName(getClass().getName() + ".serverTransactionExpireThread");
-
             boolean started = false;
-
             serverTransactionExpireThread = t;
             try {
                 t.start();
                 started = true;
             } finally {
-                if (!started && (serverTransactionExpireThread == t))
+                if (!started && (serverTransactionExpireThread == t)) {
                     serverTransactionExpireThread = null;
+                }
             }
         }
     }
@@ -932,34 +922,28 @@ public class StunStack implements MessageEventHandler {
     private void runInServerTransactionExpireThread() {
         try {
             long idleStartTime = -1;
-
             do {
                 try {
                     Thread.sleep(StunServerTransaction.LIFETIME);
                 } catch (InterruptedException ie) {
                 }
                 // Is the current Thread still designated to expire the StunServerTransactions of this StunStack?
-                if (Thread.currentThread() != serverTransactionExpireThread)
+                if (Thread.currentThread() != serverTransactionExpireThread) {
                     break;
-
+                }
                 long now = System.currentTimeMillis();
-
-                /*
-                 * Has the current Thread been idle long enough to merit disposing of it?
-                 */
+                // Has the current Thread been idle long enough to merit disposing of it?
                 if (serverTransactions.isEmpty()) {
-                    if (idleStartTime == -1)
+                    if (idleStartTime == -1) {
                         idleStartTime = now;
-                    else if (now - idleStartTime > 60 * 1000)
+                    } else if (now - idleStartTime > 60 * 1000) {
                         break;
+                    }
                 } else {
                     // Expire the StunServerTransactions of this StunStack.
-
                     idleStartTime = -1;
-
                     for (Iterator<StunServerTransaction> i = serverTransactions.values().iterator(); i.hasNext();) {
                         StunServerTransaction serverTransaction = i.next();
-
                         if (serverTransaction == null) {
                             i.remove();
                         } else if (serverTransaction.isExpired(now)) {
@@ -970,11 +954,13 @@ public class StunStack implements MessageEventHandler {
                 }
             } while (true);
         } finally {
-            if (serverTransactionExpireThread == Thread.currentThread())
+            if (serverTransactionExpireThread == Thread.currentThread()) {
                 serverTransactionExpireThread = null;
+            }
             // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
-            if (serverTransactionExpireThread == null)
+            if (serverTransactionExpireThread == null) {
                 maybeStartServerTransactionExpireThread();
+            }
         }
     }
 
@@ -1015,7 +1001,6 @@ public class StunStack implements MessageEventHandler {
             int[] port = { interfacePort, p.getPort() };
             int fromIndex = isSent ? 0 : 1;
             int toIndex = isSent ? 1 : 0;
-
             getPacketLogger().logPacket(addr[fromIndex].getAddress(), port[fromIndex], addr[toIndex].getAddress(), port[toIndex], p.getData(), isSent);
         }
     }

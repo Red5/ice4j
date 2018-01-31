@@ -2,20 +2,23 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.NioServer;
+import org.ice4j.ice.nio.NioServer.Event;
 import org.ice4j.message.ChannelData;
 import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
@@ -29,8 +32,9 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Aakash Garg
  * @author Boris Grozev
+ * @author Paul Gregoire
  */
-class NetAccessManager implements ErrorHandler {
+class NetAccessManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NetAccessManager.class);
 
@@ -55,7 +59,7 @@ class NetAccessManager implements ErrorHandler {
     /**
      * A synchronized FIFO where incoming messages are stocked for processing.
      */
-    private final BlockingQueue<RawMessage> messageQueue = new LinkedBlockingQueue<>();
+    private final Queue<RawMessage> messageQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * A thread executor for message processors.
@@ -68,6 +72,11 @@ class NetAccessManager implements ErrorHandler {
     private final StunStack stunStack;
 
     /**
+     * Internal NIO server.
+     */
+    private NioServer server;
+
+    /**
      * Constructs a NetAccessManager.
      *
      * @param stunStack the StunStack which is creating the new instance, is going to be its owner and is the handler that incoming
@@ -75,30 +84,13 @@ class NetAccessManager implements ErrorHandler {
      */
     NetAccessManager(StunStack stunStack) {
         this.stunStack = stunStack;
+        // instance an NioServer
+        server = new NioServer();
         // start off with 3 message processors
         for (int i = 0; i < 3; i++) {
-            executor.submit(new MessageProcessor(this));
+            MessageProcessor messageProc = new MessageProcessor(this, messageQueue);
+            messageProc.setFutureRef(executor.submit(messageProc));
         }
-    }
-
-    /**
-     * Gets the MessageEventHandler of this NetAccessManager which is to be notified when incoming messages have been
-     * processed and are ready for delivery.
-     *
-     * @return the MessageEventHandler of this NetAccessManager which is to be notified when incoming messages
-     * have been processed and are ready for delivery
-     */
-    MessageEventHandler getMessageEventHandler() {
-        return stunStack;
-    }
-
-    /**
-     * Gets the BlockingQueue of this NetAccessManager in which incoming messages are stocked for processing.
-     *
-     * @return the BlockingQueue of this NetAccessManager in which incoming messages are stocked for processing
-     */
-    BlockingQueue<RawMessage> getMessageQueue() {
-        return messageQueue;
     }
 
     /**
@@ -111,90 +103,102 @@ class NetAccessManager implements ErrorHandler {
     }
 
     /**
-     * A civilized way of not caring!
-     * @param message a description of the error
-     * @param error   the error that has occurred
-     */
-    @Override
-    public void handleError(String message, Throwable error) {
-        // apart from logging, i am not sure what else we could do here.
-        logger.warn("The following error occurred with an incoming message: {}", message, error);
-    }
-
-    /**
-     * Clears the faulty thread and reports the problem.
-     *
-     * @param callingThread the thread where the error occurred.
-     * @param message A description of the error
-     * @param error The error itself
-     */
-    @Override
-    public void handleFatalError(Runnable callingThread, String message, Throwable error) {
-        if (callingThread instanceof Connector) {
-            Connector connector = (Connector) callingThread;
-            //make sure nothing's left and notify user
-            removeSocket(connector.getListenAddress(), connector.getRemoteAddress());
-            if (error != null) {
-                logger.warn("Removing connector: {}", connector, error);
-            } else if (logger.isDebugEnabled()) {
-                logger.debug("Removing connector {}", connector);
-            }
-        } else if (callingThread instanceof MessageProcessor) {
-            MessageProcessor mp = (MessageProcessor) callingThread;
-            logger.warn("A message processor has unexpectedly stopped. AP: {}", mp, error);
-            //make sure the guy's dead.
-            mp.stop();
-            // create a new message processor
-            mp = new MessageProcessor(this);
-            Future<?> future = executor.submit(mp);
-            mp.setFutureRef(future);
-            logger.debug("A message processor has been relaunched because of an error");
-        }
-    }
-
-    /**
      * Creates and starts a new access point based on the specified socket. If the specified access point has already been installed the method
      * has no effect.
      *
      * @param socket the socket that the access point should use.
      */
     protected void addSocket(IceSocketWrapper socket) {
-        //no null check - let it through as a NullPointerException
-        // In case of TCP we can extract the remote address from the actual Socket.
-        TransportAddress remoteAddress = socket.getTransportAddress();
-        addSocket(socket, remoteAddress);
+        // UDP connections will normally have null remote transport addresses
+        addSocket(socket, socket.getRemoteTransportAddress());
     }
 
     /**
-     * Creates and starts a new access point based on the specified socket.
-     * If the specified access point has already been installed the method has no effect.
+     * Creates and starts a new access point based on the specified socket. If the specified access point already exists the method has no effect.
      *
-     * @param socket the socket that the access point should use.
-     * @param remoteAddress the remote address of the socket of the {@link Connector} to be created if it is a TCP socket, or null if it is UDP.
+     * @param socket the socket that the access point should use
+     * @param remoteAddress the remote address the {@link Connector} if its TCP or null if its UDP
      * @throws IOException 
      */
     protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
-        try {
-            logger.info("addSocket: {}", ((DatagramChannel) socket.getChannel()).getLocalAddress());
-        } catch (IOException e) {
-            logger.warn("Exception getting channels local address", e);
+        if (logger.isDebugEnabled()) {
+            try {
+                logger.debug("addSocket - local: {} remote: {}", ((DatagramChannel) socket.getChannel()).getLocalAddress(), remoteAddress);
+            } catch (IOException e) {
+                logger.warn("Exception getting channels local address", e);
+            }
         }
         TransportAddress localAddress = socket.getTransportAddress();
-        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
+        // determine if UDP or TCP
+        boolean udp = socket.isUDP();
+        // keyed by local address
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
+        // keyed by remote address
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress == null) {
             connectorsForLocalAddress = new HashMap<>();
             connectorsMap.put(localAddress, connectorsForLocalAddress);
-            Connector connector = new Connector(socket, remoteAddress, messageQueue, this);
+            Connector connector = new Connector(socket, remoteAddress, this, messageQueue);
             connectorsForLocalAddress.put(remoteAddress, connector);
+            // check channel bind state
+            if (udp) {
+                if (((DatagramChannel) socket.getChannel()).socket().isBound()) {
+                    logger.debug("Socket channel is bound");
+                } else {
+                    logger.debug("Socket channel is NOT bound");
+                    server.addUdpBinding(localAddress);
+                    // add a listener for data events
+                    server.addNioServerListener(new NioServer.Adapter() {
+
+                        @Override
+                        public void udpDataReceived(Event evt) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("udpDataReceived: {}", evt);
+                            }
+                            //get the data
+                            ByteBuffer recvBuf = evt.getInputBuffer();
+                            byte[] buf = new byte[recvBuf.remaining()];
+                            recvBuf.get(buf);
+                            // instance a raw message for the queue
+                            RawMessage rawMessage = new RawMessage(buf, buf.length, (TransportAddress) evt.getRemoteSocketAddress(), (TransportAddress) evt.getLocalSocketAddress());
+                            messageQueue.add(rawMessage);
+                        }
+
+                        @Override
+                        public void connectionClosed(Event evt) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("connectionClosed: {}", evt);
+                            }
+                            Connector connector = udpConnectors.get(evt.getLocalSocketAddress()).get(evt.getRemoteSocketAddress());
+                            connector.stop();
+                        }
+
+                    });
+                }
+            } else {
+                if (((SocketChannel) socket.getChannel()).socket().isBound()) {
+                    logger.debug("Socket channel is bound");
+                } else {
+                    logger.debug("Socket channel is NOT bound");
+                    server.addTcpBinding(localAddress);
+                }
+                // TODO add the NioServer.Adapter methods for TCP
+            }
+            // check to see if the internal nio server is stopped and start it if it is
+            if (server.getState() == NioServer.State.STOPPED) {
+                logger.debug("Starting Nio server");
+                server.start();
+            }
             executor.submit(connector);
         } else if (connectorsForLocalAddress.containsKey(remoteAddress)) {
             logger.info("Not creating a new Connector, because we already have one for the given address pair: {} -> {}", localAddress, remoteAddress);
         } else {
-            Connector connector = new Connector(socket, remoteAddress, messageQueue, this);
+            Connector connector = new Connector(socket, remoteAddress, this, messageQueue);
             executor.submit(connectorsForLocalAddress.put(remoteAddress, connector));
         }
-        logger.info("Local connectors (add): {}", connectorsForLocalAddress);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Local connectors (add): {}", connectorsForLocalAddress);
+        }
     }
 
     /**
@@ -204,7 +208,7 @@ class NetAccessManager implements ErrorHandler {
      * @param remoteAddress the remote address of the connector to remote. Use null to match the Connector with no specified remote address.
      */
     protected void removeSocket(TransportAddress localAddress, TransportAddress remoteAddress) {
-        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport().equals(Transport.UDP)) ? udpConnectors : tcpConnectors;
+        final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport() == Transport.UDP) ? udpConnectors : tcpConnectors;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress != null) {
             Connector connector = connectorsForLocalAddress.remove(remoteAddress);
@@ -221,6 +225,9 @@ class NetAccessManager implements ErrorHandler {
      * Stops NetAccessManager and all of its MessageProcessor.
      */
     public void stop() {
+        if (server != null) {
+            server.stop();
+        }
         executor.shutdownNow();
         // close all udp
         for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
@@ -244,7 +251,9 @@ class NetAccessManager implements ErrorHandler {
      * @return Connector responsible for a given source and destination address otherwise null
      */
     private Connector getConnector(TransportAddress localAddress, TransportAddress remoteAddress) {
+        logger.info("getConnector - local: {} remote: {}", localAddress, remoteAddress);
         boolean udp = localAddress.getTransport() == Transport.UDP;
+        //logger.debug("Local UDP transport: {}", udp);
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
         Connector connector = null;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);

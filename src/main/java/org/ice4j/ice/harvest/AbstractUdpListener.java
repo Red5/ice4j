@@ -88,28 +88,28 @@ public abstract class AbstractUdpListener {
             return null;
         }
         // RFC5389, Section 6: The magic cookie field MUST contain the fixed value 0x2112A442 in network byte order.
-        if (!((buf[off + 4] & 0xFF) == 0x21 && (buf[off + 5] & 0xFF) == 0x12 && (buf[off + 6] & 0xFF) == 0xA4 && (buf[off + 7] & 0xFF) == 0x42)) {
+        if (((buf[off + 4] & 0xFF) == 0x21 && (buf[off + 5] & 0xFF) == 0x12 && (buf[off + 6] & 0xFF) == 0xA4 && (buf[off + 7] & 0xFF) == 0x42)) {
+            try {
+                Message stunMessage = Message.decode(buf, off, len);
+                if (stunMessage.getMessageType() == Message.BINDING_REQUEST) {
+                    UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("usernameAttribute: {}", usernameAttribute);
+                    }
+                    if (usernameAttribute != null) {
+                        String usernameString = new String(usernameAttribute.getUsername());
+                        return usernameString.split(":")[0];
+                    }
+                }
+            } catch (Exception e) {
+                // Catch everything. We are going to log, and then drop the packet anyway.
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Failed to extract local ufrag", e);
+                }
+            }
+        } else {
             if (logger.isDebugEnabled()) {
                 logger.debug("Not a STUN packet, magic cookie not found.");
-            }
-            return null;
-        }
-        try {
-            Message stunMessage = Message.decode(buf, off, len);
-            if (stunMessage.getMessageType() != Message.BINDING_REQUEST) {
-                return null;
-            }
-            UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
-            //logger.info("usernameAttribute: " + usernameAttribute);
-            if (usernameAttribute == null) {
-                return null;
-            }
-            String usernameString = new String(usernameAttribute.getUsername());
-            return usernameString.split(":")[0];
-        } catch (Exception e) {
-            // Catch everything. We are going to log, and then drop the packet anyway.
-            if (logger.isDebugEnabled()) {
-                logger.warn("Failed to extract local ufrag", e);
             }
         }
         return null;
@@ -119,14 +119,17 @@ public abstract class AbstractUdpListener {
      * The map which keeps the known remote addresses and their associated candidateSockets.
      * {@link #thread} is the only thread which adds new entries, while other threads remove entries when candidates are freed.
      */
-    private final Map<SocketAddress, MySocket> sockets = new ConcurrentHashMap<>();
+    private final Map<SocketAddress, UdpChannel> sockets = new ConcurrentHashMap<>();
 
     /**
      * The local address that this harvester is bound to.
      */
     protected final TransportAddress localAddress;
 
-    private DatagramChannel channel;
+    /**
+     * Wrapped DatagramChannel for read/write.
+     */
+    private UdpChannel channel;
 
     /**
      * Internal NIO server.
@@ -166,9 +169,12 @@ public abstract class AbstractUdpListener {
 
             @Override
             public void udpDataReceived(Event evt) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("udpDataReceived: {}", evt);
+                }
                 // grab the datagram channel from the event
                 if (channel == null) {
-                    channel = (DatagramChannel) evt.getKey().channel();
+                    channel = new UdpChannel((DatagramChannel) evt.getKey().channel());
                 }
                 //get the data
                 ByteBuffer recvBuf = evt.getInputBuffer();
@@ -176,7 +182,7 @@ public abstract class AbstractUdpListener {
                 recvBuf.get(buf);
                 // get the remote address
                 InetSocketAddress remoteAddress = (InetSocketAddress) evt.getRemoteSocketAddress();
-                MySocket destinationSocket = sockets.get(remoteAddress);
+                UdpChannel destinationSocket = sockets.get(remoteAddress);
                 if (destinationSocket != null) {
                     //make 'pkt' available for reading through destinationSocket
                     destinationSocket.addBuffer(buf);
@@ -193,7 +199,10 @@ public abstract class AbstractUdpListener {
 
             @Override
             public void connectionClosed(Event evt) {
-                MySocket destinationSocket = sockets.get(evt.getRemoteSocketAddress());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("connectionClosed: {}", evt);
+                }
+                UdpChannel destinationSocket = sockets.get(evt.getRemoteSocketAddress());
                 if (destinationSocket != null) {
                     destinationSocket.close();
                 }
@@ -218,30 +227,32 @@ public abstract class AbstractUdpListener {
     protected abstract void maybeAcceptNewSession(byte[] buf, InetSocketAddress remoteAddress, String ufrag);
 
     /**
-     * Creates a new {@link MySocket} instance and associates it with the given remote address. Returns the created instance.
+     * Creates a new {@link UdpChannel} instance and associates it with the given remote address. Returns the created instance.
      *
      * Note that this is meant to only execute in {@link AbstractUdpListener}'s read thread.
      *
-     * @param remoteAddress the remote address with which to associate the new socket instance.
-     * @return the created socket instance.
+     * @param remoteAddress the remote address with which to associate the new channel instance
+     * @return the created UdpChannel instance
      */
-    protected MySocket addSocket(InetSocketAddress remoteAddress) throws SocketException {
-        MySocket newSocket = new MySocket(remoteAddress);
+    protected UdpChannel addChannel(InetSocketAddress remoteAddress) throws SocketException {
+        UdpChannel newSocket = new UdpChannel(remoteAddress);
         sockets.put(remoteAddress, newSocket);
         return newSocket;
     }
 
     /**
-     * Implements a DatagramSocket for the purposes of a specific MyCandidate.
+     * Wraps a DatagramChannel for the purposes of a specific MyCandidate.
      *
      * It is not bound to a specific port, but shares the same local address as the bound socket held by the harvester.
      */
-    protected class MySocket extends DatagramSocket {
+    protected class UdpChannel {
 
         /**
          * The FIFO which acts as a buffer for this socket.
          */
         private final ArrayBlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(64);
+
+        private DatagramChannel datagramChannel;
 
         /**
          * The remote address that is associated with this socket.
@@ -254,14 +265,18 @@ public abstract class AbstractUdpListener {
         private boolean closed;
 
         /**
-         * Initializes a new MySocket instance with the given remote address.
-         * 
-         * @param remoteAddress the remote address to be associated with the new instance.
-         * @throws SocketException
+         * Wraps the given DatagramChannel.
          */
-        MySocket(InetSocketAddress remoteAddress) throws SocketException {
-            // unbound
-            super((SocketAddress) null);
+        UdpChannel(DatagramChannel channel) {
+            datagramChannel = channel;
+        }
+
+        /**
+         * Constructor to use before a DatagramChannel exists.
+         * 
+         * @param remoteAddress the remote address to be associated with this instance.
+         */
+        UdpChannel(InetSocketAddress remoteAddress) {
             this.remoteAddress = remoteAddress;
         }
 
@@ -283,72 +298,75 @@ public abstract class AbstractUdpListener {
             }
         }
 
+        public void setDatagramChannel(DatagramChannel datagramChannel) {
+            this.datagramChannel = datagramChannel;
+        }
+
+        public DatagramChannel getDatagramChannel() {
+            return datagramChannel;
+        }
+
         /**
-         * {@inheritDoc}
-         *
+         * Returns the local TransportAddress for the harvester.
+         * 
+         * @return localAddress
+         */
+        public TransportAddress getLocalTransportAddress() {
+            return localAddress;
+        }
+
+        /**
          * Delegates to the actual socket of the harvester.
          */
-        @Override
         public InetAddress getLocalAddress() {
             return localAddress.getAddress();
         }
 
         /**
-         * {@inheritDoc}
-         *
          * Delegates to the actual socket of the harvester.
          */
-        @Override
         public int getLocalPort() {
             return localAddress.getPort();
         }
 
         /**
-         * {@inheritDoc}
-         *
          * Delegates to the actual socket of the harvester.
          */
-        @Override
         public SocketAddress getLocalSocketAddress() {
             return localAddress;
         }
 
         /**
-         * {@inheritDoc}
-        * <br>
+         * @param remoteAddress the remote address to be associated with this instance.
+         */
+        public void setRemoteSocketAddress(InetSocketAddress remoteAddress) {
+            this.remoteAddress = remoteAddress;
+        }
+
+        /**
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
-        @Override
         public SocketAddress getRemoteSocketAddress() {
             return remoteAddress;
         }
 
         /**
-         * {@inheritDoc}
-        * <br>
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
-        @Override
         public InetAddress getInetAddress() {
             return remoteAddress.getAddress();
         }
 
         /**
-         * {@inheritDoc}
-        * <br>
          * This {@link DatagramSocket} will only allow packets from the remote address that it has, so we consider it connected to this address.
          */
-        @Override
         public int getPort() {
             return remoteAddress.getPort();
         }
 
         /**
-         * {@inheritDoc}
-         *
          * Removes the association of the remote address with this socket from the harvester's map.
          */
-        @Override
         public void close() {
             closed = true;
             queue.clear();
@@ -356,7 +374,11 @@ public abstract class AbstractUdpListener {
             if (remoteAddress != null) {
                 AbstractUdpListener.this.sockets.remove(remoteAddress);
             }
-            super.close();
+            try {
+                datagramChannel.close();
+            } catch (IOException e) {
+                logger.warn("Exception closing datagram channel", e);
+            }
         }
 
         /**
@@ -364,7 +386,6 @@ public abstract class AbstractUdpListener {
          * @param p
          * @throws IOException
          */
-        @Override
         public void receive(DatagramPacket p) throws IOException {
             byte[] buf = null;
             while (buf == null) {
@@ -388,13 +409,14 @@ public abstract class AbstractUdpListener {
         }
 
         /**
-         * {@inheritDoc}
-         *
          * Delegates to the actual socket of the harvester.
          */
-        @Override
         public void send(DatagramPacket p) throws IOException {
-            channel.socket().send(p);
+            if (datagramChannel != null) {
+                datagramChannel.socket().send(p);
+            } else {
+                logger.warn("No datagram channel exists for sending");
+            }
         }
     }
 
