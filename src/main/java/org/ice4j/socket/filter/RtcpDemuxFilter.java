@@ -1,17 +1,14 @@
 /* See LICENSE.md for license information */
 package org.ice4j.socket.filter;
 
-import java.net.*;
-
 /**
- * Implements a DatagramPacketFilter which only accepts
- * DatagramPackets which represent RTCP messages according to the rules
+ * Implements a DataFilter which only accepts data which represent RTCP messages according to the rules
  * described in RFC5761.
  *
  * @author Emil Ivov
  * @author Boris Grozev
  */
-public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
+public class RtcpDemuxFilter implements DataFilter {
     /**
      * Determines whether a specific DatagramPacket is an RTCP.
      * DatagramPacket in a selection based on this filter.
@@ -35,40 +32,22 @@ public class RtcpDemuxPacketFilter implements DatagramPacketFilter {
      * IANA RTP Parameters</a>) with the M-bit set will be misidentified as
      * RTCP packets.
      * 
-     * Also, any RTCP packets with Packet Types not in [200, 211] will be
-     * misidentified as RTP packets.
+     * Also, any RTCP packets with Packet Types not in [200, 211] will be misidentified as RTP packets.
      *
-     * @param p the DatagramPacket whose protocol we'd like to
-     * determine.
-     * @return true if p is an RTCP and this filter accepts it
-     * and false otherwise.
+     * @param p the DatagramPacket whose protocol we'd like to determine
+     * @return true if bytes are RTCP, otherwise false
      */
-    public static boolean isRtcpPacket(DatagramPacket p) {
-        int len = p.getLength();
-
-        if (len >= 4) //minimum RTCP message length
-        {
-            byte[] data = p.getData();
-            int off = p.getOffset();
-
-            if (((data[off] & 0xc0) >> 6) == 2) //RTP/RTCP version field
-            {
-                int pt = data[off + 1] & 0xff;
-
+    public boolean accept(byte[] buf) {
+        // minimum RTCP message length
+        if (buf.length >= 4) {
+            int off = 0;
+            //RTP/RTCP version field
+            if (((buf[off] & 0xc0) >> 6) == 2) {
+                int pt = buf[off + 1] & 0xff;
                 return (200 <= pt && pt <= 211);
             }
         }
         return false;
-    }
-
-    /**
-     * Returns true if this RtcpDemuxPacketFilter should
-     * accept p, that is, if p looks like an RTCP packet.
-     * See {@link #isRtcpPacket(java.net.DatagramPacket)}
-     * @return true if p looks like an RTCP packet.
-     */
-    public boolean accept(DatagramPacket p) {
-        return isRtcpPacket(p);
     }
 
 }

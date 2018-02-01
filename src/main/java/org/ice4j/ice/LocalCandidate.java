@@ -6,7 +6,6 @@ import java.net.SocketAddress;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.filter.StunDataFilter;
-import org.ice4j.socket.filter.StunDatagramPacketFilter;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,8 +133,8 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * @return the StunDatagramPacketFilter which is to capture STUN messages and make them available to the DatagramSocket returned
      * by {@link #getStunSocket(TransportAddress)}
      */
-    protected StunDatagramPacketFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
-        return new StunDatagramPacketFilter(serverAddress);
+    protected StunDataFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
+        return new StunDataFilter(serverAddress);
     }
 
     /**

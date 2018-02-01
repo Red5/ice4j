@@ -27,8 +27,7 @@ import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
-import org.ice4j.socket.filter.DatagramPacketFilter;
-import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.socket.filter.StunDataFilter;
 import org.ice4j.stack.MessageEventHandler;
 import org.ice4j.stack.TransactionID;
 import org.ice4j.util.DatagramUtil;
@@ -120,7 +119,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
      * RelayedCandidateDatagramSocket is part of the ICE connectivity checks. The recognizing is necessary because RFC 5245 says that "it is
      * RECOMMENDED that the agent defer creation of a TURN channel until ICE completes."
      */
-    private static final DatagramPacketFilter connectivityCheckRecognizer = new StunDatagramPacketFilter();
+    private static final StunDataFilter connectivityCheckRecognizer = new StunDataFilter();
 
     /**
      * The next free channel number to be returned by {@link #getNextChannelNumber()} and marked as non-free.
@@ -172,24 +171,13 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
         this.relayedCandidate = relayedCandidate;
         this.turnCandidateHarvest = turnCandidateHarvest;
         this.turnCandidateHarvest.harvester.getStunStack().addIndicationListener(this.turnCandidateHarvest.hostCandidate.getTransportAddress(), this);
-        /* XXX check back on this when we do TURN
-        IceSocketWrapper hostSocket = this.turnCandidateHarvest.hostCandidate.getCandidateIceSocketWrapper();
-        if (hostSocket instanceof MultiplexingDatagramSocket) {
-            channelDataSocket = ((MultiplexingDatagramSocket) hostSocket).getSocket(new TurnDatagramPacketFilter(this.turnCandidateHarvest.harvester.stunServer) {
-                @Override
-                public boolean accept(DatagramPacket p) {
-                    return channelDataSocketAccept(p);
-                }
-
-                @Override
-                protected boolean acceptMethod(char method) {
-                    return channelDataSocketAcceptMethod(method);
-                }
-            });
-        } else {
-            channelDataSocket = null;
-        }
-        */
+        /*
+         * XXX check back on this when we do TURN IceSocketWrapper hostSocket = this.turnCandidateHarvest.hostCandidate.getCandidateIceSocketWrapper(); if (hostSocket instanceof
+         * MultiplexingDatagramSocket) { channelDataSocket = ((MultiplexingDatagramSocket) hostSocket).getSocket(new
+         * TurnDatagramPacketFilter(this.turnCandidateHarvest.harvester.stunServer) {
+         * @Override public boolean accept(DatagramPacket p) { return channelDataSocketAccept(p); }
+         * @Override protected boolean acceptMethod(char method) { return channelDataSocketAcceptMethod(method); } }); } else { channelDataSocket = null; }
+         */
         channelDataSocket = null;
     }
 
@@ -673,8 +661,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
     }
 
     /**
-     * Runs in {@link #sendThread} to send {@link #packetsToSend} to the
-     * associated TURN server.
+     * Runs in {@link #sendThread} to send {@link #packetsToSend} to the associated TURN server.
      */
     private void runInSendThread() {
         synchronized (packetsToSend) {
@@ -719,7 +706,7 @@ public class RelayedCandidateDatagramSocket extends DatagramSocket implements Me
                      */
                     boolean forceBind = false;
 
-                    if ((channelDataSocket != null) && !channel.getChannelDataIsPreferred() && !connectivityCheckRecognizer.accept(packetToSend)) {
+                    if (channelDataSocket != null && !channel.getChannelDataIsPreferred() && !connectivityCheckRecognizer.accept(packetToSend.getData())) {
                         channel.setChannelDataIsPreferred(true);
                         forceBind = true;
                     }

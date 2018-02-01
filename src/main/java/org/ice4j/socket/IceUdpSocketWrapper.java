@@ -121,10 +121,8 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      * @throws IOException 
      */
     public IceUdpSocketWrapper(TransportAddress address) throws IOException {
-        this((DatagramChannel) null); //DatagramChannel.open());
+        this((DatagramChannel) null);
         transportAddress = address;
-        //((DatagramChannel) channel).setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
-        //((DatagramChannel) channel).bind(address);
     }
 
     /**
@@ -135,6 +133,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         if (logger.isDebugEnabled()) {
             logger.debug("send: {}", p);
         }
+        // allow sending prior to a proper bind on the channel
         if (channel == null) {
             DatagramChannel tmp = DatagramChannel.open();
             //tmp.bind(transportAddress);

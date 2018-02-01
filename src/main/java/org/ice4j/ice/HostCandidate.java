@@ -6,8 +6,7 @@ import java.net.DatagramSocket;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.filter.StunDatagramPacketFilter;
-import org.ice4j.socket.filter.TurnDatagramPacketFilter;
+import org.ice4j.socket.filter.StunDataFilter;
 
 /**
  * HostCandidates are obtained by binding to a specific port from an IP address on the host that is running us. This includes IP addresses on
@@ -70,9 +69,9 @@ public class HostCandidate extends LocalCandidate {
      * @see LocalCandidate#createStunDatagramPacketFilter(TransportAddress)
      */
     @Override
-    protected StunDatagramPacketFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
+    protected StunDataFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
         // Since we support TURN as well, we have to be able to receive TURN messages as well.
-        return new TurnDatagramPacketFilter(serverAddress);
+        return new StunDataFilter(serverAddress);
     }
 
     /**

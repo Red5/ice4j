@@ -1,5 +1,6 @@
 package org.ice4j.socket.filter;
 
+import org.ice4j.TransportAddress;
 import org.ice4j.message.Message;
 
 /**
@@ -11,10 +12,31 @@ import org.ice4j.message.Message;
 public class StunDataFilter implements DataFilter {
 
     /**
+     * Server address to use for filtering.
+     */
+    private TransportAddress serverAddress;
+
+    /**
+     * Provides a means to filter data from anywhere.
+     */
+    public StunDataFilter() {
+    }
+
+    /**
+     * Provides a means to filter data only from a designated address.
+     * 
+     * @param serverAddress
+     */
+    public StunDataFilter(TransportAddress serverAddress) {
+        this.serverAddress = serverAddress;
+    }
+
+    /**
      * Determines whether data in a byte array represents a STUN message.
      * <br>
      * {@inheritDoc}
      */
+    @Override
     public boolean accept(byte[] buf) {
         // If this is a STUN packet
         boolean isStunPacket = false;
@@ -47,6 +69,20 @@ public class StunDataFilter implements DataFilter {
                 case 0x0002:
                     return true;
             }
+        }
+        return false;
+    }
+
+
+    /**
+     * Determines whether data in a byte array represents a STUN message.
+     * 
+     * @param buf
+     * @param serverAddress
+     */
+    public boolean accept(byte[] buf, TransportAddress address) {
+        if (serverAddress != null && serverAddress.equals(address)) {
+            return accept(buf);
         }
         return false;
     }

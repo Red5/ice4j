@@ -7,13 +7,12 @@ import java.nio.charset.Charset;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 
 /**
- * Implements a {@link DatagramPacketFilter} which allows demultiplexing HTTP(S)
- * out of {@code MuxServerSocketChannel}. Accepts HTTP, SSL v2, and TLS. Rejects
- * Google TURN SSLTCP.
+ * Implements a {@link DataFilter} which allows demultiplexing HTTP(S). 
+ * Accepts HTTP, SSL v2, and TLS. Rejects Google TURN SSLTCP.
  *
  * @author Lyubomir Marinov
  */
-public class HttpDemuxFilter implements DatagramPacketFilter {
+public class HttpDemuxFilter implements DataFilter {
     /**
      * The US-ASCII {@code byte}s of {@link #REQUEST_METHOD_STRINGS}. Explicitly
      * defined for the purposes of performance.
@@ -85,28 +84,22 @@ public class HttpDemuxFilter implements DatagramPacketFilter {
     }
 
     /**
-     * Determines whether a specific {@link DatagramPacket} looks like the
-     * beginning of HTTP(S) client communication. Accepts HTTP, SSL v2, and
-     * TLS. Rejects Google TURN SSLTCP.
+     * Determines whether a specific {@link DatagramPacket} looks like the beginning of HTTP(S) client communication.
+     * Accepts HTTP, SSL v2, and TLS. Rejects Google TURN SSLTCP.
      *
-     * @param p the {@code DatagramPacket} to analyze
-     * @return {@code true} if {@code p} looks like the beginning of HTTP(S)
-     * client communication; otherwise, {@code false}
+     * @param buf the bytes to check
+     * @return true if the bytes look like the beginning of HTTP(S) client communication, otherwise false
      */
     @Override
-    public boolean accept(DatagramPacket p) {
-        int len = p.getLength();
+    public boolean accept(byte[] buf) {
         boolean accept = false;
-
-        if (len > 0) {
-            byte[] buf = p.getData();
-            int off = p.getOffset();
+        if (buf.length > 0) {
+            int off = 0;
             // The first bytes of HTTP, SSL v2, and TCP are different so quickly
             // determine which one of the three is possible and, respectively,
             // which two of the three are impossible.
             int b0 = 0xFF & buf[off];
             boolean http, sslv2, tls;
-
             if (b0 == 22 /* TLS handshake */) {
                 http = false;
                 sslv2 = false;
@@ -125,7 +118,7 @@ public class HttpDemuxFilter implements DatagramPacketFilter {
             if (http) {
                 // Request-Line = Method SP Request-URI SP HTTP-Version CRLF
                 // HTTP-Version = "HTTP" "/" 1*DIGIT "." 1*DIGIT
-                if (b0 >= REQUEST_METHOD_MIN_CHAR && b0 <= REQUEST_METHOD_MAX_CHAR && len >= REQUEST_METHOD_MAX_LENGTH + 1 /* SP */) {
+                if (b0 >= REQUEST_METHOD_MIN_CHAR && b0 <= REQUEST_METHOD_MAX_CHAR && buf.length >= REQUEST_METHOD_MAX_LENGTH + 1 /* SP */) {
                     // Match a supported HTTP request method.
                     for (byte[] bytes : REQUEST_METHOD_BYTES) {
                         int length = bytes.length;
@@ -160,7 +153,7 @@ public class HttpDemuxFilter implements DatagramPacketFilter {
                 // 1 byte   HandshakeType msg_type = client_hello(1)
                 // 3 bytes  uint24 length
                 // 2 bytes  ProtocolVersion client_version
-                if (len >= TLS_MIN_LENGTH && /* major */(0xFF & buf[off + 1]) == 3) {
+                if (buf.length >= TLS_MIN_LENGTH && /* major */(0xFF & buf[off + 1]) == 3) {
                     int minor = 0xFF & buf[off + 2];
 
                     if (1 <= minor && minor <= 3 && /* msg_type */(0xFF & buf[off + 5]) == /* client_hello */1 && /* major */(0xFF & buf[off + 9]) == 3) {
@@ -180,7 +173,7 @@ public class HttpDemuxFilter implements DatagramPacketFilter {
                 // 2 bytes  uint15 length
                 // 1 byte   uint8 msg_type = 1
                 // 2 bytes  Version version
-                if (len > 5 && len >= googleTurnSslTcp.length && /* msg_type */(0xFF & buf[off + 2]) == 1 && /* major */(0xFF & buf[off + 3]) == 3) {
+                if (buf.length > 5 && buf.length >= googleTurnSslTcp.length && /* msg_type */(0xFF & buf[off + 2]) == 1 && /* major */(0xFF & buf[off + 3]) == 3) {
                     int minor = 0xFF & buf[off + 4];
 
                     if (1 <= minor && minor <= 3) {
