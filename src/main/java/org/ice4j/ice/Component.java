@@ -9,9 +9,12 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -27,6 +30,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Sebastien Vincent
  * @author Boris Grozev
+ * @author Paul Gregoire
  */
 public class Component implements PropertyChangeListener {
 
@@ -49,17 +53,17 @@ public class Component implements PropertyChangeListener {
     /**
      * The list locally gathered candidates for this media stream.
      */
-    private final List<LocalCandidate> localCandidates = new LinkedList<>();
+    private final Queue<LocalCandidate> localCandidates = new PriorityBlockingQueue<>();
 
     /**
      * The list of candidates that the peer agent sent for this stream.
      */
-    private final List<RemoteCandidate> remoteCandidates = new LinkedList<>();
+    private final Queue<RemoteCandidate> remoteCandidates = new ConcurrentLinkedQueue<>();
 
     /**
      * The list of candidates that the peer agent sent for this stream after connectivity establishment.
      */
-    private final List<RemoteCandidate> remoteUpdateCandidates = new LinkedList<>();
+    private final Queue<RemoteCandidate> remoteUpdateCandidates = new ConcurrentLinkedQueue<>();
 
     /**
      * The default Candidate for this component or in other words, the candidate that we would have used without ICE.
@@ -128,19 +132,15 @@ public class Component implements PropertyChangeListener {
         agent.getFoundationsRegistry().assignFoundation(candidate);
         //compute priority
         candidate.computePriority();
-        synchronized (localCandidates) {
-            //check if we already have such a candidate (redundant)
-            LocalCandidate redundantCandidate = findRedundant(candidate);
-            if (redundantCandidate != null) {
-                //if we get here, then it's clear we won't be adding anything we will just update something at best. We purposefully don't
-                //care about priorities because allowing candidate replace is tricky to handle on the signaling layer with trickle
-                return false;
-            }
-            localCandidates.add(candidate);
-            //we are done adding ... now let's just order by priority.
-            Collections.sort(localCandidates);
-            return true;
+        //check if we already have such a candidate (redundant)
+        LocalCandidate redundantCandidate = findRedundant(candidate);
+        if (redundantCandidate != null) {
+            //if we get here, then it's clear we won't be adding anything we will just update something at best. We purposefully don't
+            //care about priorities because allowing candidate replace is tricky to handle on the signaling layer with trickle
+            return false;
         }
+        localCandidates.add(candidate);
+        return true;
     }
 
     /**
@@ -149,9 +149,7 @@ public class Component implements PropertyChangeListener {
      * @return Returns a copy of the list containing all local candidates currently registered
      */
     public List<LocalCandidate> getLocalCandidates() {
-        synchronized (localCandidates) {
-            return new ArrayList<>(localCandidates);
-        }
+        return new ArrayList<>(localCandidates);
     }
 
     /**
@@ -160,15 +158,13 @@ public class Component implements PropertyChangeListener {
      * @return the number of local host candidates currently registered
      */
     public int countLocalHostCandidates() {
-        synchronized (localCandidates) {
-            int count = 0;
-            for (Candidate<?> cand : localCandidates) {
-                if ((cand.getType() == CandidateType.HOST_CANDIDATE) && !cand.isVirtual()) {
-                    count++;
-                }
+        int count = 0;
+        for (Candidate<?> cand : localCandidates) {
+            if ((cand.getType() == CandidateType.HOST_CANDIDATE) && !cand.isVirtual()) {
+                count++;
             }
-            return count;
         }
+        return count;
     }
 
     /**
@@ -177,9 +173,7 @@ public class Component implements PropertyChangeListener {
      * @return the number of all local candidates currently registered
      */
     public int getLocalCandidateCount() {
-        synchronized (localCandidates) {
-            return localCandidates.size();
-        }
+        return localCandidates.size();
     }
 
     /**
@@ -189,10 +183,8 @@ public class Component implements PropertyChangeListener {
      * @param candidate the Candidate instance to add.
      */
     public void addRemoteCandidate(RemoteCandidate candidate) {
-        logger.info("Add remote candidate for " + toShortString() + ": " + candidate.toShortString());
-        synchronized (remoteCandidates) {
-            remoteCandidates.add(candidate);
-        }
+        logger.info("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());
+        remoteCandidates.add(candidate);
     }
 
     /**
@@ -201,65 +193,54 @@ public class Component implements PropertyChangeListener {
      * @param candidate new Candidate to add.
      */
     public void addUpdateRemoteCandidates(RemoteCandidate candidate) {
-        logger.info("Update remote candidate for " + toShortString() + ": " + candidate.getTransportAddress());
+        logger.info("Update remote candidate for {}: {}", toShortString(), candidate.getTransportAddress());
         List<RemoteCandidate> existingCandidates = new LinkedList<>();
-        synchronized (remoteCandidates) {
-            existingCandidates.addAll(remoteCandidates);
-        }
-        synchronized (remoteUpdateCandidates) {
-            existingCandidates.addAll(remoteUpdateCandidates);
-            // Make sure we add no duplicates
-            TransportAddress transportAddress = candidate.getTransportAddress();
-            CandidateType type = candidate.getType();
-            for (RemoteCandidate existingCandidate : existingCandidates) {
-                if (transportAddress.equals(existingCandidate.getTransportAddress()) && type == existingCandidate.getType()) {
-                    logger.info("Not adding duplicate remote candidate: " + candidate.getTransportAddress());
-                    return;
-                }
+        existingCandidates.addAll(remoteCandidates);
+        existingCandidates.addAll(remoteUpdateCandidates);
+        // Make sure we add no duplicates
+        TransportAddress transportAddress = candidate.getTransportAddress();
+        CandidateType type = candidate.getType();
+        for (RemoteCandidate existingCandidate : existingCandidates) {
+            if (transportAddress.equals(existingCandidate.getTransportAddress()) && type == existingCandidate.getType()) {
+                logger.info("Not adding duplicate remote candidate: {}", candidate.getTransportAddress());
+                return;
             }
-            remoteUpdateCandidates.add(candidate);
         }
+        remoteUpdateCandidates.add(candidate);
     }
 
     /**
      * Update ICE processing with new Candidates.
      */
     public void updateRemoteCandidates() {
-        List<CandidatePair> checkList = new Vector<>();
+        Queue<CandidatePair> checkList = new PriorityQueue<>();
         List<RemoteCandidate> newRemoteCandidates;
-        synchronized (remoteUpdateCandidates) {
-            if (remoteUpdateCandidates.size() == 0) {
-                return;
-            }
-            newRemoteCandidates = new LinkedList<>(remoteUpdateCandidates);
-            List<LocalCandidate> localCnds = getLocalCandidates();
-            for (LocalCandidate localCnd : localCnds) {
-                //pair each of the new remote candidates with each of our locals
-                for (RemoteCandidate remoteCnd : remoteUpdateCandidates) {
-                    if (localCnd.canReach(remoteCnd) && remoteCnd.getTransportAddress().getPort() != 0) {
-                        // A single LocalCandidate might be/become connected to more than one remote address, and that's ok
-                        // (that is, we need to form pairs with them all).
-                        CandidatePair pair = getParentStream().getParentAgent().createCandidatePair(localCnd, remoteCnd);
-                        logger.info("new Pair added: " + pair.toShortString() + ". Local ufrag " + parentStream.getParentAgent().getLocalUfrag());
-                        checkList.add(pair);
-                    }
+        if (remoteUpdateCandidates.size() == 0) {
+            return;
+        }
+        newRemoteCandidates = new LinkedList<>(remoteUpdateCandidates);
+        List<LocalCandidate> localCnds = getLocalCandidates();
+        for (LocalCandidate localCnd : localCnds) {
+            //pair each of the new remote candidates with each of our locals
+            for (RemoteCandidate remoteCnd : remoteUpdateCandidates) {
+                if (localCnd.canReach(remoteCnd) && remoteCnd.getTransportAddress().getPort() != 0) {
+                    // A single LocalCandidate might be/become connected to more than one remote address, and that's ok
+                    // (that is, we need to form pairs with them all).
+                    CandidatePair pair = getParentStream().getParentAgent().createCandidatePair(localCnd, remoteCnd);
+                    logger.info("new Pair added: {}. Local ufrag {}", pair.toShortString(), parentStream.getParentAgent().getLocalUfrag());
+                    checkList.add(pair);
                 }
             }
-            remoteUpdateCandidates.clear();
         }
-        synchronized (remoteCandidates) {
-            remoteCandidates.addAll(newRemoteCandidates);
-        }
-        //sort and prune update checklist
-        Collections.sort(checkList, CandidatePair.comparator);
+        remoteUpdateCandidates.clear();
+        remoteCandidates.addAll(newRemoteCandidates);
+        // prune update checklist
         parentStream.pruneCheckList(checkList);
         if (parentStream.getCheckList().getState().equals(CheckListState.RUNNING)) {
             //add the updated CandidatePair list to the currently running checklist
             CheckList streamCheckList = parentStream.getCheckList();
-            synchronized (streamCheckList) {
-                for (CandidatePair pair : checkList) {
-                    streamCheckList.add(pair);
-                }
+            for (CandidatePair pair : checkList) {
+                streamCheckList.add(pair);
             }
         }
     }
@@ -271,9 +252,7 @@ public class Component implements PropertyChangeListener {
      * currently registered in this Component.
      */
     public List<RemoteCandidate> getRemoteCandidates() {
-        synchronized (remoteCandidates) {
-            return new ArrayList<>(remoteCandidates);
-        }
+        return new ArrayList<>(remoteCandidates);
     }
 
     /**
@@ -283,9 +262,7 @@ public class Component implements PropertyChangeListener {
      * the remote agent for this component.
      */
     public void addRemoteCandidates(List<RemoteCandidate> candidates) {
-        synchronized (remoteCandidates) {
-            remoteCandidates.addAll(candidates);
-        }
+        remoteCandidates.addAll(candidates);
     }
 
     /**
@@ -294,9 +271,7 @@ public class Component implements PropertyChangeListener {
      * @return the number of all remote candidates currently registered
      */
     public int getRemoteCandidateCount() {
-        synchronized (remoteCandidates) {
-            return remoteCandidates.size();
-        }
+        return remoteCandidates.size();
     }
 
     /**
@@ -331,10 +306,8 @@ public class Component implements PropertyChangeListener {
         if (localCandidatesCount > 0) {
             buff.append("\n").append(localCandidatesCount).append(" Local candidates:");
             buff.append("\ndefault candidate: ").append(getDefaultCandidate());
-            synchronized (localCandidates) {
-                for (Candidate<?> cand : localCandidates) {
-                    buff.append('\n').append(cand.toString());
-                }
+            for (Candidate<?> cand : localCandidates) {
+                buff.append('\n').append(cand.toString());
             }
         } else {
             buff.append("\nno local candidates.");
@@ -344,10 +317,8 @@ public class Component implements PropertyChangeListener {
         if (remoteCandidatesCount > 0) {
             buff.append("\n").append(remoteCandidatesCount).append(" Remote candidates:");
             buff.append("\ndefault remote candidate: ").append(getDefaultRemoteCandidate());
-            synchronized (remoteCandidates) {
-                for (RemoteCandidate cand : remoteCandidates) {
-                    buff.append("\n").append(cand);
-                }
+            for (RemoteCandidate cand : remoteCandidates) {
+                buff.append("\n").append(cand);
             }
         } else {
             buff.append("\nno remote candidates.");
@@ -375,11 +346,9 @@ public class Component implements PropertyChangeListener {
      * @return the first candidate that is redundant to cand or null if there is no such candidate.
      */
     private LocalCandidate findRedundant(LocalCandidate cand) {
-        synchronized (localCandidates) {
-            for (LocalCandidate redundantCand : localCandidates) {
-                if ((cand != redundantCand) && cand.getTransportAddress().equals(redundantCand.getTransportAddress()) && cand.getBase().equals(redundantCand.getBase())) {
-                    return redundantCand;
-                }
+        for (LocalCandidate redundantCand : localCandidates) {
+            if ((cand != redundantCand) && cand.getTransportAddress().equals(redundantCand.getTransportAddress()) && cand.getBase().equals(redundantCand.getBase())) {
+                return redundantCand;
             }
         }
         return null;
@@ -427,11 +396,9 @@ public class Component implements PropertyChangeListener {
      * <br>
      */
     protected void selectDefaultCandidate() {
-        synchronized (localCandidates) {
-            for (LocalCandidate cand : localCandidates) {
-                if ((defaultCandidate == null) || (defaultCandidate.getDefaultPreference() < cand.getDefaultPreference())) {
-                    defaultCandidate = cand;
-                }
+        for (LocalCandidate cand : localCandidates) {
+            if ((defaultCandidate == null) || (defaultCandidate.getDefaultPreference() < cand.getDefaultPreference())) {
+                defaultCandidate = cand;
             }
         }
     }
@@ -440,23 +407,21 @@ public class Component implements PropertyChangeListener {
      * Releases all resources allocated by this Component and its Candidates like sockets for example.
      */
     protected void free() {
-        synchronized (localCandidates) {
-            // Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have 
-            // been harvested, order the freeing.
-            CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE };
-            for (CandidateType candidateType : candidateTypes) {
-                for (LocalCandidate localCandidate : localCandidates) {
-                    if (candidateType.equals(localCandidate.getType())) {
-                        free(localCandidate);
-                        localCandidates.remove(localCandidate);
-                    }
+        // Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have 
+        // been harvested, order the freeing.
+        CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE };
+        for (CandidateType candidateType : candidateTypes) {
+            for (LocalCandidate localCandidate : localCandidates) {
+                if (candidateType.equals(localCandidate.getType())) {
+                    free(localCandidate);
+                    localCandidates.remove(localCandidate);
                 }
             }
-            // Free whatever's left.
-            for (LocalCandidate localCandidate : localCandidates) {
-                free(localCandidate);
-                localCandidates.remove(localCandidate);
-            }
+        }
+        // Free whatever's left.
+        for (LocalCandidate localCandidate : localCandidates) {
+            free(localCandidate);
+            localCandidates.remove(localCandidate);
         }
         getParentStream().removePairStateChangeListener(this);
         keepAlivePairs.clear();
@@ -609,4 +574,5 @@ public class Component implements PropertyChangeListener {
             keepAlivePairs.add(pair);
         }
     }
+
 }

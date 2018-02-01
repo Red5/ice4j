@@ -43,15 +43,11 @@ public class ChangeRequestAttributeTest extends TestCase
         super.setUp();
         changeRequestAttribute = new ChangeRequestAttribute();
         binMessagesFixture = new MsgFixture();
-
-        binMessagesFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         changeRequestAttribute = null;
-        binMessagesFixture.tearDown();
-
         binMessagesFixture = null;
         super.tearDown();
     }

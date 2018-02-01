@@ -48,8 +48,6 @@ public class MessageTest extends TestCase
         super.setUp();
 
         msgFixture = new MsgFixture();
-        msgFixture.setUp();
-
         stunStack = new StunStack();
 
         //binding request
@@ -100,8 +98,6 @@ public class MessageTest extends TestCase
         changeRequest = null;
 
         stunStack = null;
-
-        msgFixture.tearDown();
         msgFixture = null;
 
         super.tearDown();

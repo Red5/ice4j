@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
+import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -14,6 +15,10 @@ import org.ice4j.stack.RequestListener;
 import org.ice4j.stack.StunStack;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import test.PortUtil;
 
 /**
  * Test event dispatching for both client and server.
@@ -21,60 +26,65 @@ import org.junit.Before;
  * @author Emil Ivov
  */
 public class MessageEventDispatchingTest extends TestCase {
+
+    private final static Logger logger = LoggerFactory.getLogger(MessageEventDispatchingTest.class);
+
     /**
      * The stack that we are using for the tests.
      */
-    StunStack stunStack = null;
+    StunStack stunStack;
 
     /**
      * The address of the client.
      */
-    TransportAddress clientAddress = new TransportAddress("127.0.0.1", 5216, Transport.UDP);
+    TransportAddress clientAddress;
 
     /**
      * The Address of the server.
      */
-    TransportAddress serverAddress = new TransportAddress("127.0.0.1", 5255, Transport.UDP);
+    TransportAddress serverAddress;
 
     /**
      * The address of the second server.
      */
-    TransportAddress serverAddress2 = new TransportAddress("127.0.0.1", 5259, Transport.UDP);
+    TransportAddress serverAddress2;
 
     /**
      * The socket that the client is using.
      */
-    IceSocketWrapper clientSock = null;
+    IceSocketWrapper clientSock;
 
     /**
      * The socket that the server is using
      */
-    IceSocketWrapper serverSock = null;
+    IceSocketWrapper serverSock;
 
     /**
      * The second server socket.
      */
-    IceSocketWrapper serverSock2 = null;
+    IceSocketWrapper serverSock2;
 
     /**
      * The request that we will be sending in this test.
      */
-    Request bindingRequest = null;
+    Request bindingRequest;
 
     /**
      * The response that we will be sending in response to the above request.
      */
-    Response bindingResponse = null;
+    Response bindingResponse;
 
     /**
      * The request collector that we use to wait for requests.
      */
-    PlainRequestCollector requestCollector = null;
+    PlainRequestCollector requestCollector;
 
     /**
      * The responses collector that we use to wait for responses.
      */
-    PlainResponseCollector responseCollector = null;
+    PlainResponseCollector responseCollector;
+
+    private NioServer server;
 
     /**
      * junit setup method.
@@ -84,23 +94,37 @@ public class MessageEventDispatchingTest extends TestCase {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-
+        logger.info("-------------------------------------------\nSettting up {}", getClass().getName());
+        clientAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        serverAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        serverAddress2 = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         stunStack = new StunStack();
-
+        // create an NIO server
+        server = new NioServer();
+        // start the NIO server
+        server.start();
+        // add the bindings
+        server.addUdpBinding(clientAddress);
+        server.addUdpBinding(serverAddress);
+        server.addUdpBinding(serverAddress2);
+        // create the wrappers
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
         serverSock2 = new IceUdpSocketWrapper(serverAddress2);
-
+        // add listeners to the server
+        server.addNioServerListener(clientSock.getServerListener());
+        server.addNioServerListener(serverSock.getServerListener());
+        server.addNioServerListener(serverSock2.getServerListener());
+        // add wrappers to the stack
         stunStack.addSocket(clientSock);
         stunStack.addSocket(serverSock);
         stunStack.addSocket(serverSock2);
-
+        // create binding request and response
         bindingRequest = MessageFactory.createBindingRequest();
         bindingResponse = MessageFactory.create3489BindingResponse(clientAddress, clientAddress, serverAddress);
-
+        // create collectors
         requestCollector = new PlainRequestCollector();
         responseCollector = new PlainResponseCollector();
-
     }
 
     /**
@@ -110,17 +134,23 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     @After
     protected void tearDown() throws Exception {
+        server.removeUdpBinding(clientAddress);
+        server.removeUdpBinding(serverAddress);
+        server.removeUdpBinding(serverAddress2);
+        server.removeNioServerListener(clientSock.getServerListener());
+        server.removeNioServerListener(serverSock.getServerListener());
+        server.removeNioServerListener(serverSock2.getServerListener());
         stunStack.removeSocket(clientAddress);
         stunStack.removeSocket(serverAddress);
         stunStack.removeSocket(serverAddress2);
-
         clientSock.close();
         serverSock.close();
         serverSock2.close();
-
         requestCollector = null;
         responseCollector = null;
-
+        // stop the NIO server
+        server.stop();
+        logger.info("-------------------------------------------\nTearing down {}", getClass().getName());
         super.tearDown();
     }
 
@@ -134,11 +164,8 @@ public class MessageEventDispatchingTest extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "1");
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         responseCollector.waitForTimeout();
-
         assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.size(), 1);
-
         assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.get(0), "timeout");
-
         //restore the retransmissions prop in case others are counting on defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
@@ -158,7 +185,6 @@ public class MessageEventDispatchingTest extends TestCase {
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         //wait for retransmissions
         requestCollector.waitForRequest();
-
         //verify
         assertTrue("No MessageEvents have been dispatched", requestCollector.receivedRequests.size() == 1);
     }
@@ -170,19 +196,16 @@ public class MessageEventDispatchingTest extends TestCase {
      * @throws java.lang.Exception upon any failure
      */
     public void testSelectiveEventDispatchingUponIncomingRequests() throws Exception {
-        //prepare to listen
+        // prepare to listen
         stunStack.addRequestListener(serverAddress, requestCollector);
-
         PlainRequestCollector requestCollector2 = new PlainRequestCollector();
         stunStack.addRequestListener(serverAddress2, requestCollector2);
-
-        //send
+        // send
         stunStack.sendRequest(bindingRequest, serverAddress2, clientAddress, responseCollector);
-        //wait for retransmissions
+        // wait for retransmissions
         requestCollector.waitForRequest();
         requestCollector2.waitForRequest();
-
-        //verify
+        // verify
         assertTrue("A MessageEvent was received by a non-interested selective listener", requestCollector.receivedRequests.size() == 0);
         assertTrue("No MessageEvents have been dispatched for a selective listener", requestCollector2.receivedRequests.size() == 1);
     }
@@ -192,22 +215,20 @@ public class MessageEventDispatchingTest extends TestCase {
      * @throws Exception if we screw up.
      */
     public void testServerResponseRetransmissions() throws Exception {
-        //prepare to listen
+        // prepare to listen
         stunStack.addRequestListener(serverAddress, requestCollector);
-        //send
+        // send
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
-
-        //wait for the message to arrive
+        // wait for the message to arrive
         requestCollector.waitForRequest();
-
-        StunMessageEvent evt = requestCollector.receivedRequests.get(0);
+        Vector<StunMessageEvent> reqs = requestCollector.receivedRequests;
+        assertFalse(reqs.isEmpty());
+        StunMessageEvent evt = reqs.get(0);
         byte[] tid = evt.getMessage().getTransactionID();
         stunStack.sendResponse(tid, bindingResponse, serverAddress, clientAddress);
-
-        //wait for retransmissions
+        // wait for retransmissions
         responseCollector.waitForResponse();
-
-        //verify that we got the response.
+        // verify that we got the response.
         assertTrue("There were no retransmissions of a binding response", responseCollector.receivedResponses.size() == 1);
     }
 

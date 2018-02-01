@@ -47,15 +47,11 @@ public class RealmAttributeTest extends TestCase
 
         realmAttribute = new RealmAttribute();
         realmAttribute.setRealm(realmValue.getBytes());
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         realmAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

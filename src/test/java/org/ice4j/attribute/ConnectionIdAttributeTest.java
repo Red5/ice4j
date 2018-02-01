@@ -42,16 +42,12 @@ public class ConnectionIdAttributeTest
         super.setUp();
         this.connectionIdAttribute = new ConnectionIdAttribute();
         this.msgFixture = new MsgFixture();
-
-        msgFixture.setUp();
     }
 
     @Override
     protected void tearDown() throws Exception
     {
         this.connectionIdAttribute = null;
-        this.msgFixture.tearDown();
-
         this.msgFixture = null;
         super.tearDown();
     }

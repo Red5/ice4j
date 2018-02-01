@@ -44,8 +44,6 @@ public class RequestedAddressFamilyAttributeTest
         this.requestedAddressFamilyAttribute =
             new RequestedAddressFamilyAttribute();
         this.msgFixture = new MsgFixture();
-
-        msgFixture.setUp();
     }
 
     public RequestedAddressFamilyAttributeTest(String name)
@@ -57,8 +55,6 @@ public class RequestedAddressFamilyAttributeTest
     protected void tearDown() throws Exception
     {
         this.requestedAddressFamilyAttribute = null;
-        this.msgFixture.tearDown();
-
         this.msgFixture = null;
         super.tearDown();
     }

@@ -194,13 +194,15 @@ class NetAccessManager {
      * @return Connector responsible for a given source and destination address otherwise null
      */
     private Connector getConnector(TransportAddress localAddress, TransportAddress remoteAddress) {
-        logger.info("getConnector - local: {} remote: {}", localAddress, remoteAddress);
+        logger.debug("getConnector - local: {} remote: {}", localAddress, remoteAddress);
         boolean udp = localAddress.getTransport() == Transport.UDP;
         //logger.debug("Local UDP transport: {}", udp);
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
         Connector connector = null;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
-        logger.info("Local connectors: {}", connectorsForLocalAddress);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Local connectors: {}", connectorsForLocalAddress);
+        }
         if (connectorsForLocalAddress != null) {
             connector = connectorsForLocalAddress.get(remoteAddress);
             // Fallback to the socket with no specific remote address

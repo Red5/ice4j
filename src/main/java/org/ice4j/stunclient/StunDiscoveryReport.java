@@ -1,34 +1,21 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stunclient;
 
 import org.ice4j.*;
 
 /**
- * The class is used to deliver results from a STUN Discovery Process. It
- * contains information about the NAT Server (or firewall) this client is behind,
+ * The class is used to deliver results from a STUN Discovery Process. It contains information about the NAT Server (or firewall) this client is behind,
  * and a mapped address value (if discovered)
  *
  * @author Emil Ivov
  */
 
-public class StunDiscoveryReport
-{
+public class StunDiscoveryReport {
     /**
      * Indicates that NAT detection has failed or not yet initiated.
      */
@@ -47,7 +34,7 @@ public class StunDiscoveryReport
     /**
      * Means we are behind a symmetric udp firewall.
      */
-    public static final String SYMMETRIC_UDP_FIREWALL= "Symmetric UDP Firewall";
+    public static final String SYMMETRIC_UDP_FIREWALL = "Symmetric UDP Firewall";
 
     /**
      * NAT type is full cone.
@@ -67,27 +54,24 @@ public class StunDiscoveryReport
     /**
      * NAT type is port restricted cone.
      */
-    public static final String PORT_RESTRICTED_CONE_NAT
-                                        = "Port Restricted Cone NAT";
+    public static final String PORT_RESTRICTED_CONE_NAT = "Port Restricted Cone NAT";
 
     private String natType = UNKNOWN;
 
-    private TransportAddress publicAddress = null;
+    private TransportAddress publicAddress;
 
     /**
      * Creates a discovery report with natType = UNKNOWN and a null public
      * address.
      */
-    StunDiscoveryReport()
-    {
+    StunDiscoveryReport() {
     }
 
     /**
      * Returns the type of the NAT described in the report.
      * @return the type of the NAT that this report is about.
      */
-    public String getNatType()
-    {
+    public String getNatType() {
         return natType;
     }
 
@@ -95,26 +79,23 @@ public class StunDiscoveryReport
      * Sets the type of the NAT indicated by the report.
      * @param natType the type of the NAT.
      */
-    void setNatType(String natType)
-    {
+    void setNatType(String natType) {
         this.natType = natType;
     }
 
     /**
      * Returns the public addressed discovered by a discovery process.
-     * @return an Inetner address for public use.
+     * @return an internet address for public use.
      */
-    public TransportAddress getPublicAddress()
-    {
+    public TransportAddress getPublicAddress() {
         return publicAddress;
     }
 
     /**
      * Sets a public address.
-     * @param stunAddress An address that's accesible from everywhere.
+     * @param stunAddress An address that's accessible from everywhere.
      */
-    void setPublicAddress(TransportAddress stunAddress)
-    {
+    void setPublicAddress(TransportAddress stunAddress) {
         this.publicAddress = stunAddress;
     }
 
@@ -125,29 +106,24 @@ public class StunDiscoveryReport
      * @param obj the object to compare against.
      * @return true if the two objects are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if(! (obj instanceof StunDiscoveryReport))
-           return false;
+    public boolean equals(Object obj) {
+        if (!(obj instanceof StunDiscoveryReport))
+            return false;
 
-        if(obj == this)
+        if (obj == this)
             return true;
 
-        StunDiscoveryReport target = (StunDiscoveryReport)obj;
+        StunDiscoveryReport target = (StunDiscoveryReport) obj;
 
-        return (   target.getNatType() == getNatType()
-                && ( getPublicAddress() == null && target.getPublicAddress() == null
-                    || target.getPublicAddress().equals(getPublicAddress())));
+        return (target.getNatType() == getNatType() && (getPublicAddress() == null && target.getPublicAddress() == null || target.getPublicAddress().equals(getPublicAddress())));
     }
 
     /**
      * Returns a readable representation of the report.
      * @return a readable representation of the report.
      */
-    public String toString()
-    {
-        return   "The detected network configuration is: " + getNatType() + "\n"
-               + "Your mapped public address is: " + getPublicAddress();
+    public String toString() {
+        return "The detected network configuration is: " + getNatType() + "\n" + "Your mapped public address is: " + getPublicAddress();
     }
 
 }

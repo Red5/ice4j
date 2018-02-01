@@ -43,15 +43,11 @@ public class UnknownAttributesAttributeTest extends TestCase
         super.setUp();
         unknownAttributesAttribute = new UnknownAttributesAttribute();
         binMessagesFixture = new MsgFixture();
-
-        binMessagesFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         unknownAttributesAttribute = null;
-        binMessagesFixture.tearDown();
-
         binMessagesFixture = null;
         super.tearDown();
     }

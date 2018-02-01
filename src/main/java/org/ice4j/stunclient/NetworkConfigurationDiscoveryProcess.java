@@ -2,8 +2,6 @@
 package org.ice4j.stunclient;
 
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
@@ -18,106 +16,78 @@ import org.ice4j.message.Request;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
 import org.ice4j.stack.StunStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * This class implements the STUN Discovery Process as described by section 10.1
- * of rfc 3489.
+ * This class implements the STUN Discovery Process as described by section 10.1 of rfc 3489.
  * </p><p>
- * The flow makes use of three tests.  In test I, the client sends a
- * STUN Binding Request to a server, without any flags set in the
- * CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute.
- * This causes the server to send the response back to the address and
- * port that the request came from.  In test II, the client sends a
- * Binding Request with both the "change IP" and "change port" flags
- * from the CHANGE-REQUEST attribute set.  In test III, the client sends
- * a Binding Request with only the "change port" flag set.
+ * The flow makes use of three tests.  In test I, the client sends a STUN Binding Request to a server, without any flags set in the
+ * CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute. This causes the server to send the response back to the address and
+ * port that the request came from.  In test II, the client sends a Binding Request with both the "change IP" and "change port" flags
+ * from the CHANGE-REQUEST attribute set.  In test III, the client sends a Binding Request with only the "change port" flag set.
  * </p><p>
- * The client begins by initiating test I.  If this test yields no
- * response, the client knows right away that it is not capable of UDP
- * connectivity.  If the test produces a response, the client examines
- * the MAPPED-ADDRESS attribute.  If this address and port are the same
- * as the local IP address and port of the socket used to send the
- * request, the client knows that it is not natted.  It executes test
- * II.
+ * The client begins by initiating test I.  If this test yields no response, the client knows right away that it is not capable of UDP
+ * connectivity.  If the test produces a response, the client examines the MAPPED-ADDRESS attribute.  If this address and port are the same
+ * as the local IP address and port of the socket used to send the request, the client knows that it is not natted.  It executes test II.
  * </p><p>
- * If a response is received, the client knows that it has open access
- * to the Internet (or, at least, its behind a firewall that behaves
- * like a full-cone NAT, but without the translation).  If no response
- * is received, the client knows its behind a symmetric UDP firewall.
+ * If a response is received, the client knows that it has open access to the Internet (or, at least, its behind a firewall that behaves
+ * like a full-cone NAT, but without the translation).  If no response is received, the client knows its behind a symmetric UDP firewall.
  * </p><p>
- * In the event that the IP address and port of the socket did not match
- * the MAPPED-ADDRESS attribute in the response to test I, the client
- * knows that it is behind a NAT.  It performs test II.  If a response
- * is received, the client knows that it is behind a full-cone NAT.  If
- * no response is received, it performs test I again, but this time,
- * does so to the address and port from the CHANGED-ADDRESS attribute
- * from the response to test I.  If the IP address and port returned in
- * the MAPPED-ADDRESS attribute are not the same as the ones from the
- * first test I, the client knows its behind a symmetric NAT.  If the
- * address and port are the same, the client is either behind a
- * restricted or port restricted NAT.  To make a determination about
- * which one it is behind, the client initiates test III.  If a response
- * is received, its behind a restricted NAT, and if no response is
- * received, its behind a port restricted NAT.
+ * In the event that the IP address and port of the socket did not match the MAPPED-ADDRESS attribute in the response to test I, the client
+ * knows that it is behind a NAT.  It performs test II.  If a response is received, the client knows that it is behind a full-cone NAT.  If
+ * no response is received, it performs test I again, but this time, does so to the address and port from the CHANGED-ADDRESS attribute
+ * from the response to test I.  If the IP address and port returned in the MAPPED-ADDRESS attribute are not the same as the ones from the
+ * first test I, the client knows its behind a symmetric NAT.  If the address and port are the same, the client is either behind a
+ * restricted or port restricted NAT.  To make a determination about which one it is behind, the client initiates test III.  If a response
+ * is received, its behind a restricted NAT, and if no response is received, its behind a port restricted NAT.
  * </p><p>
- * This procedure yields substantial information about the operating
- * condition of the client application.  In the event of multiple NATs
- * between the client and the Internet, the type that is discovered will
- * be the type of the most restrictive NAT between the client and the
- * Internet.  The types of NAT, in order of restrictiveness, from most
- * to least, are symmetric, port restricted cone, restricted cone, and
+ * This procedure yields substantial information about the operating condition of the client application.  In the event of multiple NATs
+ * between the client and the Internet, the type that is discovered will be the type of the most restrictive NAT between the client and the
+ * Internet.  The types of NAT, in order of restrictiveness, from most to least, are symmetric, port restricted cone, restricted cone, and
  * full cone.
  * </p><p>
- * Typically, a client will re-do this discovery process periodically to
- * detect changes, or look for inconsistent results.  It is important to
- * note that when the discovery process is redone, it should not
- * generally be done from the same local address and port used in the
- * previous discovery process.  If the same local address and port are
- * reused, bindings from the previous test may still be in existence,
- * and these will invalidate the results of the test.  Using a different
- * local address and port for subsequent tests resolves this problem.
- * An alternative is to wait sufficiently long to be confident that the
- * old bindings have expired (half an hour should more than suffice).
+ * Typically, a client will re-do this discovery process periodically to detect changes, or look for inconsistent results.  It is important to
+ * note that when the discovery process is redone, it should not generally be done from the same local address and port used in the
+ * previous discovery process.  If the same local address and port are reused, bindings from the previous test may still be in existence,
+ * and these will invalidate the results of the test.  Using a different local address and port for subsequent tests resolves this problem.
+ * An alternative is to wait sufficiently long to be confident that the old bindings have expired (half an hour should more than suffice).
  * </p>
  *
  * @author Emil Ivov
  */
 public class NetworkConfigurationDiscoveryProcess {
 
-    private static final Logger logger = Logger.getLogger(NetworkConfigurationDiscoveryProcess.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(NetworkConfigurationDiscoveryProcess.class);
 
     /**
-     * Indicates whether the underlying stack has been initialized and started
-     * and that the discoverer is operational.
+     * Indicates whether the underlying stack has been initialized and started and that the discoverer is operational.
      */
-    private boolean started = false;
+    private boolean started;
 
     /**
      * The point where we'll be listening.
      */
-    private TransportAddress localAddress = null;
+    private TransportAddress localAddress;
 
     /**
      * The address of the stun server
      */
-    private TransportAddress serverAddress = null;
+    private TransportAddress serverAddress;
 
     /**
-     * A utility used to flatten the multi thread architecture of the Stack
-     * and execute the discovery process in a synchronized manner
+     * A utility used to flatten the multithread architecture of the stack and execute the discovery process in a synchronized manner
      */
-    private BlockingRequestSender requestSender = null;
+    private BlockingRequestSender requestSender;
 
     /**
-     * The DatagramSocket that we are going to be running the
-     * discovery process through.
+     * The DatagramSocket that we are going to be running the discovery process through.
      */
-    private IceSocketWrapper sock = null;
+    private IceSocketWrapper sock;
 
     /**
-     * The StunStack used by this instance for the purposes of STUN
-     * communication.
+     * The StunStack used by this instance for the purposes of STUN communication.
      */
     private final StunStack stunStack;
 
@@ -132,30 +102,28 @@ public class NetworkConfigurationDiscoveryProcess {
         if (stunStack == null) {
             throw new NullPointerException("stunStack");
         }
+        logger.debug("Discovery process on {} with server {}", localAddress, serverAddress);
         this.stunStack = stunStack;
         this.localAddress = localAddress;
         this.serverAddress = serverAddress;
     }
 
     /**
-     * Shuts down the underlying stack and prepares the object for garbage
-     * collection.
+     * Shuts down the underlying stack and prepares the object for garbage collection.
      */
     public void shutDown() {
         stunStack.removeSocket(localAddress);
         sock.close();
         sock = null;
-
         localAddress = null;
         requestSender = null;
-
         this.started = false;
     }
 
     /**
      * Puts the discoverer into an operational state.
-     * @throws IOException if we fail to bind.
-     * @throws StunException if the stun4j stack fails start for some reason.
+     * @throws IOException if we fail to bind
+     * @throws StunException if the stun4j stack fails start for some reason
      */
     public void start() throws IOException, StunException {
         sock = new IceUdpSocketWrapper(localAddress);
@@ -166,12 +134,11 @@ public class NetworkConfigurationDiscoveryProcess {
 
     /**
      * Implements the discovery process itself (see class description).
-     * @return a StunDiscoveryReport containing details about the network
-     * configuration of the host where the class is executed.
+     * 
+     * @return a StunDiscoveryReport containing details about the network configuration of the host where the class is executed
      *
      * @throws StunException ILLEGAL_STATE if the discoverer has not been started
-     * @throws IOException if a failure occurs while executing the discovery
-     * algorithm.
+     * @throws IOException if a failure occurs while executing the discovery algorithm
      */
     public StunDiscoveryReport determineAddress() throws StunException, IOException {
         checkStarted();
@@ -188,9 +155,9 @@ public class NetworkConfigurationDiscoveryProcess {
                 logger.info("Failed to do the network discovery");
                 return null;
             }
-            logger.fine("mapped address is=" + mappedAddress + ", name=" + mappedAddress.getHostAddress());
+            logger.debug("mapped address is=" + mappedAddress + ", name=" + mappedAddress.getHostAddress());
             TransportAddress backupServerAddress = ((ChangedAddressAttribute) evt.getMessage().getAttribute(Attribute.Type.CHANGED_ADDRESS)).getAddress();
-            logger.fine("backup server address is=" + backupServerAddress + ", name=" + backupServerAddress.getHostAddress());
+            logger.debug("backup server address is=" + backupServerAddress + ", name=" + backupServerAddress.getHostAddress());
             report.setPublicAddress(mappedAddress);
             if (mappedAddress.equals(localAddress)) {
                 evt = doTestII(serverAddress);
@@ -239,15 +206,12 @@ public class NetworkConfigurationDiscoveryProcess {
     }
 
     /**
-     * Sends a binding request to the specified server address. Both change IP
-     * and change port flags are set to false.
+     * Sends a binding request to the specified server address. Both change IP and change port flags are set to false.
      * @param serverAddress the address where to send the bindingRequest.
-     * @return The returned message encapsulating event or null if no message
-     * was received.
+     * @return The returned message encapsulating event or null if no message was received.
      *
-     * @throws StunException if an exception occurs while sending the messge
-     * @throws IOException if an error occurs while sending bytes through
-     * the socket.
+     * @throws StunException if an exception occurs while sending the message
+     * @throws IOException if an error occurs while sending bytes through the socket.
      */
     private StunMessageEvent doTestI(TransportAddress serverAddress) throws IOException, StunException {
         Request request = MessageFactory.createBindingRequest();
@@ -256,30 +220,26 @@ public class NetworkConfigurationDiscoveryProcess {
         changeRequest.setChangeIpFlag(false);
         changeRequest.setChangePortFlag(false);
         request.putAttribute(changeRequest);
-
         StunMessageEvent evt = null;
         try {
             evt = requestSender.sendRequestAndWaitForResponse(request, serverAddress);
         } catch (StunException ex) {
-            //this shouldn't happen since we are the ones that created the
-            //request
-            logger.log(Level.SEVERE, "Internal Error. Failed to encode a message", ex);
+            //this shouldn't happen since we are the ones that created the request
+            logger.warn("Internal Error. Failed to encode a message", ex);
             return null;
         }
-
-        if (evt != null)
-            logger.fine("TEST I res=" + evt.getRemoteAddress().toString() + " - " + evt.getRemoteAddress().getHostAddress());
-        else
-            logger.fine("NO RESPONSE received to TEST I.");
+        if (evt != null) {
+            logger.debug("TEST I res={} - {}", evt.getRemoteAddress().toString(), evt.getRemoteAddress().getHostAddress());
+        } else {
+            logger.debug("NO RESPONSE received to TEST I.");
+        }
         return evt;
     }
 
     /**
-     * Sends a binding request to the specified server address with both change
-     * IP and change port flags are set to true.
+     * Sends a binding request to the specified server address with both change IP and change port flags are set to true.
      * @param serverAddress the address where to send the bindingRequest.
-     * @return The returned message encapsulating event or null if no message
-     * was received.
+     * @return The returned message encapsulating event or null if no message was received.
      *
      * @throws StunException if an exception occurs while sending the messge
      * @throws IOException if an exception occurs while executing the algorithm.
@@ -292,11 +252,11 @@ public class NetworkConfigurationDiscoveryProcess {
         changeRequest.setChangePortFlag(true);
         request.putAttribute(changeRequest);
         StunMessageEvent evt = requestSender.sendRequestAndWaitForResponse(request, serverAddress);
-        if (evt != null)
-            logger.fine("Test II res=" + evt.getRemoteAddress().toString() + " - " + evt.getRemoteAddress().getHostAddress());
-        else
-            logger.fine("NO RESPONSE received to Test II.");
-
+        if (evt != null) {
+            logger.debug("Test II res={} - {}", evt.getRemoteAddress().toString(), evt.getRemoteAddress().getHostAddress());
+        } else {
+            logger.debug("NO RESPONSE received to Test II.");
+        }
         return evt;
     }
 
@@ -318,11 +278,11 @@ public class NetworkConfigurationDiscoveryProcess {
         changeRequest.setChangePortFlag(true);
         request.putAttribute(changeRequest);
         StunMessageEvent evt = requestSender.sendRequestAndWaitForResponse(request, serverAddress);
-        if (evt != null)
-            logger.fine("Test III res=" + evt.getRemoteAddress().toString() + " - " + evt.getRemoteAddress().getHostAddress());
-        else
-            logger.fine("NO RESPONSE received to Test III.");
-
+        if (evt != null) {
+            logger.debug("Test III res={} - {}", evt.getRemoteAddress().toString(), evt.getRemoteAddress().getHostAddress());
+        } else {
+            logger.debug("NO RESPONSE received to Test III.");
+        }
         return evt;
     }
 

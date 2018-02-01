@@ -42,10 +42,6 @@ import org.ice4j.util.DatagramUtil;
  */
 public class RelayedCandidateDatagramSocket extends DatagramSocket implements MessageEventHandler {
 
-    /**
-     * The Logger used by the RelayedCandidateDatagramSocket
-     * class and its instances for logging output.
-     */
     private static final Logger logger = Logger.getLogger(RelayedCandidateDatagramSocket.class.getName());
 
     /**

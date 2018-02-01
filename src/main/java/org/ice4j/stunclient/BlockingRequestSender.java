@@ -2,11 +2,12 @@
 package org.ice4j.stunclient;
 
 import java.io.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility used to flatten the multi-thread architecture of the Stack
@@ -30,10 +31,8 @@ import org.ice4j.stack.*;
  * @author Aakash Garg
  */
 public class BlockingRequestSender extends AbstractResponseCollector {
-    /**
-     * Our class logger
-     */
-    private static final Logger logger = Logger.getLogger(BlockingRequestSender.class.getName());
+
+    private static final Logger logger = LoggerFactory.getLogger(BlockingRequestSender.class);
 
     /**
      * The stack that we are using to send requests through.
@@ -49,12 +48,12 @@ public class BlockingRequestSender extends AbstractResponseCollector {
      * The StunMessageEvent that contains the response matching our
      * request.
      */
-    private StunMessageEvent responseEvent = null;
+    private StunMessageEvent responseEvent;
 
     /**
      * Determines whether this request sender has completed its course.
      */
-    private boolean ended = false;
+    private boolean ended;
 
     /**
      * A lock object that we are using to synchronize sending.
@@ -139,7 +138,7 @@ public class BlockingRequestSender extends AbstractResponseCollector {
             try {
                 wait();
             } catch (InterruptedException ex) {
-                logger.log(Level.WARNING, "Interrupted", ex);
+                logger.warn("Interrupted", ex);
             }
         }
         StunMessageEvent res = responseEvent;
@@ -174,7 +173,7 @@ public class BlockingRequestSender extends AbstractResponseCollector {
             try {
                 wait();
             } catch (InterruptedException ex) {
-                logger.log(Level.WARNING, "Interrupted", ex);
+                logger.warn("Interrupted", ex);
             }
         }
         StunMessageEvent res = responseEvent;

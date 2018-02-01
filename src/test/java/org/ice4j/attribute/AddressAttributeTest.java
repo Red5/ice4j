@@ -40,14 +40,10 @@ public class AddressAttributeTest extends TestCase {
 
         addressAttribute = new MappedAddressAttribute();
         msgFixture = new MsgFixture();
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception {
         addressAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

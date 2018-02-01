@@ -17,14 +17,19 @@
  */
 package org.ice4j.message;
 
-import junit.framework.*;
+import junit.framework.TestCase;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
+import org.ice4j.MsgFixture;
+import org.ice4j.StunException;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.UnknownAttributesAttribute;
 
 public class MessageFactoryTest extends TestCase
 {
-    private MsgFixture msgFixture;
 
     public MessageFactoryTest(String name)
     {
@@ -34,16 +39,10 @@ public class MessageFactoryTest extends TestCase
     protected void setUp() throws Exception
     {
         super.setUp();
-        msgFixture = new MsgFixture();
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
-        msgFixture.tearDown();
-
-        msgFixture = null;
         super.tearDown();
     }
 

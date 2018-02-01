@@ -1,7 +1,7 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice;
 
-import java.util.*;
+import java.util.Comparator;
 
 /**
  * Compares candidates based on their priority.
@@ -24,13 +24,14 @@ class CandidatePrioritizer implements Comparator<Candidate<?>> {
      *         second.
      */
     public static int compareCandidates(Candidate<?> c1, Candidate<?> c2) {
-        if (c1.getPriority() < c2.getPriority())
+        if (c1.getPriority() < c2.getPriority()) {
             return 1;
-        else if (c1.getPriority() == c2.getPriority())
+        } else if (c1.getPriority() == c2.getPriority()) {
             return 0;
-        else
+        } else {
             //if(c1.getPriority() > c2.getPriority())
             return -1;
+        }
     }
 
     /**

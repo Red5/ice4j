@@ -1,34 +1,28 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A check list is a list of CandidatePairs with a state (i.e. a
- * CheckListState). The pairs in a check list are those that an ICE
- * agent will run STUN connectivity checks for. There is one check list per
- * in-use media stream resulting from the offer/answer exchange.
+ * A check list is a list of CandidatePairs with a state (i.e. a CheckListState). The pairs in a check list are those that an ICE
+ * agent will run STUN connectivity checks for. There is one check list per in-use media stream resulting from the offer/answer exchange.
  * <p>
- * Given the asynchronous nature of ice, a check list may be accessed from
- * different locations. This class therefore stores pairs in a Vector
+ * Given the asynchronous nature of ICE, be aware that a check list may be accessed from different locations.
+ * 
  * @author Emil Ivov
+ * @author Paul Gregoire
  */
-public class CheckList extends Vector<CandidatePair> {
+public class CheckList extends PriorityBlockingQueue<CandidatePair> {
 
     private final static Logger logger = LoggerFactory.getLogger(CheckList.class);
 
@@ -55,12 +49,10 @@ public class CheckList extends Vector<CandidatePair> {
     private CheckListState state = CheckListState.RUNNING;
 
     /**
-     * The triggeredCheckQueue is a FIFO queue containing candidate
-     * pairs for which checks are to be sent at the next available opportunity.
-     * A pair would get into a triggered check queue as soon as we receive
-     * a check on its local candidate.
+     * The triggeredCheckQueue is a FIFO queue containing candidate pairs for which checks are to be sent at the next available opportunity.
+     * A pair would get into a triggered check queue as soon as we receive a check on its local candidate.
      */
-    private final List<CandidatePair> triggeredCheckQueue = new LinkedList<>();
+    private final Queue<CandidatePair> triggeredCheckQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * A reference to the {@link IceMediaStream} that we belong to.
@@ -68,16 +60,14 @@ public class CheckList extends Vector<CandidatePair> {
     private final IceMediaStream parentStream;
 
     /**
-     * Contains {@link PropertyChangeListener}s registered with this {@link
-     * Agent} and following its changes of state.
+     * Contains {@link PropertyChangeListener}s registered with this {@link Agent} and following its changes of state.
      */
-    private final List<PropertyChangeListener> stateListeners = new LinkedList<>();
+    private final Queue<PropertyChangeListener> stateListeners = new ConcurrentLinkedQueue<>();
 
     /**
-     * Contains {@link PropertyChangeListener}s registered with this {@link
-     * Agent} and following its changes of state.
+     * Contains {@link PropertyChangeListener}s registered with this {@link Agent} and following its changes of state.
      */
-    private final List<PropertyChangeListener> checkListeners = new LinkedList<>();
+    private final Queue<PropertyChangeListener> checkListeners = new ConcurrentLinkedQueue<>();
 
     /**
      * Creates a check list with the specified name.
@@ -106,58 +96,43 @@ public class CheckList extends Vector<CandidatePair> {
     protected void setState(CheckListState newState) {
         CheckListState oldState = this.state;
         this.state = newState;
-
         fireStateChange(oldState, newState);
     }
 
     /**
-     * Adds pair to the local triggered check queue unless it's already
-     * there. Additionally, the method sets the pair's state to {@link
-     * CandidatePairState#WAITING}.
+     * Adds pair to the local triggered check queue unless it's already there. Additionally, the method sets the pair's state to
+     * {@link CandidatePairState#WAITING}.
      *
      * @param pair the pair to schedule a triggered check for.
      */
     protected void scheduleTriggeredCheck(CandidatePair pair) {
-        synchronized (triggeredCheckQueue) {
-            if (!triggeredCheckQueue.contains(pair)) {
-                triggeredCheckQueue.add(pair);
-                pair.setStateWaiting();
-            }
+        if (!triggeredCheckQueue.contains(pair)) {
+            triggeredCheckQueue.add(pair);
+            pair.setStateWaiting();
         }
     }
 
     /**
-     * Returns the first {@link CandidatePair} in the triggered check queue or
-     * null if that queue is empty.
+     * Returns the first {@link CandidatePair} in the triggered check queue or null if that queue is empty.
      *
-     * @return the first {@link CandidatePair} in the triggered check queue or
-     * null if that queue is empty.
+     * @return the first pair in the triggered check queue or null if that queue is empty.
      */
     protected CandidatePair popTriggeredCheck() {
-        synchronized (triggeredCheckQueue) {
-            if (triggeredCheckQueue.size() > 0)
-                return triggeredCheckQueue.remove(0);
-        }
-        return null;
+        return triggeredCheckQueue.poll();
     }
 
     /**
-     * Returns the next {@link CandidatePair} that is eligible for a regular
-     * connectivity check. According to RFC 5245 this would be the highest
-     * priority pair that is in the Waiting state or, if there is
-     * no such pair, the highest priority Frozen {@link CandidatePair}.
+     * Returns the next {@link CandidatePair} that is eligible for a regular connectivity check. According to RFC 5245 this would be the highest
+     * priority pair that is in the Waiting state or, if there is no such pair, the highest priority Frozen {@link CandidatePair}.
      *
-     * @return the next {@link CandidatePair} that is eligible for a regular
-     * connectivity check, which would either be the highest priority
-     * Waiting pair or, when there's no such pair, the highest priority
-     * Frozen pair or null otherwise
+     * @return the next {@link CandidatePair} that is eligible for a regular connectivity check, which would either be the highest priority
+     * Waiting pair or, when there's no such pair, the highest priority Frozen pair or null otherwise
      */
     protected synchronized CandidatePair getNextOrdinaryPairToCheck() {
-        if (size() < 1)
+        if (isEmpty()) {
             return null;
-
+        }
         CandidatePair highestPriorityPair = null;
-
         for (CandidatePair pair : this) {
             if (pair.getState() == CandidatePairState.WAITING) {
                 if (highestPriorityPair == null || pair.getPriority() > highestPriorityPair.getPriority()) {
@@ -165,10 +140,9 @@ public class CheckList extends Vector<CandidatePair> {
                 }
             }
         }
-
-        if (highestPriorityPair != null)
+        if (highestPriorityPair != null) {
             return highestPriorityPair;
-
+        }
         for (CandidatePair pair : this) {
             if (pair.getState() == CandidatePairState.FROZEN) {
                 if (highestPriorityPair == null || pair.getPriority() > highestPriorityPair.getPriority()) {
@@ -177,39 +151,34 @@ public class CheckList extends Vector<CandidatePair> {
                 }
             }
         }
-
         return highestPriorityPair; //return even if null
     }
 
     /**
-     * Determines whether this CheckList can be considered active.
-     * RFC 5245 says: A check list with at least one pair that is Waiting is
+     * Determines whether this CheckList can be considered active. RFC 5245 says: A check list with at least one pair that is Waiting is
      * called an active check list.
      *
-     * @return true if this list is active and false
-     * otherwise.
+     * @return true if this list is active and false otherwise.
      */
-    public synchronized boolean isActive() {
+    public boolean isActive() {
         for (CandidatePair pair : this) {
-            if (pair.getState() == CandidatePairState.WAITING)
+            if (pair.getState() == CandidatePairState.WAITING) {
                 return true;
+            }
         }
         return false;
     }
 
     /**
-     * Determines whether all checks in this CheckList have ended one
-     * way or another.
+     * Determines whether all checks in this CheckList have ended one way or another.
      *
-     * @return true if all checks for pairs in this list have either
-     * succeeded or failed (but non are are currently waiting or in progress)
+     * @return true if all checks for pairs in this list have either succeeded or failed (but non are are currently waiting or in progress)
      * or false otherwise..
      */
-    public synchronized boolean allChecksCompleted() {
+    public boolean allChecksCompleted() {
         for (CandidatePair pair : this) {
             CandidatePairState pairState = pair.getState();
-
-            if ((pairState != CandidatePairState.SUCCEEDED) && (pairState != CandidatePairState.FAILED)) {
+            if (pairState != CandidatePairState.SUCCEEDED && pairState != CandidatePairState.FAILED) {
                 return false;
             }
         }
@@ -217,66 +186,54 @@ public class CheckList extends Vector<CandidatePair> {
     }
 
     /**
-     * Determines whether this CheckList can be considered frozen.
-     * RFC 5245 says: a check list with all pairs Frozen is called a frozen
+     * Determines whether this CheckList can be considered frozen. RFC 5245 says: a check list with all pairs Frozen is called a frozen
      * check list.
      *
-     * @return true if all pairs in this list are frozen and
-     * false otherwise.
+     * @return true if all pairs in this list are frozen and false otherwise.
      */
-    public synchronized boolean isFrozen() {
+    public boolean isFrozen() {
         for (CandidatePair pair : this) {
-            if (pair.getState() != CandidatePairState.FROZEN)
+            if (pair.getState() != CandidatePairState.FROZEN) {
                 return false;
+            }
         }
         return true;
     }
 
     /**
-     * Returns a String representation of this check list. It
-     * consists of a list of the CandidatePairs in the order they
-     * were inserted and enclosed in square brackets ("[]"). The method
-     * would also call and use the content returned by every member
+     * Returns a String representation of this check list. It consists of a list of the CandidatePairs in the order they
+     * were inserted and enclosed in square brackets ("[]"). The method would also call and use the content returned by every member
      * CandidatePair.
      *
      * @return A String representation of this collection.
      */
     @Override
     public String toString() {
-        StringBuilder buff = new StringBuilder("CheckList. (num pairs=");
-        buff.append(size()).append(")\n");
-
-        for (CandidatePair pair : this)
+        StringBuilder buff = new StringBuilder("CheckList\n");
+        for (CandidatePair pair : this) {
             buff.append(pair).append("\n");
-
+        }
         return buff.toString();
     }
 
     /**
-     * Computes and resets states of all pairs in this check list. For all pairs
-     * with the same foundation, we set the state of the pair with the lowest
-     * component ID to Waiting. If there is more than one such pair, the one
-     * with the highest priority is used.
+     * Computes and resets states of all pairs in this check list. For all pairs with the same foundation, we set the state of the pair with the lowest
+     * component ID to Waiting. If there is more than one such pair, the one with the highest priority is used.
      */
-    protected synchronized void computeInitialCheckListPairStates() {
+    protected void computeInitialCheckListPairStates() {
         Map<String, CandidatePair> pairsToWait = new Hashtable<>();
-
         //first, determine the pairs that we'd need to put in the waiting state.
         for (CandidatePair pair : this) {
-            //we need to check whether the pair is already in the wait list. if
-            //so we'll compare it with this one and determine which of the two
-            //needs to stay.
+            // we need to check whether the pair is already in the wait list. if so we'll compare it with this one and determine
+            // which of the two needs to stay.
             CandidatePair prevPair = pairsToWait.get(pair.getFoundation());
-
             if (prevPair == null) {
                 //first pair with this foundation.
                 pairsToWait.put(pair.getFoundation(), pair);
                 continue;
             }
-
-            //we already have a pair with the same foundation. determine which
-            //of the two has the lower component id and higher priority and
-            //keep that one in the list.
+            // we already have a pair with the same foundation. determine which of the two has the lower component id and higher
+            // priority and keep that one in the list.
             if (prevPair.getParentComponent() == pair.getParentComponent()) {
                 if (pair.getPriority() > prevPair.getPriority()) {
                     //need to replace the pair in the list.
@@ -289,55 +246,43 @@ public class CheckList extends Vector<CandidatePair> {
                 }
             }
         }
-
         //now put the pairs we've selected in the Waiting state.
-        for (CandidatePair pairToWait : pairsToWait.values())
+        for (CandidatePair pairToWait : pairsToWait.values()) {
             pairToWait.setStateWaiting();
+        }
     }
 
     /**
-     * Recomputes priorities of all pairs in this CheckList. Method is
-     * useful when an agent changes its isControlling property as a
+     * Recomputes priorities of all pairs in this CheckList. Method is useful when an agent changes its isControlling property as a
      * result of a role conflict.
      */
-    protected synchronized void recomputePairPriorities() {
+    protected void recomputePairPriorities() {
         //first, determine the pairs that we'd need to put in the waiting state.
-        for (CandidatePair pair : this)
+        for (CandidatePair pair : this) {
             pair.computePriority();
+        }
     }
 
     /**
-     * Removes from this CheckList and its associated triggered check
-     * queue all {@link CandidatePair}s that are in the Waiting and
-     * Frozen states and that belong to the same {@link Component} as
-     * nominatedPair. Typically this will happen upon confirmation of
-     * the nomination of one pair in that component. The procedure implemented
-     * here represents one of the cases specified in RFC 5245, Section 8.1.2:
-     * <p>
-     * The agent MUST remove all Waiting and Frozen pairs in the check
-     * list and triggered check queue for the same component as the
-     * nominated pairs for that media stream.
-     * <br><p>
-     * If an In-Progress pair in the check list is for the same component as a
-     * nominated pair, the agent SHOULD cease retransmissions for its check
-     * if its pair priority is lower than the lowest-priority nominated pair
-     * for that component.
+     * Removes from this CheckList and its associated triggered check queue all {@link CandidatePair}s that are in the Waiting and
+     * Frozen states and that belong to the same {@link Component} as nominatedPair. Typically this will happen upon confirmation of
+     * the nomination of one pair in that component. The procedure implemented here represents one of the cases specified in RFC 5245, Section 8.1.2:
      * <br>
+     * The agent MUST remove all Waiting and Frozen pairs in the check list and triggered check queue for the same component as the
+     * nominated pairs for that media stream.
+     * <br>
+     * If an In-Progress pair in the check list is for the same component as a nominated pair, the agent SHOULD cease retransmissions for its check
+     * if its pair priority is lower than the lowest-priority nominated pair for that component.
      *
-     * @param nominatedPair the {@link CandidatePair} whose nomination we need
-     * to handle.
+     * @param nominatedPair the {@link CandidatePair} whose nomination we need to handle.
      */
-    protected synchronized void handleNominationConfirmed(CandidatePair nominatedPair) {
+    protected void handleNominationConfirmed(CandidatePair nominatedPair) {
         Component cmp = nominatedPair.getParentComponent();
-
         if (cmp.getSelectedPair() != null) {
             return;
         }
-
-        logger.info("Selected pair for stream " + cmp.toShortString() + ": " + nominatedPair.toShortString());
-
+        logger.info("Selected pair for stream {}: {}", cmp.toShortString(), nominatedPair.toShortString());
         cmp.setSelectedPair(nominatedPair);
-
         Iterator<CandidatePair> pairsIter = iterator();
         while (pairsIter.hasNext()) {
             CandidatePair pair = pairsIter.next();
@@ -345,111 +290,65 @@ public class CheckList extends Vector<CandidatePair> {
                 pairsIter.remove();
             }
         }
-
-        synchronized (triggeredCheckQueue) {
-            Iterator<CandidatePair> triggeredPairsIter = triggeredCheckQueue.iterator();
-            while (triggeredPairsIter.hasNext()) {
-                CandidatePair pair = triggeredPairsIter.next();
-                if (pair.getParentComponent() == cmp && (pair.getState() == CandidatePairState.WAITING || pair.getState() == CandidatePairState.FROZEN || (pair.getState() == CandidatePairState.IN_PROGRESS && pair.getPriority() < nominatedPair.getPriority()))) {
-                    triggeredPairsIter.remove();
-                }
+        Iterator<CandidatePair> triggeredPairsIter = triggeredCheckQueue.iterator();
+        while (triggeredPairsIter.hasNext()) {
+            CandidatePair pair = triggeredPairsIter.next();
+            if (pair.getParentComponent() == cmp && (pair.getState() == CandidatePairState.WAITING || pair.getState() == CandidatePairState.FROZEN || (pair.getState() == CandidatePairState.IN_PROGRESS && pair.getPriority() < nominatedPair.getPriority()))) {
+                triggeredPairsIter.remove();
             }
         }
     }
 
     /**
-     * Returns the name of this check list so that we could use it for debugging
-     * purposes.
+     * Returns the name of this check list so that we could use it for debugging purposes.
      *
-     * @return a name for this check list that we could use to distinguish it
-     * from other check lists while debugging.
+     * @return a name for this check list that we could use to distinguish it from other check lists while debugging.
      */
     public String getName() {
         return parentStream.getName();
     }
 
     /**
-     * Returns true if this CheckList already contains a
-     * nominated {@link CandidatePair} for the specified component
-     * and false otherwise.
-     *
-     * @param component the {@link Component} that we'd whose nominees we are
-     * interested in.
-     *
-     * @return true if this CheckList already contains a
-     * nominated {@link CandidatePair} for the specified component
-     * and false otherwise.
-     * @deprecated This method takes into account only candidates in the
-     * checklist. In case of peer reflexives candidates nominated, they do not
-     * appears in checklist but in valid list.
-     */
-    @Deprecated
-    public synchronized boolean containsNomineeForComponent(Component component) {
-        for (CandidatePair pair : this) {
-            if (pair.isNominated() && pair.getParentComponent() == component)
-                return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Adds l to the list of listeners tracking changes of the
-     * {@link CheckListState} of this CheckList
+     * Adds l to the list of listeners tracking changes of the {@link CheckListState} of this CheckList
      *
      * @param l the listener to register.
      */
     public void addStateChangeListener(PropertyChangeListener l) {
-        synchronized (stateListeners) {
-            if (!stateListeners.contains(l))
-                this.stateListeners.add(l);
+        if (!stateListeners.contains(l)) {
+            this.stateListeners.add(l);
         }
     }
 
     /**
-     * Removes l from the list of listeners tracking changes of the
-     * {@link CheckListState} of this CheckList
+     * Removes l from the list of listeners tracking changes of the {@link CheckListState} of this CheckList
      *
      * @param l the listener to remove.
      */
     public void removeStateChangeListener(PropertyChangeListener l) {
-        synchronized (stateListeners) {
-            this.stateListeners.remove(l);
-        }
+        this.stateListeners.remove(l);
     }
 
     /**
-     * Creates a new {@link PropertyChangeEvent} and delivers it to all
-     * currently registered state listeners.
+     * Creates a new {@link PropertyChangeEvent} and delivers it to all currently registered state listeners.
      *
      * @param oldState the {@link CheckListState} we had before the change
      * @param newState the {@link CheckListState} we had after the change
      */
     private void fireStateChange(CheckListState oldState, CheckListState newState) {
-        List<PropertyChangeListener> listenersCopy;
-
-        synchronized (stateListeners) {
-            listenersCopy = new LinkedList<>(stateListeners);
-        }
-
         PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_CHECK_LIST_STATE, oldState, newState);
-
-        for (PropertyChangeListener l : listenersCopy) {
+        for (PropertyChangeListener l : stateListeners) {
             l.propertyChange(evt);
         }
     }
 
     /**
-     * Add a CheckListener. It will be notified when ordinary checks
-     * ended.
+     * Add a CheckListener. It will be notified when ordinary checks ended.
      *
      * @param l CheckListener to add
      */
     public void addChecksListener(PropertyChangeListener l) {
-        synchronized (checkListeners) {
-            if (!checkListeners.contains(l)) {
-                checkListeners.add(l);
-            }
+        if (!checkListeners.contains(l)) {
+            checkListeners.add(l);
         }
     }
 
@@ -459,39 +358,29 @@ public class CheckList extends Vector<CandidatePair> {
      * @param l CheckListener to remove
      */
     public void removeChecksListener(PropertyChangeListener l) {
-        synchronized (checkListeners) {
-            if (checkListeners.contains(l)) {
-                checkListeners.remove(l);
-            }
+        if (checkListeners.contains(l)) {
+            checkListeners.remove(l);
+
         }
     }
 
     /**
-     * Creates a new {@link PropertyChangeEvent} and delivers it to all
-     * currently registered checks listeners.
+     * Creates a new {@link PropertyChangeEvent} and delivers it to all currently registered checks listeners.
      */
     protected void fireEndOfOrdinaryChecks() {
-        List<PropertyChangeListener> listenersCopy;
-
-        synchronized (checkListeners) {
-            listenersCopy = new LinkedList<>(checkListeners);
-        }
-
         PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_CHECK_LIST_CHECKS, false, true);
-
-        for (PropertyChangeListener l : listenersCopy) {
+        for (PropertyChangeListener l : checkListeners) {
             l.propertyChange(evt);
         }
     }
 
     /**
-     * Returns a reference to the {@link IceMediaStream} that created and that
-     * maintains this check list.
+     * Returns a reference to the {@link IceMediaStream} that created and that maintains this check list.
      *
-     * @return a reference to the {@link IceMediaStream} that this list belongs
-     * to.
+     * @return a reference to the {@link IceMediaStream} that this list belongs to.
      */
     public IceMediaStream getParentStream() {
         return parentStream;
     }
+
 }

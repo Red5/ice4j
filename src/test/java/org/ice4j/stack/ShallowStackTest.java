@@ -3,10 +3,9 @@ package org.ice4j.stack;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
+
+import javax.xml.bind.DatatypeConverter;
 
 import junit.framework.TestCase;
 
@@ -19,6 +18,7 @@ import org.ice4j.StunResponseEvent;
 import org.ice4j.StunTimeoutEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -29,15 +29,15 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import test.PortUtil;
+
 /**
  * All unit stack tests should be provided later. I just don't have the time now.
  *
  * @author Emil Ivov
  */
 public class ShallowStackTest extends TestCase {
-    /**
-     * The Logger used by the ShallowStackTest class and its instances for logging output.
-     */
+
     private static final Logger logger = LoggerFactory.getLogger(ShallowStackTest.class);
 
     /**
@@ -57,6 +57,8 @@ public class ShallowStackTest extends TestCase {
 
     private DatagramSocket dummyServerSocket;
 
+    private NioServer server;
+
     /**
      * Creates a test instance for the method with the specified name.
      *
@@ -74,28 +76,28 @@ public class ShallowStackTest extends TestCase {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        //System.out.println("setup");
+        logger.info("-------------------------------------------\nSettting up {}", getClass().getName());
+        //logger.info("setup");
         msgFixture = new MsgFixture();
-        msgFixture.setUp();
-        //Addresses
-        InetAddress addr = null;
-        try {
-            addr = InetAddress.getByName("127.0.0.1");
-            //logger.info("Got address: {}", addr);
-        } catch(UnknownHostException e) {
-            logger.error("Address lookup failed", e);
-            throw e;
-        }
         // XXX Paul: ephemeral port selection using 0 isnt working since the InetSocketAddress used by TransportAddress doesnt show the selected port
         // this causes connector lookups to fail due to port being still set to 0
-        dummyServerAddress = new TransportAddress(new InetSocketAddress(addr, 50001), Transport.UDP);
-        localAddress = new TransportAddress(new InetSocketAddress(addr, 50003), Transport.UDP);
-        //init the stack
+        dummyServerAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        // init the stack
         stunStack = new StunStack();
-        //access point
+        // create an NIO server
+        server = new NioServer();
+        // start the NIO server
+        server.start();
+        // bind the server on the local address
+        server.addUdpBinding(localAddress);
+        // access point
         localSock = new IceUdpSocketWrapper(localAddress);
+        // attach the local socket wrapper's listener to the server
+        server.addNioServerListener(localSock.getServerListener());
+        // add the wrapper to the stack
         stunStack.addSocket(localSock);
-        //init the dummy server
+        // init the dummy server
         dummyServerSocket = new DatagramSocket(dummyServerAddress);
     }
 
@@ -106,12 +108,16 @@ public class ShallowStackTest extends TestCase {
      */
     @After
     protected void tearDown() throws Exception {
-        //System.out.println("teardown");
+        //logger.info("teardown");
+        server.removeUdpBinding(localAddress);
+        server.removeNioServerListener(localSock.getServerListener());
         stunStack.removeSocket(localAddress);
         localSock.close();
         dummyServerSocket.close();
-        msgFixture.tearDown();
         msgFixture = null;
+        // stop the NIO server
+        server.stop();
+        logger.info("-------------------------------------------\nTearing down {}", getClass().getName());
         super.tearDown();
     }
 
@@ -123,38 +129,25 @@ public class ShallowStackTest extends TestCase {
      * @throws java.lang.Exception if we fail
      */
     public void testSendRequest() throws Exception {
-        System.out.println("\nSendRequest");
+        logger.info("\nSendRequest");
         Request bindingRequest = MessageFactory.createBindingRequest();
-
         dgramCollector.startListening(dummyServerSocket);
-
         stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, new SimpleResponseCollector());
-
-        //wait for its arrival
+        // wait for its arrival
         dgramCollector.waitForPacket();
-
         DatagramPacket receivedPacket = dgramCollector.collectPacket();
-
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
-
         Request receivedRequest = (Request) Request.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
-        assertEquals("The received request did not match the one that was sent.", bindingRequest, receivedRequest);
-
-        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(bindingRequest.encode(stunStack)));
-        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(receivedRequest.encode(stunStack)));
-
-        //wait for retransmissions
-
+        assertEquals("The received request did not match the one that was sent", bindingRequest, receivedRequest);
+        logger.info(byteArrayToHexString(bindingRequest.encode(stunStack)));
+        logger.info(byteArrayToHexString(receivedRequest.encode(stunStack)));
+        // wait for retransmissions
         dgramCollector.startListening(dummyServerSocket);
-
         dgramCollector.waitForPacket();
-
         receivedPacket = dgramCollector.collectPacket();
-
         assertTrue("The stack did not retransmit a Binding Request", (receivedPacket.getLength() > 0));
-
-        receivedRequest = (Request) Request.decode(receivedPacket.getData(), (char) 0, (char) receivedPacket.getLength());
-        assertEquals("The retransmitted request did not match the original.", bindingRequest, receivedRequest);
+        receivedRequest = (Request) Request.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
+        assertEquals("The retransmitted request did not match the original", bindingRequest, receivedRequest);
     }
 
     /**
@@ -164,25 +157,19 @@ public class ShallowStackTest extends TestCase {
      * @throws java.lang.Exception if we fail
      */
     public void testReceiveRequest() throws Exception {
-        System.out.println("\nReceiveRequest");
+        logger.info("\nReceiveRequest");
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
-
         dummyServerSocket.send(new DatagramPacket(msgFixture.bindingRequest2, msgFixture.bindingRequest2.length, localAddress));
-
-        //wait for the packet to arrive
+        // wait for the packet to arrive
         requestCollector.waitForRequest();
-
         Request collectedRequest = requestCollector.collectedRequest;
-
         assertNotNull("No request has been received", collectedRequest);
-
         byte[] expectedReturn = msgFixture.bindingRequest2;
         byte[] actualReturn = collectedRequest.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
-
-        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(expectedReturn));
-        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(actualReturn));
+        logger.info(byteArrayToHexString(expectedReturn));
+        logger.info(byteArrayToHexString(actualReturn));
     }
 
     /**
@@ -197,33 +184,22 @@ public class ShallowStackTest extends TestCase {
         //---------- send & receive the request --------------------------------
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
-
         dummyServerSocket.send(new DatagramPacket(msgFixture.bindingRequest, msgFixture.bindingRequest.length, localAddress));
-
-        //wait for the packet to arrive
+        // wait for the packet to arrive
         requestCollector.waitForRequest();
-
         Request collectedRequest = requestCollector.collectedRequest;
-
-        byte expectedReturn[] = msgFixture.bindingRequest;
-        byte actualReturn[] = collectedRequest.encode(stunStack);
+        byte[] expectedReturn = msgFixture.bindingRequest;
+        byte[] actualReturn = collectedRequest.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
-
         //---------- create the response ---------------------------------------
         Response bindingResponse = MessageFactory.create3489BindingResponse(new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS, MsgFixture.ADDRESS_ATTRIBUTE_PORT, Transport.UDP), new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_2, MsgFixture.ADDRESS_ATTRIBUTE_PORT_2, Transport.UDP), new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_3, MsgFixture.ADDRESS_ATTRIBUTE_PORT_3, Transport.UDP));
-
         //---------- send & receive the response -------------------------------
         dgramCollector.startListening(dummyServerSocket);
-
         stunStack.sendResponse(collectedRequest.getTransactionID(), bindingResponse, localAddress, dummyServerAddress);
-
-        //wait for its arrival
+        // wait for its arrival
         dgramCollector.waitForPacket();
-
         DatagramPacket receivedPacket = dgramCollector.collectPacket();
-
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
-
         Response receivedResponse = (Response) Response.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
         assertEquals("The received request did not match the one that was sent.", bindingResponse, receivedResponse);
     }
@@ -237,174 +213,166 @@ public class ShallowStackTest extends TestCase {
         SimpleResponseCollector collector = new SimpleResponseCollector();
         //--------------- send the original request ----------------------------
         Request bindingRequest = MessageFactory.createBindingRequest();
-
         stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, collector);
-
-        //wait for its arrival
+        // wait for its arrival
         collector.waitForResponse();
-
-        //create the right response
-        byte response[] = new byte[msgFixture.bindingResponse.length];
+        // create the right response
+        byte[] response = new byte[msgFixture.bindingResponse.length];
         System.arraycopy(msgFixture.bindingResponse, 0, response, 0, response.length);
-
-        //Set the valid tid.
+        // Set the valid tid.
         System.arraycopy(bindingRequest.getTransactionID(), 0, response, 8, 12);
-
-        //send the response
+        // send the response
         dummyServerSocket.send(new DatagramPacket(response, response.length, localAddress));
-
-        //wait for the packet to arrive
+        // wait for the packet to arrive
         collector.waitForResponse();
-
         Response collectedResponse = collector.collectedResponse;
-
-        byte expectedReturn[] = response;
-        byte actualReturn[] = collectedResponse.encode(stunStack);
+        byte[] expectedReturn = response;
+        byte[] actualReturn = collectedResponse.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
     }
 
     /**
      * Created to test Edge provided data, which we know has issues.
      */
-//    public void testEdgeControlled() throws Exception {
-//        System.out.println("\nEdge");
-//        // user name
-//        @SuppressWarnings("unused")
-//        final String userName = "7vska1bkv1e9u7:9YVL";
-//        // register our dummy credential authority
-//        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
-//
-//            // local key / override the key so our data is valid
-//            byte[] localKey = hexStringToByteArray("363734656A3873726272346C6475316C3736636264676F356D73");
-//
-//            byte[] remoteKey = hexStringToByteArray("364974756553306563335930774959314167714B626A6456");
-//
-//            @Override
-//            public byte[] getLocalKey(String username) {
-//                return localKey;
-//            }
-//
-//            @Override
-//            public byte[] getRemoteKey(String username, String media) {
-//                return remoteKey;
-//            }
-//
-//            @Override
-//            public boolean checkLocalUserName(String username) {
-//                return username.split(":")[0].equals(username);
-//            }
-//
-//        });
-//
-//        byte[] txId = hexStringToByteArray("ED815F6A0BD1AFEF51BA05FF");
-//        // valid sized username == 19
-//        byte[] req1 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600143776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A00080000000000318222805400043100000080700004000000030008001446B190015E4C153EBC92E6EEFF7EDD379AECE6C58028000465E68F73");
-//        // incorrect size for username == 20
-//        //byte[] req2 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600133776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A0008000000000031822280540001310000008070000400000003000800142C8D92719B35E6AC883576CC430F4540DAEABFA180280004E9CC3B69");
-//
-//        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
-//        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
-//
-//        byte[] actualReturn = collectedRequest.encode(stunStack);
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(req1));
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(actualReturn));
-//
-//        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
-//    }
+    //    public void testEdgeControlled() throws Exception {
+    //        logger.info("\nEdge");
+    //        // user name
+    //        @SuppressWarnings("unused")
+    //        final String userName = "7vska1bkv1e9u7:9YVL";
+    //        // register our dummy credential authority
+    //        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
+    //
+    //            // local key / override the key so our data is valid
+    //            byte[] localKey = hexStringToByteArray("363734656A3873726272346C6475316C3736636264676F356D73");
+    //
+    //            byte[] remoteKey = hexStringToByteArray("364974756553306563335930774959314167714B626A6456");
+    //
+    //            @Override
+    //            public byte[] getLocalKey(String username) {
+    //                return localKey;
+    //            }
+    //
+    //            @Override
+    //            public byte[] getRemoteKey(String username, String media) {
+    //                return remoteKey;
+    //            }
+    //
+    //            @Override
+    //            public boolean checkLocalUserName(String username) {
+    //                return username.split(":")[0].equals(username);
+    //            }
+    //
+    //        });
+    //
+    //        byte[] txId = hexStringToByteArray("ED815F6A0BD1AFEF51BA05FF");
+    //        // valid sized username == 19
+    //        byte[] req1 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600143776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A00080000000000318222805400043100000080700004000000030008001446B190015E4C153EBC92E6EEFF7EDD379AECE6C58028000465E68F73");
+    //        // incorrect size for username == 20
+    //        //byte[] req2 = hexStringToByteArray("0001005C2112A442ED815F6A0BD1AFEF51BA05FF000600133776736B6131626B7631653975373A3959564C00002400046EFFFEFF802A0008000000000031822280540001310000008070000400000003000800142C8D92719B35E6AC883576CC430F4540DAEABFA180280004E9CC3B69");
+    //
+    //        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
+    //        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
+    //
+    //        byte[] actualReturn = collectedRequest.encode(stunStack);
+    //        logger.info(byteArrayToHexString(req1));
+    //        logger.info(byteArrayToHexString(actualReturn));
+    //
+    //        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
+    //    }
 
     /**
      * Created to test Safari provided data.
      */
-//    public void testSafariControlled() throws Exception {
-//        System.out.println("\nSafari");
-//        // user name
-//        @SuppressWarnings("unused")
-//        final String userName = "5tm7u1brpgfl50:lwoc";
-//        // register our dummy credential authority
-//        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
-//
-//            // local key / override the key so our data is valid
-//            byte[] localKey = hexStringToByteArray("376A3164366C696B6963366D68356C393232766A743473306867");
-//
-//            byte[] remoteKey = hexStringToByteArray("474A6B2F4A3174533864376A6B55376D626E4C736252492B");
-//
-//            @Override
-//            public byte[] getLocalKey(String username) {
-//                return localKey;
-//            }
-//
-//            @Override
-//            public byte[] getRemoteKey(String username, String media) {
-//                return remoteKey;
-//            }
-//
-//            @Override
-//            public boolean checkLocalUserName(String username) {
-//                return username.split(":")[0].equals(username);
-//            }
-//
-//        });
-//
-//        // valid sized username == 19
-//        byte[] req1 = hexStringToByteArray("000100542112A44236703243454B505231374B6C0006001335746D37753162727067666C35303A6C776F6300C05700040000003280290008F80F30B4FC105EEE002400046E001EFF000800145316B909FEA5D754C82F0510656BDE9CBCCD7F7680280004F7116D96");
-//        byte[] txId = hexStringToByteArray("36703243454B505231374B6C");
-//
-//        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
-//        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
-//
-//        byte[] actualReturn = collectedRequest.encode(stunStack);
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(req1));
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(actualReturn));
-//
-//        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
-//    }
+    //    public void testSafariControlled() throws Exception {
+    //        logger.info("\nSafari");
+    //        // user name
+    //        @SuppressWarnings("unused")
+    //        final String userName = "5tm7u1brpgfl50:lwoc";
+    //        // register our dummy credential authority
+    //        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
+    //
+    //            // local key / override the key so our data is valid
+    //            byte[] localKey = hexStringToByteArray("376A3164366C696B6963366D68356C393232766A743473306867");
+    //
+    //            byte[] remoteKey = hexStringToByteArray("474A6B2F4A3174533864376A6B55376D626E4C736252492B");
+    //
+    //            @Override
+    //            public byte[] getLocalKey(String username) {
+    //                return localKey;
+    //            }
+    //
+    //            @Override
+    //            public byte[] getRemoteKey(String username, String media) {
+    //                return remoteKey;
+    //            }
+    //
+    //            @Override
+    //            public boolean checkLocalUserName(String username) {
+    //                return username.split(":")[0].equals(username);
+    //            }
+    //
+    //        });
+    //
+    //        // valid sized username == 19
+    //        byte[] req1 = hexStringToByteArray("000100542112A44236703243454B505231374B6C0006001335746D37753162727067666C35303A6C776F6300C05700040000003280290008F80F30B4FC105EEE002400046E001EFF000800145316B909FEA5D754C82F0510656BDE9CBCCD7F7680280004F7116D96");
+    //        byte[] txId = hexStringToByteArray("36703243454B505231374B6C");
+    //
+    //        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
+    //        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
+    //
+    //        byte[] actualReturn = collectedRequest.encode(stunStack);
+    //        logger.info(byteArrayToHexString(req1));
+    //        logger.info(byteArrayToHexString(actualReturn));
+    //
+    //        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
+    //    }
 
     /**
      * Created to test Chrome provided data.
      */
-//    public void testChromeControlled() throws Exception {
-//        System.out.println("\nChrome");
-//        // user name
-//        @SuppressWarnings("unused")
-//        final String userName = "bpvm21bs5v3ecp:dVlI";
-//        // register our dummy credential authority
-//        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
-//
-//            // local key / override the key so our data is valid
-//            byte[] localKey = hexStringToByteArray("3166686335376A31366D353231727569733734396F6669736A65");
-//
-//            byte[] remoteKey = hexStringToByteArray("4D304338575A56514E54676B796848452B6D715332653067");
-//
-//            @Override
-//            public byte[] getLocalKey(String username) {
-//                return localKey;
-//            }
-//
-//            @Override
-//            public byte[] getRemoteKey(String username, String media) {
-//                return remoteKey;
-//            }
-//
-//            @Override
-//            public boolean checkLocalUserName(String username) {
-//                return username.split(":")[0].equals(username);
-//            }
-//
-//        });
-//
-//        // valid sized username == 19
-//        byte[] req1 = hexStringToByteArray("000100582112A442676E6D3976584A48576B6841000600136270766D323162733576336563703A64566C4900C057000400000032802A0008E19044DBFFC7814C00250000002400046E001EFF000800146EF5B93E9F4AB9AE415E0D688834962D279787F48028000489247947");
-//        byte[] txId = hexStringToByteArray("676E6D3976584A48576B6841");
-//
-//        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
-//        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
-//
-//        byte[] actualReturn = collectedRequest.encode(stunStack);
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(req1));
-//        System.out.println(javax.xml.bind.DatatypeConverter.printHexBinary(actualReturn));
-//
-//        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
-//    }
+    //    public void testChromeControlled() throws Exception {
+    //        logger.info("\nChrome");
+    //        // user name
+    //        @SuppressWarnings("unused")
+    //        final String userName = "bpvm21bs5v3ecp:dVlI";
+    //        // register our dummy credential authority
+    //        stunStack.getCredentialsManager().registerAuthority(new CredentialsAuthority() {
+    //
+    //            // local key / override the key so our data is valid
+    //            byte[] localKey = hexStringToByteArray("3166686335376A31366D353231727569733734396F6669736A65");
+    //
+    //            byte[] remoteKey = hexStringToByteArray("4D304338575A56514E54676B796848452B6D715332653067");
+    //
+    //            @Override
+    //            public byte[] getLocalKey(String username) {
+    //                return localKey;
+    //            }
+    //
+    //            @Override
+    //            public byte[] getRemoteKey(String username, String media) {
+    //                return remoteKey;
+    //            }
+    //
+    //            @Override
+    //            public boolean checkLocalUserName(String username) {
+    //                return username.split(":")[0].equals(username);
+    //            }
+    //
+    //        });
+    //
+    //        // valid sized username == 19
+    //        byte[] req1 = hexStringToByteArray("000100582112A442676E6D3976584A48576B6841000600136270766D323162733576336563703A64566C4900C057000400000032802A0008E19044DBFFC7814C00250000002400046E001EFF000800146EF5B93E9F4AB9AE415E0D688834962D279787F48028000489247947");
+    //        byte[] txId = hexStringToByteArray("676E6D3976584A48576B6841");
+    //
+    //        Request collectedRequest = (Request) Message.decode(req1, 0, req1.length);
+    //        assertTrue("Transaction ids don't match", Arrays.equals(txId, collectedRequest.getTransactionID()));
+    //
+    //        byte[] actualReturn = collectedRequest.encode(stunStack);
+    //        logger.info(byteArrayToHexString(req1));
+    //        logger.info(byteArrayToHexString(actualReturn));
+    //
+    //        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
+    //    }
 
     //--------------------------------------- listener implementations ---------
     /**
@@ -413,10 +381,9 @@ public class ShallowStackTest extends TestCase {
     public static class SimpleResponseCollector extends AbstractResponseCollector {
 
         /**
-         * The response that we've just collected or null if none
-         * arrived while we were waiting.
+         * The response that we've just collected or null if none arrived while we were waiting.
          */
-        Response collectedResponse = null;
+        Response collectedResponse;
 
         /**
          * Notifies this ResponseCollector that a transaction described by
@@ -429,13 +396,13 @@ public class ShallowStackTest extends TestCase {
          */
         protected synchronized void processFailure(BaseStunMessageEvent event) {
             String msg;
-
-            if (event instanceof StunFailureEvent)
+            if (event instanceof StunFailureEvent) {
                 msg = "Unreachable";
-            else if (event instanceof StunTimeoutEvent)
+            } else if (event instanceof StunTimeoutEvent) {
                 msg = "Timeout";
-            else
+            } else {
                 msg = "Failure";
+            }
             logger.info(msg);
             notifyAll();
         }
@@ -457,8 +424,9 @@ public class ShallowStackTest extends TestCase {
          */
         public synchronized void waitForResponse() {
             try {
-                if (collectedResponse == null)
+                if (collectedResponse == null) {
                     wait(50);
+                }
             } catch (InterruptedException e) {
                 logger.warn("oops", e);
             }
@@ -473,7 +441,7 @@ public class ShallowStackTest extends TestCase {
          * The one request that this collector has received or null if
          * none arrived while we were waiting.
          */
-        private Request collectedRequest = null;
+        private Request collectedRequest;
 
         /**
          * Indicates that a StunRequest has just been received.
@@ -495,9 +463,9 @@ public class ShallowStackTest extends TestCase {
          */
         public void waitForRequest() {
             synchronized (this) {
-                if (collectedRequest != null)
+                if (collectedRequest != null) {
                     return;
-
+                }
                 try {
                     wait(50);
                 } catch (InterruptedException e) {
@@ -522,6 +490,10 @@ public class ShallowStackTest extends TestCase {
             data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
         }
         return data;
+    }
+
+    public final static String byteArrayToHexString(byte[] a) {
+        return DatatypeConverter.printHexBinary(a);
     }
 
 }

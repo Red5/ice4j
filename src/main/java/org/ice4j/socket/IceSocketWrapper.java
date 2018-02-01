@@ -113,10 +113,14 @@ public abstract class IceSocketWrapper {
      * Closes the channel.
      */
     public void close() {
-        try {
-            channel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (channel != null) {
+            try {
+                channel.close();
+            } catch (IOException e) {
+                logger.warn("Fail on close", e);
+            } finally {
+                channel = null;
+            }
         }
     }
 

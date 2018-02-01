@@ -47,15 +47,11 @@ public class UsernameAttributeTest extends TestCase
 
         usernameAttribute = new UsernameAttribute();
         usernameAttribute.setUsername(usernameValue.getBytes());
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         usernameAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

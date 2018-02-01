@@ -81,7 +81,7 @@ public class StunDataFilter implements DataFilter {
      * @param serverAddress
      */
     public boolean accept(byte[] buf, TransportAddress address) {
-        if (serverAddress != null && serverAddress.equals(address)) {
+        if (serverAddress == null || (serverAddress != null && serverAddress.equals(address))) {
             return accept(buf);
         }
         return false;

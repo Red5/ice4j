@@ -15,11 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The class that will be generating our outgoing connectivity checks and that
- * will be handling their responses or lack thereof.
+ * The class that will be generating our outgoing connectivity checks and that will be handling their responses or lack thereof.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
+ * @author Paul Gregoire
  */
 class ConnectivityCheckClient implements ResponseCollector {
 
@@ -51,8 +51,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     private boolean alive;
 
     /**
-     * Creates a new ConnectivityCheckClient setting
-     * parentAgent as the agent that will be used for retrieving
+     * Creates a new ConnectivityCheckClient setting parentAgent as the agent that will be used for retrieving
      * information such as user fragments for example.
      *
      * @param parentAgent the Agent that is creating this instance.
@@ -63,27 +62,21 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Returns a boolean value indicating whether we have received a STUN
-     * response or not.
+     * Returns a boolean value indicating whether we have received a STUN response or not.
      *
-     * Note that this should NOT be taken as an indication that the negotiation
-     * has succeeded, it merely indicates that we have received ANY STUN
-     * response, possibly a BINDING_ERROR_RESPONSE. It is completely
-     * unrelated/independent from the ICE spec and it's only meant to be used
+     * Note that this should NOT be taken as an indication that the negotiation has succeeded, it merely indicates that we have received ANY STUN
+     * response, possibly a BINDING_ERROR_RESPONSE. It is completely unrelated/independent from the ICE spec and it's only meant to be used
      * for debugging purposes.
      *
-     * @return a boolean value indicating whether we have received a STUN
-     * response or not.
+     * @return a boolean value indicating whether we have received a STUN response or not.
      */
     boolean isAlive() {
         return alive;
     }
 
     /**
-     * Starts client connectivity checks for the first {@link IceMediaStream}
-     * in our parent {@link Agent}. This method should only be called by
-     * the parent {@link Agent} when connectivity establishment starts for a
-     * particular check list.
+     * Starts client connectivity checks for the first {@link IceMediaStream} in our parent {@link Agent}. This method should only be called by
+     * the parent {@link Agent} when connectivity establishment starts for a particular check list.
      */
     public void startChecks() {
         List<IceMediaStream> streamsWithPendingConnectivityEstablishment = parentAgent.getStreamsWithPendingConnectivityEstablishment();
@@ -96,22 +89,18 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Starts client connectivity checks for the {@link CandidatePair}s in
-     *  checkList
+     * Starts client connectivity checks for the {@link CandidatePair}s in checkList
      *
-     * @param checkList the {@link CheckList} to start client side connectivity
-     * checks for.
+     * @param checkList the {@link CheckList} to start client side connectivity checks for.
      */
     public void startChecks(CheckList checkList) {
         paceMakerFutures.add(parentAgent.submit(new PaceMaker(checkList)));
     }
 
     /**
-     * Creates a STUN Binding {@link Indication} to a candidate pair. It is used
-     * as a keep-alive.
+     * Creates a STUN Binding {@link Indication} to a candidate pair. It is used as a keep-alive.
      *
-     * @param candidatePair that {@link CandidatePair} that we'd like to send
-     * an indication
+     * @param candidatePair that {@link CandidatePair} that we'd like to send an indication
      */
     protected void sendBindingIndicationForPair(CandidatePair candidatePair) {
         LocalCandidate localCandidate = candidatePair.getLocalCandidate();
@@ -130,16 +119,12 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Creates a STUN {@link Request} containing the necessary PRIORITY and
-     * CONTROLLING/CONTROLLED attributes. Also stores a reference to
-     * candidatePair in the newly created transactionID so that we
-     * could then refer back to it in subsequent response or failure events.
+     * Creates a STUN {@link Request} containing the necessary PRIORITY and CONTROLLING/CONTROLLED attributes. Also stores a reference to
+     * candidatePair in the newly created transactionID so that we could then refer back to it in subsequent response or failure events.
      *
-     * @param candidatePair that {@link CandidatePair} that we'd like to start
-     * a check for.
+     * @param candidatePair that {@link CandidatePair} that we'd like to start a check for.
      *
-     * @return a reference to the {@link TransactionID} used in the connectivity
-     * check client transaction or null if sending the check has
+     * @return a reference to the {@link TransactionID} used in the connectivity check client transaction or null if sending the check has
      * failed for some reason.
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair) {
@@ -147,36 +132,27 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Creates a STUN {@link Request} containing the necessary PRIORITY and
-     * CONTROLLING/CONTROLLED attributes. Also stores a reference to
-     * candidatePair in the newly created transactionID so that we
-     * could then refer back to it in subsequent response or failure events.
+     * Creates a STUN {@link Request} containing the necessary PRIORITY and CONTROLLING/CONTROLLED attributes. Also stores a reference to
+     * candidatePair in the newly created transactionID so that we could then refer back to it in subsequent response or failure events.
      *
-     * @param candidatePair that {@link CandidatePair} that we'd like to start
-     * a check for.
+     * @param candidatePair that {@link CandidatePair} that we'd like to start a check for.
      * @param originalWaitInterval
      * @param maxWaitInterval
      * @param maxRetransmissions
-     * @return a reference to the {@link TransactionID} used in the connectivity
-     * check client transaction or null if sending the check has
+     * @return a reference to the {@link TransactionID} used in the connectivity check client transaction or null if sending the check has
      * failed for some reason.
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) {
         LocalCandidate localCandidate = candidatePair.getLocalCandidate();
-        //we don't need to do a canReach() verification here as it has been already verified during the gathering process.
-
+        // we don't need to do a canReach() verification here as it has been already verified during the gathering process.
         Request request = MessageFactory.createBindingRequest();
-
-        //the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check.
+        // the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check.
         PriorityAttribute priority = AttributeFactory.createPriorityAttribute(localCandidate.computePriorityForType(CandidateType.PEER_REFLEXIVE_CANDIDATE));
-
         request.putAttribute(priority);
-
-        //controlling controlled
+        // controlling controlled
         if (parentAgent.isControlling()) {
             request.putAttribute(AttributeFactory.createIceControllingAttribute(parentAgent.getTieBreaker()));
-
-            //if we are the controlling agent then we need to indicate our nominated pairs.
+            // if we are the controlling agent then we need to indicate our nominated pairs.
             if (candidatePair.isNominated()) {
                 logger.debug("Add USE-CANDIDATE in check for: {}", candidatePair.toShortString());
                 request.putAttribute(AttributeFactory.createUseCandidateAttribute());
@@ -184,18 +160,14 @@ class ConnectivityCheckClient implements ResponseCollector {
         } else {
             request.putAttribute(AttributeFactory.createIceControlledAttribute(parentAgent.getTieBreaker()));
         }
-
-        //credentials
+        // credentials
         String media = candidatePair.getParentComponent().getParentStream().getName();
         String localUserName = parentAgent.generateLocalUserName(media);
-
-        if (localUserName == null)
+        if (localUserName == null) {
             return null;
-
+        }
         UsernameAttribute unameAttr = AttributeFactory.createUsernameAttribute(localUserName);
-
         request.putAttribute(unameAttr);
-
         // TODO Also implement SASL prepare
         MessageIntegrityAttribute msgIntegrity = AttributeFactory.createMessageIntegrityAttribute(localUserName);
         // when we will encode the MESSAGE-INTEGRITY attribute (thus generate the HMAC-SHA1 authentication), we need to know the
@@ -206,7 +178,6 @@ class ConnectivityCheckClient implements ResponseCollector {
 
         TransactionID tran = TransactionID.createNewTransactionID();
         tran.setApplicationData(candidatePair);
-
         logger.debug("start check for {} tid {}", candidatePair.toShortString(), tran);
         try {
             tran = stunStack.sendRequest(request, candidatePair.getRemoteCandidate().getTransportAddress(), localCandidate.getBase().getTransportAddress(), this, tran, originalWaitInterval, maxWaitInterval, maxRetransmissions);
@@ -215,7 +186,6 @@ class ConnectivityCheckClient implements ResponseCollector {
             }
         } catch (Exception ex) {
             tran = null;
-
             IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
             if (stunSocket != null) {
                 String msg = "Failed to send " + request + " through " + stunSocket.getLocalSocketAddress() + ".";
@@ -230,27 +200,21 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Handles the response as per the procedures described in RFC 5245
-     * or in other words, by either changing the state of the corresponding pair
-     * to FAILED, or SUCCEEDED, or rescheduling a check in case of a role
-     * conflict.
+     * Handles the response as per the procedures described in RFC 5245 or in other words, by either changing the state of the corresponding pair
+     * to FAILED, or SUCCEEDED, or rescheduling a check in case of a role conflict.
      *
-     * @param ev the {@link StunResponseEvent} that contains the newly received
-     * response.
+     * @param ev the {@link StunResponseEvent} that contains the newly received response.
      */
     public void processResponse(StunResponseEvent ev) {
         alive = true;
-
         CandidatePair checkedPair = (CandidatePair) ev.getTransactionID().getApplicationData();
-
-        //make sure that the response came from the right place.
+        // make sure that the response came from the right place.
         if (!checkSymmetricAddresses(ev)) {
             logger.info("Received a non-symmetric response for pair: " + checkedPair.toShortString() + ". Failing.");
             checkedPair.setStateFailed();
         } else {
             Response response = ev.getResponse();
             char messageType = response.getMessageType();
-
             //handle error responses.
             if (messageType == Response.BINDING_ERROR_RESPONSE) {
                 if (response.getAttribute(Attribute.Type.ERROR_CODE) == null) {
@@ -270,8 +234,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Updates all check list and timer states after a check has completed
-     * (both if completion was successful or not). The method implements
+     * Updates all check list and timer states after a check has completed (both if completion was successful or not). The method implements
      * section "7.1.3.3. Check List and Timer State Updates"
      *
      * @param checkedPair the pair whose check has just completed.
@@ -279,14 +242,12 @@ class ConnectivityCheckClient implements ResponseCollector {
     private void updateCheckListAndTimerStates(CandidatePair checkedPair) {
         IceMediaStream stream = checkedPair.getParentComponent().getParentStream();
         final CheckList checkList = stream.getCheckList();
-        if (stream.getParentAgent().getState().isEstablished())
+        if (stream.getParentAgent().getState().isEstablished()) {
             return;
-
-        //If all of the pairs in the check list are now either in the Failed or
-        //Succeeded state:
+        }
+        // If all of the pairs in the check list are now either in the Failed or Succeeded state:
         if (checkList.allChecksCompleted()) {
-            //If there is not a pair in the valid list for each component of the
-            //media stream, the state of the check list is set to Failed.
+            // If there is not a pair in the valid list for each component of the media stream, the state of the check list is set to Failed.
             if (!stream.validListContainsAllComponents()) {
                 final String streamName = stream.getName();
                 Future<?> future = timerFutures.get(streamName);
@@ -297,7 +258,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                             try {
                                 Thread.sleep(5000l);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
-                                    logger.info("CheckList for stream " + streamName + " FAILED");
+                                    logger.info("CheckList for stream {} FAILED", streamName);
                                     checkList.setState(CheckListState.FAILED);
                                     parentAgent.checkListStatesUpdated();
                                 }
@@ -338,8 +299,7 @@ class ConnectivityCheckClient implements ResponseCollector {
 
         XorMappedAddressAttribute mappedAddressAttr = (XorMappedAddressAttribute) response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
         if (mappedAddressAttr == null) {
-            logger.debug("Received a success response with no {}", "XOR_MAPPED_ADDRESS attribute.");
-            logger.info("Pair failed (no XOR-MAPPED-ADDRESS): " + checkedPair.toShortString() + ". Local ufrag" + parentAgent.getLocalUfrag());
+            logger.info("Pair failed (no XOR-MAPPED-ADDRESS): {}. Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
             checkedPair.setStateFailed();
             return; //malformed error response
         }
@@ -480,7 +440,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         //from that check has its nominated flag set to true.
         if (parentAgent.isControlling() && attr != null) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Nomination confirmed for pair: " + validPair.toShortString() + ". Loal ufrag " + parentAgent.getLocalUfrag());
+                logger.info("Nomination confirmed for pair: {}. Loal ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
                 parentAgent.nominationConfirmed(validPair);
             } else {
                 logger.debug("Keep alive for pair: {}", validPair.toShortString());
@@ -508,23 +468,17 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Returns true if the {@link Response} in evt had a
-     * source or a destination address that match those of the {@link Request},
-     * or false otherwise.<p>
-     * RFC 5245: The agent MUST check that the source IP address and port of
-     * the response equal the destination IP address and port to which the
-     * Binding request was sent, and that the destination IP address and
-     * port of the response match the source IP address and port from which
-     * the Binding request was sent.  In other words, the source and
-     * destination transport addresses in the request and responses are
-     * symmetric.  If they are not symmetric, the agent sets the state of
-     * the pair to Failed.
+     * Returns true if the {@link Response} in evt had a source or a destination address that match those of the {@link Request},
+     * or false otherwise.
+     * <br>
+     * RFC 5245: The agent MUST check that the source IP address and port of the response equal the destination IP address and port to which the
+     * Binding request was sent, and that the destination IP address and port of the response match the source IP address and port from which
+     * the Binding request was sent.  In other words, the source and destination transport addresses in the request and responses are
+     * symmetric.  If they are not symmetric, the agent sets the state of the pair to Failed.
      *
-     * @param evt the {@link StunResponseEvent} that contains the {@link
-     * Response} we need to examine
+     * @param evt the {@link StunResponseEvent} that contains the {@link Response} we need to examine
      *
-     * @return true if the {@link Response} in evt had a
-     * source or a destination address that matched those of the
+     * @return true if the {@link Response} in evt had a source or a destination address that matched those of the
      * {@link Request}, or false otherwise.
      */
     private boolean checkSymmetricAddresses(StunResponseEvent evt) {
@@ -586,42 +540,35 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     private class PaceMaker implements Runnable {
         /**
-         * The {@link CheckList} that this PaceMaker will be running
-         * checks for.
+         * The {@link CheckList} that this PaceMaker will be running checks for.
          */
         private final CheckList checkList;
 
         /**
-         * Creates a new {@link PaceMaker} for this
-         * ConnectivityCheckClient.
+         * Creates a new {@link PaceMaker} for this ConnectivityCheckClient.
          *
-         * @param checkList the {@link CheckList} that we'll be sending checks
-         * for
+         * @param checkList the {@link CheckList} that we'll be sending checks for
          */
         public PaceMaker(CheckList checkList) {
             this.checkList = checkList;
         }
 
         /**
-         * Returns the number milliseconds to wait before we send the next
-         * check.
+         * Returns the number milliseconds to wait before we send the next check.
          *
-         * @return  the number milliseconds to wait before we send the next
-         * check.
+         * @return the number milliseconds to wait before we send the next check
          */
         private long getNextWaitInterval() {
             int activeCheckLists = parentAgent.getActiveCheckListCount();
             if (activeCheckLists < 1) {
-                //don't multiply by 0. even when we no longer have active check
-                //lists we may still have nomination checks to
+                // don't multiply by 0. even when we no longer have active check lists we may still have nomination checks to
                 activeCheckLists = 1;
             }
             return parentAgent.calculateTa() * activeCheckLists;
         }
 
         /**
-         * Sends connectivity checks at the pace determined by the {@link
-         * Agent#calculateTa()} method and using either the trigger check queue
+         * Sends connectivity checks at the pace determined by the {@link Agent#calculateTa()} method and using either the trigger check queue
          * or the regular check lists.
          */
         @Override
@@ -632,9 +579,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 while (true) {
                     long waitFor = getNextWaitInterval();
                     if (waitFor > 0) {
-                        /*
-                         * waitFor will be 0 for the first check since we won't have any active check lists at that point yet.
-                         */
+                        // waitFor will be 0 for the first check since we won't have any active check lists at that point yet.
                         Thread.sleep(waitFor);
                     }
                     CandidatePair pairToCheck = checkList.popTriggeredCheck();
@@ -643,10 +588,8 @@ class ConnectivityCheckClient implements ResponseCollector {
                         pairToCheck = checkList.getNextOrdinaryPairToCheck();
                     }
                     if (pairToCheck != null) {
-                        /*
-                         * Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then setStateInProgress, we'll synchronize. The
-                         * synchronization root is the one of the CandidatePair#setState method.
-                         */
+                        // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
+                        // setStateInProgress, we'll synchronize. The synchronization root is the one of the CandidatePair#setState method.
                         synchronized (pairToCheck) {
                             TransactionID transactionID = startCheckForPair(pairToCheck);
                             if (transactionID == null) {
@@ -657,10 +600,9 @@ class ConnectivityCheckClient implements ResponseCollector {
                             }
                         }
                     } else {
-                        /*
-                         * We are done sending checks for this list. We'll set its final state in either the processResponse(), processTimeout() or processFailure() method.
-                         */
-                        logger.trace("will skip a check beat.");
+                        // We are done sending checks for this list. We'll set its final state in either the processResponse(), 
+                        // processTimeout() or processFailure() method.
+                        //logger.trace("will skip a check beat.");
                         checkList.fireEndOfOrdinaryChecks();
                     }
                 }

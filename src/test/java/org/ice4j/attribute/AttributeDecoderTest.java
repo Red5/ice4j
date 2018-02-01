@@ -48,14 +48,10 @@ public class AttributeDecoderTest extends TestCase
         System.arraycopy(msgFixture.unknownOptionalAttribute, offset,
                          expectedAttributeValue, 0,
                          expectedAttributeValue.length);
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

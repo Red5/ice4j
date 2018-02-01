@@ -47,15 +47,11 @@ public class NonceAttributeTest extends TestCase
 
         nonceAttribute = new NonceAttribute();
         nonceAttribute.setNonce(nonceValue.getBytes());
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         nonceAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

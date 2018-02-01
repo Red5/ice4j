@@ -360,7 +360,6 @@ public class CandidatePair implements Comparable<CandidatePair> {
     public int compareTo(CandidatePair candidatePair) {
         long thisPri = getPriority();
         long otherPri = candidatePair.getPriority();
-
         return (thisPri < otherPri) ? 1 : (thisPri == otherPri) ? 0 : -1;
     }
 

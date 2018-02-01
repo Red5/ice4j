@@ -47,15 +47,11 @@ public class SoftwareAttributeTest extends TestCase
 
         softwareAttribute = new SoftwareAttribute();
         softwareAttribute.setSoftware(softwareValue.getBytes());
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception
     {
         softwareAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

@@ -39,14 +39,10 @@ public class ErrorCodeAttributeTest extends TestCase {
         super.setUp();
         errorCodeAttribute = new ErrorCodeAttribute();
         msgFixture = new MsgFixture();
-
-        msgFixture.setUp();
     }
 
     protected void tearDown() throws Exception {
         errorCodeAttribute = null;
-        msgFixture.tearDown();
-
         msgFixture = null;
         super.tearDown();
     }

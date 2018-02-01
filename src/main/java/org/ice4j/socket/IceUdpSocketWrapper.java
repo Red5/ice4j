@@ -9,6 +9,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
+import javax.xml.bind.DatatypeConverter;
+
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.NioServer;
@@ -65,14 +67,14 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
 
             @Override
             public void udpDataReceived(Event evt) {
-                if (logger.isDebugEnabled()) {
-                    //logger.debug("udpDataReceived: {}", evt);
-                    logger.debug("udpDataReceived at {} for {} from {}", transportAddress, evt.getLocalSocketAddress(), evt.getRemoteSocketAddress());
+                if (logger.isTraceEnabled()) {
+                    //logger.trace("udpDataReceived: {}", evt);
+                    logger.trace("udpDataReceived at {} for {} from {}", transportAddress, evt.getLocalSocketAddress(), evt.getRemoteSocketAddress());
                 }
                 // is the data for us?
                 if (transportAddress.equals(evt.getLocalSocketAddress())) {
                     if (channel == null) {
-                        logger.debug("Setting channel since its null");
+                        //logger.debug("Setting channel since its null");
                         channel = evt.getKey().channel();
                     }
                     // get the data
@@ -94,9 +96,11 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         InetSocketAddress fromAddr = (InetSocketAddress) evt.getRemoteSocketAddress();
                         RawMessage rawMessage = new RawMessage(buf, buf.length, new TransportAddress(fromAddr.getAddress(), fromAddr.getPort(), Transport.UDP), transportAddress);
                         messageQueue.add(rawMessage);
+                    } else {
+                        logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
                     }
                 } else {
-                    logger.debug("Data is not for us");
+                    //logger.debug("Data is not for us");
                 }
             }
 
@@ -138,7 +142,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             DatagramChannel tmp = DatagramChannel.open();
             //tmp.bind(transportAddress);
             tmp.socket().send(p);
-            //tmp.close();
+            tmp.close();
         }
         if (channel != null) {
             ((DatagramChannel) channel).send(ByteBuffer.wrap(p.getData()), p.getSocketAddress());

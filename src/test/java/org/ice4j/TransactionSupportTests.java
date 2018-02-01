@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
+import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
@@ -14,6 +15,8 @@ import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
 import org.ice4j.stack.RequestListener;
 import org.ice4j.stack.StunStack;
+
+import test.PortUtil;
 
 /**
  * Test how client and server behave, how they recognize/adopt messages and
@@ -26,22 +29,22 @@ public class TransactionSupportTests extends TestCase {
     /**
      * The client address we use for this test.
      */
-    TransportAddress clientAddress = new TransportAddress("127.0.0.1", 5216, Transport.UDP);
+    TransportAddress clientAddress;
 
     /**
      * The client address we use for this test.
      */
-    TransportAddress serverAddress = new TransportAddress("127.0.0.1", 5255, Transport.UDP);
+    TransportAddress serverAddress;
 
     /**
      * The socket the client uses in this test.
      */
-    IceSocketWrapper clientSock = null;
+    IceSocketWrapper clientSock;
 
     /**
      * The socket the server uses in this test.
      */
-    IceSocketWrapper serverSock = null;
+    IceSocketWrapper serverSock;
 
     /**
      * The StunStack used by this TransactionSupportTests.
@@ -51,22 +54,24 @@ public class TransactionSupportTests extends TestCase {
     /**
      * The request we send in this test.
      */
-    Request bindingRequest = null;
+    Request bindingRequest;
 
     /**
      * The response we send in this test.
      */
-    Response bindingResponse = null;
+    Response bindingResponse;
 
     /**
      * The tool that collects requests.
      */
-    PlainRequestCollector requestCollector = null;
+    PlainRequestCollector requestCollector;
 
     /**
      * The tool that collects responses.
      */
-    PlainResponseCollector responseCollector = null;
+    PlainResponseCollector responseCollector;
+
+    private NioServer server;
 
     /**
      * Inits sockets.
@@ -75,11 +80,25 @@ public class TransactionSupportTests extends TestCase {
      */
     protected void setUp() throws Exception {
         super.setUp();
+        clientAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        serverAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+
+        stunStack = new StunStack();
+        // create an NIO server
+        server = new NioServer();
+        // start the NIO server
+        server.start();
+        // bind the server on the local address
+        server.addUdpBinding(clientAddress);
+        server.addUdpBinding(serverAddress);
 
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
 
-        stunStack = new StunStack();
+        // attach the socket wrapper's listener to the server
+        server.addNioServerListener(clientSock.getServerListener());
+        server.addNioServerListener(serverSock.getServerListener());
+
         stunStack.addSocket(clientSock);
         stunStack.addSocket(serverSock);
 
@@ -117,6 +136,8 @@ public class TransactionSupportTests extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "");
         System.setProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER, "");
 
+        // stop the NIO server
+        server.stop();
         super.tearDown();
     }
 
@@ -208,15 +229,13 @@ public class TransactionSupportTests extends TestCase {
         //send
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
 
-        //wait for the message to arrive
+        // wait for the message to arrive
         requestCollector.waitForRequest();
 
         Vector<StunMessageEvent> reqs = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-
+        assertFalse(reqs.isEmpty());
         StunMessageEvent evt = reqs.get(0);
-
         byte[] tid = evt.getMessage().getTransactionID();
-
         stunStack.sendResponse(tid, bindingResponse, serverAddress, clientAddress);
 
         //wait for retransmissions
@@ -225,8 +244,7 @@ public class TransactionSupportTests extends TestCase {
         //verify that we received a fair number of retransmitted responses.
         assertTrue("There were too few retransmissions of a binding response: " + responseCollector.receivedResponses.size(), responseCollector.receivedResponses.size() < 3);
 
-        //restore the retransmissions prop in case others are counting on
-        //defaults.
+        //restore the retransmissions prop in case others are counting on defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
         else
@@ -248,7 +266,7 @@ public class TransactionSupportTests extends TestCase {
         requestCollector.waitForRequest();
 
         Vector<StunMessageEvent> reqs1 = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-
+        assertFalse(reqs1.isEmpty());
         StunMessageEvent evt1 = reqs1.get(0);
 
         //send a response to make the other guy shut up
@@ -263,9 +281,8 @@ public class TransactionSupportTests extends TestCase {
         Thread.sleep(1000);
 
         Vector<StunMessageEvent> reqs2 = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-
+        assertFalse(reqs2.isEmpty());
         StunMessageEvent evt2 = reqs2.get(0);
-
         assertFalse("Consecutive requests were assigned the same transaction id", Arrays.equals(evt1.getMessage().getTransactionID(), evt2.getMessage().getTransactionID()));
     }
 
@@ -361,9 +378,7 @@ public class TransactionSupportTests extends TestCase {
      * A simply utility for asynchronous collection of requests.
      */
     private class PlainRequestCollector implements RequestListener {
-        /**
-         *
-         */
+
         private Vector<StunMessageEvent> receivedRequestsVector = new Vector<>();
 
         /**
@@ -372,7 +387,6 @@ public class TransactionSupportTests extends TestCase {
          * @param evt the {@link StunMessageEvent} to log.
          */
         public void processRequest(StunMessageEvent evt) {
-
             synchronized (this) {
                 receivedRequestsVector.add(evt);
                 notifyAll();
@@ -390,13 +404,11 @@ public class TransactionSupportTests extends TestCase {
          */
         public Vector<StunMessageEvent> getRequestsForTransaction(byte[] tranid) {
             Vector<StunMessageEvent> newVec = new Vector<>();
-
             for (StunMessageEvent evt : receivedRequestsVector) {
                 Message msg = evt.getMessage();
                 if (Arrays.equals(tranid, msg.getTransactionID()))
                     newVec.add(evt);
             }
-
             return newVec;
         }
 
