@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,7 +26,7 @@ import org.ice4j.ice.IceProcessingState;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
-import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.socket.filter.StunDataFilter;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +100,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
      * Looks for an ICE candidate registered with this harvester, which has a local ufrag of {@code ufrag}, and if one is found it accepts the new
      * socket and adds it to the candidate.
      */
-    protected void maybeAcceptNewSession(byte[] buf, InetSocketAddress remoteAddress, String ufrag) {
+    protected void maybeAcceptNewSession(DatagramChannel channel, byte[] buf, InetSocketAddress remoteAddress, String ufrag) {
         MyCandidate candidate = candidates.get(ufrag);
         if (candidate == null) {
             // A STUN Binding Request with an unknown USERNAME. Drop it.
@@ -107,13 +108,14 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         }
         // This is a STUN Binding Request destined for this specific Candidate/Component/Agent.
         try {
-            // 1. Create a UDP channel for this remote address
-            // 2. Set-up de-multiplexing for future datagrams with this address to this channel.
-            UdpChannel channel = addChannel(remoteAddress);
-            // 3. Let the candidate and its STUN stack no about the new channel.
-            candidate.addChannel(channel, remoteAddress);
-            // 4. Add the original datagram to the new channel.
-            channel.addBuffer(buf);
+            // 1. Create a UDP channel for the channel and remote address
+            UdpChannel udpChannel = new UdpChannel(channel, remoteAddress);
+            // 2. Add mapping to sockets map
+            sockets.put(remoteAddress, udpChannel);
+            // 3. Let the candidate and its STUN stack know about the new channel
+            candidate.addChannel(udpChannel, remoteAddress);
+            // 4. Add the original datagram to the new channel
+            udpChannel.addBuffer(buf);
         } catch (SocketException se) {
             logger.warn("Could not create a socket", se);
         } catch (IOException ioe) {
@@ -175,9 +177,9 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
          * The collection of DatagramSockets added to this candidate.
          * The keys are the remote addresses for each socket.
          * <br>
-         * These are the "raw" sockets, before any wrappers are added for the STUN stack or the user of ice4j.
+         * These are the "raw" channels, before any wrappers are added for the STUN stack or the user of ice4j.
          */
-        private final ConcurrentMap<SocketAddress, UdpChannel> sockets = new ConcurrentHashMap<>();
+        private final ConcurrentMap<SocketAddress, UdpChannel> channels = new ConcurrentHashMap<>();
 
         /**
          * Initializes a new MyCandidate instance with the given Component and the given local username fragment.
@@ -214,7 +216,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             // Socket to add to the candidate
             IceSocketWrapper candidateSocket = new IceUdpSocketWrapper(channel.getDatagramChannel());
             // STUN-only filtered socket to add to the StunStack
-            candidateSocket.addFilter(new StunDatagramPacketFilter());
+            candidateSocket.addFilter(new StunDataFilter());
             component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP));
             // TODO: maybe move this code to the candidates.
             component.getComponentSocket().setSocket(candidateSocket);
@@ -224,7 +226,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
                 logger.info("Replacing the socket for remote address {}", remoteAddress);
                 oldSocket.close();
             }
-            sockets.put(remoteAddress, channel);
+            channels.put(remoteAddress, channel);
         }
 
         /**
@@ -237,7 +239,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             if (freed.compareAndSet(false, true)) {
                 candidates.remove(ufrag);
                 StunStack stunStack = getStunStack();
-                for (Map.Entry<SocketAddress, UdpChannel> e : sockets.entrySet()) {
+                for (Map.Entry<SocketAddress, UdpChannel> e : channels.entrySet()) {
                     UdpChannel channel = e.getValue();
                     if (stunStack != null) {
                         TransportAddress remoteAddress = new TransportAddress((InetSocketAddress) e.getKey(), Transport.UDP);
@@ -245,7 +247,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
                     }
                     channel.close();
                 }
-                sockets.clear();
+                channels.clear();
                 for (IceSocketWrapper wrapper : candidateSockets.values()) {
                     wrapper.close();
                 }

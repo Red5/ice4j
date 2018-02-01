@@ -11,10 +11,13 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
+import java.util.Queue;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.socket.filter.DatagramPacketFilter;
+import org.ice4j.ice.nio.NioServer.Listener;
+import org.ice4j.socket.filter.DataFilter;
+import org.ice4j.stack.RawMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,23 +34,33 @@ public abstract class IceSocketWrapper {
     /**
      * NIO channel for this wrapper; will be one of type DatagramChannel for UDP or SocketChannel for TCP.
      */
-    protected final SelectableChannel channel;
+    protected SelectableChannel channel;
 
     protected TransportAddress transportAddress;
 
     protected TransportAddress remoteTransportAddress;
 
     /**
+     * NIO server listener.
+     */
+    protected Listener serverListener;
+
+    /**
      * Packet filters.
      */
-    protected LinkedList<DatagramPacketFilter> filters = new LinkedList<>();
+    protected LinkedList<DataFilter> filters = new LinkedList<>();
 
     /**
      * Socket timeout.
      */
     protected int soTimeout;
 
-    public IceSocketWrapper(SelectableChannel channel) {
+    /**
+     * The message queue is where incoming messages are added.
+     */
+    protected Queue<RawMessage> messageQueue;
+
+    IceSocketWrapper(SelectableChannel channel) {
         this.channel = channel;
     }
 
@@ -72,10 +85,10 @@ public abstract class IceSocketWrapper {
     /**
      * Adds a filter to manipulate data on the wrapped socket.
      * 
-     * @param datagramPacketFilter
+     * @param dataFilter
      * @return true if added and false otherwise
      */
-    public boolean addFilter(DatagramPacketFilter datagramPacketFilter) {
+    public boolean addFilter(DataFilter datagramPacketFilter) {
         return filters.offer(datagramPacketFilter);
     }
 
@@ -85,9 +98,9 @@ public abstract class IceSocketWrapper {
      * @param filterClass
      * @return true if removed and false otherwise
      */
-    public boolean removeFilter(Class<DatagramPacketFilter> filterClass) {
+    public boolean removeFilter(Class<DataFilter> filterClass) {
         boolean removed = false;
-        for (DatagramPacketFilter filter : filters) {
+        for (DataFilter filter : filters) {
             if (filterClass.isInstance(filter)) {
                 removed = filters.remove(filter);
                 break;
@@ -128,6 +141,10 @@ public abstract class IceSocketWrapper {
      */
     public abstract SocketAddress getLocalSocketAddress();
 
+    public void setChannel(SelectableChannel channel) {
+        this.channel = channel;
+    }
+
     /**
      * Returns a SelectableChannel if the delegate has one, null otherwise.
      *
@@ -146,14 +163,12 @@ public abstract class IceSocketWrapper {
         logger.debug("getTransportAddress: {} channel: {}", transportAddress, channel);
         if (transportAddress == null && channel != null) {
             if (channel instanceof DatagramChannel) {
-                //DatagramSocket socket = ((DatagramChannel) channel).socket();
                 try {
                     transportAddress = new TransportAddress((InetSocketAddress) ((DatagramChannel) channel).getLocalAddress(), Transport.UDP);
                 } catch (IOException e) {
                     logger.warn("Exception configuring transport address", e);
                 }
             } else {
-                //Socket socket = ((SocketChannel) channel).socket();
                 try {
                     transportAddress = new TransportAddress((InetSocketAddress) ((SocketChannel) channel).getLocalAddress(), Transport.TCP);
                 } catch (IOException e) {
@@ -178,10 +193,28 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Returns a NioServer.Listener for server event handling.
+     * 
+     * @return serverListener
+     */
+    public Listener getServerListener() {
+        return serverListener;
+    }
+
+    /**
      * Sets the socket timeout.
      */
     public void setSoTimeout(int timeout) throws SocketException {
         soTimeout = timeout;
+    }
+
+    /**
+     * Sets the incoming message queue.
+     * 
+     * @param messageQueue
+     */
+    public void setMessageQueue(Queue<RawMessage> messageQueue) {
+        this.messageQueue = messageQueue;
     }
 
     /**

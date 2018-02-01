@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -43,8 +32,7 @@ import org.ice4j.message.*;
  *
  * @author Emil Ivov
  */
-public class StunServerTransaction
-{
+public class StunServerTransaction {
     /**
      * The time that we keep server transactions active.
      */
@@ -112,13 +100,9 @@ public class StunServerTransaction
      * @param requestSource the TransportAddress that this
      * transaction is receiving requests from.
      */
-    public StunServerTransaction(StunStack        stackCallback,
-                                 TransactionID    tranID,
-                                 TransportAddress localListeningAddress,
-                                 TransportAddress requestSource)
-    {
-        this.stackCallback  = stackCallback;
-        this.transactionID  = tranID;
+    public StunServerTransaction(StunStack stackCallback, TransactionID tranID, TransportAddress localListeningAddress, TransportAddress requestSource) {
+        this.stackCallback = stackCallback;
+        this.transactionID = tranID;
         this.localListeningAddress = localListeningAddress;
         this.requestSource = requestSource;
     }
@@ -127,18 +111,12 @@ public class StunServerTransaction
      * Start the transaction. This launches the countdown to the moment the
      * transaction would expire.
      */
-    public synchronized void start()
-    {
-        if (expirationTime == -1)
-        {
+    public synchronized void start() {
+        if (expirationTime == -1) {
             expired = false;
             expirationTime = LIFETIME + System.currentTimeMillis();
-        }
-        else
-        {
-            throw new IllegalStateException(
-                    "StunServerTransaction " + getTransactionID()
-                        + " has already been started!");
+        } else {
+            throw new IllegalStateException("StunServerTransaction " + getTransactionID() + " has already been started!");
         }
     }
 
@@ -158,20 +136,14 @@ public class StunServerTransaction
      * access point that had not been installed,
      * @throws StunException if message encoding fails,
      */
-    public void sendResponse(Response         response,
-                             TransportAddress sendThrough,
-                             TransportAddress sendTo)
-        throws StunException,
-               IOException,
-               IllegalArgumentException
-    {
-        if(!isRetransmitting){
+    public void sendResponse(Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
+        if (!isRetransmitting) {
             this.response = response;
             //the transaction id might already have been set, but its our job
             //to make sure of that
             response.setTransactionID(this.transactionID.getBytes());
-            this.localSendingAddress   = sendThrough;
-            this.responseDestination   = sendTo;
+            this.localSendingAddress = sendThrough;
+            this.responseDestination = sendTo;
         }
 
         isRetransmitting = true;
@@ -188,32 +160,23 @@ public class StunServerTransaction
      * access point that had not been installed,
      * @throws StunException if message encoding fails,
      */
-    protected void retransmitResponse()
-        throws StunException,
-               IOException,
-               IllegalArgumentException
-    {
+    protected void retransmitResponse() throws StunException, IOException, IllegalArgumentException {
         //don't retransmit if we are expired or if the user application
         //hasn't yet transmitted a first response
-        if(isExpired() || !isRetransmitting)
+        if (isExpired() || !isRetransmitting) {
             return;
-
-        stackCallback.getNetAccessManager().sendMessage(
-                response,
-                localSendingAddress,
-                responseDestination);
+        }
+        stackCallback.getNetAccessManager().sendMessage(response, localSendingAddress, responseDestination);
     }
 
     /**
      * Cancels the transaction. Once this method is called the transaction is
      * considered terminated and will stop retransmissions.
      */
-    public synchronized void expire()
-    {
+    public synchronized void expire() {
         expired = true;
         /*
-         * StunStack has a background Thread running with the purpose of
-         * removing expired StunServerTransactions.
+         * StunStack has a background Thread running with the purpose of removing expired StunServerTransactions.
          */
     }
 
@@ -223,8 +186,7 @@ public class StunServerTransaction
      * @return true if this StunServerTransaction</tT> is expired
      * now; otherwise, false
      */
-    public boolean isExpired()
-    {
+    public boolean isExpired() {
         return isExpired(System.currentTimeMillis());
     }
 
@@ -237,8 +199,7 @@ public class StunServerTransaction
      * @return true if this StunServerTransaction will be
      * expired at the specified point in time; otherwise, false
      */
-    public synchronized boolean isExpired(long now)
-    {
+    public synchronized boolean isExpired(long now) {
         if (expirationTime == -1)
             return false;
         else if (expirationTime < now)
@@ -252,8 +213,7 @@ public class StunServerTransaction
      *
      * @return the ID of the transaction.
      */
-    public TransactionID getTransactionID()
-    {
+    public TransactionID getTransactionID() {
         return transactionID;
     }
 
@@ -264,8 +224,7 @@ public class StunServerTransaction
      * @return true if this transaction is still retransmitting and
      * false otherwise
      */
-    public boolean isRetransmitting()
-    {
+    public boolean isRetransmitting() {
         return isRetransmitting;
     }
 
@@ -276,8 +235,7 @@ public class StunServerTransaction
      * @return the local TransportAddress that this transaction is
      * sending responses from.
      */
-    public TransportAddress getSendingAddress()
-    {
+    public TransportAddress getSendingAddress() {
         return localSendingAddress;
     }
 
@@ -288,8 +246,7 @@ public class StunServerTransaction
      * @return the remote TransportAddress that this transaction is
      * receiving requests from.
      */
-    public TransportAddress getResponseDestinationAddress()
-    {
+    public TransportAddress getResponseDestinationAddress() {
         return responseDestination;
     }
 
@@ -300,8 +257,7 @@ public class StunServerTransaction
      * @return the local TransportAddress that this transaction is
      * receiving requests on.
      */
-    public TransportAddress getLocalListeningAddress()
-    {
+    public TransportAddress getLocalListeningAddress() {
         return localListeningAddress;
     }
 
@@ -312,8 +268,7 @@ public class StunServerTransaction
      * @return the remote TransportAddress that this transaction is
      * receiving requests from.
      */
-    public TransportAddress getRequestSourceAddress()
-    {
+    public TransportAddress getRequestSourceAddress() {
         return requestSource;
     }
 
@@ -326,8 +281,7 @@ public class StunServerTransaction
      * through this transaction or null if no Response has
      * been sent yet.
      */
-    protected Response getResponse()
-    {
+    protected Response getResponse() {
         return response;
     }
 }

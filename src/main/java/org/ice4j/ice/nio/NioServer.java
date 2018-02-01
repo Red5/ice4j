@@ -6,6 +6,7 @@ import java.beans.PropertyChangeSupport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
@@ -55,7 +56,7 @@ import org.slf4j.LoggerFactory;
  * });</pre>
  *
  * <p>The server runs on one thread, and all events are fired on that thread.
- * Consider offloading heavy processing to another thread. Be aware that
+ * Consider off-loading heavy processing to another thread. Be aware that
  * you can register multiple listeners to respond to incoming data
  * so be mindful of more than one listener being around to makes calls
  * on the data.</p>
@@ -456,7 +457,7 @@ public class NioServer {
                     }
                     Set<SelectionKey> keys = this.selector.selectedKeys(); // These keys need attention
                     if (logger.isTraceEnabled()) { // Only report this at finest grained logging level
-                        logger.trace("Keys: " + keys); // Which keys are being examined this round
+                        logger.trace("Keys: {}", keys); // Which keys are being examined this round
                     }
                     Iterator<SelectionKey> iter = keys.iterator(); // Iterate over keys -- cannot use "for" loop since we remove keys
                     while (iter.hasNext()) { // Each accKey
@@ -535,22 +536,29 @@ public class NioServer {
         // Pending TCP Adds
         for (SocketAddress addr : this.pendingTcpAdds) { // For each add
             logger.debug("Binding TCP: {}", addr);
-            ServerSocketChannel sc = ServerSocketChannel.open(); // Open a channel
-            sc.socket().bind(addr); // Bind as requested
+            // Open a channel
+            ServerSocketChannel sc = ServerSocketChannel.open();
+            sc.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
+            // Bind as requested
+            sc.bind(addr);
             sc.configureBlocking(false); // Make non-blocking
-            SelectionKey acceptKey = sc.register( // Register with master Selector
-                    this.selector, SelectionKey.OP_ACCEPT); // We want to "accept" connections
+            // Register with master Selector
+            SelectionKey acceptKey = sc.register(this.selector, SelectionKey.OP_ACCEPT); // We want to "accept" connections
             this.tcpBindings.put(addr, acceptKey); // Save the accKey
+            // fire event for those listeners needing to know about bindings
+            fireNewBinding(sc); // Fire event
         } // end for: each address
         this.pendingTcpAdds.clear(); // Remove list of pending adds
         // Pending UDP Adds
         for (SocketAddress addr : this.pendingUdpAdds) { // Same comments as for TCP
-            logger.debug("Binding UDP: " + addr);
+            logger.debug("Binding UDP: {}", addr);
             DatagramChannel dc = DatagramChannel.open();
-            dc.socket().bind(addr);
+            dc.bind(addr);
             dc.configureBlocking(false);
             SelectionKey acceptKey = dc.register(this.selector, SelectionKey.OP_READ);
             this.udpBindings.put(addr, acceptKey);
+            // fire event for those listeners needing to know about bindings
+            fireNewBinding(dc); // Fire event
         } // end for: each address
         this.pendingUdpAdds.clear();
         // Pending TCP Removes
@@ -653,8 +661,8 @@ public class NioServer {
                     assert knownState(inBuff, "[..PL]");
                 } // end else
             } // end if: have leftoverR outBuff
-            // Read into the outBuff here
-            // If End of Stream
+              // Read into the outBuff here
+              // If End of Stream
             if (client.read(inBuff) == -1) { // End of stream?
                 key.cancel(); // Cancel the accKey
                 client.close(); // And cancel the client
@@ -720,7 +728,7 @@ public class NioServer {
                 this.leftoverForReading.put(key, leftoverR); // Save leftovers for next time
             } // end else: read
         } // end if: SocketChannel
-        // Datagram
+          // Datagram
         else if (sc instanceof DatagramChannel) {
             DatagramChannel dc = (DatagramChannel) sc; // Cast to datagram channel
             SocketAddress remote = null;
@@ -765,7 +773,7 @@ public class NioServer {
                 leftover.clear().flip();
             }
         } // end if: have leftoverW outBuff
-        // If we're done with leftovers, or there were none, notify user to ask for more.
+          // If we're done with leftovers, or there were none, notify user to ask for more.
         if (leftover == null || !leftover.hasRemaining()) {
             outBuff.clear().flip(); // Clear outBuff
             ////////  FIRE EVENT  ////////
@@ -790,8 +798,8 @@ public class NioServer {
             }
             this.leftoverForWriting.put(key, leftover); // Save leftovers for next time
         } // end if: proceed with fresh buffer to user
-        // After all this writing, see if there's anything left.
-        // If nothing is left, and "close after writing" has been set, then close the channel.
+          // After all this writing, see if there's anything left.
+          // If nothing is left, and "close after writing" has been set, then close the channel.
         if (this.closeAfterWriting.contains(key) && // Has user requested "close after writing?"
                 (leftover == null || !leftover.hasRemaining())) { // And is there nothing left to write?
             ch.close(); // Then close the channel
@@ -1209,7 +1217,7 @@ public class NioServer {
             try {
                 l.tcpDataReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener " + l + " threw an exception: " + exc.getMessage());
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1234,7 +1242,7 @@ public class NioServer {
                 l.tcpReadyToWrite(event);
             } catch (Exception exc) {
                 exc.printStackTrace();//TODO REMOVE THIS
-                logger.warn("NioServer.Listener " + l + " threw an exception: " + exc.getMessage());
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1259,7 +1267,7 @@ public class NioServer {
             try {
                 l.udpDataReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener " + l + " threw an exception: " + exc.getMessage());
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1281,7 +1289,7 @@ public class NioServer {
             try {
                 l.connectionClosed(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener " + l + " threw an exception: " + exc.getMessage());
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1303,7 +1311,29 @@ public class NioServer {
             try {
                 l.newConnectionReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener " + l + " threw an exception: " + exc.getMessage());
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                fireExceptionNotification(exc);
+            } // end catch
+        } // end for: each listener
+    } // end fireNioServerPacketReceived
+
+    /**
+     * Fire when a local binding is established.
+     * @param channel SelectableChannel that has been bound
+     */
+    protected synchronized void fireNewBinding(SelectableChannel channel) {
+        if (cachedListeners == null) {
+            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
+        }
+        BindingEvent bound = new BindingEvent(channel);
+        // Make a Runnable object to execute the calls to listeners.
+        // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
+        // the code more maintainable.
+        for (NioServer.Listener l : cachedListeners) {
+            try {
+                l.newBinding(bound);
+            } catch (Exception exc) {
+                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1332,7 +1362,7 @@ public class NioServer {
         try {
             propSupport.firePropertyChange(prop, oldVal, newVal);
         } catch (Exception exc) {
-            logger.warn("A property change listener threw an exception: " + exc.getMessage(), exc);
+            logger.warn("A property change listener threw an exception", exc);
             fireExceptionNotification(exc);
         } // end catch
     } // end fire
@@ -1400,15 +1430,11 @@ public class NioServer {
 
     /**
      * <p>An interface for listening to events from a {@link NioServer}.
-     * A single {@link Event} is shared for all invocations
-     * of these methods.</p>
+     * A single {@link Event} is shared for all invocations of these methods.</p>
      *
-     * <p>Of critical importance are the input and output buffers,
-     * as provided by
-     * {@link NioServer.Event#getInputBuffer()} and
-     * {@link NioServer.Event#getOutputBuffer()}. Below is a table
-     * describing the significance of the input and output buffers
-     * upon entering and exiting the listener's events.<p>
+     * <p>Of critical importance are the input and output buffers, as provided by
+     * {@link NioServer.Event#getInputBuffer()} and {@link NioServer.Event#getOutputBuffer()}. Below is a table
+     * describing the significance of the input and output buffers upon entering and exiting the listener's events.<p>
      *
      * <table>
      *  <thead>
@@ -1422,23 +1448,6 @@ public class NioServer {
      *   </tr>
      *  </tbody>
      * </table>
-     *
-     *
-     * <p>This code is released into the Public Domain.
-     * Since this is Public Domain, you don't need to worry about
-     * licensing, and you can simply copy this NioServer.java file
-     * to your own package and use it as you like. Enjoy.
-     * Please consider leaving the following statement here in this code:</p>
-     *
-     * <p><em>This <tt>NioServer</tt> class was copied to this project from its source as
-     * found at <a href="http://iharder.net" target="_blank">iHarder.net</a>.</em></p>
-     *
-     * @author Robert Harder
-     * @author rharder@users.sourceforge.net
-     * @version 0.1
-     * @see NioServer
-     * @see Adapter
-     * @see Event
      */
     public static interface Listener extends java.util.EventListener {
 
@@ -1586,6 +1595,12 @@ public class NioServer {
          */
         public abstract void connectionClosed(NioServer.Event evt);
 
+        /**
+         * Called when a channel is bound.
+         * @param evt the event
+         */
+        public abstract void newBinding(NioServer.BindingEvent evt);
+
     } // end inner static class Listener
 
     /* ******** ******** */
@@ -1595,24 +1610,7 @@ public class NioServer {
     /* ******** ******** */
 
     /**
-     * A helper class that implements all methods of the
-     * {@link NioServer.Listener} interface with empty methods.
-     *
-     * <p>This code is released into the Public Domain.
-     * Since this is Public Domain, you don't need to worry about
-     * licensing, and you can simply copy this NioServer.java file
-     * to your own package and use it as you like. Enjoy.
-     * Please consider leaving the following statement here in this code:</p>
-     *
-     * <p><em>This <tt>NioServer</tt> class was copied to this project from its source as
-     * found at <a href="http://iharder.net" target="_blank">iHarder.net</a>.</em></p>
-     *
-     * @author Robert Harder
-     * @author rharder@users.sourceforge.net
-     * @version 0.1
-     * @see NioServer
-     * @see Listener
-     * @see Event
+     * A helper class that implements all methods of the {@link NioServer.Listener} interface with empty methods.
      */
     public static class Adapter implements NioServer.Listener {
 
@@ -1656,6 +1654,14 @@ public class NioServer {
         public void tcpReadyToWrite(NioServer.Event evt) {
         }
 
+        /**
+         * Empty method.
+         * @see Listener
+         * @param evt the event
+         */
+        public void newBinding(BindingEvent evt) {
+        }
+
     } // end static inner class Adapter
 
     /* ******** ******** */
@@ -1664,22 +1670,22 @@ public class NioServer {
     /* ******** ******** */
     /* ******** ******** */
 
+    public static class BindingEvent extends java.util.EventObject {
+
+        private final static long serialVersionUID = 1;
+
+        public BindingEvent(SelectableChannel src) {
+            super(src);
+        }
+
+        public Object getSource() {
+            return source;
+        }
+
+    }
+
     /**
      * An event representing activity by a {@link NioServer}.
-     *
-     * <p>This code is released into the Public Domain. Since this is Public Domain, you don't need to worry about
-     * licensing, and you can simply copy this NioServer.java file to your own package and use it as you like. Enjoy.
-     * Please consider leaving the following statement here in this code:</p>
-     *
-     * <p><em>This <tt>NioServer</tt> class was copied to this project from its source as
-     * found at <a href="http://iharder.net" target="_blank">iHarder.net</a>.</em></p>
-     *
-     * @author Robert Harder
-     * @author rharder@users.sourceforge.net
-     * @version 0.1
-     * @see NioServer
-     * @see Adapter
-     * @see Listener
      */
     public static class Event extends java.util.EventObject {
 

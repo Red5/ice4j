@@ -2,7 +2,7 @@
 <configuration>
     <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>DEBUG</level>
+            <level>TRACE</level>
         </filter>
         <encoder>
             <pattern>[%p] [%thread] %logger - %msg%n</pattern>
@@ -17,9 +17,7 @@
     </appender>
     <root level="TRACE">
         <appender-ref ref="CONSOLE" />
-<!--
         <appender-ref ref="FILE" />
- -->
     </root>
 <!-- 
     <logger name="org.ice4j" level="OFF" />

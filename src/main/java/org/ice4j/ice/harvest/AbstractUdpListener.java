@@ -119,17 +119,12 @@ public abstract class AbstractUdpListener {
      * The map which keeps the known remote addresses and their associated candidateSockets.
      * {@link #thread} is the only thread which adds new entries, while other threads remove entries when candidates are freed.
      */
-    private final Map<SocketAddress, UdpChannel> sockets = new ConcurrentHashMap<>();
+    protected final Map<SocketAddress, UdpChannel> sockets = new ConcurrentHashMap<>();
 
     /**
      * The local address that this harvester is bound to.
      */
     protected final TransportAddress localAddress;
-
-    /**
-     * Wrapped DatagramChannel for read/write.
-     */
-    private UdpChannel channel;
 
     /**
      * Internal NIO server.
@@ -172,25 +167,23 @@ public abstract class AbstractUdpListener {
                 if (logger.isDebugEnabled()) {
                     logger.debug("udpDataReceived: {}", evt);
                 }
-                // grab the datagram channel from the event
-                if (channel == null) {
-                    channel = new UdpChannel((DatagramChannel) evt.getKey().channel());
-                }
                 //get the data
                 ByteBuffer recvBuf = evt.getInputBuffer();
                 byte[] buf = new byte[recvBuf.remaining()];
                 recvBuf.get(buf);
                 // get the remote address
                 InetSocketAddress remoteAddress = (InetSocketAddress) evt.getRemoteSocketAddress();
-                UdpChannel destinationSocket = sockets.get(remoteAddress);
-                if (destinationSocket != null) {
-                    //make 'pkt' available for reading through destinationSocket
-                    destinationSocket.addBuffer(buf);
+                // channel wrapper is created when binding request is received in maybeAcceptNewSession
+                UdpChannel channel = sockets.get(remoteAddress);
+                if (channel != null) {
+                    // make 'pkt' available for reading through destinationSocket
+                    channel.addBuffer(buf);
                 } else {
                     // Packet from an unknown source. Is it a STUN Binding Request?
                     String ufrag = getUfrag(buf, 0, buf.length);
                     if (ufrag != null) {
-                        maybeAcceptNewSession(buf, remoteAddress, ufrag);
+                        // grab the datagram channel from the event and add to the UdpChannel
+                        maybeAcceptNewSession((DatagramChannel) evt.getKey().channel(), buf, remoteAddress, ufrag);
                     } else {
                         // Not a STUN Binding Request or doesn't have a valid USERNAME attribute, drop it.
                     }
@@ -202,7 +195,7 @@ public abstract class AbstractUdpListener {
                 if (logger.isDebugEnabled()) {
                     logger.debug("connectionClosed: {}", evt);
                 }
-                UdpChannel destinationSocket = sockets.get(evt.getRemoteSocketAddress());
+                UdpChannel destinationSocket = sockets.remove(evt.getRemoteSocketAddress());
                 if (destinationSocket != null) {
                     destinationSocket.close();
                 }
@@ -220,25 +213,12 @@ public abstract class AbstractUdpListener {
      * Note that this is meant to only be executed by {@link AbstractUdpListener}'s read thread, and should not be called from
      * implementing classes.
      *
-     * @param buf the UDP payload of the first datagram received on the newly accepted socket.
-     * @param remoteAddress the remote address from which the datagram was received.
-     * @param ufrag the local ICE username fragment of the received STUN Binding Request.
+     * @param channel DatagramChannel datagram was received on
+     * @param buf the UDP payload of the first datagram received
+     * @param remoteAddress the remote address from which the datagram was received
+     * @param ufrag the local ICE username fragment of the received STUN Binding Request
      */
-    protected abstract void maybeAcceptNewSession(byte[] buf, InetSocketAddress remoteAddress, String ufrag);
-
-    /**
-     * Creates a new {@link UdpChannel} instance and associates it with the given remote address. Returns the created instance.
-     *
-     * Note that this is meant to only execute in {@link AbstractUdpListener}'s read thread.
-     *
-     * @param remoteAddress the remote address with which to associate the new channel instance
-     * @return the created UdpChannel instance
-     */
-    protected UdpChannel addChannel(InetSocketAddress remoteAddress) throws SocketException {
-        UdpChannel newSocket = new UdpChannel(remoteAddress);
-        sockets.put(remoteAddress, newSocket);
-        return newSocket;
-    }
+    protected abstract void maybeAcceptNewSession(DatagramChannel channel, byte[] buf, InetSocketAddress remoteAddress, String ufrag);
 
     /**
      * Wraps a DatagramChannel for the purposes of a specific MyCandidate.
@@ -252,20 +232,25 @@ public abstract class AbstractUdpListener {
          */
         private final ArrayBlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(64);
 
-        private DatagramChannel datagramChannel;
+        /**
+         * DatagramChannel.
+         */
+        private final DatagramChannel datagramChannel;
 
         /**
-         * The remote address that is associated with this socket.
+         * The remote address that is associated with this channel.
          */
         private InetSocketAddress remoteAddress;
 
         /**
-         * The flag which indicates that this DatagramSocket has been closed.
+         * The flag which indicates that this channel has been closed.
          */
         private boolean closed;
 
         /**
          * Wraps the given DatagramChannel.
+         * 
+         * @param channel DatagramChannel for wrapping
          */
         UdpChannel(DatagramChannel channel) {
             datagramChannel = channel;
@@ -274,10 +259,19 @@ public abstract class AbstractUdpListener {
         /**
          * Constructor to use before a DatagramChannel exists.
          * 
+         * @param channel DatagramChannel for wrapping
          * @param remoteAddress the remote address to be associated with this instance.
          */
-        UdpChannel(InetSocketAddress remoteAddress) {
+        UdpChannel(DatagramChannel channel, InetSocketAddress remoteAddress) {
+            datagramChannel = channel;
             this.remoteAddress = remoteAddress;
+            if (!channel.isConnected()) {
+                try {
+                    channel.connect(remoteAddress);
+                } catch (IOException e) {
+                    logger.warn("Connection failure", e);
+                }
+            }
         }
 
         /**
@@ -298,8 +292,65 @@ public abstract class AbstractUdpListener {
             }
         }
 
-        public void setDatagramChannel(DatagramChannel datagramChannel) {
-            this.datagramChannel = datagramChannel;
+        /**
+         * Reads the data from the first element of {@link #queue} into p. Blocks until {@link #queue} has an element.
+         * @param p
+         * @throws IOException
+         */
+        public void receive(DatagramPacket p) throws IOException {
+            logger.debug("receive: {}", p);
+            byte[] buf = null;
+            while (buf == null) {
+                if (closed) {
+                    throw new SocketException("Socket closed");
+                }
+                try {
+                    // take will block until there's a buffer
+                    buf = queue.take();
+                } catch (InterruptedException e) {
+                }
+            }
+            byte[] pData = p.getData();
+            // XXX Should we use p.setData() here with a buffer of our own?
+            if (pData == null || pData.length < buf.length) {
+                throw new IOException("packet buffer not available");
+            }
+            System.arraycopy(buf, 0, pData, 0, buf.length);
+            p.setLength(buf.length);
+            p.setSocketAddress(remoteAddress);
+        }
+
+        /**
+         * Delegates to the DatagramChannel.
+         */
+        public void send(DatagramPacket p) throws IOException {
+            logger.debug("send: {}", p);
+            if (datagramChannel != null) {
+                datagramChannel.send(ByteBuffer.wrap(p.getData()), p.getSocketAddress());
+            } else {
+                logger.warn("No datagram channel exists for sending");
+            }
+        }
+
+        /**
+         * Removes the association of the remote address with this socket from the harvester's map.
+         */
+        public void close() {
+            closed = true;
+            queue.clear();
+            // We could be called by the super-class constructor, in which case this.removeAddress is not initialized yet.
+            if (remoteAddress != null) {
+                AbstractUdpListener.this.sockets.remove(remoteAddress);
+            }
+            try {
+                datagramChannel.close();
+            } catch (IOException e) {
+                logger.warn("Exception closing datagram channel", e);
+            }
+            // XXX should probably clean-up the nio server here since the listener/harvester dont stop or close
+            if (sockets.isEmpty()) {
+                server.stop();
+            }
         }
 
         public DatagramChannel getDatagramChannel() {
@@ -364,60 +415,6 @@ public abstract class AbstractUdpListener {
             return remoteAddress.getPort();
         }
 
-        /**
-         * Removes the association of the remote address with this socket from the harvester's map.
-         */
-        public void close() {
-            closed = true;
-            queue.clear();
-            // We could be called by the super-class constructor, in which case this.removeAddress is not initialized yet.
-            if (remoteAddress != null) {
-                AbstractUdpListener.this.sockets.remove(remoteAddress);
-            }
-            try {
-                datagramChannel.close();
-            } catch (IOException e) {
-                logger.warn("Exception closing datagram channel", e);
-            }
-        }
-
-        /**
-         * Reads the data from the first element of {@link #queue} into p. Blocks until {@link #queue} has an element.
-         * @param p
-         * @throws IOException
-         */
-        public void receive(DatagramPacket p) throws IOException {
-            byte[] buf = null;
-            while (buf == null) {
-                if (closed) {
-                    throw new SocketException("Socket closed");
-                }
-                try {
-                    // take will block until there's a buffer
-                    buf = queue.take();
-                } catch (InterruptedException e) {
-                }
-            }
-            byte[] pData = p.getData();
-            // XXX Should we use p.setData() here with a buffer of our own?
-            if (pData == null || pData.length < buf.length) {
-                throw new IOException("packet buffer not available");
-            }
-            System.arraycopy(buf, 0, pData, 0, buf.length);
-            p.setLength(buf.length);
-            p.setSocketAddress(remoteAddress);
-        }
-
-        /**
-         * Delegates to the actual socket of the harvester.
-         */
-        public void send(DatagramPacket p) throws IOException {
-            if (datagramChannel != null) {
-                datagramChannel.socket().send(p);
-            } else {
-                logger.warn("No datagram channel exists for sending");
-            }
-        }
     }
 
 }

@@ -4,11 +4,15 @@ package org.ice4j.socket;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 
 /**
  * TCP implementation of the IceSocketWrapper.
@@ -33,8 +37,10 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     public IceTcpSocketWrapper(SocketChannel channel) throws IOException {
         super(channel);
         try {
+            transportAddress = new TransportAddress((InetSocketAddress) ((SocketChannel) channel).getLocalAddress(), Transport.TCP);
             channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-        } catch (SocketException ex) {
+        } catch (Exception e) {
+            logger.warn("Exception configuring transport address", e);
         }
     }
 
@@ -91,7 +97,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public InetAddress getLocalAddress() {
-        return ((SocketChannel) channel).socket().getLocalAddress();
+        return transportAddress.getAddress();
     }
 
     /**
@@ -99,7 +105,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public int getLocalPort() {
-        return ((SocketChannel) channel).socket().getLocalPort();
+        return transportAddress.getPort();
     }
 
     /**
@@ -107,10 +113,14 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        try {
-            return ((SocketChannel) channel).getLocalAddress();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (channel == null) {
+            return transportAddress;
+        } else {
+            try {
+                return ((SocketChannel) channel).getLocalAddress();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }

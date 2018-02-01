@@ -271,6 +271,25 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
+     * Receives a specific STUN Indication on a specific destination TransportAddress from a socket registered with this
+     * StunStack using a specific TransportAddress.
+     *
+     * @param message the bytes received
+     * @param sentTo the TransportAddress of the destination to which the specified indication was sent
+     * @param sendFrom the TransportAddress from which the message was received
+     * @throws StunException if anything goes wrong
+     */
+    public void receiveUdpMessage(byte[] message, TransportAddress sentTo, TransportAddress sendFrom) throws StunException {
+        try {
+            getNetAccessManager().receiveMessage(message, sentTo, sendFrom);
+        } catch (IllegalArgumentException iaex) {
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to receive STUN indication: " + message, iaex);
+        } catch (IOException ioex) {
+            throw new StunException(StunException.NETWORK_ERROR, "Failed to receive STUN indication: " + message, ioex);
+        }
+    }
+
+    /**
      * Sends a specific STUN Indication to a specific destination
      * TransportAddress through a socket registered with this
      * StunStack using a specific TransportAddress.

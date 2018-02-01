@@ -271,15 +271,13 @@ public class Ice {
         long startTime = System.currentTimeMillis();
         Agent agent = new Agent();
         agent.setTrickling(isTrickling);
-
         if (harvesters == null) {
             // STUN
             StunCandidateHarvester stunHarv = new StunCandidateHarvester(new TransportAddress("stun.jitsi.net", 3478, Transport.UDP));
-            //StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
-
             agent.addCandidateHarvester(stunHarv);
+            //StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
             //agent.addCandidateHarvester(stun6Harv);
-
+            /*
             // TURN
             String[] hostnames = new String[] { "stun.jitsi.net", "stun6.jitsi.net" };
             int port = 3478;
@@ -287,19 +285,17 @@ public class Ice {
             for (String hostname : hostnames) {
                 agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, Transport.UDP), longTermCredential));
             }
+            */
         } else {
             for (CandidateHarvester harvester : harvesters) {
                 agent.addCandidateHarvester(harvester);
             }
         }
-
         //STREAMS
         createStream(rtpPort, "audio", agent);
         createStream(rtpPort + 2, "video", agent);
-
         long endTime = System.currentTimeMillis();
         long total = endTime - startTime;
-
         logger.info("Total harvesting time: " + total + "ms.");
         return agent;
     }
@@ -318,26 +314,19 @@ public class Ice {
      */
     private static IceMediaStream createStream(int rtpPort, String streamName, Agent agent) throws Throwable {
         IceMediaStream stream = agent.createMediaStream(streamName);
-
         long startTime = System.currentTimeMillis();
-
-        //TODO: component creation should probably be part of the library. it
-        //should also be started after we've defined all components to be
-        //created so that we could run the harvesting for everyone of them
-        //simultaneously with the others.
+        //TODO: component creation should probably be part of the library. it should also be started after we've defined all components to be
+        //created so that we could run the harvesting for everyone of them simultaneously with the others.
 
         //rtp
         agent.createComponent(stream, Transport.UDP, rtpPort, rtpPort, rtpPort + 100);
-
         long endTime = System.currentTimeMillis();
         logger.info("RTP Component created in " + (endTime - startTime) + " ms");
         startTime = endTime;
         //rtcpComp
         agent.createComponent(stream, Transport.UDP, rtpPort + 1, rtpPort + 1, rtpPort + 101);
-
         endTime = System.currentTimeMillis();
         logger.info("RTCP Component created in " + (endTime - startTime) + " ms");
-
         return stream;
     }
 }

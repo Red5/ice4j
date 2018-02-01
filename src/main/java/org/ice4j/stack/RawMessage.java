@@ -40,7 +40,7 @@ public class RawMessage {
      *
      * @throws NullPointerException if one or more of the parameters were null.
      */
-    RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
+    public RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
         // Let NullPointerException go out. The length of the array messgeBytes may be enormous while messageLength may
         // be tiny so it does not make sense to clone messageBytes.
         this.messageBytes = new byte[messageLength];

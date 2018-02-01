@@ -25,8 +25,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     private final Agent parentAgent;
 
     /**
-     * The indicator which determines whether this
-     * ConnectivityCheckServer is currently started.
+     * The indicator which determines whether this ConnectivityCheckServer is currently started.
      */
     private boolean started;
 
@@ -41,24 +40,20 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     private boolean alive;
 
     /**
-     * Creates a new ConnectivityCheckServer setting
-     * parentAgent as the agent that will be used for retrieving
+     * Creates a new ConnectivityCheckServer setting parentAgent as the agent that will be used for retrieving
      * information such as user fragments for example.
      *
      * @param parentAgent the Agent that is creating this instance.
      */
     public ConnectivityCheckServer(Agent parentAgent) {
         this.parentAgent = parentAgent;
-
         stunStack = this.parentAgent.getStunStack();
         stunStack.getCredentialsManager().registerAuthority(this);
-
         start();
     }
 
     /**
-     * Returns a boolean value indicating whether we have received a STUN
-     * request or not.
+     * Returns a boolean value indicating whether we have received a STUN request or not.
      *
      * Note that this should NOT be taken as an indication that the negotiation
      * has succeeded, it merely indicates that we have received ANY STUN

@@ -3,14 +3,10 @@ package org.ice4j.stack;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.SocketException;
-import java.nio.channels.ClosedChannelException;
 import java.util.Queue;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The Network Access Point is the most outward part of the stack. It is constructed around a datagram socket and takes care of forwarding incoming
@@ -18,26 +14,12 @@ import org.slf4j.LoggerFactory;
  *
  * @author Emil Ivov
  */
-class Connector implements Runnable {
-
-    private static final Logger logger = LoggerFactory.getLogger(Connector.class);
-
-    private final NetAccessManager netAccessManager;
-
-    /**
-     * The message queue is where incoming messages are added.
-     */
-    private final Queue<RawMessage> messageQueue;
+class Connector {
 
     /**
      * The socket object that used by this access point to access the network.
      */
-    private IceSocketWrapper sock;
-
-    /**
-     * A flag that is set to false to exit the message processor.
-     */
-    private boolean running;
+    private final IceSocketWrapper sock;
 
     /**
      * The address that we are listening to.
@@ -48,6 +30,13 @@ class Connector implements Runnable {
      * The remote address of the socket of this Connector if it is a TCP socket, or null if it is UDP.
      */
     private final TransportAddress remoteAddress;
+
+    private final NetAccessManager netAccessManager;
+
+    /**
+     * The message queue is where incoming messages are added.
+     */
+    private final Queue<RawMessage> messageQueue;
 
     /**
      * Creates a network access point.
@@ -73,74 +62,24 @@ class Connector implements Runnable {
     }
 
     /**
-     * The listening thread's run method.
+     * Makes the access point stop listening on its socket.
      */
-    @Override
-    public void run() {
-        running = true;
-        Thread.currentThread().setName("IceConnector@" + hashCode());
-        // Make sure localSock's receiveBufferSize is taken into account including after it gets changed.
-        int receiveBufferSize = 1500;
-        DatagramPacket packet = new DatagramPacket(new byte[receiveBufferSize], receiveBufferSize);
-        while (running) {
-            try {
-                byte[] packetData = packet.getData();
-                if (packetData == null || packetData.length < receiveBufferSize) {
-                    packet.setData(new byte[receiveBufferSize], 0, receiveBufferSize);
-                } else {
-                    // XXX Tell the packet it is large enough because the socket will not look at the length of the 
-                    //data array property and will just respect the length property.
-                    packet.setLength(receiveBufferSize);
-                }
-                // blocking
-                sock.receive(packet);
-                //get lost if we are no longer running.
-                if (!running) {
-                    return;
-                }
-                if (logger.isTraceEnabled()) {
-                    logger.trace("received datagram packet - {}:{}", packet.getAddress(), packet.getPort());
-                }
-                if (packet.getPort() < 0) {
-                    logger.warn("Out of range packet port, resetting to 0");
-                    // force a minimum port of 0 to prevent out of range errors
-                    packet.setPort(0);
-                }
-                RawMessage rawMessage = new RawMessage(packet.getData(), packet.getLength(), new TransportAddress(packet.getAddress(), packet.getPort(), listenAddress.getTransport()), listenAddress);
-                messageQueue.add(rawMessage);
-            } catch (SocketException ex) {
-                if (running) {
-                    logger.warn("Connector died: {} -> {}", listenAddress, remoteAddress, ex);
-                    stop();
-                }
-            } catch (ClosedChannelException cce) {
-                // The socket was closed, possibly by the remote peer. If we were already stopped, just ignore it.
-                if (running) {
-                    // We could be the first thread to realize that the socket was closed. But that's normal operation, so don't
-                    // complain too much.
-                    logger.warn("The socket was closed");
-                    stop();
-                }
-            } catch (IOException ex) {
-                logger.warn("A net access point has gone useless", ex);
-                // do not stop the thread
-            } catch (Throwable ex) {
-                logger.warn("Unknown error occurred while listening for messages!", ex);
-                stop();
-            }
+    protected void stop() {
+        netAccessManager.removeSocket(listenAddress, remoteAddress);
+        if (sock != null) {
+            sock.close();
         }
     }
 
     /**
-     * Makes the access point stop listening on its socket.
+     * Receives a message from the socket.
+     * 
+     * @param message the bytes received
+     * @param address message origin
      */
-    protected void stop() {
-        running = false;
-        netAccessManager.removeSocket(listenAddress, remoteAddress);
-        if (sock != null) {
-            sock.close();
-            sock = null;
-        }
+    void receiveMessage(byte[] message, TransportAddress address) {
+        RawMessage rawMessage = new RawMessage(message, message.length, address, listenAddress);
+        messageQueue.add(rawMessage);
     }
 
     /**
@@ -179,6 +118,6 @@ class Connector implements Runnable {
      */
     @Override
     public String toString() {
-        return "ice4j.Connector@" + listenAddress + " status: " + (running ? "not running" : "running");
+        return "ice4j.Connector@" + listenAddress;
     }
 }

@@ -53,7 +53,7 @@ public class StunDatagramPacketFilter implements DatagramPacketFilter {
      */
     public boolean accept(DatagramPacket p) {
         // If we were instantiated for a specific STUN server, and the packet did not originate there, we reject it.
-        if ((stunServer != null) && !stunServer.equals(p.getSocketAddress())) {
+        if (stunServer != null && !stunServer.equals(p.getSocketAddress())) {
             return false;
         }
         // If this is a STUN packet.
@@ -116,9 +116,8 @@ public class StunDatagramPacketFilter implements DatagramPacketFilter {
      */
     @Override
     public int hashCode() {
-        /*
-         * Overrides the super implementation in order to maintain the general contract of the hashCode method which states that equal objects must have equal hash codes.
-         */
+        // Overrides the super implementation in order to maintain the general contract of the hashCode method which
+        // states that equal objects must have equal hash codes.
         return getClass().hashCode();
     }
 
@@ -128,7 +127,7 @@ public class StunDatagramPacketFilter implements DatagramPacketFilter {
      * @param p the DatagramPacket which is to be checked whether it is a STUN message which is part of the communicator with the 
      * STUN server associated with this instance
      *
-     * @return True if the DatagramPacket represents a STUN (or TURN) packet. False, otherwise.
+     * @return true if the DatagramPacket represents a STUN or TURN packet, false otherwise
      */
     public static boolean isStunPacket(DatagramPacket p) {
         boolean isStunPacket = false;

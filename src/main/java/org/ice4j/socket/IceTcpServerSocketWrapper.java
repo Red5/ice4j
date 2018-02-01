@@ -60,6 +60,16 @@ public class IceTcpServerSocketWrapper extends IceSocketWrapper {
     }
 
     /**
+     * Initializes a new IceTcpServerSocketWrapper.
+     *
+     * @param address TransportAddress
+     * @param component related Component
+     */
+    public IceTcpServerSocketWrapper(TransportAddress address, Component component) {
+        this((ServerSocket) null, component);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

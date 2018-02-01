@@ -33,7 +33,7 @@ import org.ice4j.ice.ServerReflexiveCandidate;
 import org.ice4j.ice.TcpHostCandidate;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
-import org.ice4j.socket.filter.StunDatagramPacketFilter;
+import org.ice4j.socket.filter.StunDataFilter;
 
 /**
  * An implementation of {@link AbstractTcpListener} which acts as a
@@ -349,7 +349,7 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
         // Socket to add to the candidate
         IceSocketWrapper candidateSocket = new IceTcpSocketWrapper(socket.getChannel());
         // STUN-only filtered socket to add to the StunStack
-        candidateSocket.addFilter(new StunDatagramPacketFilter());
+        candidateSocket.addFilter(new StunDataFilter());
         TcpHostCandidate candidate = findCandidate(component, socket);
         if (candidate == null) {
             throw new IOException("Failed to find the local candidate for socket: " + socket);

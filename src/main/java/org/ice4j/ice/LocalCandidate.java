@@ -1,17 +1,11 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice;
 
-import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.IceTcpSocketWrapper;
-import org.ice4j.socket.IceUdpSocketWrapper;
-import org.ice4j.socket.filter.DatagramPacketFilter;
+import org.ice4j.socket.filter.StunDataFilter;
 import org.ice4j.socket.filter.StunDatagramPacketFilter;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -25,6 +19,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class LocalCandidate extends Candidate<LocalCandidate> {
 
+    @SuppressWarnings("unused")
     private final static Logger logger = LoggerFactory.getLogger(LocalCandidate.class);
 
     /**
@@ -86,30 +81,25 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * Creates if necessary and returns a DatagramSocket that would capture all STUN packets arriving on this candidate's socket. If the
      * serverAddress parameter is not null this socket would only intercept packets originating at this address.
      *
-     * @param serverAddress the address of the source to receive packets from or null to intercept all STUN packets
+     * @param serverAddress the address of the source (STUN server) to receive packets from or null to intercept any servers packets
      * @return the DatagramSocket that this candidate uses when sending and receiving STUN packets, while harvesting STUN candidates or
      * performing connectivity checks.
      */
     public IceSocketWrapper getStunSocket(TransportAddress serverAddress) {
         IceSocketWrapper hostSocket = getCandidateIceSocketWrapper();
         if (hostSocket != null) {
-            SelectableChannel channel = hostSocket.getChannel();
             // create a stun packet filter
-            DatagramPacketFilter stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress);
+            hostSocket.addFilter(new StunDataFilter());
+            return hostSocket;
+            /*
+            SelectableChannel channel = hostSocket.getChannel();
             if (channel instanceof DatagramChannel) {
                 // create a new socket wrapper for our channel
                 IceSocketWrapper wrapper = new IceUdpSocketWrapper((DatagramChannel) channel);
                 // attach the filter to the new socket wrapper
                 wrapper.addFilter(stunDatagramPacketFilter);
                 return wrapper;
-                /*
-                 * DatagramSocket udpStunSocket = null; if (udpSocket instanceof MultiplexingDatagramSocket) { Throwable exception = null; try { udpStunSocket =
-                 * ((MultiplexingDatagramSocket) udpSocket).getSocket(stunDatagramPacketFilter); } catch (SocketException sex) {
-                 * logger.warn("Failed to acquire DatagramSocket specific to STUN communication", sex); exception = sex; } if (udpStunSocket == null) { throw new
-                 * IllegalStateException("Failed to acquire DatagramSocket specific to STUN communication", exception); } } else { throw new IllegalStateException("The socket of "
-                 * + getClass().getSimpleName() + " must be a MultiplexingDatagramSocket instance"); } return new IceUdpSocketWrapper(udpStunSocket);
-                 */
-            } else {
+            } else if (channel instanceof SocketChannel) {
                 try {
                     // create a new socket wrapper for our channel
                     IceSocketWrapper wrapper = new IceTcpSocketWrapper((SocketChannel) channel);
@@ -119,16 +109,10 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
                 } catch (IOException e) {
                     logger.info("Failed to create IceTcpSocketWrapper " + e);
                 }
-                /*
-                 * Socket tcpSocket = ((SocketChannel) channel).socket(); Socket tcpStunSocket = null; if (tcpSocket instanceof MultiplexingSocket) { DatagramPacketFilter
-                 * stunDatagramPacketFilter = createStunDatagramPacketFilter(serverAddress); Throwable exception = null; try { tcpStunSocket = ((MultiplexingSocket)
-                 * tcpSocket).getSocket(stunDatagramPacketFilter); } catch (SocketException sex) { logger.warn("Failed to acquire Socket specific to STUN communication", sex);
-                 * exception = sex; } if (tcpStunSocket == null) { throw new IllegalStateException("Failed to acquire Socket specific to STUN communication", exception); } } else {
-                 * throw new IllegalStateException("The socket of " + getClass().getSimpleName() + " must be a MultiplexingSocket instance"); } IceTcpSocketWrapper stunSocket =
-                 * null; try { stunSocket = new IceTcpSocketWrapper(tcpStunSocket); } catch (IOException e) { logger.info("Failed to create IceTcpSocketWrapper " + e); } return
-                 * stunSocket;
-                 */
+            } else {
+                logger.warn("Host socket/channel is of uknown type: {}", hostSocket);
             }
+            */
         }
         return null;
     }

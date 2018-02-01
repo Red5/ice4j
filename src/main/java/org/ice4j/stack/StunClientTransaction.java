@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.stack;
 
@@ -46,10 +35,8 @@ import org.slf4j.LoggerFactory;
  * @author Pascal Mogeri (contributed configuration of client transactions).
  * @author Lyubomir Marinov
  */
-public class StunClientTransaction
-    implements Runnable
-{
- 
+public class StunClientTransaction implements Runnable {
+
     private static final Logger logger = LoggerFactory.getLogger(StunClientTransaction.class);
 
     /**
@@ -75,40 +62,34 @@ public class StunClientTransaction
      * The pool of Threads which retransmit
      * StunClientTransactions.
      */
-    private static final ExecutorService retransmissionThreadPool
-        = Executors.newCachedThreadPool(
-                new ThreadFactory()
-                {
-                    /**
-                     * The default {@code ThreadFactory} implementation which is
-                     * augmented by this instance to create daemon
-                     * {@code Thread}s.
-                     */
-                    private final ThreadFactory defaultThreadFactory
-                        = Executors.defaultThreadFactory();
+    private static final ExecutorService retransmissionThreadPool = Executors.newCachedThreadPool(new ThreadFactory() {
+        /**
+         * The default {@code ThreadFactory} implementation which is
+         * augmented by this instance to create daemon
+         * {@code Thread}s.
+         */
+        private final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
 
-                    @Override
-                    public Thread newThread(Runnable r)
-                    {
-                        Thread t = defaultThreadFactory.newThread(r);
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = defaultThreadFactory.newThread(r);
 
-                        if (t != null)
-                        {
-                            t.setDaemon(true);
+            if (t != null) {
+                t.setDaemon(true);
 
-                            // Additionally, make it known through the name of
-                            // the Thread that it is associated with the
-                            // StunClientTransaction class for
-                            // debugging/informational purposes.
-                            String name = t.getName();
+                // Additionally, make it known through the name of
+                // the Thread that it is associated with the
+                // StunClientTransaction class for
+                // debugging/informational purposes.
+                String name = t.getName();
 
-                            if (name == null)
-                                name = "";
-                            t.setName("StunClientTransaction-" + name);
-                        }
-                        return t;
-                    }
-                });
+                if (name == null)
+                    name = "";
+                t.setName("StunClientTransaction-" + name);
+            }
+            return t;
+        }
+    });
 
     /**
      * Maximum number of retransmissions. Once this number is reached and if no
@@ -195,18 +176,8 @@ public class StunClientTransaction
      * @param responseCollector the instance that should receive this request's
      * response retransmit.
      */
-    public StunClientTransaction(StunStack         stackCallback,
-                                 Request           request,
-                                 TransportAddress  requestDestination,
-                                 TransportAddress  localAddress,
-                                 ResponseCollector responseCollector)
-    {
-        this(stackCallback,
-             request,
-             requestDestination,
-             localAddress,
-             responseCollector,
-             TransactionID.createNewTransactionID());
+    public StunClientTransaction(StunStack stackCallback, Request request, TransportAddress requestDestination, TransportAddress localAddress, ResponseCollector responseCollector) {
+        this(stackCallback, request, requestDestination, localAddress, responseCollector, TransactionID.createNewTransactionID());
     }
 
     /**
@@ -223,34 +194,23 @@ public class StunClientTransaction
      * in case the application created it in order to use it for application
      * data correlation.
      */
-    public StunClientTransaction(StunStack         stackCallback,
-                                 Request           request,
-                                 TransportAddress  requestDestination,
-                                 TransportAddress  localAddress,
-                                 ResponseCollector responseCollector,
-                                 TransactionID     transactionID)
-    {
-        this.stackCallback      = stackCallback;
-        this.request            = request;
-        this.localAddress       = localAddress;
-        this.responseCollector  = responseCollector;
+    public StunClientTransaction(StunStack stackCallback, Request request, TransportAddress requestDestination, TransportAddress localAddress, ResponseCollector responseCollector, TransactionID transactionID) {
+        this.stackCallback = stackCallback;
+        this.request = request;
+        this.localAddress = localAddress;
+        this.responseCollector = responseCollector;
         this.requestDestination = requestDestination;
 
         initTransactionConfiguration();
 
         this.transactionID = transactionID;
 
-        try
-        {
+        try {
             request.setTransactionID(transactionID.getBytes());
-        }
-        catch (StunException ex)
-        {
+        } catch (StunException ex) {
             // Shouldn't happen so lets just throw a RuntimeException in case
             // something is really messed up.
-            throw new IllegalArgumentException(
-                    "The TransactionID class generated an invalid transaction"
-                        + " ID");
+            throw new IllegalArgumentException("The TransactionID class generated an invalid transaction" + " ID");
         }
     }
 
@@ -266,15 +226,11 @@ public class StunClientTransaction
      * <br>
      */
     @Override
-    public void run()
-    {
+    public void run() {
         lock.lock();
-        try
-        {
+        try {
             runLocked();
-        }
-        finally
-        {
+        } finally {
             lock.unlock();
         }
     }
@@ -291,38 +247,27 @@ public class StunClientTransaction
      * {@link #lock}.
      * <br>
      */
-    private void runLocked()
-    {
+    private void runLocked() {
         // Indicates how many times we have retransmitted so far.
         int retransmissionCounter = 0;
         // How much did we wait after our last retransmission?
         int nextWaitInterval = originalWaitInterval;
 
-        for (retransmissionCounter = 0;
-             retransmissionCounter < maxRetransmissions;
-             retransmissionCounter ++)
-        {
+        for (retransmissionCounter = 0; retransmissionCounter < maxRetransmissions; retransmissionCounter++) {
             waitFor(nextWaitInterval);
 
             //did someone tell us to get lost?
-            if(cancelled)
+            if (cancelled)
                 return;
 
             int curWaitInterval = nextWaitInterval;
-            if(nextWaitInterval < maxWaitInterval)
+            if (nextWaitInterval < maxWaitInterval)
                 nextWaitInterval *= 2;
 
-            try
-            {
-                logger.debug("retrying STUN tid " + transactionID + " from "
-                            + localAddress + " to " + requestDestination
-                            + " waited " + curWaitInterval + " ms retrans "
-                            + (retransmissionCounter + 1) + " of "
-                            + maxRetransmissions);
+            try {
+                logger.debug("retrying STUN tid " + transactionID + " from " + localAddress + " to " + requestDestination + " waited " + curWaitInterval + " ms retrans " + (retransmissionCounter + 1) + " of " + maxRetransmissions);
                 sendRequest0();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 //I wonder whether we should notify anyone that a retransmission
                 // has failed
                 logger.warn("A client tran retransmission failed", ex);
@@ -331,19 +276,16 @@ public class StunClientTransaction
 
         //before stating that a transaction has timeout-ed we should first wait
         //for a reception of the response
-        if(nextWaitInterval < maxWaitInterval)
+        if (nextWaitInterval < maxWaitInterval)
             nextWaitInterval *= 2;
 
         waitFor(nextWaitInterval);
 
-        if(cancelled)
+        if (cancelled)
             return;
 
         stackCallback.removeClientTransaction(this);
-        responseCollector.processTimeout(
-                new StunTimeoutEvent(
-                        stackCallback,
-                        this.request, getLocalAddress(), transactionID));
+        responseCollector.processTimeout(new StunTimeoutEvent(stackCallback, this.request, getLocalAddress(), transactionID));
     }
 
     /**
@@ -357,37 +299,26 @@ public class StunClientTransaction
      * access point that had not been installed
      *
      */
-    void sendRequest()
-        throws IllegalArgumentException, IOException
-    {
-        logger.debug("sending STUN  tid " + transactionID + " from "
-                    + localAddress + " to " + requestDestination);
+    void sendRequest() throws IllegalArgumentException, IOException {
+        logger.debug("sending STUN  tid " + transactionID + " from " + localAddress + " to " + requestDestination);
         sendRequest0();
 
         retransmissionThreadPool.execute(this);
     }
 
     /**
-     * Simply calls the sendMessage method of the accessmanager.
+     * Simply calls the sendMessage method of the access manager.
      *
      * @throws IOException  if an error occurs while sending message bytes
      * through the network socket.
      * @throws IllegalArgumentException if the apDescriptor references an
      * access point that had not been installed,
      */
-    private void sendRequest0()
-        throws IllegalArgumentException, IOException
-    {
-        if(cancelled)
-        {
+    private void sendRequest0() throws IllegalArgumentException, IOException {
+        if (cancelled) {
             logger.debug("Trying to resend a cancelled transaction.");
-        }
-        else
-        {
-            stackCallback.getNetAccessManager().sendMessage(
-                    this.request,
-                    localAddress,
-                    requestDestination);
+        } else {
+            stackCallback.getNetAccessManager().sendMessage(this.request, localAddress, requestDestination);
         }
     }
 
@@ -396,8 +327,7 @@ public class StunClientTransaction
      *
      * @return the request that was the reason for creating this transaction.
      */
-    Request getRequest()
-    {
+    Request getRequest() {
         return this.request;
     }
 
@@ -407,19 +337,13 @@ public class StunClientTransaction
      *
      * @param millis the number of milliseconds to wait for.
      */
-    void waitFor(long millis)
-    {
+    void waitFor(long millis) {
         lock.lock();
-        try
-        {
+        try {
             lockCondition.await(millis, TimeUnit.MILLISECONDS);
-        }
-        catch (InterruptedException ex)
-        {
+        } catch (InterruptedException ex) {
             throw new RuntimeException(ex);
-        }
-        finally
-        {
+        } finally {
             lock.unlock();
         }
     }
@@ -431,8 +355,7 @@ public class StunClientTransaction
      * @param waitForResponse indicates whether we should wait for the current
      * RTO to expire before ending the transaction or immediately terminate.
      */
-    void cancel(boolean waitForResponse)
-    {
+    void cancel(boolean waitForResponse) {
         // XXX The cancelled field is initialized to false and then the one and
         // only write access to it is here to set it to true. The rest of the
         // code just checks whether it has become true. Consequently, there
@@ -441,21 +364,16 @@ public class StunClientTransaction
         // of deadlocks.
         cancelled = true;
 
-        if(!waitForResponse)
-        {
+        if (!waitForResponse) {
             // Try to interrupt #waitFor(long) if possible. But don't risk a
             // deadlock. It is not a problem if it is not possible to interrupt
             // #waitFor(long) here because it will complete in finite time and
             // this StunClientTransaction will eventually notice that it has
             // been cancelled.
-            if (lock.tryLock())
-            {
-                try
-                {
+            if (lock.tryLock()) {
+                try {
                     lockCondition.signal();
-                }
-                finally
-                {
+                } finally {
                     lock.unlock();
                 }
             }
@@ -466,8 +384,7 @@ public class StunClientTransaction
      * Cancels the transaction. Once this method is called the transaction is
      * considered terminated and will stop retransmissions.
      */
-    void cancel()
-    {
+    void cancel() {
         cancel(false);
     }
 
@@ -477,27 +394,16 @@ public class StunClientTransaction
      *
      * @param evt the event that contains the newly received message
      */
-    public void handleResponse(StunMessageEvent evt)
-    {
+    public void handleResponse(StunMessageEvent evt) {
         lock.lock();
-        try
-        {
+        try {
             TransactionID transactionID = getTransactionID();
             logger.debug("handleResponse tid {}", transactionID);
-            if(!StackProperties.getBoolean(StackProperties.KEEP_CRANS_AFTER_A_RESPONSE, false))
-            {
+            if (!StackProperties.getBoolean(StackProperties.KEEP_CRANS_AFTER_A_RESPONSE, false)) {
                 cancel();
             }
-            responseCollector.processResponse(
-                    new StunResponseEvent(
-                            stackCallback,
-                            evt.getRawMessage(),
-                            (Response) evt.getMessage(),
-                            request,
-                            transactionID));
-        }
-        finally
-        {
+            responseCollector.processResponse(new StunResponseEvent(stackCallback, evt.getRawMessage(), (Response) evt.getMessage(), request, transactionID));
+        } finally {
             lock.unlock();
         }
     }
@@ -507,8 +413,7 @@ public class StunClientTransaction
      *
      * @return the ID of the transaction.
      */
-    TransactionID getTransactionID()
-    {
+    TransactionID getTransactionID() {
         return this.transactionID;
     }
 
@@ -516,58 +421,38 @@ public class StunClientTransaction
      * Init transaction duration/retransmission parameters. (Mostly contributed
      * by Pascal Maugeri.)
      */
-    private void initTransactionConfiguration()
-    {
+    private void initTransactionConfiguration() {
         //Max Retransmissions
-        String maxRetransmissionsStr
-            = System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS);
+        String maxRetransmissionsStr = System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS);
 
-        if(maxRetransmissionsStr != null
-                && maxRetransmissionsStr.trim().length() > 0)
-        {
-            try
-            {
+        if (maxRetransmissionsStr != null && maxRetransmissionsStr.trim().length() > 0) {
+            try {
                 maxRetransmissions = Integer.parseInt(maxRetransmissionsStr);
-            }
-            catch (NumberFormatException e)
-            {
+            } catch (NumberFormatException e) {
                 logger.warn("Failed to parse MAX_RETRANSMISSIONS", e);
                 maxRetransmissions = DEFAULT_MAX_RETRANSMISSIONS;
             }
         }
 
         //Original Wait Interval
-        String originalWaitIntervalStr
-            = System.getProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER);
+        String originalWaitIntervalStr = System.getProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER);
 
-        if(originalWaitIntervalStr != null
-                && originalWaitIntervalStr.trim().length() > 0)
-        {
-            try
-            {
-                originalWaitInterval
-                    = Integer.parseInt(originalWaitIntervalStr);
-            }
-            catch (NumberFormatException e)
-            {
+        if (originalWaitIntervalStr != null && originalWaitIntervalStr.trim().length() > 0) {
+            try {
+                originalWaitInterval = Integer.parseInt(originalWaitIntervalStr);
+            } catch (NumberFormatException e) {
                 logger.warn("Failed to parse ORIGINAL_WAIT_INTERVAL", e);
                 originalWaitInterval = DEFAULT_ORIGINAL_WAIT_INTERVAL;
             }
         }
 
         //Max Wait Interval
-        String maxWaitIntervalStr
-                = System.getProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER);
+        String maxWaitIntervalStr = System.getProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER);
 
-        if(maxWaitIntervalStr != null
-                && maxWaitIntervalStr.trim().length() > 0)
-        {
-            try
-            {
+        if (maxWaitIntervalStr != null && maxWaitIntervalStr.trim().length() > 0) {
+            try {
                 maxWaitInterval = Integer.parseInt(maxWaitIntervalStr);
-            }
-            catch (NumberFormatException e)
-            {
+            } catch (NumberFormatException e) {
                 logger.warn("Failed to parse MAX_WAIT_INTERVAL", e);
                 maxWaitInterval = DEFAULT_MAX_WAIT_INTERVAL;
             }
@@ -581,8 +466,7 @@ public class StunClientTransaction
      * @return  the local TransportAddress that this transaction is
      * sending requests from.
      */
-    public TransportAddress getLocalAddress()
-    {
+    public TransportAddress getLocalAddress() {
         return localAddress;
     }
 
@@ -593,8 +477,7 @@ public class StunClientTransaction
      * @return the remote TransportAddress that this transaction is
      * sending requests to.
      */
-    public TransportAddress getRemoteAddress()
-    {
+    public TransportAddress getRemoteAddress() {
         return requestDestination;
     }
 }

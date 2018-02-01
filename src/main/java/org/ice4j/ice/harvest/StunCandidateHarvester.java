@@ -335,11 +335,9 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Returns the host candidate.
-     * For UDP it simply returns the candidate passed as a parameter.
+     * Returns the host candidate. For UDP it simply returns the candidate passed as a parameter.
      *
-     * However for TCP, we cannot return the same hostCandidate because in Java
-     * a  "server" socket cannot connect to a destination with the same local
+     * However for TCP, we cannot return the same hostCandidate because in Java a "server" socket cannot connect to a destination with the same local
      * address/port (i.e. a Java Socket cannot act as both server/client).
      *
      * @param hostCand HostCandidate
@@ -353,7 +351,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 SocketChannel socketChannel = SocketChannel.open();
                 socketChannel.bind(stunServer);
                 IceSocketWrapper sock = IceSocketWrapper.build(socketChannel);
-                cand = new HostCandidate(sock, hostCand.getParentComponent(), Transport.TCP);
+                cand = new HostCandidate(sock, hostCand.getParentComponent());
                 hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(cand.getStunSocket(null));
                 hostCand.getParentComponent().getComponentSocket().setSocket(sock);
             } catch (Exception io) {

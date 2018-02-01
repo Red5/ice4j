@@ -270,25 +270,23 @@ public class Agent {
         System.setProperty(StackProperties.ALWAYS_SIGN, "true");
 
         //add the software attribute to all messages
-        if (StackProperties.getString(StackProperties.SOFTWARE) == null)
+        if (StackProperties.getString(StackProperties.SOFTWARE) == null) {
             System.setProperty(StackProperties.SOFTWARE, "ice4j.org");
+        }
 
         String ufrag = ufragPrefix == null ? "" : ufragPrefix;
         ufrag += new BigInteger(24, random).toString(32);
         ufrag += BigInteger.valueOf(System.currentTimeMillis()).toString(32);
-        ufrag = ensureIceAttributeLength(ufrag, /* min */4, /* max */256);
+        // min: 4 max: 256
+        ufrag = ensureIceAttributeLength(ufrag, 4, 256);
         this.ufrag = ufrag;
-
-        password = ensureIceAttributeLength(new BigInteger(128, random).toString(32),
-        /* min */22, /* max */256);
-
+        // min: 22 max: 256
+        password = ensureIceAttributeLength(new BigInteger(128, random).toString(32), 22, 256);
         tieBreaker = random.nextLong() & 0x7FFFFFFFFFFFFFFFL;
         nominator = new DefaultNominator(this);
-
         for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters()) {
             addCandidateHarvester(harvester);
         }
-
         logger.debug("Created a new Agent, ufrag={}", ufrag);
     }
 
@@ -319,20 +317,13 @@ public class Agent {
      * @return the newly created and stored IceMediaStream
      */
     public IceMediaStream createMediaStream(String mediaStreamName) {
-        logger.debug("Create media stream for " + mediaStreamName);
-
+        logger.debug("Create media stream for {}", mediaStreamName);
         IceMediaStream mediaStream = new IceMediaStream(Agent.this, mediaStreamName);
-
         mediaStreams.put(mediaStreamName, mediaStream);
-
-        // Since we add a new stream, we must wait to add the component and the
-        // remote candidates before starting to "RUN" this Agent.
-        // This is useful if this Agent is already in COMPLETED state
-        // (isStarted() == true) due to a previous successful ICE procedure:
-        // this way incoming connectivity checks are registered in the
-        // preDiscoveredPairsQueue until this Agent is in RUNNING state.
+        // Since we add a new stream, we must wait to add the component and the remote candidates before starting to "RUN" this Agent.
+        // This is useful if this Agent is already in COMPLETED state (isStarted() == true) due to a previous successful ICE procedure:
+        // this way incoming connectivity checks are registered in the preDiscoveredPairsQueue until this Agent is in RUNNING state.
         this.setState(IceProcessingState.WAITING);
-
         return mediaStream;
     }
 
@@ -398,11 +389,8 @@ public class Agent {
         if (transport != Transport.UDP) {
             throw new IllegalArgumentException("This implementation does not currently support transport: " + transport);
         }
-
         Component component = stream.createComponent(keepAliveStrategy);
-
         gatherCandidates(component, preferredPort, minPort, maxPort);
-
         /*
          * Lyubomir: After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the
          * ConnectivityCheckServer is started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the
@@ -410,7 +398,6 @@ public class Agent {
          * arrive from the remote Agent.
          */
         connCheckServer.start();
-
         return component;
     }
 
@@ -422,12 +409,9 @@ public class Agent {
      * allows this {@code Agent} to easily track the initialization of its
      * {@code CandidatePair}s.
      *
-     * @param local the {@code LocalCandidate} to initialize the new instance
-     * with
-     * @param remote the {@code RemoteCandidate} to initialize the new instance
-     * with
-     * @return a new {@code CandidatePair} instance initializes with
-     * {@code local} and {@code remote}
+     * @param local the {@code LocalCandidate} to initialize the new instance with
+     * @param remote the {@code RemoteCandidate} to initialize the new instance with
+     * @return a new {@code CandidatePair} instance initializes with {@code local} and {@code remote}
      */
     protected CandidatePair createCandidatePair(LocalCandidate local, RemoteCandidate remote) {
         return new CandidatePair(local, remote);
@@ -458,7 +442,6 @@ public class Agent {
      */
     private void gatherCandidates(Component component, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException {
         logger.info("Gathering candidates for component " + component.toShortString() + ". Local ufrag " + getLocalUfrag());
-
         if (useHostHarvester()) {
             hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, Transport.UDP);
         } else {
@@ -696,14 +679,11 @@ public class Agent {
             oldState = state;
             this.state = newState;
         }
-
         if (!oldState.equals(newState)) {
             logger.info("ICE state changed from " + oldState + " to " + newState + ". Local ufrag " + getLocalUfrag());
             fireStateChange(oldState, newState);
-
             return true;
         }
-
         return false;
     }
 
@@ -715,21 +695,18 @@ public class Agent {
         //first init the check list.
         List<IceMediaStream> streams = getStreamsWithPendingConnectivityEstablishment();
         int streamCount = streams.size();
-
         //init the maximum number of check list entries per stream.
         int maxCheckListSize = Integer.getInteger(StackProperties.MAX_CHECK_LIST_SIZE, DEFAULT_MAX_CHECK_LIST_SIZE);
-
         int maxPerStreamSize = streamCount == 0 ? 0 : maxCheckListSize / streamCount;
-
         for (IceMediaStream stream : streams) {
             logger.info("Init checklist for stream " + stream.getName());
             stream.setMaxCheckListSize(maxPerStreamSize);
             stream.initCheckList();
         }
-
         //init the states of the first media stream as per 5245
-        if (streamCount > 0)
+        if (streamCount > 0) {
             streams.get(0).getCheckList().computeInitialCheckListPairStates();
+        }
     }
 
     /**
@@ -1028,17 +1005,14 @@ public class Agent {
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder("ICE Agent (stream-count=");
-
         buff.append(getStreamCount());
         buff.append(" ice-pwd:").append(getLocalPassword());
         buff.append(" ice-ufrag:").append(getLocalUfrag());
         buff.append(" tie-breaker:").append(getTieBreaker());
         buff.append("):\n");
-
         for (IceMediaStream stream : getStreams()) {
             buff.append(stream).append("\n");
         }
-
         return buff.toString();
     }
 
@@ -1061,12 +1035,10 @@ public class Agent {
      */
     public void setControlling(boolean isControlling) {
         this.isControlling = isControlling;
-
         //in case we have already initialized our check lists we'd need to
         //recompute pair priorities.
         for (IceMediaStream stream : getStreams()) {
             CheckList list = stream.getCheckList();
-
             if (list != null) {
                 list.recomputePairPriorities();
             }
@@ -1116,7 +1088,6 @@ public class Agent {
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
         for (IceMediaStream stream : mediaStreams.values()) {
             LocalCandidate cnd = stream.findLocalCandidate(localAddress);
-
             if (cnd != null) {
                 return cnd;
             }
@@ -1162,7 +1133,6 @@ public class Agent {
     public RemoteCandidate findRemoteCandidate(TransportAddress remoteAddress) {
         for (IceMediaStream stream : mediaStreams.values()) {
             RemoteCandidate cnd = stream.findRemoteCandidate(remoteAddress);
-
             if (cnd != null) {
                 return cnd;
             }
@@ -1188,9 +1158,9 @@ public class Agent {
         synchronized (mediaStreams) {
             for (IceMediaStream stream : mediaStreams.values()) {
                 CandidatePair pair = stream.findCandidatePair(localAddress, remoteAddress);
-
-                if (pair != null)
+                if (pair != null) {
                     return pair;
+                }
             }
         }
         return null;
@@ -1211,9 +1181,9 @@ public class Agent {
         synchronized (mediaStreams) {
             for (IceMediaStream stream : mediaStreams.values()) {
                 CandidatePair pair = stream.findCandidatePair(localUFrag, remoteUFrag);
-
-                if (pair != null)
+                if (pair != null) {
                     return pair;
+                }
             }
         }
         return null;
@@ -1241,25 +1211,20 @@ public class Agent {
     protected void incomingCheckReceived(TransportAddress remoteAddress, TransportAddress localAddress, long priority, String remoteUFrag, String localUFrag, boolean useCandidate) {
         String ufrag = null;
         LocalCandidate localCandidate = findLocalCandidate(localAddress);
-
         if (localCandidate == null) {
             logger.info("No localAddress for this incoming checks: " + localAddress);
             return;
         }
-
         Component parentComponent = localCandidate.getParentComponent();
         RemoteCandidate remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority,
         // We can not know the related candidate of a remote peer
         // reflexive candidate. We must set it to "null".
                 null, ufrag);
-
         CandidatePair triggeredPair = createCandidatePair(localCandidate, remoteCandidate);
-
         logger.debug("set use-candidate " + useCandidate + " for pair " + triggeredPair.toShortString());
         if (useCandidate) {
             triggeredPair.setUseCandidateReceived();
         }
-
         synchronized (startLock) {
             if (state == IceProcessingState.WAITING) {
                 logger.debug("Receive STUN checks before our ICE has started");
