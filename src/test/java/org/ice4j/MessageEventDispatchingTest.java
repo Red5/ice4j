@@ -5,7 +5,6 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
-import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -84,8 +83,6 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     PlainResponseCollector responseCollector;
 
-    private NioServer server;
-
     /**
      * junit setup method.
      *
@@ -99,22 +96,10 @@ public class MessageEventDispatchingTest extends TestCase {
         serverAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         serverAddress2 = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         stunStack = new StunStack();
-        // create an NIO server
-        server = new NioServer();
-        // start the NIO server
-        server.start();
-        // add the bindings
-        server.addUdpBinding(clientAddress);
-        server.addUdpBinding(serverAddress);
-        server.addUdpBinding(serverAddress2);
         // create the wrappers
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
         serverSock2 = new IceUdpSocketWrapper(serverAddress2);
-        // add listeners to the server
-        server.addNioServerListener(clientSock.getServerListener());
-        server.addNioServerListener(serverSock.getServerListener());
-        server.addNioServerListener(serverSock2.getServerListener());
         // add wrappers to the stack
         stunStack.addSocket(clientSock);
         stunStack.addSocket(serverSock);
@@ -134,12 +119,6 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     @After
     protected void tearDown() throws Exception {
-        server.removeUdpBinding(clientAddress);
-        server.removeUdpBinding(serverAddress);
-        server.removeUdpBinding(serverAddress2);
-        server.removeNioServerListener(clientSock.getServerListener());
-        server.removeNioServerListener(serverSock.getServerListener());
-        server.removeNioServerListener(serverSock2.getServerListener());
         stunStack.removeSocket(clientAddress);
         stunStack.removeSocket(serverAddress);
         stunStack.removeSocket(serverAddress2);
@@ -148,9 +127,6 @@ public class MessageEventDispatchingTest extends TestCase {
         serverSock2.close();
         requestCollector = null;
         responseCollector = null;
-        // stop the NIO server
-        server.stop();
-        logger.info("-------------------------------------------\nTearing down {}", getClass().getName());
         super.tearDown();
     }
 

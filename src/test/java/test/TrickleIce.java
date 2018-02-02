@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package test;
 
@@ -31,15 +20,9 @@ import org.ice4j.ice.sdp.*;
  * <p>
  * @author Emil Ivov
  */
-public class TrickleIce
-    extends Ice
-{
-    /**
-     * The Logger used by the TrickleIce
-     * class and its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(TrickleIce.class.getName());
+public class TrickleIce extends Ice {
+
+    private static final Logger logger = Logger.getLogger(TrickleIce.class.getName());
 
     /**
      * Runs a test application that allocates streams, generates an SDP, dumps
@@ -49,11 +32,9 @@ public class TrickleIce
      * @param args none currently handled
      * @throws Throwable every now and then.
      */
-    public static void main(String[] args) throws Throwable
-    {
+    public static void main(String[] args) throws Throwable {
         Agent localAgent = createAgent(2020, true);
-        localAgent.setNominationStrategy(
-                        NominationStrategy.NOMINATE_HIGHEST_PRIO);
+        localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
 
         localAgent.addStateChangeListener(new IceProcessingListener());
 
@@ -64,49 +45,37 @@ public class TrickleIce
         //wait a bit so that the logger can stop dumping stuff:
         Thread.sleep(500);
 
-        logger.info("=================== feed the following"
-                    +" to the remote agent ===================");
-
+        logger.info("=================== feed the following" + " to the remote agent ===================");
 
         logger.info("\n" + localSDP);
 
-        logger.info("======================================"
-            + "========================================\n");
+        logger.info("======================================" + "========================================\n");
 
         CandidatePrinter printer = new CandidatePrinter();
         printer.agent = localAgent;
 
-
         localAgent.startCandidateTrickle(printer);
-
 
         List<Component> allComponents = new LinkedList<>();
         int allCandidates = 0;
-        for (IceMediaStream stream : localAgent.getStreams())
-        {
-            for(Component component : stream.getComponents())
-            {
+        for (IceMediaStream stream : localAgent.getStreams()) {
+            for (Component component : stream.getComponents()) {
                 allComponents.add(component);
                 allCandidates += component.getLocalCandidateCount();
             }
         }
         logger.info("all candidates = " + allCandidates);
 
-        /*String sdp = IceDistributed.readSDP();
-
-        startTime = System.currentTimeMillis();
-        SdpUtils.parseSDP(localAgent, sdp);
-
-        localAgent.startConnectivityEstablishment();
-        */
+        /*
+         * String sdp = IceDistributed.readSDP(); startTime = System.currentTimeMillis(); SdpUtils.parseSDP(localAgent, sdp); localAgent.startConnectivityEstablishment();
+         */
 
         //Give processing enough time to finish. We'll System.exit() anyway
         //as soon as localAgent enters a final state.
         Thread.sleep(60000);
     }
 
-    static class CandidatePrinter implements TrickleCallback
-    {
+    static class CandidatePrinter implements TrickleCallback {
         /**
          * Number of candidates that we have seen.
          */
@@ -124,34 +93,28 @@ public class TrickleIce
          * similarly to WebRTC, null in case all candidate harvesting
          * is now completed.
          */
-        public void onIceCandidates(Collection<LocalCandidate> iceCandidates)
-        {
-            if( iceCandidates != null)
-                candidateCounter++ ;
+        public void onIceCandidates(Collection<LocalCandidate> iceCandidates) {
+            if (iceCandidates != null)
+                candidateCounter++;
 
-            Collection<Attribute> update
-                = IceSdpUtils.createTrickleUpdate(iceCandidates);
+            Collection<Attribute> update = IceSdpUtils.createTrickleUpdate(iceCandidates);
 
-            for(Attribute attribute : update)
-            {
+            for (Attribute attribute : update) {
                 logger.info(attribute.toString().trim());
             }
 
-            if(iceCandidates == null)
-            {
-                try{Thread.sleep(1000);}catch(Exception e){}
-
-                logger.info("ICE stats: time="
-                    + agent.getTotalHarvestingTime() + "ms");
-
-                //print statistics
-                for (CandidateHarvester harvester : agent.getHarvesters())
-                {
-                    logger.info(
-                        harvester.getHarvestStatistics().toString().trim());
+            if (iceCandidates == null) {
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
                 }
 
+                logger.info("ICE stats: time=" + agent.getTotalHarvestingTime() + "ms");
 
+                //print statistics
+                for (CandidateHarvester harvester : agent.getHarvesters()) {
+                    logger.info(harvester.getHarvestStatistics().toString().trim());
+                }
 
             }
         }

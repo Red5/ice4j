@@ -19,11 +19,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadFactory;
 
+import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,9 +149,7 @@ public class NioServer {
 
     private Throwable lastException;
 
-    private final Collection<NioServer.Listener> listeners = new LinkedList<NioServer.Listener>(); // Event listeners
-
-    private NioServer.Listener[] cachedListeners;
+    private final Collection<NioServer.Listener> listeners = new ConcurrentLinkedQueue<NioServer.Listener>(); // Event listeners
 
     private final NioServer.Event event = new NioServer.Event(this); // Shared event
 
@@ -432,7 +431,7 @@ public class NioServer {
                 ////////  B L O C K S   H E R E
                 if (this.selector.select() <= 0) { // Block until notified
                     logger.debug("selector.select() <= 0"); // Possible false start
-                    Thread.sleep(100); // Let's not run away from ourselves
+                    Thread.sleep(10L); // Let's not run away from ourselves
                 }///////  B L O C K S   H E R E
                 if (this.currentState == State.STOPPING) {
                     try {
@@ -480,7 +479,7 @@ public class NioServer {
                                 handleWrite(key, inBuff, outBuff); // Handle data
                             } // end if: readable
                         } catch (IOException exc) {
-                            logger.warn("Encountered an error with a connection: " + exc.getMessage());
+                            logger.warn("Encountered an error with a connection", exc);
                             fireExceptionNotification(exc);
                             key.channel().close();
                         } // end catch
@@ -959,6 +958,14 @@ public class NioServer {
         if (this.selector != null) { // If there's a selector...
             this.selector.wakeup(); // Wake it up to handle the remove action
         }
+        // remove any listeners for the binding as well
+        for (Listener listener : listeners) {
+            IceSocketWrapper wrapper = ((Adapter) listener).getWrapper();
+            if (wrapper != null && wrapper.getTransportAddress().equals(addr)) {
+                removeNioServerListener(listener);
+                break;
+            }
+        }
         firePropertyChange(TCP_BINDINGS_PROP, oldVal, newVal); // Fire prop change
         return this;
     }
@@ -1052,6 +1059,14 @@ public class NioServer {
         Set<SocketAddress> newVal = this.getUdpBindings(); // Save new set for prop change event
         if (this.selector != null) { // If there's a selector...
             this.selector.wakeup(); // Wake it up to handle the remove action
+        }
+        // remove any listeners for the binding as well
+        for (Listener listener : listeners) {
+            IceSocketWrapper wrapper = ((Adapter) listener).getWrapper();
+            if (wrapper != null && wrapper.getTransportAddress().equals(addr)) {
+                removeNioServerListener(listener);
+                break;
+            }
         }
         firePropertyChange(UDP_BINDINGS_PROP, oldVal, newVal); // Fire prop change
         return this;
@@ -1186,18 +1201,16 @@ public class NioServer {
      * Adds a {@link Listener}.
      * @param l the listener
      */
-    public synchronized void addNioServerListener(NioServer.Listener l) {
+    public void addNioServerListener(NioServer.Listener l) {
         listeners.add(l);
-        cachedListeners = null;
     }
 
     /**
      * Removes a {@link Listener}.
      * @param l the listener
      */
-    public synchronized void removeNioServerListener(NioServer.Listener l) {
+    public void removeNioServerListener(NioServer.Listener l) {
         listeners.remove(l);
-        cachedListeners = null;
     }
 
     /**
@@ -1206,14 +1219,11 @@ public class NioServer {
      * @param outBuff the outBuff containing the new (and possibly leftoverR) data
      */
     protected synchronized void fireTcpDataReceived(SelectionKey key, ByteBuffer inBuff, ByteBuffer outBuff) {
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         this.event.reset(key, inBuff, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.tcpDataReceived(event);
             } catch (Exception exc) {
@@ -1230,14 +1240,11 @@ public class NioServer {
      */
     protected synchronized void fireTcpReadyToWrite(SelectionKey key, ByteBuffer outBuff) {
         assert knownState(outBuff, "[PL..]");
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         this.event.reset(key, null, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.tcpReadyToWrite(event);
             } catch (Exception exc) {
@@ -1256,14 +1263,11 @@ public class NioServer {
      * @param outBuff the output buffer for writing data
      */
     protected synchronized void fireUdpDataReceived(SelectionKey key, ByteBuffer inBuff, ByteBuffer outBuff, SocketAddress remote) {
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         this.event.reset(key, inBuff, outBuff, remote);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.udpDataReceived(event);
             } catch (Exception exc) {
@@ -1278,14 +1282,11 @@ public class NioServer {
      * @param key The accKey for the closed connection.
      */
     protected synchronized void fireConnectionClosed(SelectionKey key) {
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         this.event.reset(key, null, null, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.connectionClosed(event);
             } catch (Exception exc) {
@@ -1300,14 +1301,11 @@ public class NioServer {
      * @param key the SelectionKey associated with the connection
      */
     protected synchronized void fireNewConnection(SelectionKey key, ByteBuffer outBuff) {
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         this.event.reset(key, null, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.newConnectionReceived(event);
             } catch (Exception exc) {
@@ -1322,14 +1320,11 @@ public class NioServer {
      * @param channel SelectableChannel that has been bound
      */
     protected synchronized void fireNewBinding(SelectableChannel channel) {
-        if (cachedListeners == null) {
-            cachedListeners = listeners.toArray(new NioServer.Listener[listeners.size()]);
-        }
         BindingEvent bound = new BindingEvent(channel);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : cachedListeners) {
+        for (NioServer.Listener l : listeners) {
             try {
                 l.newBinding(bound);
             } catch (Exception exc) {
@@ -1613,6 +1608,27 @@ public class NioServer {
      * A helper class that implements all methods of the {@link NioServer.Listener} interface with empty methods.
      */
     public static class Adapter implements NioServer.Listener {
+
+        protected final IceSocketWrapper wrapper;
+
+        /**
+         * Constructor taking a wrapper for reference use.
+         * 
+         * @param wrapper the IceSocketWrapper instance which created this adapter
+         */
+        public Adapter(IceSocketWrapper wrapper) {
+            logger.debug("Adapter for: {}", wrapper.getTransportAddress());
+            this.wrapper = wrapper;
+        }
+
+        /**
+         * Returns the IceSocketWrapper instance which created this adapter.
+         * 
+         * @return wrapper
+         */
+        public IceSocketWrapper getWrapper() {
+            return wrapper;
+        }
 
         /**
          * Empty method.

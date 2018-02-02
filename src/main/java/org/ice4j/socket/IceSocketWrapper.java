@@ -113,6 +113,7 @@ public abstract class IceSocketWrapper {
      * Closes the channel.
      */
     public void close() {
+        logger.debug("close: {}", channel);
         if (channel != null) {
             try {
                 channel.close();

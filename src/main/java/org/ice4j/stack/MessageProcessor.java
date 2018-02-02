@@ -38,7 +38,7 @@ class MessageProcessor implements Runnable {
      * Creates a Message processor.
      *
      * @param netAccessManager the NetAccessManager which is creating the new instance
-     * @param message incoming message queue
+     * @param messageQueue incoming message queue
      * @throws IllegalArgumentException if any of the mentioned properties of
      * netAccessManager are null
      */

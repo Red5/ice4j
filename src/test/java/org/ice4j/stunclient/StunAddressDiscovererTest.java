@@ -12,6 +12,8 @@ import org.ice4j.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
 
+import test.PortUtil;
+
 /**
  * The StunAddressDiscovererTest_XXX set of tests were created to verify stun
  * operation for scenarios of some basic types of firewalls. The purpose of
@@ -25,15 +27,15 @@ import org.ice4j.stack.*;
 public class StunAddressDiscovererTest extends TestCase {
     private NetworkConfigurationDiscoveryProcess stunAddressDiscoverer = null;
 
-    private TransportAddress discovererAddress = new TransportAddress("127.0.0.1", 15555, Transport.UDP);
+    private TransportAddress discovererAddress;
+
+    private TransportAddress responseServerAddress;
+
+    private TransportAddress mappedClientAddress;
+
+    private TransportAddress mappedClientAddressPort2;
 
     private ResponseSequenceServer responseServer = null;
-
-    private TransportAddress responseServerAddress = new TransportAddress("127.0.0.1", 19999, Transport.UDP);
-
-    private TransportAddress mappedClientAddress = new TransportAddress("212.56.4.10", 15612, Transport.UDP);
-
-    private TransportAddress mappedClientAddressPort2 = new TransportAddress("212.56.4.10", 15611, Transport.UDP);
 
     public StunAddressDiscovererTest(String name) throws StunException {
         super(name);
@@ -41,6 +43,10 @@ public class StunAddressDiscovererTest extends TestCase {
 
     protected void setUp() throws Exception {
         super.setUp();
+        discovererAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        responseServerAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        mappedClientAddress = new TransportAddress("212.56.4.10", PortUtil.getPort(), Transport.UDP);
+        mappedClientAddressPort2 = new TransportAddress("212.56.4.10", PortUtil.getPort(), Transport.UDP);
 
         System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "100");
         System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "2");

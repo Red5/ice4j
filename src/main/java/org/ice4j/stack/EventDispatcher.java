@@ -29,10 +29,8 @@ public class EventDispatcher {
     private final CopyOnWriteArrayList<MessageTypeEventHandler<?>> messageListeners = new CopyOnWriteArrayList<>();
 
     /**
-     * The Map of EventDispatchers which keep the
-     * registrations of STUN request and indication listeners registered for
-     * STUN requests and indications from specific local
-     * TransportAddresses.
+     * The Map of EventDispatchers which keep the registrations of STUN request and indication listeners registered for
+     * STUN requests and indications from specific local TransportAddresses.
      */
     private final ConcurrentMap<TransportAddress, EventDispatcher> children = new ConcurrentHashMap<>();
 
@@ -43,14 +41,10 @@ public class EventDispatcher {
     }
 
     /**
-     * Registers a specific MessageEventHandler for notifications about
-     * STUN indications received at a specific local TransportAddress.
+     * Registers a specific MessageEventHandler for notifications about STUN indications received at a specific local TransportAddress.
      *
-     * @param localAddr the local TransportAddress STUN indications
-     * received at which are to be reported to the specified
-     * indicationListener
-     * @param indicationListener the MessageEventHandler which is to be
-     * registered for notifications about STUN indications received at the
+     * @param localAddr the local TransportAddress STUN indications received at which are to be reported to the specified indicationListener
+     * @param indicationListener the MessageEventHandler which is to be registered for notifications about STUN indications received at the
      * specified local TransportAddress
      */
     public void addIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
@@ -99,7 +93,6 @@ public class EventDispatcher {
      */
     private void addMessageListener(TransportAddress localAddr, MessageTypeEventHandler<?> messageListener) {
         EventDispatcher child = children.get(localAddr);
-
         if (child == null) {
             child = new EventDispatcher();
             children.put(localAddr, child);
@@ -207,8 +200,7 @@ public class EventDispatcher {
      * (Generic listeners count as well)
      *
      * @param localAddr the NetAccessPointDescriptor.
-     * @return true if there are one or more listeners for the specified
-     * NetAccessPointDescriptor
+     * @return true if there are one or more listeners for the specified NetAccessPointDescriptor
      */
     public boolean hasRequestListeners(TransportAddress localAddr) {
         if (!messageListeners.isEmpty()) {

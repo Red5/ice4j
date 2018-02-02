@@ -300,9 +300,8 @@ public class StunClientTransaction implements Runnable {
      *
      */
     void sendRequest() throws IllegalArgumentException, IOException {
-        logger.debug("sending STUN  tid " + transactionID + " from " + localAddress + " to " + requestDestination);
+        logger.debug("sending STUN  tid {} from {} to {}", transactionID, localAddress, requestDestination);
         sendRequest0();
-
         retransmissionThreadPool.execute(this);
     }
 
@@ -418,8 +417,7 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Init transaction duration/retransmission parameters. (Mostly contributed
-     * by Pascal Maugeri.)
+     * Init transaction duration/retransmission parameters. (Mostly contributed by Pascal Maugeri.)
      */
     private void initTransactionConfiguration() {
         //Max Retransmissions

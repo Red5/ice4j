@@ -188,10 +188,10 @@ class ConnectivityCheckClient implements ResponseCollector {
             tran = null;
             IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
             if (stunSocket != null) {
-                String msg = "Failed to send " + request + " through " + stunSocket.getLocalSocketAddress() + ".";
-                if ((ex instanceof NoRouteToHostException) || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) {
-                    msg += " No route to host.";
-                    ex = null;
+                String msg = "Failed to send " + request + " through " + stunSocket.getLocalSocketAddress();
+                if (ex instanceof NoRouteToHostException || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) {
+                    msg += ", No route to host.";
+                    //ex = null;
                 }
                 logger.warn(msg, ex);
             }

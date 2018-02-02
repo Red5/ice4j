@@ -55,52 +55,38 @@ public class Ice {
     public static void main(String[] args) throws Throwable {
         // disable IPv6 for this test
         System.setProperty("org.ice4j.ipv6.DISABLED", "true");
-
         startTime = System.currentTimeMillis();
-
         Agent localAgent = createAgent(9090, false);
         localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
         Agent remotePeer = createAgent(6060, false);
-
         localAgent.addStateChangeListener(new IceProcessingListener());
-
         //let them fight ... fights forge character.
         localAgent.setControlling(true);
         remotePeer.setControlling(false);
-
         long endTime = System.currentTimeMillis();
-
         transferRemoteCandidates(localAgent, remotePeer);
         for (IceMediaStream stream : localAgent.getStreams()) {
             stream.setRemoteUfrag(remotePeer.getLocalUfrag());
             stream.setRemotePassword(remotePeer.getLocalPassword());
         }
-
-        if (START_CONNECTIVITY_ESTABLISHMENT_OF_REMOTE_PEER)
+        if (START_CONNECTIVITY_ESTABLISHMENT_OF_REMOTE_PEER) {
             transferRemoteCandidates(remotePeer, localAgent);
-
+        }
         for (IceMediaStream stream : remotePeer.getStreams()) {
             stream.setRemoteUfrag(localAgent.getLocalUfrag());
             stream.setRemotePassword(localAgent.getLocalPassword());
         }
-
-        logger.info("Total candidate gathering time: {}ms", (endTime - startTime));
-        logger.info("LocalAgent:\n{}", localAgent);
-
+        logger.info("Total candidate gathering time: {}ms\nLocalAgent:\n{}", (endTime - startTime), localAgent);
         localAgent.startConnectivityEstablishment();
-
-        if (START_CONNECTIVITY_ESTABLISHMENT_OF_REMOTE_PEER)
+        if (START_CONNECTIVITY_ESTABLISHMENT_OF_REMOTE_PEER) {
             remotePeer.startConnectivityEstablishment();
-
+        }
         logger.info("Local audio clist:\n{}", localAgent.getStream("audio").getCheckList());
-
         IceMediaStream videoStream = localAgent.getStream("video");
-
-        if (videoStream != null)
+        if (videoStream != null) {
             logger.info("Local video clist:\n{}", videoStream.getCheckList());
-
-        //Give processing enough time to finish. We'll System.exit() anyway
-        //as soon as localAgent enters a final state.
+        }
+        // Give processing enough time to finish. We'll System.exit() anyway as soon as localAgent enters a final state.
         Thread.sleep(60000);
         logger.info("Finished");
         System.exit(0);
@@ -210,9 +196,7 @@ public class Ice {
      */
     private static void transferRemoteCandidates(Component localComponent, Component remoteComponent) {
         List<LocalCandidate> remoteCandidates = remoteComponent.getLocalCandidates();
-
         localComponent.setDefaultRemoteCandidate(remoteComponent.getDefaultCandidate());
-
         for (Candidate<?> rCand : remoteCandidates) {
             localComponent.addRemoteCandidate(new RemoteCandidate(rCand.getTransportAddress(), localComponent, rCand.getType(), rCand.getFoundation(), rCand.getPriority(), null));
         }
@@ -275,17 +259,15 @@ public class Ice {
             // STUN
             StunCandidateHarvester stunHarv = new StunCandidateHarvester(new TransportAddress("stun.jitsi.net", 3478, Transport.UDP));
             agent.addCandidateHarvester(stunHarv);
-            //StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
-            //agent.addCandidateHarvester(stun6Harv);
-            /*
-            // TURN
+            StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
+            agent.addCandidateHarvester(stun6Harv);
+            // TURN 
             String[] hostnames = new String[] { "stun.jitsi.net", "stun6.jitsi.net" };
             int port = 3478;
             LongTermCredential longTermCredential = new LongTermCredential("guest", "anonymouspower!!");
             for (String hostname : hostnames) {
                 agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, Transport.UDP), longTermCredential));
             }
-            */
         } else {
             for (CandidateHarvester harvester : harvesters) {
                 agent.addCandidateHarvester(harvester);

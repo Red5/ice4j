@@ -111,13 +111,6 @@ class NetAccessManager {
      */
     protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
         logger.debug("addSocket: {} remote addr: {}", socket, remoteAddress);
-        //        if (logger.isDebugEnabled()) {
-        //            try {
-        //                logger.debug("addSocket - local: {} remote: {}", ((DatagramChannel) socket.getChannel()).getLocalAddress(), remoteAddress);
-        //            } catch (IOException e) {
-        //                logger.warn("Exception getting channels local address", e);
-        //            }
-        //        }
         TransportAddress localAddress = socket.getTransportAddress();
         // determine if UDP or TCP
         boolean udp = socket.isUDP();

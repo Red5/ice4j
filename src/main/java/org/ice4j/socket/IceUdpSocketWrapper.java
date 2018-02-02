@@ -9,8 +9,6 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
-import javax.xml.bind.DatatypeConverter;
-
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.NioServer;
@@ -43,8 +41,24 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         } else {
             logger.debug("Datagram channel is not bound");
         }
+        init();
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param address TransportAddress
+     * @throws IOException 
+     */
+    public IceUdpSocketWrapper(TransportAddress address) throws IOException {
+        super((DatagramChannel) null);
+        transportAddress = address;
+        init();
+    }
+
+    private void init() {
         // create an NioServer Adapter/Listener for events
-        serverListener = new NioServer.Adapter() {
+        serverListener = new NioServer.Adapter(this) {
 
             @Override
             public void newBinding(BindingEvent evt) {
@@ -82,23 +96,23 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     byte[] buf = new byte[recvBuf.remaining()];
                     recvBuf.get(buf);
                     // filter the data if filters exist
-                    boolean reject = false;
+                    //boolean reject = false;
                     for (DataFilter filter : filters) {
                         if (filter.accept(buf)) {
-                            logger.debug("Data accepted by: {}", filter.getClass().getName());
+                            logger.trace("Data accepted by: {}", filter.getClass().getName());
                         } else {
-                            logger.warn("Data rejected by: {}", filter.getClass().getName());
-                            reject = true;
+                            logger.trace("Data rejected by: {}", filter.getClass().getName());
+                            //reject = true;
                         }
                     }
-                    if (!reject) {
-                        // add the message to the queue, which is shared with the Connector, etc...
-                        InetSocketAddress fromAddr = (InetSocketAddress) evt.getRemoteSocketAddress();
-                        RawMessage rawMessage = new RawMessage(buf, buf.length, new TransportAddress(fromAddr.getAddress(), fromAddr.getPort(), Transport.UDP), transportAddress);
-                        messageQueue.add(rawMessage);
-                    } else {
-                        logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
-                    }
+                    //if (!reject) {
+                    // add the message to the queue, which is shared with the Connector, etc...
+                    InetSocketAddress fromAddr = (InetSocketAddress) evt.getRemoteSocketAddress();
+                    RawMessage rawMessage = new RawMessage(buf, buf.length, new TransportAddress(fromAddr.getAddress(), fromAddr.getPort(), Transport.UDP), transportAddress);
+                    messageQueue.add(rawMessage);
+                    //} else {
+                    //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
+                    //}
                 } else {
                     //logger.debug("Data is not for us");
                 }
@@ -111,22 +125,9 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 }
                 // remove the binding
                 evt.getNioServer().removeUdpBinding(transportAddress);
-                // remove listener
-                evt.getNioServer().removeNioServerListener(serverListener);
             }
 
         };
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param address TransportAddress
-     * @throws IOException 
-     */
-    public IceUdpSocketWrapper(TransportAddress address) throws IOException {
-        this((DatagramChannel) null);
-        transportAddress = address;
     }
 
     /**

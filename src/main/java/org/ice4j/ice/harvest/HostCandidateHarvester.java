@@ -22,7 +22,6 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
-import org.ice4j.ice.nio.NioServer;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpServerSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -83,26 +82,6 @@ public class HostCandidateHarvester {
      * filters have been initialized or not.
      */
     private static AtomicBoolean addressFiltersInitialized = new AtomicBoolean(false);
-
-    /**
-     * Internal NIO server for SocketChannel and DatagramChannel creation and handling.
-     */
-    private static NioServer server = new NioServer();
-
-    static {
-        // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
-        int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", 1500);
-        if (receiveBufferSize > 0) {
-            server.setInputBufferSize(receiveBufferSize);
-        }
-        logger.info("Initialized recv buf size: {} of requested: {}", server.getInputBufferSize(), receiveBufferSize);
-        // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
-        int sendBufferSize = StackProperties.getInt("SO_SNDBUF", 1500);
-        if (sendBufferSize > 0) {
-            server.setOutputBufferSize(sendBufferSize);
-        }
-        logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
-    }
 
     /**
      * Gets the array of allowed interfaces.
@@ -256,11 +235,6 @@ public class HostCandidateHarvester {
      * is using sockets.
      */
     public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
-        // check to see if the internal nio server is stopped and start it if needed
-        if (server.getState() == NioServer.State.STOPPED) {
-            logger.debug("Starting Nio server");
-            server.start();
-        }
         harvestStatistics.startHarvestTiming();
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
         boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, false);
@@ -312,6 +286,7 @@ public class HostCandidateHarvester {
                     // We are most certainly going to use all local host candidates for sending and receiving STUN connectivity
                     // checks. In case we have enabled STUN, we are going to use them as well while harvesting reflexive candidates.
                     sock.addFilter(new StunDataFilter());
+                    // add the socket wrapper to the stack which gets the bind and listening process started
                     candidate.getStunStack().addSocket(sock);
                     component.getComponentSocket().setSocket(sock);
                 }
@@ -407,15 +382,8 @@ public class HostCandidateHarvester {
         for (int i = 0; i < bindRetries; i++) {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
-                // attempt to add a binding to the server
-                server.addTcpBinding(localAddress);
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Binding is available: {}", localAddress);
-                }
                 // we successfully bound to the address so create a wrapper
                 IceTcpServerSocketWrapper sock = new IceTcpServerSocketWrapper(localAddress, component);
-                // add a listener for data events
-                server.addNioServerListener(sock.getServerListener());
                 // return the socket
                 return sock;
             } catch (Exception se) {
@@ -455,15 +423,8 @@ public class HostCandidateHarvester {
         for (int i = 0; i < bindRetries; i++) {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
-                // attempt to add a binding to the server
-                server.addUdpBinding(localAddress);
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Binding is available: {}", localAddress);
-                }
                 // we successfully bound to the address so create a wrapper
                 IceUdpSocketWrapper sock = new IceUdpSocketWrapper(localAddress);
-                // add a listener for data events
-                server.addNioServerListener(sock.getServerListener());
                 // return the socket
                 return sock;
             } catch (Exception se) {

@@ -6,10 +6,13 @@
  */
 package org.ice4j.stack;
 
-import java.io.*;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.ice4j.*;
-import org.ice4j.message.*;
+import org.ice4j.StunException;
+import org.ice4j.TransportAddress;
+import org.ice4j.message.Response;
 
 /**
  * A STUN client retransmits requests as specified by the protocol.
@@ -36,7 +39,7 @@ public class StunServerTransaction {
     /**
      * The time that we keep server transactions active.
      */
-    static final long LIFETIME = 16000;
+    static final long LIFETIME = 16000L;
 
     /**
      * The StunStack that created us.
@@ -46,7 +49,7 @@ public class StunServerTransaction {
     /**
      * The address that we are sending responses to.
      */
-    private TransportAddress responseDestination = null;
+    private TransportAddress responseDestination;
 
     /**
      * The address that we are receiving requests from.
@@ -56,7 +59,7 @@ public class StunServerTransaction {
     /**
      * The response sent in response to the request.
      */
-    private Response response = null;
+    private Response response;
 
     /**
      * The TransportAddress that we received our request on.
@@ -66,7 +69,7 @@ public class StunServerTransaction {
     /**
      * The TransportAddress we use when sending responses
      */
-    private TransportAddress localSendingAddress = null;
+    private TransportAddress localSendingAddress;
 
     /**
      * The id of the transaction.
@@ -76,19 +79,19 @@ public class StunServerTransaction {
     /**
      * The time in milliseconds when the next retransmission should follow.
      */
-    private long expirationTime = -1;
+    private AtomicLong expirationTime = new AtomicLong(Long.MAX_VALUE);
 
     /**
      * Determines whether or not the transaction has expired.
      */
-    private boolean expired = true;
+    private AtomicBoolean expired = new AtomicBoolean(false);
 
     /**
      * Determines whether or not the transaction is in a retransmitting state.
      * In other words whether a response has already been sent once to the
      * transaction request.
      */
-    private boolean isRetransmitting = false;
+    private boolean isRetransmitting;
 
     /**
      * Creates a server transaction
@@ -108,14 +111,10 @@ public class StunServerTransaction {
     }
 
     /**
-     * Start the transaction. This launches the countdown to the moment the
-     * transaction would expire.
+     * Start the transaction. This launches the countdown to the moment the transaction would expire.
      */
-    public synchronized void start() {
-        if (expirationTime == -1) {
-            expired = false;
-            expirationTime = LIFETIME + System.currentTimeMillis();
-        } else {
+    public void start() {
+        if (!expirationTime.compareAndSet(Long.MAX_VALUE, (System.currentTimeMillis() + LIFETIME))) {
             throw new IllegalStateException("StunServerTransaction " + getTransactionID() + " has already been started!");
         }
     }
@@ -139,13 +138,11 @@ public class StunServerTransaction {
     public void sendResponse(Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
         if (!isRetransmitting) {
             this.response = response;
-            //the transaction id might already have been set, but its our job
-            //to make sure of that
+            // the transaction id might already have been set, but its our job to make sure of that
             response.setTransactionID(this.transactionID.getBytes());
             this.localSendingAddress = sendThrough;
             this.responseDestination = sendTo;
         }
-
         isRetransmitting = true;
         retransmitResponse();
     }
@@ -161,8 +158,7 @@ public class StunServerTransaction {
      * @throws StunException if message encoding fails,
      */
     protected void retransmitResponse() throws StunException, IOException, IllegalArgumentException {
-        //don't retransmit if we are expired or if the user application
-        //hasn't yet transmitted a first response
+        // don't retransmit if we are expired or if the user application hasn't yet transmitted a first response
         if (isExpired() || !isRetransmitting) {
             return;
         }
@@ -170,14 +166,11 @@ public class StunServerTransaction {
     }
 
     /**
-     * Cancels the transaction. Once this method is called the transaction is
-     * considered terminated and will stop retransmissions.
+     * Cancels the transaction. Once this method is called the transaction is considered terminated and will stop retransmissions.
      */
-    public synchronized void expire() {
-        expired = true;
-        /*
-         * StunStack has a background Thread running with the purpose of removing expired StunServerTransactions.
-         */
+    public void expire() {
+        expired.compareAndSet(false, true);
+        // StunStack has a background Thread running with the purpose of removing expired StunServerTransactions.
     }
 
     /**
@@ -199,13 +192,12 @@ public class StunServerTransaction {
      * @return true if this StunServerTransaction will be
      * expired at the specified point in time; otherwise, false
      */
-    public synchronized boolean isExpired(long now) {
-        if (expirationTime == -1)
-            return false;
-        else if (expirationTime < now)
+    public boolean isExpired(long now) {
+        if (expirationTime.get() < now) {
             return true;
-        else
-            return expired;
+        } else {
+            return expired.get();
+        }
     }
 
     /**

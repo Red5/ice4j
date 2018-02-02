@@ -160,7 +160,7 @@ public abstract class AbstractUdpListener {
         }
         logger.info("Initialized AbstractUdpListener on: {} with send buf size: {} of requested: {}", localAddress, server.getOutputBufferSize(), sendBufferSize);
         // add a listener for data events
-        server.addNioServerListener(new NioServer.Adapter() {
+        server.addNioServerListener(new NioServer.Adapter(null) {
 
             @Override
             public void udpDataReceived(Event evt) {

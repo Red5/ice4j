@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package test;
 
@@ -32,9 +21,7 @@ import org.ice4j.ice.*;
  *
  * @author Emil Ivov
  */
-public class IceDistributed
-    extends Ice
-{
+public class IceDistributed extends Ice {
     /**
      * Runs a test application that allocates streams, generates an SDP, dumps
      * it on stdout, waits for a remote peer SDP on stdin, then feeds that
@@ -43,11 +30,9 @@ public class IceDistributed
      * @param args none currently handled
      * @throws Throwable every now and then.
      */
-    public static void main(String[] args) throws Throwable
-    {
+    public static void main(String[] args) throws Throwable {
         Agent localAgent = createAgent(2020);
-        localAgent.setNominationStrategy(
-                        NominationStrategy.NOMINATE_HIGHEST_PRIO);
+        localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
 
         localAgent.addStateChangeListener(new IceProcessingListener());
 
@@ -58,14 +43,11 @@ public class IceDistributed
         //wait a bit so that the logger can stop dumping stuff:
         Thread.sleep(500);
 
-        System.out.println("=================== feed the following"
-                        +" to the remote agent ===================");
-
+        System.out.println("=================== feed the following" + " to the remote agent ===================");
 
         System.out.println(localSDP);
 
-        System.out.println("======================================"
-                        +"========================================\n");
+        System.out.println("======================================" + "========================================\n");
 
         String sdp = readSDP();
 
@@ -88,22 +70,18 @@ public class IceDistributed
      *
      * @throws Throwable if something goes wrong with console reading.
      */
-    static String readSDP() throws Throwable
-    {
-        System.out.println("Paste remote SDP here. Enter an empty "
-                        +"line to proceed:");
+    static String readSDP() throws Throwable {
+        System.out.println("Paste remote SDP here. Enter an empty " + "line to proceed:");
         System.out.println("(we don't mind the [java] prefix in SDP intput)");
-        BufferedReader reader
-            = new BufferedReader(new InputStreamReader(System.in));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         StringBuffer buff = new StringBuffer();
         String line;
 
-        while ( (line = reader.readLine()) != null)
-        {
+        while ((line = reader.readLine()) != null) {
             line = line.replace("[java]", "");
             line = line.trim();
-            if(line.length() == 0)
+            if (line.length() == 0)
                 break;
 
             buff.append(line);

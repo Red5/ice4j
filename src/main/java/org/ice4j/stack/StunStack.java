@@ -25,6 +25,7 @@ import org.ice4j.attribute.ErrorCodeAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.OptionalAttribute;
 import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.ChannelData;
 import org.ice4j.message.Indication;
 import org.ice4j.message.Message;
@@ -92,6 +93,17 @@ public class StunStack implements MessageEventHandler {
      */
     private static PacketLogger packetLogger;
 
+    // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
+    private static int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", 1500);
+
+    // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
+    private static int sendBufferSize = StackProperties.getInt("SO_SNDBUF", 1500);
+
+    /**
+     * Internal NIO server for SocketChannel and DatagramChannel creation and handling.
+     */
+    private static NioServer server = new NioServer();
+
     static {
         // The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after
         // we get a response because the delay may cause the transaction to fail.
@@ -103,27 +115,51 @@ public class StunStack implements MessageEventHandler {
     }
 
     public StunStack() {
+        // create a new network access manager
         netAccessManager = new NetAccessManager(this);
+        server.setInputBufferSize(receiveBufferSize);
+        //logger.info("Initialized recv buf size: {} of requested: {}", server.getInputBufferSize(), receiveBufferSize);
+        server.setOutputBufferSize(sendBufferSize);
+        //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
+        if (!server.getState().equals(NioServer.State.STARTED)) {
+            logger.debug("Starting Nio server");
+            server.start();
+        }
     }
 
     /**
      * Creates and starts a Network Access Point (Connector) based on the specified socket.
      *
-     * @param sock The socket that the new access point should represent.
+     * @param wrapper The socket that the new access point should represent.
      */
-    public void addSocket(IceSocketWrapper sock) {
-        netAccessManager.addSocket(sock);
+    public void addSocket(IceSocketWrapper wrapper) {
+        addSocket(wrapper, wrapper.getRemoteTransportAddress());
     }
 
     /**
      * Creates and starts a Network Access Point (Connector) based on the specified socket and the specified remote address.
      *
-     * @param sock The socket that the new access point should represent.
+     * @param wrapper The socket that the new access point should represent.
      * @param remoteAddress the remote address of the socket of the Connector to be created if it is a TCP socket, or null if it
      * is UDP.
      */
-    public void addSocket(IceSocketWrapper sock, TransportAddress remoteAddress) {
-        netAccessManager.addSocket(sock, remoteAddress);
+    public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
+        // add a listener for data events
+        server.addNioServerListener(wrapper.getServerListener());
+        // get the local address
+        TransportAddress localAddress = wrapper.getTransportAddress();
+        if (localAddress.getTransport() == Transport.UDP) {
+            // attempt to add a binding to the server
+            server.addUdpBinding(localAddress);
+        } else {
+            // attempt to add a binding to the server
+            server.addTcpBinding(localAddress);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("Binding added: {}", localAddress);
+        }
+        // add the socket to the net access manager
+        netAccessManager.addSocket(wrapper, remoteAddress);
     }
 
     /**
@@ -144,7 +180,9 @@ public class StunStack implements MessageEventHandler {
      * @param remoteAddr the remote address of the socket to remove. Use null for UDP.
      */
     public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
-        //first cancel all transactions using this address.
+        // clean up server bindings and listener
+        server.removeUdpBinding(localAddr);
+        // first cancel all transactions using this address
         cancelTransactionsForAddress(localAddr, remoteAddr);
         netAccessManager.removeSocket(localAddr, remoteAddr);
     }
@@ -584,7 +622,7 @@ public class StunStack implements MessageEventHandler {
             logger.warn("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
             StunServerTransaction sTran = getServerTransaction(serverTid);
             if (sTran != null) {
-                logger.warn("Stored server transaction id: {} rfc3489: {}", sTran.getTransactionID().toString(), sTran.getTransactionID().isRFC3489Compatible());
+                //logger.warn("Stored server transaction id: {}", sTran.getTransactionID().toString());
                 //requests from this transaction have already been seen retransmit the response if there was any
                 logger.trace("found an existing transaction");
                 try {
@@ -594,7 +632,6 @@ public class StunStack implements MessageEventHandler {
                     //we couldn't really do anything here .. apart from logging
                     logger.warn("Failed to retransmit a stun response", ex);
                 }
-
                 if (!StackProperties.getBoolean(StackProperties.PROPAGATE_RECEIVED_RETRANSMISSIONS, false)) {
                     return;
                 }
@@ -683,6 +720,7 @@ public class StunStack implements MessageEventHandler {
      * Cancels all running transactions and prepares for garbage collection
      */
     public void shutDown() {
+        // remove all listeners
         eventDispatcher.removeAllListeners();
         // clientTransactions
         for (StunClientTransaction tran : clientTransactions.values()) {
@@ -695,6 +733,10 @@ public class StunStack implements MessageEventHandler {
         }
         serverTransactions.clear();
         netAccessManager.stop();
+        if (server.getState().equals(NioServer.State.STARTED)) {
+            // stop the NIO server
+            //server.stop();
+        }
     }
 
     /**
@@ -1022,6 +1064,10 @@ public class StunStack implements MessageEventHandler {
             int toIndex = isSent ? 1 : 0;
             getPacketLogger().logPacket(addr[fromIndex].getAddress(), port[fromIndex], addr[toIndex].getAddress(), port[toIndex], p.getData(), isSent);
         }
+    }
+
+    NioServer getNioServer() {
+        return server;
     }
 
 }

@@ -18,7 +18,6 @@ import org.ice4j.StunResponseEvent;
 import org.ice4j.StunTimeoutEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -57,8 +56,6 @@ public class ShallowStackTest extends TestCase {
 
     private DatagramSocket dummyServerSocket;
 
-    private NioServer server;
-
     /**
      * Creates a test instance for the method with the specified name.
      *
@@ -85,16 +82,8 @@ public class ShallowStackTest extends TestCase {
         localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         // init the stack
         stunStack = new StunStack();
-        // create an NIO server
-        server = new NioServer();
-        // start the NIO server
-        server.start();
-        // bind the server on the local address
-        server.addUdpBinding(localAddress);
         // access point
         localSock = new IceUdpSocketWrapper(localAddress);
-        // attach the local socket wrapper's listener to the server
-        server.addNioServerListener(localSock.getServerListener());
         // add the wrapper to the stack
         stunStack.addSocket(localSock);
         // init the dummy server
@@ -109,15 +98,10 @@ public class ShallowStackTest extends TestCase {
     @After
     protected void tearDown() throws Exception {
         //logger.info("teardown");
-        server.removeUdpBinding(localAddress);
-        server.removeNioServerListener(localSock.getServerListener());
         stunStack.removeSocket(localAddress);
         localSock.close();
         dummyServerSocket.close();
         msgFixture = null;
-        // stop the NIO server
-        server.stop();
-        logger.info("-------------------------------------------\nTearing down {}", getClass().getName());
         super.tearDown();
     }
 
@@ -129,7 +113,7 @@ public class ShallowStackTest extends TestCase {
      * @throws java.lang.Exception if we fail
      */
     public void testSendRequest() throws Exception {
-        logger.info("\nSendRequest");
+        logger.info("\n SendRequest");
         Request bindingRequest = MessageFactory.createBindingRequest();
         dgramCollector.startListening(dummyServerSocket);
         stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, new SimpleResponseCollector());
@@ -157,7 +141,7 @@ public class ShallowStackTest extends TestCase {
      * @throws java.lang.Exception if we fail
      */
     public void testReceiveRequest() throws Exception {
-        logger.info("\nReceiveRequest");
+        logger.info("\n ReceiveRequest");
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
         dummyServerSocket.send(new DatagramPacket(msgFixture.bindingRequest2, msgFixture.bindingRequest2.length, localAddress));
@@ -181,6 +165,7 @@ public class ShallowStackTest extends TestCase {
      * @throws java.lang.Exception if we fail
      */
     public void testSendResponse() throws Exception {
+        logger.info("\n SendResponse");
         //---------- send & receive the request --------------------------------
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
@@ -188,6 +173,10 @@ public class ShallowStackTest extends TestCase {
         // wait for the packet to arrive
         requestCollector.waitForRequest();
         Request collectedRequest = requestCollector.collectedRequest;
+        if (collectedRequest != null) {
+            logger.warn("Collected request was null", stunStack.getNioServer().getLastException());
+        }
+        assertNotNull(collectedRequest);
         byte[] expectedReturn = msgFixture.bindingRequest;
         byte[] actualReturn = collectedRequest.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
@@ -210,6 +199,7 @@ public class ShallowStackTest extends TestCase {
      * @throws Exception if something fails somewhere.
      */
     public void testReceiveResponse() throws Exception {
+        logger.info("\n ReceiveResponse");
         SimpleResponseCollector collector = new SimpleResponseCollector();
         //--------------- send the original request ----------------------------
         Request bindingRequest = MessageFactory.createBindingRequest();
@@ -374,6 +364,27 @@ public class ShallowStackTest extends TestCase {
     //        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
     //    }
 
+    /**
+     * Returns a byte array for the given hex encoded string.
+     * 
+     * @param s encoded hex string
+     * @return byte array
+     */
+    public final static byte[] hexStringToByteArray(String s) {
+        // remove all the whitespace first
+        s = s.replaceAll("\\s+", "");
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    public final static String byteArrayToHexString(byte[] a) {
+        return DatatypeConverter.printHexBinary(a);
+    }
+
     //--------------------------------------- listener implementations ---------
     /**
      * A simple utility that allows us to asynchronously collect messages.
@@ -394,7 +405,7 @@ public class ShallowStackTest extends TestCase {
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
-        protected synchronized void processFailure(BaseStunMessageEvent event) {
+        protected void processFailure(BaseStunMessageEvent event) {
             String msg;
             if (event instanceof StunFailureEvent) {
                 msg = "Unreachable";
@@ -404,7 +415,6 @@ public class ShallowStackTest extends TestCase {
                 msg = "Failure";
             }
             logger.info(msg);
-            notifyAll();
         }
 
         /**
@@ -413,22 +423,21 @@ public class ShallowStackTest extends TestCase {
          * @param response a StunMessageEvent which describes the
          * received STUN Response
          */
-        public synchronized void processResponse(StunResponseEvent response) {
+        public void processResponse(StunResponseEvent response) {
             collectedResponse = (Response) response.getMessage();
-            logger.debug("Received response.");
-            notifyAll();
+            logger.debug("Received response");
         }
 
         /**
          * Blocks until a request arrives or 50 ms pass.
          */
-        public synchronized void waitForResponse() {
-            try {
-                if (collectedResponse == null) {
-                    wait(50);
+        public void waitForResponse() {
+            if (collectedResponse == null) {
+                try {
+                    Thread.sleep(100L);
+                } catch (InterruptedException e) {
+                    logger.warn("oops", e);
                 }
-            } catch (InterruptedException e) {
-                logger.warn("oops", e);
             }
         }
     }
@@ -450,50 +459,23 @@ public class ShallowStackTest extends TestCase {
          * the newly received request.
          */
         public void processRequest(StunMessageEvent evt) {
-            synchronized (this) {
-                collectedRequest = (Request) evt.getMessage();
-                stunStack.removeRequestListener(this);
-                logger.debug("Received request.");
-                notifyAll();
-            }
+            collectedRequest = (Request) evt.getMessage();
+            stunStack.removeRequestListener(this);
+            logger.debug("Received request");
         }
 
         /**
          * Blocks until a request arrives or 50 ms pass.
          */
         public void waitForRequest() {
-            synchronized (this) {
-                if (collectedRequest != null) {
-                    return;
-                }
+            if (collectedRequest == null) {
                 try {
-                    wait(50);
+                    Thread.sleep(100L);
                 } catch (InterruptedException e) {
                     logger.warn("oops", e);
                 }
             }
         }
-    }
-
-    /**
-     * Returns a byte array for the given hex encoded string.
-     * 
-     * @param s encoded hex string
-     * @return byte array
-     */
-    public final static byte[] hexStringToByteArray(String s) {
-        // remove all the whitespace first
-        s = s.replaceAll("\\s+", "");
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
-        }
-        return data;
-    }
-
-    public final static String byteArrayToHexString(byte[] a) {
-        return DatatypeConverter.printHexBinary(a);
     }
 
 }

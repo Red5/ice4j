@@ -6,7 +6,6 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
-import org.ice4j.ice.nio.NioServer;
 import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
@@ -71,8 +70,6 @@ public class TransactionSupportTests extends TestCase {
      */
     PlainResponseCollector responseCollector;
 
-    private NioServer server;
-
     /**
      * Inits sockets.
      *
@@ -84,20 +81,9 @@ public class TransactionSupportTests extends TestCase {
         serverAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
 
         stunStack = new StunStack();
-        // create an NIO server
-        server = new NioServer();
-        // start the NIO server
-        server.start();
-        // bind the server on the local address
-        server.addUdpBinding(clientAddress);
-        server.addUdpBinding(serverAddress);
 
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
-
-        // attach the socket wrapper's listener to the server
-        server.addNioServerListener(clientSock.getServerListener());
-        server.addNioServerListener(serverSock.getServerListener());
 
         stunStack.addSocket(clientSock);
         stunStack.addSocket(serverSock);
@@ -136,8 +122,6 @@ public class TransactionSupportTests extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "");
         System.setProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER, "");
 
-        // stop the NIO server
-        server.stop();
         super.tearDown();
     }
 

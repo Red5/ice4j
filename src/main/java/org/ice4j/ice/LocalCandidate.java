@@ -70,9 +70,8 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * @param remoteAddress the remote address for which to return an associated socket.
      */
     protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
-        // The default implementation just refers to the method which doesn't
-        // involve a remove address. Extenders which support multiple instances
-        // mapped by remote address should override.
+        // The default implementation just refers to the method which doesn't involve a remove address.
+        // Extenders which support multiple instances mapped by remote address should override.
         return getCandidateIceSocketWrapper();
     }
 
@@ -90,28 +89,6 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
             // create a stun packet filter
             hostSocket.addFilter(new StunDataFilter());
             return hostSocket;
-            /*
-            SelectableChannel channel = hostSocket.getChannel();
-            if (channel instanceof DatagramChannel) {
-                // create a new socket wrapper for our channel
-                IceSocketWrapper wrapper = new IceUdpSocketWrapper((DatagramChannel) channel);
-                // attach the filter to the new socket wrapper
-                wrapper.addFilter(stunDatagramPacketFilter);
-                return wrapper;
-            } else if (channel instanceof SocketChannel) {
-                try {
-                    // create a new socket wrapper for our channel
-                    IceSocketWrapper wrapper = new IceTcpSocketWrapper((SocketChannel) channel);
-                    // attach the filter to the new socket wrapper
-                    wrapper.addFilter(stunDatagramPacketFilter);
-                    return wrapper;
-                } catch (IOException e) {
-                    logger.info("Failed to create IceTcpSocketWrapper " + e);
-                }
-            } else {
-                logger.warn("Host socket/channel is of uknown type: {}", hostSocket);
-            }
-            */
         }
         return null;
     }

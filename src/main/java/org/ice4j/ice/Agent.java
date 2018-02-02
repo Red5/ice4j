@@ -262,18 +262,14 @@ public class Agent {
      */
     public Agent(String ufragPrefix) {
         SecureRandom random = new SecureRandom();
-
         connCheckServer = new ConnectivityCheckServer(this);
         connCheckClient = new ConnectivityCheckClient(this);
-
         //add the FINGERPRINT attribute to all messages.
         System.setProperty(StackProperties.ALWAYS_SIGN, "true");
-
         //add the software attribute to all messages
         if (StackProperties.getString(StackProperties.SOFTWARE) == null) {
             System.setProperty(StackProperties.SOFTWARE, "ice4j.org");
         }
-
         String ufrag = ufragPrefix == null ? "" : ufragPrefix;
         ufrag += new BigInteger(24, random).toString(32);
         ufrag += BigInteger.valueOf(System.currentTimeMillis()).toString(32);
