@@ -110,6 +110,18 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Returns true if closed or unbound and false otherwise.
+     * 
+     * @return true = not open, false = not closed
+     */
+    public boolean isClosed() {
+        if (channel != null) {
+            return !channel.isOpen();
+        }
+        return true;
+    }
+
+    /**
      * Closes the channel.
      */
     public void close() {

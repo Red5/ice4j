@@ -63,7 +63,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * @return the {@link IceSocketWrapper} instance, if any, associated with this candidate. Note that this IS NOT the instance which should be used
      * for reading and writing by the application, and SHOULD NOT be used from outside ice4j (even if a subclass exposes it as public).
      */
-    protected abstract IceSocketWrapper getCandidateIceSocketWrapper();
+    public abstract IceSocketWrapper getCandidateIceSocketWrapper();
 
     /**
      * @return the {@link IceSocketWrapper} instance for this candidate, associated with a particular remote address.
