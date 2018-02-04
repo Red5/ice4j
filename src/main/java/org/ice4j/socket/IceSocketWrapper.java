@@ -12,6 +12,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -59,6 +60,11 @@ public abstract class IceSocketWrapper {
      * The message queue is where incoming messages are added.
      */
     protected Queue<RawMessage> messageQueue;
+
+    /**
+     * The message queue is where incoming messages are added that were not otherwise filtered into the regular message queue (ie. DTLS etc..).
+     */
+    protected Queue<RawMessage> rawMessageQueue = new ConcurrentLinkedQueue<>();
 
     IceSocketWrapper(SelectableChannel channel) {
         this.channel = channel;
@@ -135,6 +141,8 @@ public abstract class IceSocketWrapper {
                 channel = null;
             }
         }
+        // clear out raw messages lingering around at close
+        rawMessageQueue.clear();
     }
 
     /**
@@ -232,6 +240,15 @@ public abstract class IceSocketWrapper {
      */
     public void setMessageQueue(Queue<RawMessage> messageQueue) {
         this.messageQueue = messageQueue;
+    }
+
+    /**
+     * Returns the raw message queue, which shouldn't contain any STUN/TURN messages.
+     * 
+     * @return rawMessageQueue
+     */
+    public Queue<RawMessage> getRawMessageQueue() {
+        return rawMessageQueue;
     }
 
     /**

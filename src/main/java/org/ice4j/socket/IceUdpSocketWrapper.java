@@ -96,23 +96,28 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     byte[] buf = new byte[recvBuf.remaining()];
                     recvBuf.get(buf);
                     // filter the data if filters exist
-                    //boolean reject = false;
+                    boolean reject = false;
                     for (DataFilter filter : filters) {
+                        // most likely, we're only filtering on STUN messages here
                         if (filter.accept(buf)) {
                             logger.trace("Data accepted by: {}", filter.getClass().getName());
                         } else {
                             logger.trace("Data rejected by: {}", filter.getClass().getName());
-                            //reject = true;
+                            reject = true;
                         }
                     }
-                    //if (!reject) {
-                    // add the message to the queue, which is shared with the Connector, etc...
+                    // create raw message
                     InetSocketAddress fromAddr = (InetSocketAddress) evt.getRemoteSocketAddress();
                     RawMessage rawMessage = new RawMessage(buf, buf.length, new TransportAddress(fromAddr.getAddress(), fromAddr.getPort(), Transport.UDP), transportAddress);
-                    messageQueue.add(rawMessage);
-                    //} else {
-                    //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
-                    //}
+                    // Non-rejects are expected to be stun and we'll process them, if its something else we'll route it to another queue
+                    // for consuming by other interested parties
+                    if (!reject) {
+                        // add the message to the queue, which is shared with the Connector, etc...
+                        messageQueue.add(rawMessage);
+                    } else {
+                        //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
+                        rawMessageQueue.add(rawMessage);
+                    }
                 } else {
                     //logger.debug("Data is not for us");
                 }

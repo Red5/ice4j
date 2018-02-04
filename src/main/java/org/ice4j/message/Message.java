@@ -891,39 +891,30 @@ public abstract class Message {
         }
         int originalOffset = offset;
         arrayLen = Math.min(binMessage.length, arrayLen);
-
         if (binMessage == null || arrayLen - offset < Message.HEADER_LENGTH) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "The given binary array is not a valid StunMessage");
         }
-
         char messageType = (char) ((binMessage[offset++] << 8) | (binMessage[offset++] & 0xFF));
-
         Message message;
         /* 0x0115 is a old TURN DATA indication message type */
-        if (Message.isResponseType(messageType) && messageType != OLD_DATA_INDICATION)
+        if (Message.isResponseType(messageType) && messageType != OLD_DATA_INDICATION) {
             message = new Response();
-        else if (Message.isRequestType(messageType))
+        } else if (Message.isRequestType(messageType)) {
             message = new Request();
-        else
-            /* indication */
+        } else {
             message = new Indication();
-
+        }
         message.setMessageType(messageType);
-
         int length = (binMessage[offset++] << 8) | (binMessage[offset++] & 0xFF);
-
         /* copy the cookie */
         byte cookie[] = new byte[4];
         System.arraycopy(binMessage, offset, cookie, 0, 4);
         offset += 4;
-
         boolean rfc3489Compat = !Arrays.equals(MAGIC_COOKIE, cookie);
         int transactionIdLength = rfc3489Compat ? TransactionID.RFC3489_TRANSACTION_ID_LENGTH : TransactionID.RFC5389_TRANSACTION_ID_LENGTH;
-
         if (arrayLen - offset - transactionIdLength < length) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "The given binary array does not seem to contain" + " a whole StunMessage: given " + arrayLen + " bytes of " + message.getName() + " but expecting " + (offset + transactionIdLength + length));
         }
-
         try {
             byte[] tranID = new byte[transactionIdLength];
             if (!rfc3489Compat) {
@@ -937,22 +928,16 @@ public abstract class Message {
         }
         // update offset to just beyond transaction id
         offset += transactionIdLength;
-
         while (offset - Message.HEADER_LENGTH < length) {
             Attribute att = AttributeDecoder.decode(binMessage, offset, (length - offset));
-
             performAttributeSpecificActions(att, binMessage, originalOffset, offset);
-
             message.putAttribute(att);
             offset += att.getDataLength() + Attribute.HEADER_LENGTH;
-
-            //now also skip any potential padding that might have come with
-            //this attribute.
+            // now also skip any potential padding that might have come with this attribute.
             if ((att.getDataLength() % 4) > 0) {
                 offset += (4 - (att.getDataLength() % 4));
             }
         }
-
         return message;
     }
 

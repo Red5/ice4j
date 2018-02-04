@@ -65,8 +65,8 @@ public class StunDataFilter implements DataFilter {
             int method = (b0 & 0xFE) | (b1 & 0xEF);
             switch (method) {
                 case Message.STUN_METHOD_BINDING:
-                case 0x0000:
-                case 0x0002:
+                case Message.STUN_REQUEST:
+                case Message.SHARED_SECRET_REQUEST:
                     return true;
             }
         }
