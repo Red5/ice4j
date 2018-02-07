@@ -146,7 +146,7 @@ public class TransportAddress extends InetSocketAddress {
     /**
      * The transport that this transport address is suggesting.
      *
-     * @return one of the transport strings (UDP/TCP/...) defined as contants in this class.
+     * @return one of the transport strings (UDP/TCP/...) defined as constants in this class.
      */
     public Transport getTransport() {
         return transport;

@@ -340,13 +340,14 @@ public class NioServer {
                     setState(State.STOPPED); // Clear thread
                 } // end run
             }; // end runnable
-            if (this.threadFactory != null) { // User-specified threads
-                this.ioThread = this.threadFactory.newThread(run);
+            if (threadFactory != null) { // User-specified threads
+                ioThread = threadFactory.newThread(run);
             } else { // Our own threads
-                this.ioThread = new Thread(run, this.getClass().getName()); // Named
+                ioThread = new Thread(run, this.getClass().getName()); // Named
             }
             setState(State.STARTING); // Update state
-            this.ioThread.start(); // Start thread
+            ioThread.setPriority(Thread.MAX_PRIORITY - 1);
+            ioThread.start(); // Start thread
         } // end if: currently stopped
     } // end start
 
@@ -430,8 +431,8 @@ public class NioServer {
             while (runLoopCheck()) {
                 ////////  B L O C K S   H E R E
                 if (this.selector.select() <= 0) { // Block until notified
-                    logger.debug("selector.select() <= 0"); // Possible false start
-                    Thread.sleep(10L); // Let's not run away from ourselves
+                    logger.trace("selector.select() <= 0"); // Possible false start
+                    Thread.sleep(1L); // Let's not run away from ourselves
                 }///////  B L O C K S   H E R E
                 if (this.currentState == State.STOPPING) {
                     try {

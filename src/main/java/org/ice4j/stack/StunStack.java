@@ -614,12 +614,12 @@ public class StunStack implements MessageEventHandler {
                     logger.warn("Invalid username size, rejecting request");
                     return;
                 }
-                logger.warn("Username: {}", ua.getUsername());
+                logger.debug("Username: {}", ua.getUsername());
             } else {
                 logger.debug("Username was null");
             }
             TransactionID serverTid = ev.getTransactionID();
-            logger.warn("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
+            logger.debug("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
             StunServerTransaction sTran = getServerTransaction(serverTid);
             if (sTran != null) {
                 //logger.warn("Stored server transaction id: {}", sTran.getTransactionID().toString());
