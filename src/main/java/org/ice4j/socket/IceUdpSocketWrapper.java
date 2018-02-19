@@ -9,6 +9,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
+import javax.xml.bind.DatatypeConverter;
+
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.NioServer;
@@ -93,8 +95,17 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     }
                     // get the data
                     ByteBuffer recvBuf = evt.getInputBuffer();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Recv bb: {} {}", recvBuf.position(), recvBuf.limit());
+                    }
+                    // pull the bytes out
                     byte[] buf = new byte[recvBuf.remaining()];
                     recvBuf.get(buf);
+                    // clear the receive buffer
+                    recvBuf.clear();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Recv cleared bb: {} {} buf: {}", recvBuf.position(), recvBuf.limit(), DatatypeConverter.printHexBinary(buf));
+                    }
                     // filter the data if filters exist
                     boolean reject = false;
                     for (DataFilter filter : filters) {
@@ -115,6 +126,9 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         // add the message to the queue, which is shared with the Connector, etc...
                         messageQueue.add(rawMessage);
                     } else {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("RawMessage sequence number: {} length: {}", ((buf[2] & 0xFF) << 8 | (buf[3] & 0xFF)), buf.length);
+                        }
                         //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
                         rawMessageQueue.add(rawMessage);
                     }

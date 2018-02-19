@@ -4,12 +4,11 @@ package org.ice4j.stack;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedTransferQueue;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
@@ -54,7 +53,7 @@ class NetAccessManager {
     /**
      * A synchronized FIFO where incoming messages are stocked for processing.
      */
-    private final Queue<RawMessage> messageQueue = new ConcurrentLinkedQueue<>();
+    private final LinkedTransferQueue<RawMessage> messageQueue = new LinkedTransferQueue<>();
 
     /**
      * A thread executor for message processors.

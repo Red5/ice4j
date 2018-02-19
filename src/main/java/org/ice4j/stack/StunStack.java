@@ -123,6 +123,8 @@ public class StunStack implements MessageEventHandler {
         //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
         if (!server.getState().equals(NioServer.State.STARTED)) {
             logger.debug("Starting Nio server");
+            server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
+            server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
             server.start();
         }
     }

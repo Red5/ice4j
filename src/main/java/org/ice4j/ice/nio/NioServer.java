@@ -157,7 +157,14 @@ public class NioServer {
 
     private ThreadFactory threadFactory; // Optional thread factory
 
-    private Thread ioThread; // Performs IO
+    // I/O thread
+    private Thread ioThread;
+
+    // I/O thread priority
+    private int priority = Thread.MAX_PRIORITY - 4;
+
+    // Time to sleep between selector checks
+    private long selectorSleepMs = 10L;
 
     private Selector selector; // Brokers all the connections
 
@@ -346,7 +353,7 @@ public class NioServer {
                 ioThread = new Thread(run, this.getClass().getName()); // Named
             }
             setState(State.STARTING); // Update state
-            ioThread.setPriority(Thread.MAX_PRIORITY - 1);
+            ioThread.setPriority(priority);
             ioThread.start(); // Start thread
         } // end if: currently stopped
     } // end start
@@ -432,7 +439,7 @@ public class NioServer {
                 ////////  B L O C K S   H E R E
                 if (this.selector.select() <= 0) { // Block until notified
                     logger.trace("selector.select() <= 0"); // Possible false start
-                    Thread.sleep(1L); // Let's not run away from ourselves
+                    Thread.sleep(selectorSleepMs); // Let's not run away from ourselves
                 }///////  B L O C K S   H E R E
                 if (this.currentState == State.STOPPING) {
                     try {
@@ -855,7 +862,23 @@ public class NioServer {
         this.closeAfterWriting.add(key);
     } // end closeAfterWriting
 
-    /* ******** B U F F E R S I Z E ******** */
+    /**
+     * Sets the I/O thread priority. Default is (Maximum priority - 4) or 6.
+     * 
+     * @param priority
+     */
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    /**
+     * Sets the time to sleep in milliseconds between selector checks.
+     * 
+     * @param selectorSleepMs
+     */
+    public void setSelectorSleepMs(long selectorSleepMs) {
+        this.selectorSleepMs = selectorSleepMs;
+    }
 
     /**
      * Returns the size of the ByteBuffer used to read
