@@ -16,19 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@code StunClientTransaction} class retransmits requests as specified by
- * RFC 3489.
+ * The {@code StunClientTransaction} class retransmits requests as specified by RFC 3489.
  *
- * Once formulated and sent, the client sends the Binding Request.  Reliability
- * is accomplished through request retransmissions.  The
- * {@code StunClientTransaction} retransmits the request starting with an
- * interval of 100ms, doubling every retransmit until the interval reaches 1.6s.
- * Retransmissions continue with intervals of 1.6s until a response is received,
- * or a total of 9 requests have been sent. If no response is received by 1.6
- * seconds after the last request has been sent, the client SHOULD consider the
- * transaction to have failed. In other words, requests would be sent at times
- * 0ms, 100ms, 300ms, 700ms, 1500ms, 3100ms, 4700ms, 6300ms, and 7900ms. At
- * 9500ms, the client considers the transaction to have failed if no response
+ * Once formulated and sent, the client sends the Binding Request.  Reliability is accomplished through request retransmissions.  The
+ * {@code StunClientTransaction} retransmits the request starting with an interval of 100ms, doubling every retransmit until the interval reaches 1.6s.
+ * Retransmissions continue with intervals of 1.6s until a response is received, or a total of 9 requests have been sent. If no response is received by 1.6
+ * seconds after the last request has been sent, the client SHOULD consider the transaction to have failed. In other words, requests would be sent at times
+ * 0ms, 100ms, 300ms, 700ms, 1500ms, 3100ms, 4700ms, 6300ms, and 7900ms. At 9500ms, the client considers the transaction to have failed if no response
  * has been received.
  *
  * @author Emil Ivov.
@@ -73,18 +67,14 @@ public class StunClientTransaction implements Runnable {
         @Override
         public Thread newThread(Runnable r) {
             Thread t = defaultThreadFactory.newThread(r);
-
             if (t != null) {
                 t.setDaemon(true);
-
-                // Additionally, make it known through the name of
-                // the Thread that it is associated with the
-                // StunClientTransaction class for
-                // debugging/informational purposes.
+                // Additionally, make it known through the name of the Thread that it is associated with the
+                // StunClientTransaction class for debugging/informational purposes.
                 String name = t.getName();
-
-                if (name == null)
+                if (name == null) {
                     name = "";
+                }
                 t.setName("StunClientTransaction-" + name);
             }
             return t;
@@ -92,21 +82,18 @@ public class StunClientTransaction implements Runnable {
     });
 
     /**
-     * Maximum number of retransmissions. Once this number is reached and if no
-     * response is received after {@link #maxWaitInterval} milliseconds the
+     * Maximum number of retransmissions. Once this number is reached and if no response is received after {@link #maxWaitInterval} milliseconds the
      * request is considered unanswered.
      */
     public int maxRetransmissions = DEFAULT_MAX_RETRANSMISSIONS;
 
     /**
-     * The number of milliseconds to wait before the first retransmission of the
-     * request.
+     * The number of milliseconds to wait before the first retransmission of the request.
      */
     public int originalWaitInterval = DEFAULT_ORIGINAL_WAIT_INTERVAL;
 
     /**
-     * The maximum wait interval. Once this interval is reached we should stop
-     * doubling its value.
+     * The maximum wait interval. Once this interval is reached we should stop doubling its value.
      */
     public int maxWaitInterval = DEFAULT_MAX_WAIT_INTERVAL;
 
@@ -131,14 +118,12 @@ public class StunClientTransaction implements Runnable {
     private final TransactionID transactionID;
 
     /**
-     * The TransportAddress through which the original request was sent
-     * and that we are supposed to be retransmitting through.
+     * The TransportAddress through which the original request was sent and that we are supposed to be retransmitting through.
      */
     private final TransportAddress localAddress;
 
     /**
-     * The instance to notify when a response has been received in the current
-     * transaction or when it has timed out.
+     * The instance to notify when a response has been received in the current transaction or when it has timed out.
      */
     private final ResponseCollector responseCollector;
 
@@ -148,19 +133,15 @@ public class StunClientTransaction implements Runnable {
     private boolean cancelled = false;
 
     /**
-     * The Lock which synchronizes the access to the state of this
-     * instance. Introduced along with {@link #lockCondition} in order to allow
-     * the invocation of {@link #cancel(boolean)} without a requirement to
-     * acquire the synchronization root. Otherwise, callers of
-     * cancel(boolean) may (and have be reported multiple times to)
-     * fall into a deadlock merely because they want to cancel this
+     * The Lock which synchronizes the access to the state of this instance. Introduced along with {@link #lockCondition} in order to allow
+     * the invocation of {@link #cancel(boolean)} without a requirement to acquire the synchronization root. Otherwise, callers of
+     * cancel(boolean) may (and have be reported multiple times to) fall into a deadlock merely because they want to cancel this
      * StunClientTransaction.
      */
     private final Lock lock = new ReentrantLock();
 
     /**
-     * The Condition of {@link #lock} which this instance uses to wait
-     * for either the next retransmission interval or the cancellation of this
+     * The Condition of {@link #lock} which this instance uses to wait for either the next retransmission interval or the cancellation of this
      * StunClientTransaction.
      */
     private final Condition lockCondition = lock.newCondition();
@@ -200,30 +181,22 @@ public class StunClientTransaction implements Runnable {
         this.localAddress = localAddress;
         this.responseCollector = responseCollector;
         this.requestDestination = requestDestination;
-
         initTransactionConfiguration();
-
         this.transactionID = transactionID;
-
         try {
             request.setTransactionID(transactionID.getBytes());
         } catch (StunException ex) {
-            // Shouldn't happen so lets just throw a RuntimeException in case
-            // something is really messed up.
-            throw new IllegalArgumentException("The TransactionID class generated an invalid transaction" + " ID");
+            // Shouldn't happen so lets just throw a RuntimeException in case something is really messed up.
+            throw new IllegalArgumentException("The TransactionID class generated an invalid transaction ID");
         }
     }
 
     /**
-     * Implements the retransmissions algorithm. Retransmits the request
-     * starting with an interval of 100ms, doubling every retransmit until the
-     * interval reaches 1.6s.  Retransmissions continue with intervals of 1.6s
-     * until a response is received, or a total of 7 requests have been sent.
-     * If no response is received by 1.6 seconds after the last request has been
-     * sent, we consider the transaction to have failed.
-     * <p>
-     * The method acquires {@link #lock} and invokes {@link #runLocked()}.
+     * Implements the retransmissions algorithm. Retransmits the request starting with an interval of 100ms, doubling every retransmit until the
+     * interval reaches 1.6s.  Retransmissions continue with intervals of 1.6s until a response is received, or a total of 7 requests have been sent.
+     * If no response is received by 1.6 seconds after the last request has been sent, we consider the transaction to have failed.
      * <br>
+     * The method acquires {@link #lock} and invokes {@link #runLocked()}.
      */
     @Override
     public void run() {
@@ -236,34 +209,27 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Implements the retransmissions algorithm. Retransmits the request
-     * starting with an interval of 100ms, doubling every retransmit until the
-     * interval reaches 1.6s.  Retransmissions continue with intervals of 1.6s
-     * until a response is received, or a total of 7 requests have been sent.
-     * If no response is received by 1.6 seconds after the last request has been
-     * sent, we consider the transaction to have failed.
-     * <p>
-     * The method assumes that the current thread has already acquired
-     * {@link #lock}.
+     * Implements the retransmissions algorithm. Retransmits the request starting with an interval of 100ms, doubling every retransmit until the
+     * interval reaches 1.6s.  Retransmissions continue with intervals of 1.6s until a response is received, or a total of 7 requests have been sent.
+     * If no response is received by 1.6 seconds after the last request has been sent, we consider the transaction to have failed.
      * <br>
+     * The method assumes that the current thread has already acquired {@link #lock}.
      */
     private void runLocked() {
         // Indicates how many times we have retransmitted so far.
         int retransmissionCounter = 0;
         // How much did we wait after our last retransmission?
         int nextWaitInterval = originalWaitInterval;
-
         for (retransmissionCounter = 0; retransmissionCounter < maxRetransmissions; retransmissionCounter++) {
             waitFor(nextWaitInterval);
-
             //did someone tell us to get lost?
-            if (cancelled)
+            if (cancelled) {
                 return;
-
+            }
             int curWaitInterval = nextWaitInterval;
-            if (nextWaitInterval < maxWaitInterval)
+            if (nextWaitInterval < maxWaitInterval) {
                 nextWaitInterval *= 2;
-
+            }
             try {
                 logger.debug("retrying STUN tid " + transactionID + " from " + localAddress + " to " + requestDestination + " waited " + curWaitInterval + " ms retrans " + (retransmissionCounter + 1) + " of " + maxRetransmissions);
                 sendRequest0();
@@ -273,17 +239,14 @@ public class StunClientTransaction implements Runnable {
                 logger.warn("A client tran retransmission failed", ex);
             }
         }
-
-        //before stating that a transaction has timeout-ed we should first wait
-        //for a reception of the response
-        if (nextWaitInterval < maxWaitInterval)
+        //before stating that a transaction has timeout-ed we should first wait for a reception of the response
+        if (nextWaitInterval < maxWaitInterval) {
             nextWaitInterval *= 2;
-
+        }
         waitFor(nextWaitInterval);
-
-        if (cancelled)
+        if (cancelled) {
             return;
-
+        }
         stackCallback.removeClientTransaction(this);
         responseCollector.processTimeout(new StunTimeoutEvent(stackCallback, this.request, getLocalAddress(), transactionID));
     }
@@ -331,12 +294,12 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Waits until next retransmission is due or until the transaction is
-     * cancelled (whichever comes first).
+     * Waits until next retransmission is due or until the transaction is cancelled (whichever comes first).
      *
      * @param millis the number of milliseconds to wait for.
      */
     void waitFor(long millis) {
+        logger.debug("waitFor: {}", millis);
         lock.lock();
         try {
             lockCondition.await(millis, TimeUnit.MILLISECONDS);
@@ -348,26 +311,18 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Cancels the transaction. Once this method is called the transaction is
-     * considered terminated and will stop retransmissions.
+     * Cancels the transaction. Once this method is called the transaction is considered terminated and will stop retransmissions.
      *
-     * @param waitForResponse indicates whether we should wait for the current
-     * RTO to expire before ending the transaction or immediately terminate.
+     * @param waitForResponse indicates whether we should wait for the current RTO to expire before ending the transaction or immediately terminate.
      */
     void cancel(boolean waitForResponse) {
-        // XXX The cancelled field is initialized to false and then the one and
-        // only write access to it is here to set it to true. The rest of the
-        // code just checks whether it has become true. Consequently, there
-        // shouldn't be a problem if the set is outside a synchronized block.
-        // However, it being outside a synchronized block will decrease the risk
-        // of deadlocks.
+        // XXX The cancelled field is initialized to false and then the one and only write access to it is here to set it to true. The rest of the
+        // code just checks whether it has become true. Consequently, there shouldn't be a problem if the set is outside a synchronized block.
+        // However, it being outside a synchronized block will decrease the risk of deadlocks.
         cancelled = true;
-
         if (!waitForResponse) {
-            // Try to interrupt #waitFor(long) if possible. But don't risk a
-            // deadlock. It is not a problem if it is not possible to interrupt
-            // #waitFor(long) here because it will complete in finite time and
-            // this StunClientTransaction will eventually notice that it has
+            // Try to interrupt #waitFor(long) if possible. But don't risk a deadlock. It is not a problem if it is not possible to interrupt
+            // #waitFor(long) here because it will complete in finite time and this StunClientTransaction will eventually notice that it has
             // been cancelled.
             if (lock.tryLock()) {
                 try {

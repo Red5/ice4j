@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A check list is a list of CandidatePairs with a state (i.e. a CheckListState). The pairs in a check list are those that an ICE
  * agent will run STUN connectivity checks for. There is one check list per in-use media stream resulting from the offer/answer exchange.
- * <p>
+ * <br>
  * Given the asynchronous nature of ICE, be aware that a check list may be accessed from different locations.
  * 
  * @author Emil Ivov
@@ -315,7 +315,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      */
     public void addStateChangeListener(PropertyChangeListener l) {
         if (!stateListeners.contains(l)) {
-            this.stateListeners.add(l);
+            stateListeners.add(l);
         }
     }
 
@@ -325,7 +325,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param l the listener to remove.
      */
     public void removeStateChangeListener(PropertyChangeListener l) {
-        this.stateListeners.remove(l);
+        stateListeners.remove(l);
     }
 
     /**
@@ -360,7 +360,6 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
     public void removeChecksListener(PropertyChangeListener l) {
         if (checkListeners.contains(l)) {
             checkListeners.remove(l);
-
         }
     }
 

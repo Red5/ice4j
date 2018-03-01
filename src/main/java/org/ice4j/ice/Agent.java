@@ -138,7 +138,7 @@ public class Agent {
     /**
      * The lock that we use while starting connectivity establishment.
      */
-    private final Object startLock = new Object();
+    private final Boolean startLock = Boolean.TRUE;
 
     /**
      * The user fragment that we should use for the ice-ufrag attribute.
@@ -220,23 +220,23 @@ public class Agent {
     /**
      * Determines whether this agent should perform trickling.
      */
-    private boolean trickle = false;
+    private boolean trickle;
 
     /**
      * Indicates that ICE will be shutdown.
      */
-    private boolean shutdown = false;
+    private boolean shutdown;
 
     /**
      * Indicates that harvesting has been started at least once. Used to warn users who are trying to trickle, that they have already completed a
      * harvest. We may use it to throw an exception at some point if it's ever a problem.
      */
-    private boolean harvestingStarted = false;
+    private boolean harvestingStarted;
 
     /**
      * The indicator which determines whether this Agent is to perform consent freshness.
      */
-    private boolean performConsentFreshness = false;
+    private boolean performConsentFreshness;
 
     /**
      * The flag which specifies whether {@link #hostCandidateHarvester} should be used or not.
@@ -297,8 +297,7 @@ public class Agent {
     }
 
     /**
-     * Sets the tie breaker value. Note that to this should be set early (before
-     * connectivity checks start).
+     * Sets the tie breaker value. Note that to this should be set early (before connectivity checks start).
      * @param tieBreakerInput the value to set.
      */
     public void setTieBreaker(long tieBreakerInput) {
@@ -324,29 +323,20 @@ public class Agent {
     }
 
     /**
-     * Creates a new {@link Component} for the specified stream and
-     * allocates potentially all local candidates that should belong to it.
+     * Creates a new {@link Component} for the specified stream and allocates potentially all local candidates that should belong to it.
      *
-     * @param stream the {@link IceMediaStream} that the new {@link Component}
-     * should belong to.
+     * @param stream the {@link IceMediaStream} that the new {@link Component} should belong to.
      * @param transport the transport protocol used by the component
-     * @param preferredPort the port number that should be tried first when
-     * binding local Candidate sockets for this Component.
-     * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding
-     * before giving up and throwing an exception.
+     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component.
+     * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
+     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception.
      *
-     * @return the newly created {@link Component} and with a list containing
-     * all and only local candidates.
+     * @return the newly created {@link Component} and with a list containing all and only local candidates.
      *
-     * @throws IllegalArgumentException if either minPort or
-     * maxPort is not a valid port number or if minPort &gt;
+     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt;
      * maxPort, or if transport is not currently supported.
-     * @throws IOException if an error occurs while the underlying resolver lib
-     * is using sockets.
-     * @throws BindException if we couldn't find a free port between
-     * minPort and maxPort before reaching the maximum allowed
+     * @throws IOException if an error occurs while the underlying resolver lib is using sockets.
+     * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed
      * number of retries.
      */
     public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException, BindException {
@@ -354,31 +344,21 @@ public class Agent {
     }
 
     /**
-     * Creates a new {@link Component} for the specified stream and
-     * allocates potentially all local candidates that should belong to it.
+     * Creates a new {@link Component} for the specified stream and allocates potentially all local candidates that should belong to it.
      *
-     * @param stream the {@link IceMediaStream} that the new {@link Component}
-     * should belong to.
+     * @param stream the {@link IceMediaStream} that the new {@link Component} should belong to.
      * @param transport the transport protocol used by the component
-     * @param preferredPort the port number that should be tried first when
-     * binding local Candidate sockets for this Component.
-     * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding
-     * before giving up and throwing an exception.
-     * @param keepAliveStrategy the keep-alive strategy, which dictates which
-     * candidates pairs are going to be kept alive.
+     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component.
+     * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
+     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception.
+     * @param keepAliveStrategy the keep-alive strategy, which dictates which candidates pairs are going to be kept alive.
      *
-     * @return the newly created {@link Component} and with a list containing
-     * all and only local candidates.
+     * @return the newly created {@link Component} and with a list containing all and only local candidates.
      *
-     * @throws IllegalArgumentException if either minPort or
-     * maxPort is not a valid port number or if minPort &gt;
+     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt;
      * maxPort, or if transport is not currently supported.
-     * @throws IOException if an error occurs while the underlying resolver lib
-     * is using sockets.
-     * @throws BindException if we couldn't find a free port between
-     * minPort and maxPort before reaching the maximum allowed
+     * @throws IOException if an error occurs while the underlying resolver lib is using sockets.
+     * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed
      * number of retries.
      */
     public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort, KeepAliveStrategy keepAliveStrategy) throws IllegalArgumentException, IOException, BindException {
@@ -388,22 +368,18 @@ public class Agent {
         Component component = stream.createComponent(keepAliveStrategy);
         gatherCandidates(component, preferredPort, minPort, maxPort);
         /*
-         * Lyubomir: After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the
-         * ConnectivityCheckServer is started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the
-         * ConnectivityCheckServer is not started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may
-         * arrive from the remote Agent.
+         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
+         * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
+         * started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
          */
         connCheckServer.start();
         return component;
     }
 
     /**
-     * Initializes a new {@link CandidatePair} instance from a
-     * {@link LocalCandidate} and a {@link RemoteCandidate}. The method
-     * represents a {@code CandidatePair} factory and is preferable to
-     * explicitly calling the {@code CandidatePair} constructor because it
-     * allows this {@code Agent} to easily track the initialization of its
-     * {@code CandidatePair}s.
+     * Initializes a new {@link CandidatePair} instance from a {@link LocalCandidate} and a {@link RemoteCandidate}. The method
+     * represents a {@code CandidatePair} factory and is preferable to explicitly calling the {@code CandidatePair} constructor because it
+     * allows this {@code Agent} to easily track the initialization of its {@code CandidatePair}s.
      *
      * @param local the {@code LocalCandidate} to initialize the new instance with
      * @param remote the {@code RemoteCandidate} to initialize the new instance with
@@ -414,84 +390,62 @@ public class Agent {
     }
 
     /**
-     * Uses all CandidateHarvesters currently registered with this
-     * Agent to obtain whatever addresses they can discover.
+     * Uses all CandidateHarvesters currently registered with this Agent to obtain whatever addresses they can discover.
      * <p>
-     * Not that the method would only use existing harvesters so make sure
-     * you've registered all harvesters that you would want to use before
+     * Not that the method would only use existing harvesters so make sure you've registered all harvesters that you would want to use before
      * calling it.
      * <br>
-     * @param component the Component that we'd like to gather
-     * candidates for.
-     * @param preferredPort the port number that should be tried first when
-     * binding local Candidate sockets for this Component.
-     * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding
-     * before giving up and throwing an exception.
+     * @param component the Component that we'd like to gather candidates for
+     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component
+     * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
+     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
      *
-     * @throws IllegalArgumentException if either minPort or
-     * maxPort is not a valid port number or if minPort &gt;
-     * maxPort.
-     * @throws IOException if an error occurs while the underlying resolver lib
-     * is gathering candidates and we end up without even a single one.
+     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt;  maxPort
+     * @throws IOException if an error occurs while the underlying resolver lib is gathering candidates and we end up without even a single one
      */
     private void gatherCandidates(Component component, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException {
-        logger.info("Gathering candidates for component " + component.toShortString() + ". Local ufrag " + getLocalUfrag());
+        logger.info("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
         if (useHostHarvester()) {
             hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, Transport.UDP);
-        } else {
-            if (hostHarvesters.isEmpty())
-                logger.warn("No host harvesters available!");
+        } else if (hostHarvesters.isEmpty()) {
+            logger.warn("No host harvesters available!");
         }
-
         for (CandidateHarvester harvester : hostHarvesters) {
             harvester.harvest(component);
         }
-
-        if (component.getLocalCandidateCount() == 0)
+        if (component.getLocalCandidateCount() == 0) {
             logger.warn("Failed to gather any host candidates!");
-
+        }
         //in case we are not trickling, apply other harvesters here
         if (!isTrickling()) {
             harvestingStarted = true; //raise a flag to warn on a second call.
             harvesters.harvest(component);
         }
-
         logger.debug("Candidate count in first harvest: {}", component.getLocalCandidateCount());
-
         //select the candidate to put in the media line.
         component.selectDefaultCandidate();
     }
 
     /**
-     * Starts an asynchronous(?) harvest across all components and reports newly
-     * discovered candidates to trickleCallback.
+     * Starts an asynchronous(?) harvest across all components and reports newly discovered candidates to trickleCallback.
      *
-     * @param trickleCallback the callback that will be notified for all newly
-     * discovered candidates.
+     * @param trickleCallback the callback that will be notified for all newly discovered candidates.
      *
-     * @throws IllegalStateException if we try calling this method without being
-     * in a trickling state.
+     * @throws IllegalStateException if we try calling this method without being in a trickling state.
      */
     public void startCandidateTrickle(TrickleCallback trickleCallback) throws IllegalStateException {
         if (!isTrickling()) {
             throw new IllegalStateException("Trying to start trickling without enabling it on the agent!");
         }
-
         if (harvestingStarted) {
             logger.warn("Hmmm ... why are you harvesting twice? You shouldn't be!");
         }
-
         //create a list of components and start harvesting
         List<Component> components = new LinkedList<>();
-
         for (IceMediaStream stream : getStreams()) {
             components.addAll(stream.getComponents());
         }
-
         harvesters.harvest(components, trickleCallback);
-
         //tell the tricklers that we are done (the WebRTC way, with null):
         trickleCallback.onIceCandidates(null);
     }
@@ -501,91 +455,74 @@ public class Agent {
      */
     public void startConnectivityEstablishment() {
         synchronized (startLock) {
-            logger.info("Start ICE connectivity establishment. Local ufrag " + getLocalUfrag());
+            logger.info("Start ICE connectivity establishment. Local ufrag {}", getLocalUfrag());
             shutdown = false;
             pruneNonMatchedStreams();
-
             try {
                 initCheckLists();
             } catch (ArithmeticException e) {
                 setState(IceProcessingState.FAILED);
                 return;
             }
-
-            //change state before we actually send checks so that we don't
-            //miss responses and hence the possibility to nominate a pair.
+            //change state before we actually send checks so that we don't miss responses and hence the possibility to nominate a pair.
             setState(IceProcessingState.RUNNING);
-
-            //if we have received connectivity checks before RUNNING state,
-            //trigger a check for those candidate pairs.
+            //if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
             if (this.preDiscoveredPairsQueue.size() > 0) {
                 logger.info("Trigger checks for pairs that were received beforerunning state");
-
                 for (CandidatePair cp : preDiscoveredPairsQueue) {
                     triggerCheck(cp);
                 }
-
                 preDiscoveredPairsQueue.clear();
             }
-
             connCheckClient.startChecks();
         }
     }
 
     /**
-     * Free()s and removes from this agent components or entire streams
-     * if they do not contain remote candidates. A possible reason for this
-     * could be the fact that the remote party canceled some of the streams or
-     * that it is using rtcp-mux or bundle.
+     * Free()s and removes from this agent components or entire streams if they do not contain remote candidates. A possible reason for this
+     * could be the fact that the remote party canceled some of the streams or that it is using rtcp-mux or bundle.
      */
     private void pruneNonMatchedStreams() {
-        // The previous behavior allows users of ice4j to run an Agent with
-        // remote candidates for only some of the streams/components, in which
-        // case the component without remote candidates are removed here, and
-        // so they do not cause an ICE failure if they fail to connect.
-        // In order to allow operation without remote candidates, we only prune
-        // if we detect that there is at least one component with some remote
+        // The previous behavior allows users of ice4j to run an Agent with remote candidates for only some of the streams/components, in which
+        // case the component without remote candidates are removed here, and so they do not cause an ICE failure if they fail to connect.
+        // In order to allow operation without remote candidates, we only prune if we detect that there is at least one component with some remote
         // candidates.
         boolean prune = false;
         for (IceMediaStream stream : getStreams()) {
             for (Component component : stream.getComponents()) {
-                if (component.getRemoteCandidateCount() > 0)
+                if (component.getRemoteCandidateCount() > 0) {
                     prune = true;
-                if (prune)
+                }
+                if (prune) {
                     break;
+                }
             }
         }
-
         if (prune) {
             for (IceMediaStream stream : getStreams()) {
                 for (Component component : stream.getComponents()) {
-                    if (component.getRemoteCandidateCount() == 0)
+                    if (component.getRemoteCandidateCount() == 0) {
                         stream.removeComponent(component);
+                    }
                 }
-
-                if (stream.getComponentCount() == 0)
+                if (stream.getComponentCount() == 0) {
                     removeStream(stream);
+                }
             }
         }
     }
 
     /**
-     * Indicates whether this {@link Agent} is currently in the process of
-     * running connectivity checks and establishing connectivity. Connectivity
-     * establishment is considered to have started after both {@link Agent}s
-     * have exchanged their media descriptions. Determining whether the actual
-     * process has started is important, for example, when determining whether
-     * a remote address we've just discovered is peer reflexive or not.
-     * If ICE has started and we don't know about the address then we should
-     * add it to the list of candidates. Otherwise we should hold to it until
+     * Indicates whether this {@link Agent} is currently in the process of running connectivity checks and establishing connectivity. Connectivity
+     * establishment is considered to have started after both {@link Agent}s have exchanged their media descriptions. Determining whether the actual
+     * process has started is important, for example, when determining whether a remote address we've just discovered is peer reflexive or not.
+     * If ICE has started and we don't know about the address then we should add it to the list of candidates. Otherwise we should hold to it until
      * it does and check later.
      * <p>
-     * Note that an {@link Agent} would be ready to and will send responses to
-     * connectivity checks as soon as it streams get created, which is well
+     * Note that an {@link Agent} would be ready to and will send responses to connectivity checks as soon as it streams get created, which is well
      * before we actually start the checks.
      *
-     * @return true after media descriptions have been exchanged both
-     * ways and connectivity checks have started (regardless of their current
+     * @return true after media descriptions have been exchanged both ways and connectivity checks have started (regardless of their current
      * state) and false otherwise.
      */
     public boolean isStarted() {
@@ -595,41 +532,38 @@ public class Agent {
     /**
      * Indicates whether this {@link Agent} has finished ICE processing.
      *
-     * @return true if ICE processing is in the {@link
-     * IceProcessingState#FAILED}, {@link IceProcessingState#COMPLETED} or
-     * {@link IceProcessingState#TERMINATED} and false otherwise.
+     * @return true if ICE processing is in the {@link IceProcessingState#FAILED}, {@link IceProcessingState#COMPLETED} or
+     * {@link IceProcessingState#TERMINATED} and false otherwise
      */
     public boolean isOver() {
         IceProcessingState state = getState();
-
         return (state != null) && state.isOver();
     }
 
     /**
      * Returns the state of ICE processing for this Agent.
      *
-     * @return the state of ICE processing for this Agent.
+     * @return the state of ICE processing for this Agent
      */
     public IceProcessingState getState() {
         return state;
     }
 
     /**
-     * Adds l to the list of listeners tracking changes of the
-     * {@link IceProcessingState} of this Agent
+     * Adds l to the list of listeners tracking changes of the {@link IceProcessingState} of this Agent
      *
      * @param l the listener to register.
      */
     public void addStateChangeListener(PropertyChangeListener l) {
         synchronized (stateListeners) {
-            if (!stateListeners.contains(l))
+            if (!stateListeners.contains(l)) {
                 stateListeners.add(l);
+            }
         }
     }
 
     /**
-     * Removes l from the list of listeners tracking changes of the
-     * {@link IceProcessingState} of this Agent
+     * Removes l from the list of listeners tracking changes of the {@link IceProcessingState} of this Agent
      *
      * @param l the listener to remove.
      */
@@ -640,24 +574,21 @@ public class Agent {
     }
 
     /**
-     * Creates a new {@link PropertyChangeEvent} and delivers it to all
-     * currently registered state listeners.
+     * Creates a new {@link PropertyChangeEvent} and delivers it to all currently registered state listeners.
      *
      * @param oldState the {@link IceProcessingState} we had before the change
      * @param newState the {@link IceProcessingState} we had after the change
      */
     private void fireStateChange(IceProcessingState oldState, IceProcessingState newState) {
         PropertyChangeListener[] stateListenersCopy;
-
         synchronized (stateListeners) {
             stateListenersCopy = stateListeners.toArray(NO_STATE_CHANGE_LISTENERS);
         }
-
         if (stateListenersCopy.length != 0) {
             PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_ICE_PROCESSING_STATE, oldState, newState);
-
-            for (PropertyChangeListener l : stateListenersCopy)
+            for (PropertyChangeListener l : stateListenersCopy) {
                 l.propertyChange(evt);
+            }
         }
     }
 
@@ -676,7 +607,7 @@ public class Agent {
             this.state = newState;
         }
         if (!oldState.equals(newState)) {
-            logger.info("ICE state changed from " + oldState + " to " + newState + ". Local ufrag " + getLocalUfrag());
+            logger.info("ICE state changed from {} to {}. Local ufrag {}", oldState, newState, getLocalUfrag());
             fireStateChange(oldState, newState);
             return true;
         }
@@ -684,8 +615,7 @@ public class Agent {
     }
 
     /**
-     * Creates, initializes and orders the list of candidate pairs that would
-     * be used for the connectivity checks for all components in this stream.
+     * Creates, initializes and orders the list of candidate pairs that would be used for the connectivity checks for all components in this stream.
      */
     protected void initCheckLists() {
         //first init the check list.
@@ -706,11 +636,9 @@ public class Agent {
     }
 
     /**
-     * Adds harvester to the list of harvesters that this agent will
-     * use when gathering Candidates.
+     * Adds harvester to the list of harvesters that this agent will use when gathering Candidates.
      *
-     * @param harvester a CandidateHarvester that this agent should use
-     * when gathering candidates.
+     * @param harvester a CandidateHarvester that this agent should use when gathering candidates.
      */
     public void addCandidateHarvester(CandidateHarvester harvester) {
         if (harvester.isHostHarvester())
@@ -729,57 +657,44 @@ public class Agent {
     }
 
     /**
-     * Returns that user name that should be advertised in session descriptions
-     * containing ICE data from this agent.
+     * Returns that user name that should be advertised in session descriptions containing ICE data from this agent.
      *
-     * @return that user name that should be advertised in session descriptions
-     * containing ICE data from this agent.
+     * @return that user name that should be advertised in session descriptions containing ICE data from this agent.
      */
     public String getLocalUfrag() {
         return ufrag;
     }
 
     /**
-     * Returns that password that should be advertised in session descriptions
-     * containing ICE data from this agent.
+     * Returns that password that should be advertised in session descriptions containing ICE data from this agent.
      *
-     * @return that password that should be advertised in session descriptions
-     * containing ICE data from this agent.
+     * @return that password that should be advertised in session descriptions containing ICE data from this agent.
      */
     public String getLocalPassword() {
         return password;
     }
 
     /**
-     * Returns the user name that this Agent should use in connectivity
-     * checks for outgoing Binding Requests. According to RFC 5245, a Binding
-     * Request serving as a connectivity check MUST utilize the STUN short term
-     * credential mechanism. The username for the credential is formed by
-     * concatenating the username fragment provided by the peer with the
-     * username fragment of the agent sending the request, separated by a
+     * Returns the user name that this Agent should use in connectivity checks for outgoing Binding Requests. According to RFC 5245, a Binding
+     * Request serving as a connectivity check MUST utilize the STUN short term credential mechanism. The username for the credential is formed by
+     * concatenating the username fragment provided by the peer with the username fragment of the agent sending the request, separated by a
      * colon (":").  The password is equal to the password provided by the peer.
-     * For example, consider the case where agent L is the offerer, and agent R
-     * is the answerer.  Agent L included a username fragment of LFRAG for its
-     * candidates, and a password of LPASS.  Agent R provided a username
-     * fragment of RFRAG and a password of RPASS.  A connectivity check from L
-     * to R (and its response of course) utilize the username RFRAG:LFRAG and a
-     * password of RPASS.  A connectivity check from R to L (and its response)
+     * For example, consider the case where agent L is the offerer, and agent R is the answerer.  Agent L included a username fragment of LFRAG for its
+     * candidates, and a password of LPASS.  Agent R provided a username fragment of RFRAG and a password of RPASS.  A connectivity check from L
+     * to R (and its response of course) utilize the username RFRAG:LFRAG and a password of RPASS.  A connectivity check from R to L (and its response)
      * utilize the username LFRAG:RFRAG and a password of LPASS.
      *
-     * @param media media name that we want to generate local username for.
-     * @return a user name that this Agent can use in connectivity
-     * check for outgoing Binding Requests.
+     * @param media media name that we want to generate local username for
+     * @return a user name that this Agent can use in connectivity check for outgoing Binding Requests
      */
     public String generateLocalUserName(String media) {
         IceMediaStream stream = getStream(media);
         String ret;
-
         if (stream == null) {
             ret = null;
             logger.warn("Agent contains no IceMediaStream with name {}", media);
         } else {
             String remoteUfrag = stream.getRemoteUfrag();
-
             if (remoteUfrag == null) {
                 ret = null;
                 logger.warn("Remote ufrag of IceMediaStream with name {} is null", media);
@@ -791,30 +706,21 @@ public class Agent {
     }
 
     /**
-     * Returns the user name that we should expect a peer Agent to use
-     * in connectivity checks for Binding Requests its sending our way.
-     * According to RFC 5245, a Binding Request serving as a connectivity check
-     * MUST utilize the STUN short term credential mechanism. The username for
-     * the credential is formed by concatenating the username fragment provided
-     * by the peer with the username fragment of the agent sending the request,
-     * separated by a colon (":").  The password is equal to the password
-     * provided by the peer. For example, consider the case where agent
-     * L is the offerer, and agent R is the answerer.  Agent L
-     * included a username fragment of LFRAG for its candidates,
-     * and a password of LPASS.  Agent R provided a username fragment
-     * of RFRAG and a password of RPASS.  A connectivity check from L
-     * to R (and its response of course) utilize the username RFRAG:LFRAG and a
-     * password of RPASS.  A connectivity check from R to L (and its response)
+     * Returns the user name that we should expect a peer Agent to use in connectivity checks for Binding Requests its sending our way.
+     * According to RFC 5245, a Binding Request serving as a connectivity check MUST utilize the STUN short term credential mechanism. The username for
+     * the credential is formed by concatenating the username fragment provided by the peer with the username fragment of the agent sending the request,
+     * separated by a colon (":").  The password is equal to the password provided by the peer. For example, consider the case where agent
+     * L is the offerer, and agent R is the answerer.  Agent L included a username fragment of LFRAG for its candidates,
+     * and a password of LPASS.  Agent R provided a username fragment of RFRAG and a password of RPASS.  A connectivity check from L
+     * to R (and its response of course) utilize the username RFRAG:LFRAG and a password of RPASS.  A connectivity check from R to L (and its response)
      * utilize the username LFRAG:RFRAG and a password of LPASS.
      *
-     * @param media media name that we want to generate local username for.
-     * @return a user name that a peer Agent would use in connectivity
-     * check for outgoing Binding Requests.
+     * @param media media name that we want to generate local username for
+     * @return a user name that a peer Agent would use in connectivity check for outgoing Binding Requests.
      */
     public String generateRemoteUserName(String media) {
         IceMediaStream stream = getStream(media);
-
-        return (stream == null) ? null : (getLocalUfrag() + ":" + stream.getRemoteUfrag());
+        return (stream == null) ? null : (getLocalUfrag() + ':' + stream.getRemoteUfrag());
     }
 
     /**
@@ -855,20 +761,15 @@ public class Agent {
      * check for outgoing Binding Requests.
      */
     private String generateUserName(Candidate<?> candidate1, Candidate<?> candidate2) {
-        /*
-         * FIXME Are the invocations of Candidate.getUfrag() necessary for their side effects alone? For example, to make sure that neither of the Candidates is null?
-         */
+        // FIXME Are the invocations of Candidate.getUfrag() necessary for their side effects alone? For example, to make sure that neither of the Candidates is null?
         candidate1.getUfrag();
         candidate2.getUfrag();
-
         return null;
     }
 
     /**
-     * Returns the {@link FoundationsRegistry} this agent is using to assign
-     * candidate foundations. We use the FoundationsRegistry to keep
-     * track of the foundations we assign within a session (i.e. the entire life
-     * time of an Agent)
+     * Returns the {@link FoundationsRegistry} this agent is using to assign candidate foundations. We use the FoundationsRegistry to keep
+     * track of the foundations we assign within a session (i.e. the entire life time of an Agent)
      * @return the {@link FoundationsRegistry} of this agent
      */
     public final FoundationsRegistry getFoundationsRegistry() {
@@ -876,16 +777,12 @@ public class Agent {
     }
 
     /**
-     * Returns the IceMediaStream with the specified name or
-     * null if no such stream has been registered with this
-     * Agent yet.
+     * Returns the IceMediaStream with the specified name or null if no such stream has been registered with this Agent yet.
      *
-     * @param name the name of the stream that we'd like to obtain a reference
-     * to.
+     * @param name the name of the stream that we'd like to obtain a reference to
      *
-     * @return the IceMediaStream with the specified name or
-     * null if no such stream has been registered with this
-     * Agent yet.
+     * @return the IceMediaStream with the specified name or null if no such stream has been registered with this
+     * Agent yet
      */
     public IceMediaStream getStream(String name) {
         synchronized (mediaStreams) {
@@ -894,11 +791,9 @@ public class Agent {
     }
 
     /**
-     * Returns a List containing the names of all currently registered
-     * media streams.
+     * Returns a List containing the names of all currently registered media streams.
      *
-     * @return a List containing the names of all currently registered
-     * media streams.
+     * @return a List containing the names of all currently registered media streams
      */
     public List<String> getStreamNames() {
         synchronized (mediaStreams) {
@@ -907,11 +802,9 @@ public class Agent {
     }
 
     /**
-     * Returns a List containing all IceMediaStreams currently
-     * registered with this agent.
+     * Returns a List containing all IceMediaStreams currently registered with this agent.
      *
-     * @return a List containing all IceMediaStreams currently
-     * registered with this agent.
+     * @return a List containing all IceMediaStreams currently registered with this agent
      */
     public List<IceMediaStream> getStreams() {
         synchronized (mediaStreams) {
@@ -920,12 +813,9 @@ public class Agent {
     }
 
     /**
-     * Returns the number of IceMediaStreams currently registered with
-     * this agent.
+     * Returns the number of IceMediaStreams currently registered with this agent.
      *
-     * @return  the number of IceMediaStreams currently registered with
-     * this agent.
-     *
+     * @return  the number of IceMediaStreams currently registered with this agent
      */
     public int getStreamCount() {
         synchronized (mediaStreams) {
@@ -934,16 +824,12 @@ public class Agent {
     }
 
     /**
-     * Gets the IceMediaStreams registered with this Agent for
-     * which connectivity establishment is pending. For example, after a set of
-     * IceMediaStreams is registered with this Agent,
-     * connectivity establishment completes for them and then a new set of
-     * IceMediaStreams is registered with this Agent, the
-     * IceMediaStreams with pending connectivity establishment are
+     * Gets the IceMediaStreams registered with this Agent for which connectivity establishment is pending. For example, after a set of
+     * IceMediaStreams is registered with this Agent, connectivity establishment completes for them and then a new set of
+     * IceMediaStreams is registered with this Agent, the IceMediaStreams with pending connectivity establishment are
      * those from the second set.
      *
-     * @return a List of the IceMediaStreams registered with
-     * this Agent for which connectivity is pending.
+     * @return a List of the IceMediaStreams registered with this Agent for which connectivity is pending.
      */
     List<IceMediaStream> getStreamsWithPendingConnectivityEstablishment() {
         /*
@@ -952,14 +838,13 @@ public class Agent {
          */
         List<IceMediaStream> streams = getStreams();
         Iterator<IceMediaStream> streamIter = streams.iterator();
-
         while (streamIter.hasNext()) {
             IceMediaStream stream = streamIter.next();
             CheckList checkList = stream.getCheckList();
             CheckListState checkListState = checkList.getState();
-
-            if (CheckListState.COMPLETED.equals(checkListState) || CheckListState.FAILED.equals(checkListState))
+            if (CheckListState.COMPLETED.equals(checkListState) || CheckListState.FAILED.equals(checkListState)) {
                 streamIter.remove();
+            }
         }
         return streams;
     }
@@ -976,8 +861,7 @@ public class Agent {
     /**
      * Returns the number of {@link CheckList}s that are currently active.
      *
-     * @return the number of {@link CheckList}s that are currently active.
-     *
+     * @return the number of {@link CheckList}s that are currently active
      */
     protected int getActiveCheckListCount() {
         synchronized (mediaStreams) {
@@ -1013,8 +897,7 @@ public class Agent {
     }
 
     /**
-     * Returns this agent's tie-breaker number. The tie-breaker number is used
-     * in connectivity checks to detect and repair the case where both agents
+     * Returns this agent's tie-breaker number. The tie-breaker number is used in connectivity checks to detect and repair the case where both agents
      * believe to have the controlling or the controlled role.
      *
      * @return  this agent's tie-breaker number
@@ -1026,8 +909,7 @@ public class Agent {
     /**
      * Specifies whether this agent has the controlling role in an ICE exchange.
      *
-     * @param isControlling true if this is to be the controlling
-     * Agent and false otherwise.
+     * @param isControlling true if this is to be the controlling Agent and false otherwise
      */
     public void setControlling(boolean isControlling) {
         this.isControlling = isControlling;
@@ -1042,11 +924,10 @@ public class Agent {
     }
 
     /**
-     * Removes stream and all its child Components and
-     * Candidates from the this agent and releases all resources that
+     * Removes stream and all its child Components and Candidates from the this agent and releases all resources that
      * they had allocated (like sockets for example)
      *
-     * @param stream the Component we'd like to remove and free.
+     * @param stream the Component we'd like to remove and free
      */
     public void removeStream(IceMediaStream stream) {
         synchronized (mediaStreams) {
@@ -1060,26 +941,22 @@ public class Agent {
     }
 
     /**
-     * Determines whether this agent has the controlling role in an ICE
-     * exchange.
+     * Determines whether this agent has the controlling role in an ICE exchange.
      *
-     * @return true if this is to be the controlling Agent
-     * and false otherwise.
+     * @return true if this is to be the controlling Agent and false otherwise.
      */
     public boolean isControlling() {
         return isControlling;
     }
 
     /**
-     * Returns the local LocalCandidate with the specified
-     * localAddress if it belongs to any of this {@link Agent}'s
+     * Returns the local LocalCandidate with the specified localAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't.
      *
-     * @param localAddress the {@link TransportAddress} we are looking for.
+     * @param localAddress the {@link TransportAddress} we are looking for
      *
-     * @return the local LocalCandidate with the specified
-     * localAddress if it belongs to any of this {@link Agent}'s
-     * streams or null if it doesn't.
+     * @return the local LocalCandidate with the specified localAddress if it belongs to any of this {@link Agent}'s
+     * streams or null if it doesn't
      */
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
         for (IceMediaStream stream : mediaStreams.values()) {
@@ -1092,15 +969,13 @@ public class Agent {
     }
 
     /**
-     * Returns the local LocalCandidate with the specified
-     * localAddress if it belongs to any of this {@link Agent}'s
+     * Returns the local LocalCandidate with the specified localAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't.
      *
-     * @param localAddress the {@link TransportAddress} we are looking for.
+     * @param localAddress the {@link TransportAddress} we are looking for
      * @param ufrag local ufrag
-     * @return the local LocalCandidate with the specified
-     * localAddress if it belongs to any of this {@link Agent}'s
-     * streams or null if it doesn't.
+     * @return the local LocalCandidate with the specified localAddress if it belongs to any of this {@link Agent}'s
+     * streams or null if it doesn't
      */
     public LocalCandidate findLocalCandidate(TransportAddress localAddress, String ufrag) {
         for (IceMediaStream stream : mediaStreams.values()) {
@@ -1116,14 +991,12 @@ public class Agent {
     }
 
     /**
-     * Returns the remote Candidate with the specified
-     * remoteAddress if it belongs to any of this {@link Agent}'s
+     * Returns the remote Candidate with the specified remoteAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't.
      *
      * @param remoteAddress the {@link TransportAddress} we are looking for.
      *
-     * @return the remote Candidate with the specified
-     * remoteAddress if it belongs to any of this {@link Agent}'s
+     * @return the remote Candidate with the specified remoteAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't.
      */
     public RemoteCandidate findRemoteCandidate(TransportAddress remoteAddress) {
@@ -1137,17 +1010,13 @@ public class Agent {
     }
 
     /**
-     * Returns the {@link CandidatePair} with the specified remote and local
-     * addresses or null if neither of the {@link CheckList}s in this
+     * Returns the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
      * {@link Agent}'s streams contain such a pair.
      *
-     * @param localAddress the local {@link TransportAddress} of the pair we
-     * are looking for.
-     * @param remoteAddress the remote {@link TransportAddress} of the pair we
-     * are looking for.
+     * @param localAddress the local {@link TransportAddress} of the pair we are looking for
+     * @param remoteAddress the remote {@link TransportAddress} of the pair we are looking for
      *
-     * @return the {@link CandidatePair} with the specified remote and local
-     * addresses or null if neither of the {@link CheckList}s in this
+     * @return the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
      * {@link Agent}'s streams contain such a pair.
      */
     public CandidatePair findCandidatePair(TransportAddress localAddress, TransportAddress remoteAddress) {
@@ -1163,14 +1032,12 @@ public class Agent {
     }
 
     /**
-     * Returns the {@link CandidatePair} with the specified remote and local
-     * addresses or null if neither of the {@link CheckList}s in this
+     * Returns the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
      * {@link Agent}'s streams contain such a pair.
      *
      * @param localUFrag local user fragment
      * @param remoteUFrag remote user fragment
-     * @return the {@link CandidatePair} with the specified remote and local
-     * addresses or null if neither of the {@link CheckList}s in this
+     * @return the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
      * {@link Agent}'s streams contain such a pair.
      */
     public CandidatePair findCandidatePair(String localUFrag, String remoteUFrag) {
@@ -1186,138 +1053,100 @@ public class Agent {
     }
 
     /**
-     * Notifies the implementation that the {@link ConnectivityCheckServer} has
-     * just received a message on localAddress originating at
-     * remoteAddress carrying the specified priority. This
-     * will cause us to schedule a triggered check for the corresponding
-     * remote candidate and potentially to the discovery of a PEER-REFLEXIVE
-     * candidate.
+     * Notifies the implementation that the {@link ConnectivityCheckServer} has just received a message on localAddress originating at
+     * remoteAddress carrying the specified priority. This will cause us to schedule a triggered check for the corresponding
+     * remote candidate and potentially to the discovery of a PEER-REFLEXIVE candidate.
      *
-     * @param remoteAddress the address that we've just seen, and that is
-     * potentially a peer-reflexive address.
-     * @param localAddress the address that we were contacted on.
+     * @param remoteAddress the address that we've just seen, and that is potentially a peer-reflexive address
+     * @param localAddress the address that we were contacted on
      * @param priority the priority that the remote party assigned to
-     * @param remoteUFrag the user fragment that we should be using when and if
-     * we decide to send a check to remoteAddress.
+     * @param remoteUFrag the user fragment that we should be using when and if we decide to send a check to remoteAddress
      * @param localUFrag local user fragment
-     * @param useCandidate indicates whether the incoming check
-     * {@link org.ice4j.message.Request} contained the USE-CANDIDATE ICE
-     * attribute.
+     * @param useCandidate indicates whether the incoming check {@link org.ice4j.message.Request} contained the USE-CANDIDATE ICE attribute
      */
     protected void incomingCheckReceived(TransportAddress remoteAddress, TransportAddress localAddress, long priority, String remoteUFrag, String localUFrag, boolean useCandidate) {
         String ufrag = null;
         LocalCandidate localCandidate = findLocalCandidate(localAddress);
         if (localCandidate == null) {
-            logger.info("No localAddress for this incoming checks: " + localAddress);
+            logger.info("No localAddress for this incoming check: {}", localAddress);
             return;
         }
         Component parentComponent = localCandidate.getParentComponent();
-        RemoteCandidate remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority,
-        // We can not know the related candidate of a remote peer
-        // reflexive candidate. We must set it to "null".
-                null, ufrag);
+        // We can not know the related candidate of a remote peer reflexive candidate. We must set it to "null".
+        RemoteCandidate remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority, null, ufrag);
         CandidatePair triggeredPair = createCandidatePair(localCandidate, remoteCandidate);
-        logger.debug("set use-candidate " + useCandidate + " for pair " + triggeredPair.toShortString());
+        logger.debug("set use-candidate {} for pair {}", useCandidate, triggeredPair.toShortString());
         if (useCandidate) {
             triggeredPair.setUseCandidateReceived();
         }
         synchronized (startLock) {
             if (state == IceProcessingState.WAITING) {
                 logger.debug("Receive STUN checks before our ICE has started");
-                //we are not started yet so we'd better wait until we get the
-                //remote candidates in case we are holding to a new PR one.
+                // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
                 this.preDiscoveredPairsQueue.add(triggeredPair);
             } else if (state == IceProcessingState.FAILED) {
-                // Failure is permanent, currently.
-            } else //Running, Connected or Terminated.
-            {
+                // Failure is permanent, currently
+            } else {
+                // Running, Connected or Terminated
                 if (logger.isDebugEnabled()) {
                     logger.debug("Received check from " + triggeredPair.toShortString() + " triggered a check.Local ufrag " + getLocalUfrag());
                 }
-
-                // We have been started, and have not failed (yet). If this is
-                // a new pair, handle it (even if we have already completed).
+                // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
                 triggerCheck(triggeredPair);
             }
         }
     }
 
     /**
-     * Either queues a triggered check for triggeredPair or, in case
-     * there's already a pair with the specified remote and local addresses,
+     * Either queues a triggered check for triggeredPair or, in case there's already a pair with the specified remote and local addresses,
      * puts it in the queue instead.
      *
-     * @param triggerPair the pair containing the local and remote candidate
-     * that we'd need to trigger a check for.
+     * @param triggerPair the pair containing the local and remote candidate that we'd need to trigger a check for.
      */
     private void triggerCheck(CandidatePair triggerPair) {
-        //first check whether we already know about the remote address in case
-        //we've just discovered a peer-reflexive candidate.
+        //first check whether we already know about the remote address in case we've just discovered a peer-reflexive candidate.
         CandidatePair knownPair = findCandidatePair(triggerPair.getLocalCandidate().getTransportAddress(), triggerPair.getRemoteCandidate().getTransportAddress());
-
         IceMediaStream parentStream = triggerPair.getLocalCandidate().getParentComponent().getParentStream();
-
         if (knownPair != null) {
             boolean useCand = triggerPair.useCandidateReceived();
-
-            //if the incoming request contained a USE-CANDIDATE attribute then
-            //make sure we don't lose this piece of info.
-            if (useCand)
+            //if the incoming request contained a USE-CANDIDATE attribute then make sure we don't lose this piece of info.
+            if (useCand) {
                 knownPair.setUseCandidateReceived();
-
+            }
             triggerPair = knownPair;
-
-            //we already know about the remote address so we only need to
-            //trigger a check for the existing pair
-
+            //we already know about the remote address so we only need to trigger a check for the existing pair
             if (knownPair.getState() == CandidatePairState.SUCCEEDED) {
                 //7.2.1.5. Updating the Nominated Flag
                 if (!isControlling() && useCand) {
                     logger.debug("update nominated flag");
-                    // If the Binding request received by the agent had the
-                    // USE-CANDIDATE attribute set, and the agent is in the
-                    // controlled role, the agent looks at the state of the
-                    // pair ....
-                    // If the state of this pair is Succeeded, it means that a
-                    // previous check generated by this pair produced a
-                    // successful response. This would have caused the agent to
-                    // construct a valid pair when that success response was
-                    // received. The agent now sets the nominated flag in the
-                    // valid pair to true.
+                    // If the Binding request received by the agent had the USE-CANDIDATE attribute set, and the agent is in the
+                    // controlled role, the agent looks at the state of the pair ....
+                    // If the state of this pair is Succeeded, it means that a previous check generated by this pair produced a
+                    // successful response. This would have caused the agent to construct a valid pair when that success response was
+                    // received. The agent now sets the nominated flag in the valid pair to true.
                     nominationConfirmed(triggerPair);
-
-                    //the above may have caused us to exit, and so we need to
-                    //make the call below in order to make sure that we update
+                    //the above may have caused us to exit, and so we need to make the call below in order to make sure that we update
                     //ICE processing state.
                     checkListStatesUpdated();
                 }
-
                 return;
             }
-
-            // RFC 5245: If the state of that pair is In-Progress, the agent
-            // cancels the in-progress transaction.
+            // RFC 5245: If the state of that pair is In-Progress, the agent cancels the in-progress transaction.
             if (knownPair.getState() == CandidatePairState.IN_PROGRESS) {
                 TransactionID checkTransaction = knownPair.getConnectivityCheckTransaction();
-
                 getStunStack().cancelTransaction(checkTransaction);
             }
         } else {
             //it appears that we've just discovered a peer-reflexive address.
-            // RFC 5245: If the pair is not already on the check list:
-            // The pair is inserted into the check list based on its priority
-            // Its state is set to Waiting [and it] is enqueued into the
-            // triggered check queue.
+            // RFC 5245: If the pair is not already on the check list: The pair is inserted into the check list based on its priority
+            // Its state is set to Waiting [and it] is enqueued into the triggered check queue.
             //
             if (triggerPair.getParentComponent().getSelectedPair() == null)
                 logger.info("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
             parentStream.addToCheckList(triggerPair);
         }
-
-        // RFC 5245: The agent MUST create a new connectivity check for that
-        // pair (representing a new STUN Binding request transaction) by
-        // enqueueing the pair in the triggered check queue.  The state of
-        // the pair is then changed to Waiting.
+        // RFC 5245: The agent MUST create a new connectivity check for that pair (representing a new STUN Binding request transaction) by
+        // enqueueing the pair in the triggered check queue.  The state of the pair is then changed to Waiting.
         // Emil: This actually applies for all cases.
         /*
          * Lyubomir: The connectivity checks for a CheckList are started elsewhere as soon as and only if the CheckList changes from frozen to unfrozen. Since
@@ -1326,36 +1155,30 @@ public class Agent {
          */
         CheckList checkList = parentStream.getCheckList();
         boolean wasFrozen = checkList.isFrozen();
-
         checkList.scheduleTriggeredCheck(triggerPair);
-        if (wasFrozen && !checkList.isFrozen())
+        if (wasFrozen && !checkList.isFrozen()) {
             connCheckClient.startChecks(checkList);
+        }
     }
 
     /**
-     * Adds pair to that list of valid candidates for its parent
-     * stream.
+     * Adds pair to that list of valid candidates for its parent stream.
      *
      * @param validPair the {@link CandidatePair} we'd like to validate.
      */
     protected void validatePair(CandidatePair validPair) {
         Component parentComponent = validPair.getParentComponent();
         IceMediaStream parentStream = parentComponent.getParentStream();
-
         parentStream.addToValidList(validPair);
     }
 
     /**
-     * Raises pair's nomination flag and schedules a triggered check.
-     * Applications only need to use this method if they disable this
-     * Agent's internal nomination and implement their own nominator
-     * and turn off nominations in this agent.
+     * Raises pair's nomination flag and schedules a triggered check. Applications only need to use this method if they disable this
+     * Agent's internal nomination and implement their own nominator and turn off nominations in this agent.
      *
-     * @param pair the {@link CandidatePair} that we'd like to nominate and that
-     * we'd like to schedule a triggered check for.
+     * @param pair the {@link CandidatePair} that we'd like to nominate and that we'd like to schedule a triggered check for.
      *
-     * @throws IllegalStateException if this Agent is not a controlling
-     * agent and can therefore not nominate pairs.
+     * @throws IllegalStateException if this Agent is not a controlling agent and can therefore not nominate pairs.
      *
      * @see Agent#setNominationStrategy(NominationStrategy)
      */
@@ -1363,12 +1186,9 @@ public class Agent {
         if (!isControlling()) {
             throw new IllegalStateException("Only controlling agents can nominate pairs");
         }
-
         Component parentComponent = pair.getParentComponent();
         IceMediaStream parentStream = parentComponent.getParentStream();
-
-        //If the pair is not already nominated and if its parent component
-        //does not already contain a nominated pair - nominate it.
+        //If the pair is not already nominated and if its parent component does not already contain a nominated pair - nominate it.
         if (!pair.isNominated() && !parentStream.validListContainsNomineeForComponent(parentComponent)) {
             logger.info("verify if nominated pair answer again");
             pair.nominate();
@@ -1377,41 +1197,32 @@ public class Agent {
     }
 
     /**
-     * Specifies the {@link NominationStrategy} that we should use in order to
-     * decide if and when we should nominate valid pairs.
+     * Specifies the {@link NominationStrategy} that we should use in order to decide if and when we should nominate valid pairs.
      *
-     * @param strategy the strategy that we'd like to use for nominating
-     * valid {@link CandidatePair}s.
+     * @param strategy the strategy that we'd like to use for nominating valid {@link CandidatePair}s.
      */
     public void setNominationStrategy(NominationStrategy strategy) {
         this.nominator.setStrategy(strategy);
     }
 
     /**
-     * Indicates that we have received a response to a request that either
-     * contained the USE-CANDIDATE attribute or was triggered by an
+     * Indicates that we have received a response to a request that either contained the USE-CANDIDATE attribute or was triggered by an
      * incoming request that did.
      *
-     * @param nominatedPair the {@link CandidatePair} whose nomination has
-     * just been confirmed.
+     * @param nominatedPair the {@link CandidatePair} whose nomination has just been confirmed.
      */
     protected void nominationConfirmed(CandidatePair nominatedPair) {
         nominatedPair.nominate();
-
         Component parentComponent = nominatedPair.getParentComponent();
         IceMediaStream parentStream = parentComponent.getParentStream();
         CheckList checkList = parentStream.getCheckList();
-
         if (checkList.getState() == CheckListState.RUNNING) {
             checkList.handleNominationConfirmed(nominatedPair);
         }
-
-        //Once there is at least one nominated pair in the valid list for
-        //every component of the media stream and the state of the
+        //Once there is at least one nominated pair in the valid list for every component of the media stream and the state of the
         //check list is Running
         if (parentStream.allComponentsHaveSelected() && checkList.getState() == CheckListState.RUNNING) {
-            //The agent MUST change the state of processing for its check
-            //list for that media stream to Completed.
+            //The agent MUST change the state of processing for its checklist for that media stream to Completed.
             checkList.setState(CheckListState.COMPLETED);
         }
     }
@@ -1424,66 +1235,50 @@ public class Agent {
     protected void checkListStatesUpdated() {
         boolean allListsEnded = true;
         boolean atLeastOneListSucceeded = false;
-
         if (getState().isEstablished()) {
             return;
         }
-
         List<IceMediaStream> streams = getStreams();
-
         for (IceMediaStream stream : streams) {
             CheckListState checkListState = stream.getCheckList().getState();
-
             if (checkListState == CheckListState.RUNNING) {
                 allListsEnded = false;
                 break;
             } else if (checkListState == CheckListState.COMPLETED) {
-                logger.info("CheckList of stream " + stream.getName() + " is COMPLETED");
+                logger.info("CheckList of stream {} is COMPLETED", stream.getName());
                 atLeastOneListSucceeded = true;
             }
         }
-
         if (!allListsEnded) {
             return;
         }
-
         if (!atLeastOneListSucceeded) {
             //all lists ended but none succeeded. No love today ;(
             if (logger.isInfoEnabled()) {
                 if (connCheckClient.isAlive() || connCheckServer.isAlive()) {
                     logger.info("Suspicious ICE connectivity failure. Checks failed but the remote end was able to reach us.");
                 }
-
                 logger.info("ICE state is FAILED");
             }
-
             terminate(IceProcessingState.FAILED);
             return;
         }
-
-        //Once the state of each check list is Completed:
-        //The agent sets the state of ICE processing overall to Completed.
+        //Once the state of each check list is Completed: The agent sets the state of ICE processing overall to Completed.
         if (getState() != IceProcessingState.RUNNING) {
             //Oh, seems like we already did this.
             return;
         }
-
-        // The race condition in which another thread enters COMPLETED right
-        // under our nose here has been observed (and not in a single instance)
+        // The race condition in which another thread enters COMPLETED right under our nose here has been observed (and not in a single instance)
         // So check that we did indeed just trigger the change.
         if (!setState(IceProcessingState.COMPLETED)) {
             return;
         }
-
-        // keep ICE running (answer STUN Binding requests, send STUN Binding
-        // indications or requests)
+        // keep ICE running (answer STUN Binding requests, send STUN Binding indications or requests)
         if (stunKeepAlive == null && !StackProperties.getBoolean(StackProperties.NO_KEEP_ALIVES, false)) {
             // schedule STUN checks for selected candidates
             scheduleStunKeepAlive();
         }
-
         scheduleTermination();
-
         //print logs for the types of addresses we chose.
         logCandTypes();
     }
@@ -1585,9 +1380,9 @@ public class Agent {
     protected long calculateTa() {
         //if application specified a value - use it. other wise return ....
         // eeeer ... a "dynamically" calculated one ;)
-        if (taValue != -1)
+        if (taValue != -1) {
             return taValue;
-
+        }
         /*
          * RFC 5245 says that Ta is: Ta_i = (stun_packet_size / rtp_packet_size) * rtp_ptime 1 Ta = MAX (20ms, ------------------- ) k ---- \ 1 > ------ / Ta_i ---- i=1 In this
          * implementation we assume equal values of stun_packet_size and rtp_packet_size. rtp_ptime is also assumed to be 20ms. One day we should probably let the application
@@ -1759,13 +1554,14 @@ public class Agent {
         for (IceMediaStream stream : getStreams()) {
             try {
                 removeStream(stream);
-                logger.debug("remove stream " + stream.getName());
+                logger.debug("remove stream {}", stream.getName());
             } catch (Throwable t) {
-                logger.debug("remove stream " + stream.getName() + " failed: " + t);
-                if (t instanceof InterruptedException)
+                logger.debug("remove stream {} failed", stream.getName(), t);
+                if (t instanceof InterruptedException) {
                     interrupted = true;
-                else if (t instanceof ThreadDeath)
+                } else if (t instanceof ThreadDeath) {
                     throw (ThreadDeath) t;
+                }
             }
         }
         if (interrupted) {
@@ -2026,6 +1822,7 @@ public class Agent {
         public void run() {
             Thread.currentThread().setName("Terminator");
             long terminationDelay = Integer.getInteger(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
+            logger.info("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {
                 try {
                     Thread.sleep(terminationDelay);

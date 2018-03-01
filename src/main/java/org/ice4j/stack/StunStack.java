@@ -125,6 +125,7 @@ public class StunStack implements MessageEventHandler {
             logger.debug("Starting Nio server");
             server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
             server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
+            server.setBlockingIO(StackProperties.getBoolean("IO_BLOCKING", false));
             server.start();
         }
     }
@@ -881,24 +882,19 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns a String representation of a specific byte
-     * array as an unsigned integer in base 16.
+     * Returns a String representation of a specific byte array as an unsigned integer in base 16.
      *
-     * @param bytes the byte to get the String representation
-     * of as an unsigned integer in base 16
-     * @return a String representation of the specified byte
-     * array as an unsigned integer in base 16
+     * @param bytes the byte to get the String representation of as an unsigned integer in base 16
+     * @return a String representation of the specified byte array as an unsigned integer in base 16
      */
     public static String toHexString(byte[] bytes) {
-        if (bytes == null)
+        if (bytes == null) {
             return null;
-        else {
+        } else {
             StringBuilder hexStringBuilder = new StringBuilder(2 * bytes.length);
             char[] hexes = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-
             for (int i = 0; i < bytes.length; i++) {
                 byte b = bytes[i];
-
                 hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
                 hexStringBuilder.append(hexes[b & 0x0F]);
             }
@@ -914,16 +910,13 @@ public class StunStack implements MessageEventHandler {
      */
     private boolean validateUsername(String username) {
         int colon = username.indexOf(":");
-
         if ((username.length() < 1) || (colon < 1)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Received a message with an improperly formatted username");
             }
             return false;
         }
-
         String lfrag = username.substring(0, colon);
-
         return getCredentialsManager().checkLocalUserName(lfrag);
     }
 
@@ -1028,15 +1021,13 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Returns the Error Response object with specified errorCode and
-     * reasonPhrase corresponding to input type.
+     * Returns the Error Response object with specified errorCode and reasonPhrase corresponding to input type.
      * 
-     * @param requestType the message type of Request.
-     * @param errorCode the errorCode for Error Response object.
-     * @param reasonPhrase the reasonPhrase for the Error Response object.
-     * @param unknownAttributes char[] array containing the ids of one or more
-     *            attributes that had not been recognized.
-     * @return corresponding Error Response object.
+     * @param requestType the message type of Request
+     * @param errorCode the errorCode for Error Response object
+     * @param reasonPhrase the reasonPhrase for the Error Response object
+     * @param unknownAttributes char[] array containing the ids of one or more attributes that had not been recognized
+     * @return corresponding Error Response object
      */
     public Response createCorrespondingErrorResponse(char requestType, char errorCode, String reasonPhrase, char... unknownAttributes) {
         if (requestType == Message.BINDING_REQUEST) {
@@ -1053,10 +1044,10 @@ public class StunStack implements MessageEventHandler {
     /**
      * Logs a specific DatagramPacket using the packet logger of the StunStack.
      *
-     * @param p The DatagramPacket to log.
-     * @param isSent true if the packet is sent, or false if the packet is received.
-     * @param interfaceAddress The InetAddress to use as source (if the packet was sent) or destination (if the packet was received).
-     * @param interfacePort The port to use as source (if the packet was sent) or destination (if the packet was received).
+     * @param p The DatagramPacket to log
+     * @param isSent true if the packet is sent, or false if the packet is received
+     * @param interfaceAddress The InetAddress to use as source (if the packet was sent) or destination (if the packet was received)
+     * @param interfacePort The port to use as source (if the packet was sent) or destination (if the packet was received)
      */
     public static void logPacketToPcap(DatagramPacket p, boolean isSent, InetAddress interfaceAddress, int interfacePort) {
         if (interfaceAddress != null && isPacketLoggerEnabled()) {
@@ -1068,6 +1059,11 @@ public class StunStack implements MessageEventHandler {
         }
     }
 
+    /**
+     * Returns the internal NioServer reference for this StunStack instance.
+     * 
+     * @return
+     */
     NioServer getNioServer() {
         return server;
     }

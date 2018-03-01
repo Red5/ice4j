@@ -11,6 +11,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
 
 import org.ice4j.Transport;
@@ -58,7 +59,7 @@ public abstract class IceSocketWrapper {
     /**
      * The message queue is where incoming messages are added.
      */
-    protected LinkedTransferQueue<RawMessage> messageQueue;
+    protected Queue<RawMessage> messageQueue;
 
     /**
      * The message queue is where incoming messages are added that were not otherwise filtered into the regular message queue (ie. DTLS etc..).
@@ -130,8 +131,8 @@ public abstract class IceSocketWrapper {
      * Closes the channel.
      */
     public void close() {
-        logger.debug("close: {}", channel);
         if (channel != null) {
+            logger.debug("close: {}", channel);
             try {
                 channel.close();
             } catch (IOException e) {
@@ -237,7 +238,7 @@ public abstract class IceSocketWrapper {
      * 
      * @param messageQueue
      */
-    public void setMessageQueue(LinkedTransferQueue<RawMessage> messageQueue) {
+    public void setMessageQueue(Queue<RawMessage> messageQueue) {
         this.messageQueue = messageQueue;
     }
 

@@ -77,6 +77,8 @@ class MessageProcessor implements Runnable {
                 }
                 Thread.sleep(10L);
             }
+        } catch (InterruptedException iex) {
+            // no-op
         } catch (Throwable err) {
             // notify and bail
             logger.warn("Unexpected Error!", err);

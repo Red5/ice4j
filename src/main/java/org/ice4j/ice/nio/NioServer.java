@@ -166,6 +166,9 @@ public class NioServer {
     // Time to sleep between selector checks
     private long selectorSleepMs = 10L;
 
+    // Blocking or Non-blocking I/O setting
+    private boolean blockingIO = false;
+
     private Selector selector; // Brokers all the connections
 
     /**
@@ -548,7 +551,7 @@ public class NioServer {
             sc.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
             // Bind as requested
             sc.bind(addr);
-            sc.configureBlocking(false); // Make non-blocking
+            sc.configureBlocking(blockingIO); // set per blocking config
             // Register with master Selector
             SelectionKey acceptKey = sc.register(this.selector, SelectionKey.OP_ACCEPT); // We want to "accept" connections
             this.tcpBindings.put(addr, acceptKey); // Save the accKey
@@ -561,7 +564,7 @@ public class NioServer {
             logger.debug("Binding UDP: {}", addr);
             DatagramChannel dc = DatagramChannel.open();
             dc.bind(addr);
-            dc.configureBlocking(false);
+            dc.configureBlocking(false); // UDP + blocking causes IllegalBlockingModeEx
             SelectionKey acceptKey = dc.register(this.selector, SelectionKey.OP_READ);
             this.udpBindings.put(addr, acceptKey);
             // fire event for those listeners needing to know about bindings
@@ -617,7 +620,7 @@ public class NioServer {
         ServerSocketChannel ch = (ServerSocketChannel) accKey.channel(); // Server channel
         SocketChannel incoming = null; // Reusable for all pending connections
         while ((incoming = ch.accept()) != null) { // Iterate over all pending connections
-            incoming.configureBlocking(false); // Non-blocking IO
+            incoming.configureBlocking(blockingIO); // set per blocking config
             SelectionKey incomingReadKey = incoming.register( // Register new connection
                     this.selector, // With the Selector
                     SelectionKey.OP_READ | SelectionKey.OP_WRITE); // Want to READ and write data
@@ -638,7 +641,6 @@ public class NioServer {
                 logger.trace("  {}, key: {}", incoming, incomingReadKey);
             }
         } // end while: each incoming connection
-
     }
 
     /**
@@ -878,6 +880,24 @@ public class NioServer {
      */
     public void setSelectorSleepMs(long selectorSleepMs) {
         this.selectorSleepMs = selectorSleepMs;
+    }
+
+    /**
+     * Whether or not blocking I/O is enabled.
+     * 
+     * @return true if blocking and false if non-blocking
+     */
+    public boolean isBlockingIO() {
+        return blockingIO;
+    }
+
+    /**
+     * Sets blocking I/O to enabled or disable.
+     * 
+     * @param blockingIO true for BIO and false for NIO (default)
+     */
+    public void setBlockingIO(boolean blockingIO) {
+        this.blockingIO = blockingIO;
     }
 
     /**

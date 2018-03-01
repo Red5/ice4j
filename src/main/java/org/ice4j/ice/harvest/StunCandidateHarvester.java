@@ -299,34 +299,31 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Blocks the current thread until all resolutions in this harvester
-     * have terminated one way or another.
+     * Blocks the current thread until all resolutions in this harvester have terminated one way or another.
      */
     private void waitForResolutionEnd() {
         synchronized (startedHarvests) {
             boolean interrupted = false;
-
-            // Handle spurious wakeups.
+            // Handle spurious wakeups
             while (!startedHarvests.isEmpty()) {
                 try {
                     startedHarvests.wait();
                 } catch (InterruptedException iex) {
-                    logger.info("interrupted waiting for harvests to complete," + " no. startedHarvests = " + startedHarvests.size());
+                    logger.info("interrupted waiting for harvests to complete, no. startedHarvests = {}", startedHarvests.size());
                     interrupted = true;
                 }
             }
             // Restore the interrupted status.
-            if (interrupted)
+            if (interrupted) {
                 Thread.currentThread().interrupt();
+            }
         }
     }
 
     /**
-     * Returns a String representation of this harvester containing its
-     * type and server address.
+     * Returns a String representation of this harvester containing its type and server address.
      *
-     * @return a String representation of this harvester containing its
-     * type and server address.
+     * @return a String representation of this harvester containing its type and server address.
      */
     @Override
     public String toString() {
@@ -344,7 +341,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      * @return HostCandidate
      */
     protected HostCandidate getHostCandidate(HostCandidate hostCand) {
-        HostCandidate cand;
+        HostCandidate cand = null;
         // create a new TCP HostCandidate
         if (hostCand.getTransport() == Transport.TCP) {
             try {
@@ -356,7 +353,6 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 hostCand.getParentComponent().getComponentSocket().setSocket(sock);
             } catch (Exception io) {
                 logger.warn("Exception TCP client connect", io);
-                return null;
             }
         } else {
             cand = hostCand;

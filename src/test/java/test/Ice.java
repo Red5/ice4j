@@ -46,6 +46,17 @@ public class Ice {
      */
     static long startTime;
 
+    // local coTurn testing
+    private static final TransportAddress stun4 = new TransportAddress("10.0.0.5", 3478, Transport.UDP);
+
+    // stun.l.google.com stun1.l.google.com:19302 stun2.l.google.com:19302
+    //private static final TransportAddress stun4 = new TransportAddress("stun3.l.google.com", 19302, Transport.UDP);
+
+    // jitsi stun
+    //private static final TransportAddress stun4 = new TransportAddress("stun.jitsi.net", 3478, Transport.UDP);
+
+    private static final TransportAddress stun6 = new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP);
+
     /**
      * Runs the test
      * @param args command line arguments
@@ -55,6 +66,9 @@ public class Ice {
     public static void main(String[] args) throws Throwable {
         // disable IPv6 for this test
         System.setProperty("org.ice4j.ipv6.DISABLED", "true");
+        System.setProperty("org.ice4j.TERMINATION_DELAY", "100");
+        // set blocking or non-blocking
+        System.setProperty("IO_BLOCKING", "true");
         startTime = System.currentTimeMillis();
         Agent localAgent = createAgent(9090, false);
         localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
@@ -104,37 +118,28 @@ public class Ice {
          * states of ICE processing.
          */
         public void propertyChange(PropertyChangeEvent evt) {
-            long processingEndTime = System.currentTimeMillis();
-
             Object iceProcessingState = evt.getNewValue();
-
-            logger.info("Agent entered the {} state.", iceProcessingState);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Agent entered the {} state after {} ms", iceProcessingState, (System.currentTimeMillis() - startTime));
+            }
             if (iceProcessingState == IceProcessingState.COMPLETED) {
-                logger.info("Total ICE processing time: {}ms", (processingEndTime - startTime));
                 Agent agent = (Agent) evt.getSource();
                 List<IceMediaStream> streams = agent.getStreams();
                 for (IceMediaStream stream : streams) {
                     String streamName = stream.getName();
-                    logger.info("Pairs selected for stream: ", streamName);
+                    logger.info("Pairs selected for stream: {}", streamName);
                     List<Component> components = stream.getComponents();
                     for (Component cmp : components) {
-                        logger.info(cmp.getComponentID() + ": " + cmp.getSelectedPair());
+                        logger.info("{}: {}", cmp.getComponentID(), cmp.getSelectedPair());
                     }
                 }
-
-                logger.info("Printing the completed check lists:");
                 for (IceMediaStream stream : streams) {
                     String streamName = stream.getName();
-                    logger.info("Check list for  stream: " + streamName);
-                    //uncomment for a more verbose output
-                    logger.info(stream.getCheckList().toString());
+                    logger.info("Check list for stream: {}\n{}", streamName, stream.getCheckList().toString());
                 }
-
-                logger.info("Total ICE processing time to completion: " + (System.currentTimeMillis() - startTime));
             } else if (iceProcessingState == IceProcessingState.TERMINATED || iceProcessingState == IceProcessingState.FAILED) {
                 // Though the process will be instructed to die, demonstrate that Agent instances are to be explicitly prepared for garbage collection.
                 ((Agent) evt.getSource()).free();
-                logger.info("Total ICE processing time: " + (System.currentTimeMillis() - startTime));
                 System.exit(0);
             }
         }
@@ -143,8 +148,7 @@ public class Ice {
     /**
      * Installs remote candidates in localAgent..
      *
-     * @param localAgent a reference to the agent that we will pretend to be the
-     * local
+     * @param localAgent a reference to the agent that we will pretend to be the local
      * @param remotePeer a reference to what we'll pretend to be a remote agent.
      */
     static void transferRemoteCandidates(Agent localAgent, Agent remotePeer) {
@@ -257,13 +261,13 @@ public class Ice {
         agent.setTrickling(isTrickling);
         if (harvesters == null) {
             // STUN
-            StunCandidateHarvester stunHarv = new StunCandidateHarvester(new TransportAddress("stun.jitsi.net", 3478, Transport.UDP));
+            StunCandidateHarvester stunHarv = new StunCandidateHarvester(stun4);
             agent.addCandidateHarvester(stunHarv);
-            StunCandidateHarvester stun6Harv = new StunCandidateHarvester(new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP));
+            StunCandidateHarvester stun6Harv = new StunCandidateHarvester(stun6);
             agent.addCandidateHarvester(stun6Harv);
             // TURN 
-            String[] hostnames = new String[] { "stun.jitsi.net", "stun6.jitsi.net" };
-            int port = 3478;
+            String[] hostnames = new String[] { stun4.getHostString(), stun6.getHostString() };
+            int port = stun4.getPort();
             LongTermCredential longTermCredential = new LongTermCredential("guest", "anonymouspower!!");
             for (String hostname : hostnames) {
                 agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, Transport.UDP), longTermCredential));
@@ -278,7 +282,7 @@ public class Ice {
         createStream(rtpPort + 2, "video", agent);
         long endTime = System.currentTimeMillis();
         long total = endTime - startTime;
-        logger.info("Total harvesting time: " + total + "ms.");
+        logger.info("Total harvesting time: {}ms", total);
         return agent;
     }
 

@@ -69,7 +69,6 @@ public class TransactionID {
      */
     public static TransactionID createNewTransactionID() {
         TransactionID tid = new TransactionID();
-
         generateTransactionID(tid, RFC5389_TRANSACTION_ID_LENGTH);
         return tid;
     }
@@ -86,7 +85,6 @@ public class TransactionID {
      */
     public static TransactionID createNewRFC3489TransactionID() {
         TransactionID tid = new TransactionID(true);
-
         generateTransactionID(tid, RFC3489_TRANSACTION_ID_LENGTH);
         return tid;
     }
@@ -101,7 +99,6 @@ public class TransactionID {
         long left = System.currentTimeMillis();//the first nb/2 bytes of the id
         long right = random.nextLong();//the last nb/2 bytes of the id
         int b = nb / 2;
-
         for (int i = 0; i < b; i++) {
             tid.transactionID[i] = (byte) ((left >> (i * 8)) & 0xFFL);
             tid.transactionID[i + b] = (byte) ((right >> (i * 8)) & 0xFFL);
@@ -115,13 +112,10 @@ public class TransactionID {
      * to that transaction's instance so that we could use it to for storing
      * application data.
      *
-     * @param stunStack the StunStack in the context of which the
-     * request to create a TransactionID is being made
+     * @param stunStack the StunStack in the context of which the request to create a TransactionID is being made
      * @param transactionID the value of the ID.
      *
-     * @return a reference to the (possibly already existing)
-     * TransactionID corresponding to the value of
-     * transactionID
+     * @return a reference to the (possibly already existing) TransactionID corresponding to the value of transactionID
      */
     public static TransactionID createTransactionID(StunStack stunStack, byte[] transactionID) {
         TransactionID tid = TransactionID.build(transactionID);

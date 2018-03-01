@@ -13,6 +13,9 @@ Setting the I/O thread priority is handled via the `IO_THREAD_PRIORITY` property
 ## NIO selector sleep milliseconds
 Providing adequate time between NIO selector checks is handled via the `NIO_SELECTOR_SLEEP_MS` property. The default sleep time between checks is 10 milliseconds.
 
+## Blocking or Non-blocking I/O
+Setting the `IO_BLOCKING` to `true` will configure the internal services to use blocking I/O with TCP, instead of the default non-blocking implementation. This does not affect UDP connections.
+
 # Server Startup
 To add the options to your Red5 / Red5 Pro server startup, update the `JAVA_OPTS` line like so:
 ```

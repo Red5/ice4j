@@ -175,7 +175,6 @@ class ConnectivityCheckClient implements ResponseCollector {
         logger.debug("Media: {}", media);
         msgIntegrity.setMedia(media);
         request.putAttribute(msgIntegrity);
-
         TransactionID tran = TransactionID.createNewTransactionID();
         tran.setApplicationData(candidatePair);
         logger.debug("start check for {} tid {}", candidatePair.toShortString(), tran);
@@ -228,8 +227,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 processSuccessResponse(ev);
             }
         }
-        //Regardless of whether the check was successful or failed, the completion of the transaction may require updating of check list and
-        //timer states.
+        //Regardless of whether the check was successful or failed, the completion of the transaction may require updating of check list and timer states.
         updateCheckListAndTimerStates(checkedPair);
     }
 
@@ -256,7 +254,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run() {
                             try {
-                                Thread.sleep(5000l);
+                                Thread.sleep(3000L);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
                                     logger.info("CheckList for stream {} FAILED", streamName);
                                     checkList.setState(CheckListState.FAILED);
@@ -292,35 +290,24 @@ class ConnectivityCheckClient implements ResponseCollector {
     private void processSuccessResponse(StunResponseEvent ev) {
         Response response = ev.getResponse();
         Request request = ev.getRequest();
-
         CandidatePair checkedPair = (CandidatePair) ev.getTransactionID().getApplicationData();
-
         TransportAddress mappedAddress = null;
-
         XorMappedAddressAttribute mappedAddressAttr = (XorMappedAddressAttribute) response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
         if (mappedAddressAttr == null) {
             logger.info("Pair failed (no XOR-MAPPED-ADDRESS): {}. Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
             checkedPair.setStateFailed();
             return; //malformed error response
         }
-
         mappedAddress = mappedAddressAttr.getAddress(response.getTransactionID());
-
         // XXX AddressAttribute always returns UDP based TransportAddress
         if (checkedPair.getLocalCandidate().getTransport() == Transport.TCP) {
             mappedAddress = new TransportAddress(mappedAddress.getAddress(), mappedAddress.getPort(), Transport.TCP);
         }
-
         LocalCandidate validLocalCandidate = null;
-
         validLocalCandidate = parentAgent.findLocalCandidate(mappedAddress);
-
         RemoteCandidate validRemoteCandidate = checkedPair.getRemoteCandidate();
-
-        // RFC 5245: The agent checks the mapped address from the STUN
-        // response. If the transport address does not match any of the
-        // local candidates that the agent knows about, the mapped address
-        // represents a new candidate -- a peer reflexive candidate.
+        // RFC 5245: The agent checks the mapped address from the STUN response. If the transport address does not match any of the
+        // local candidates that the agent knows about, the mapped address represents a new candidate -- a peer reflexive candidate.
         if (validLocalCandidate == null) {
             //Like other candidates, PEER-REFLEXIVE candidates have a type,
             //base, priority, and foundation.  They are computed as follows:
@@ -332,64 +319,44 @@ class ConnectivityCheckClient implements ResponseCollector {
             long priority = 0;
             PriorityAttribute prioAttr = (PriorityAttribute) request.getAttribute(Attribute.Type.PRIORITY);
             priority = prioAttr.getPriority();
-
             LocalCandidate peerReflexiveCandidate = new PeerReflexiveCandidate(mappedAddress, checkedPair.getParentComponent(), checkedPair.getLocalCandidate(), priority);
-
             peerReflexiveCandidate.setBase(checkedPair.getLocalCandidate());
-
-            //This peer reflexive candidate is then added to the list of local
-            //candidates for the media stream, so that it would be available for
+            //This peer reflexive candidate is then added to the list of local candidates for the media stream, so that it would be available for
             //updated offers.
             checkedPair.getParentComponent().addLocalCandidate(peerReflexiveCandidate);
-
-            //However, the peer reflexive candidate is not paired with other
-            //remote candidates. This is not necessary; a valid pair will be
+            // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be
             //generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
-
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Receive a peer-reflexive candidate: " + peerReflexiveCandidate.getTransportAddress() + ". Local ufrag " + parentAgent.getLocalUfrag());
             }
         }
-
-        //check if the resulting valid pair was already in our check lists.
+        // check if the resulting valid pair was already in our check lists.
         CandidatePair existingPair = parentAgent.findCandidatePair(validLocalCandidate.getTransportAddress(), validRemoteCandidate.getTransportAddress());
-
-        // RFC 5245: 7.1.3.2.2. The agent constructs a candidate pair whose
-        // local candidate equals the mapped address of the response, and whose
-        // remote candidate equals the destination address to which the request
-        // was sent. This is called a valid pair, since it has been validated
+        // RFC 5245: 7.1.3.2.2. The agent constructs a candidate pair whose local candidate equals the mapped address of the response, and whose
+        // remote candidate equals the destination address to which the request was sent. This is called a valid pair, since it has been validated
         // by a STUN connectivity check.
         CandidatePair validPair = (existingPair == null) ? parentAgent.createCandidatePair(validLocalCandidate, validRemoteCandidate) : existingPair;
-
-        // we synchronize here because the same pair object can be processed (in
-        // another thread) in Agent's triggerCheck. A controlled agent select
-        // its pair here if the pair has useCandidateReceived as true (set in
-        // triggerCheck) or in triggerCheck if the pair state is succeeded (set
-        // here). So be sure that if a binding response and a binding request
-        // (for the same check) from other peer come at the very same time, that
-        // we will trigger the nominationConfirmed (that will pass the pair as
-        // as selected if it is the first time).
+        // we synchronize here because the same pair object can be processed (in another thread) in Agent's triggerCheck. A controlled agent select
+        // its pair here if the pair has useCandidateReceived as true (set in triggerCheck) or in triggerCheck if the pair state is succeeded (set
+        // here). So be sure that if a binding response and a binding request (for the same check) from other peer come at the very same time, that
+        // we will trigger the nominationConfirmed (that will pass the pair as selected if it is the first time).
         synchronized (checkedPair) {
-            //The agent sets the state of the pair that *generated* the check to
-            //Succeeded.  Note that, the pair which *generated* the check may be
+            //The agent sets the state of the pair that *generated* the check to Succeeded.  Note that, the pair which *generated* the check may be
             //different than the valid pair constructed above
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Pair succeeded: " + checkedPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
             }
             checkedPair.setStateSucceeded();
         }
-
         if (!validPair.isValid()) {
-            if (validPair.getParentComponent().getSelectedPair() == null)
+            if (validPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Pair validated: " + validPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
+            }
             parentAgent.validatePair(validPair);
         }
-
-        //The agent changes the states for all other Frozen pairs for the
-        //same media stream and same foundation to Waiting.
+        //The agent changes the states for all other Frozen pairs for the same media stream and same foundation to Waiting.
         IceMediaStream parentStream = checkedPair.getParentComponent().getParentStream();
-
         synchronized (this) {
             for (CandidatePair pair : parentStream.getCheckList()) {
                 if (pair.getState() == CandidatePairState.FROZEN && checkedPair.getFoundation().equals(pair.getFoundation())) {
@@ -397,18 +364,13 @@ class ConnectivityCheckClient implements ResponseCollector {
                 }
             }
         }
-
-        // The agent examines the check list for all other streams in turn. If
-        // the check list is active, the agent changes the state of all Frozen
-        // pairs in that check list whose foundation matches a pair in the valid
-        // list under consideration to Waiting.
+        // The agent examines the check list for all other streams in turn. If the check list is active, the agent changes the state of all Frozen
+        // pairs in that check list whose foundation matches a pair in the valid list under consideration to Waiting.
         List<IceMediaStream> allOtherStreams = parentAgent.getStreams();
         allOtherStreams.remove(parentStream);
-
         for (IceMediaStream stream : allOtherStreams) {
             CheckList checkList = stream.getCheckList();
             boolean wasFrozen = checkList.isFrozen();
-
             synchronized (checkList) {
                 for (CandidatePair pair : checkList) {
                     if (parentStream.validListContainsFoundation(pair.getFoundation()) && pair.getState() == CandidatePairState.FROZEN) {
@@ -416,17 +378,14 @@ class ConnectivityCheckClient implements ResponseCollector {
                     }
                 }
             }
-
-            //if the checklList is still frozen after the above operations,
-            //the agent groups together all of the pairs with the same
-            //foundation, and for each group, sets the state of the pair with
-            //the lowest component ID to Waiting.  If there is more than one
+            //if the checklList is still frozen after the above operations, the agent groups together all of the pairs with the same
+            //foundation, and for each group, sets the state of the pair with the lowest component ID to Waiting.  If there is more than one
             //such pair, the one with the highest priority is used.
-            if (checkList.isFrozen())
+            if (checkList.isFrozen()) {
                 checkList.computeInitialCheckListPairStates();
-
+            }
             if (wasFrozen) {
-                logger.info("Start checks for checkList of stream " + stream.getName() + " that was frozen");
+                logger.info("Start checks for checkList of stream {} that was frozen", stream.getName());
                 startChecks(checkList);
             }
         }
@@ -435,8 +394,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             logger.info("IsControlling: " + parentAgent.isControlling() + " USE-CANDIDATE:" + (attr != null || checkedPair.useCandidateSent()) + ". Local ufrag " + parentAgent.getLocalUfrag());
         }
 
-        //If the agent was a controlling agent, and it had included a USE-
-        //CANDIDATE attribute in the Binding request, the valid pair generated
+        //If the agent was a controlling agent, and it had included a USE-CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
         if (parentAgent.isControlling() && attr != null) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
@@ -446,10 +404,8 @@ class ConnectivityCheckClient implements ResponseCollector {
                 logger.debug("Keep alive for pair: {}", validPair.toShortString());
             }
         }
-        //If the agent is the controlled agent, the response may be the result
-        //of a triggered check that was sent in response to a request that
-        //itself had the USE-CANDIDATE attribute.  This case is described in
-        //Section 7.2.1.5, and may now result in setting the nominated flag for
+        //If the agent is the controlled agent, the response may be the result of a triggered check that was sent in response to a request that
+        //itself had the USE-CANDIDATE attribute.  This case is described in Section 7.2.1.5, and may now result in setting the nominated flag for
         //the pair learned from the original request.
         else if (!parentAgent.isControlling() && checkedPair.useCandidateReceived() && !checkedPair.isNominated()) {
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
@@ -488,8 +444,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * In case of a role conflict, changes the state of the agent and
-     * reschedules the check, in all other cases sets the corresponding peer
+     * In case of a role conflict, changes the state of the agent and reschedules the check, in all other cases sets the corresponding peer
      * state to FAILED.
      *
      * @param ev the event that delivered the error response.
@@ -521,16 +476,14 @@ class ConnectivityCheckClient implements ResponseCollector {
     }
 
     /**
-     * Sets the state of the corresponding {@link CandidatePair} to
-     * {@link CandidatePairState#FAILED} and updates check list and timer
+     * Sets the state of the corresponding {@link CandidatePair} to {@link CandidatePairState#FAILED} and updates check list and timer
      * states.
      *
-     * @param ev the {@link StunTimeoutEvent} containing the original
-     * transaction and hence {@link CandidatePair} that's being checked.
+     * @param ev the {@link StunTimeoutEvent} containing the original transaction and hence {@link CandidatePair} that's being checked.
      */
     public void processTimeout(StunTimeoutEvent ev) {
         CandidatePair pair = (CandidatePair) ev.getTransactionID().getApplicationData();
-        logger.info("timeout for pair: {}, failing.", pair.toShortString());
+        logger.info("Timeout for pair: {}, failing", pair.toShortString());
         pair.setStateFailed();
         updateCheckListAndTimerStates(pair);
     }
@@ -579,6 +532,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 while (true) {
                     long waitFor = getNextWaitInterval();
                     if (waitFor > 0) {
+                        //logger.trace(">>>> Going to sleep for {}", waitFor);
                         // waitFor will be 0 for the first check since we won't have any active check lists at that point yet.
                         Thread.sleep(waitFor);
                     }

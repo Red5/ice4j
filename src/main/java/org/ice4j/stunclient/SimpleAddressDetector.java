@@ -3,13 +3,14 @@ package org.ice4j.stunclient;
 
 import java.io.*;
 import java.net.*;
-import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.socket.*;
 import org.ice4j.stack.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class provides basic means of discovering a public IP address. All it
@@ -20,7 +21,7 @@ import org.ice4j.stack.*;
  */
 public class SimpleAddressDetector {
 
-    private static final Logger logger = Logger.getLogger(SimpleAddressDetector.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(SimpleAddressDetector.class);
 
     /**
      * The stack to use for STUN communication.
@@ -92,7 +93,7 @@ public class SimpleAddressDetector {
         } catch (StunException exc) {
             // this shouldn't be happening since we are the one that constructed the request, so let's catch it here and not oblige users to
             // handle exception they are not responsible for.
-            logger.log(Level.SEVERE, "Internal Error. We apparently constructed a faulty request.", exc);
+            logger.error("Internal Error. We apparently constructed a faulty request", exc);
             return null;
         } finally {
             stunStack.removeSocket(localAddress);

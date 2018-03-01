@@ -2,6 +2,7 @@
 package org.ice4j.stunclient;
 
 import java.io.*;
+import java.util.concurrent.SynchronousQueue;
 
 import org.ice4j.*;
 import org.ice4j.message.*;
@@ -10,8 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A utility used to flatten the multi-thread architecture of the Stack
- * and execute the discovery process in a synchronized manner. Roughly what
+ * A utility used to flatten the multi-thread architecture of the Stack and execute the discovery process in a synchronized manner. Roughly what
  * happens here is:
  * <code>
  * ApplicationThread:
@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  * @author Lubomir Marinov
  * @author Aakash Garg
+ * @author Paul Gregoire
  */
 public class BlockingRequestSender extends AbstractResponseCollector {
 
@@ -45,27 +46,20 @@ public class BlockingRequestSender extends AbstractResponseCollector {
     private final TransportAddress localAddress;
 
     /**
-     * The StunMessageEvent that contains the response matching our
-     * request.
+     * The StunMessageEvent that contains the response matching our request.
      */
     private StunMessageEvent responseEvent;
 
     /**
-     * Determines whether this request sender has completed its course.
+     * Blocking synchronous queue.
      */
-    private boolean ended;
-
-    /**
-     * A lock object that we are using to synchronize sending.
-     */
-    private final Object sendLock = new Object();
+    private final SynchronousQueue<TransactionID> syncQueue = new SynchronousQueue<>();
 
     /**
      * Creates a new request sender.
-     * @param stunStack the stack that the sender should send requests
-     * through.
-     * @param localAddress the TransportAddress that requests should be
-     * leaving from.
+     * 
+     * @param stunStack the stack that the sender should send requests through
+     * @param localAddress the TransportAddress that requests should be leaving from
      */
     public BlockingRequestSender(StunStack stunStack, TransportAddress localAddress) {
         this.stunStack = stunStack;
@@ -73,112 +67,112 @@ public class BlockingRequestSender extends AbstractResponseCollector {
     }
 
     /**
-     * Returns the local Address on which this Blocking Request Sender is bound
-     * to.
+     * Returns the local Address on which this Blocking Request Sender is bound to.
      *
-     * @return the localAddress of this RequestSender.
+     * @return the localAddress of this RequestSender
      */
     public TransportAddress getLocalAddress() {
         return localAddress;
     }
 
     /**
-     * Notifies this ResponseCollector that a transaction described by
-     * the specified BaseStunMessageEvent has failed. The possible
-     * reasons for the failure include timeouts, unreachable destination, etc.
-     * Notifies the discoverer so that it may resume.
+     * Notifies this ResponseCollector that a transaction described by the specified BaseStunMessageEvent has failed. The possible
+     * reasons for the failure include timeouts, unreachable destination, etc. Notifies the discoverer so that it may resume.
      *
-     * @param event the BaseStunMessageEvent which describes the failed
-     * transaction and the runtime type of which specifies the failure reason
+     * @param event the BaseStunMessageEvent which describes the failed transaction and the runtime type of which specifies the failure reason
      * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
      */
     @Override
-    protected synchronized void processFailure(BaseStunMessageEvent event) {
-        synchronized (sendLock) {
-            ended = true;
-            notifyAll();
+    protected void processFailure(BaseStunMessageEvent event) {
+        logger.warn("processFailure: {}", event);
+        // get the tx id and store in the sync queue
+        TransactionID txId = event.getTransactionID();
+        try {
+            syncQueue.put(txId);
+        } catch (Throwable t) {
+            logger.warn("Transaction failure: {}", txId, t);
         }
     }
 
     /**
-     * Saves the message event and notifies the discoverer thread so that
-     * it may resume.
-     * @param evt the newly arrived message event.
+     * Saves the message event and notifies the discoverer thread so that it may resume.
+     * 
+     * @param event the newly arrived message event
      */
     @Override
-    public synchronized void processResponse(StunResponseEvent evt) {
-        synchronized (sendLock) {
-            this.responseEvent = evt;
-            ended = true;
-            notifyAll();
+    public void processResponse(StunResponseEvent event) {
+        logger.debug("processResponse: {}", event);
+        // get the tx id and store in the sync queue
+        TransactionID txId = event.getTransactionID();
+        try {
+            syncQueue.put(txId);
+            responseEvent = event;
+        } catch (Throwable t) {
+            logger.warn("Transaction exception: {}", txId, t);
         }
     }
 
     /**
-     * Sends the specified request and blocks until a response has been
-     * received or the request transaction has timed out.
+     * Sends the specified request and blocks until a response has been received or the request transaction has timed out.
+     * 
      * @param request the request to send
      * @param serverAddress the request destination address
-     * @return the event encapsulating the response or null if no response
-     * has been received.
+     * @return the event encapsulating the response or null if no response has been received
      *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws StunException if message encoding fails,
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws StunException if message encoding fails
      */
-    public synchronized StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress) throws StunException, IOException {
-        synchronized (sendLock) {
-            stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this);
-        }
-
-        ended = false;
-        while (!ended) {
-            try {
-                wait();
-            } catch (InterruptedException ex) {
-                logger.warn("Interrupted", ex);
+    public StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress) throws StunException, IOException {
+        // send the request
+        stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this);
+        TransactionID txId = null;
+        try {
+            // causes the blocking of this thread
+            txId = syncQueue.take();
+            if (logger.isDebugEnabled()) {
+                if (txId.equals(request.getTransactionID())) {
+                    logger.debug("Transaction ids match");
+                }
             }
+        } catch (Throwable t) {
+            logger.warn("Request exception: {}", txId, t);
         }
         StunMessageEvent res = responseEvent;
-        responseEvent = null; //prepare for next message
-
+        // prepare for next message
+        responseEvent = null;
         return res;
     }
 
     /**
-     * Sends the specified request and blocks until a response has been
-     * received or the request transaction has timed out with given 
-     * transactionID.
+     * Sends the specified request and blocks until a response has been received or the request transaction has timed out with given transactionID.
+     * 
      * @param request the request to send
      * @param serverAddress the request destination address
-     * @param tranID the TransactionID to set for this reuest.
-     * @return the event encapsulating the response or null if no response
-     * has been received.
+     * @param txId the TransactionID to set for this request
+     * @return the event encapsulating the response or null if no response has been received
      *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws StunException if message encoding fails,
+     * @throws IOException if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws StunException if message encoding fails
      */
-    public synchronized StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress, TransactionID tranID) throws StunException, IOException {
-        synchronized (sendLock) {
-            stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this, tranID);
-        }
-
-        ended = false;
-        while (!ended) {
-            try {
-                wait();
-            } catch (InterruptedException ex) {
-                logger.warn("Interrupted", ex);
+    public StunMessageEvent sendRequestAndWaitForResponse(Request request, TransportAddress serverAddress, TransactionID txId) throws StunException, IOException {
+        // send the request
+        stunStack.sendRequest(request, serverAddress, localAddress, BlockingRequestSender.this, txId);
+        try {
+            // causes the blocking of this thread
+            TransactionID queuedTxId = syncQueue.take();
+            if (logger.isDebugEnabled()) {
+                if (queuedTxId.equals(txId)) {
+                    logger.debug("Transaction ids match");
+                }
             }
+        } catch (Throwable t) {
+            logger.warn("Request exception: {}", txId, t);
         }
         StunMessageEvent res = responseEvent;
-        responseEvent = null; //prepare for next message
-
+        // prepare for next message
+        responseEvent = null;
         return res;
     }
 }

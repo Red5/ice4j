@@ -2,13 +2,14 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
@@ -51,9 +52,9 @@ class NetAccessManager {
     private final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> tcpConnectors = new ConcurrentHashMap<>();
 
     /**
-     * A synchronized FIFO where incoming messages are stocked for processing.
+     * A fail-fast FIFO where incoming STUN messages are stacked for processing.
      */
-    private final LinkedTransferQueue<RawMessage> messageQueue = new LinkedTransferQueue<>();
+    private final Queue<RawMessage> messageQueue = new ArrayDeque<>(4);
 
     /**
      * A thread executor for message processors.
@@ -73,11 +74,11 @@ class NetAccessManager {
      */
     NetAccessManager(StunStack stunStack) {
         this.stunStack = stunStack;
-        // start off with 3 message processors
-        for (int i = 0; i < 3; i++) {
+        // start off with 1..n message processor(s)
+        //for (int i = 0; i < 2; i++) {
             MessageProcessor messageProc = new MessageProcessor(this, messageQueue);
             messageProc.setFutureRef(executor.submit(messageProc));
-        }
+        //}
     }
 
     /**

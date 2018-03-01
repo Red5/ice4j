@@ -2,8 +2,7 @@
 package org.ice4j.message;
 
 /**
- * A request descendant of the message class. The primary purpose of the
- * Request class is to allow better functional definition of the classes in the
+ * A request descendant of the message class. The primary purpose of the Request class is to allow better functional definition of the classes in the
  * stack package.
  *
  * @author Emil Ivov
@@ -24,9 +23,9 @@ public class Request extends Message {
      * request type
      */
     public void setMessageType(char requestType) throws IllegalArgumentException {
-        if (!isRequestType(requestType))
+        if (!isRequestType(requestType)) {
             throw new IllegalArgumentException((int) (requestType) + " - is not a valid request type.");
-
+        }
         super.setMessageType(requestType);
     }
 }
