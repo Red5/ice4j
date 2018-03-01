@@ -77,7 +77,7 @@ public class Agent {
     /**
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
      */
-    public static final int DEFAULT_TERMINATION_DELAY = 3000;
+    public static final int DEFAULT_TERMINATION_DELAY = 50; // spec says 3s, but there's no good reason for that value imho
 
     /**
      * The constant which defines an empty array with element type PropertyChangeListener and represents the fact that there are no
