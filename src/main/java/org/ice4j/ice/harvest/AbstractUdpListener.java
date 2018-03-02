@@ -144,7 +144,7 @@ public abstract class AbstractUdpListener {
             this.localAddress = localAddress;
         }
         // instance a new NIO server
-        server = new NioServer();
+        server = NioServer.getInstance();
         // add the local binding
         server.addUdpBinding(localAddress);
         // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF

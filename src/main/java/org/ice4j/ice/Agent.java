@@ -1821,7 +1821,7 @@ public class Agent {
          */
         public void run() {
             Thread.currentThread().setName("Terminator");
-            long terminationDelay = Integer.getInteger(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
+            long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
             logger.info("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {
                 try {

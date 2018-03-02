@@ -7,7 +7,9 @@
 package org.ice4j;
 
 import java.util.*;
-import java.util.logging.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The class contains a number of property names and their default values that
@@ -17,7 +19,7 @@ import java.util.logging.*;
  */
 public class StackProperties {
 
-    private static final Logger logger = Logger.getLogger(StackProperties.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(StackProperties.class);
 
     /**
      * The name of the property containing the number of binds that we should
@@ -164,44 +166,36 @@ public class StackProperties {
     public static final String DISABLE_IPv6 = "org.ice4j.ipv6.DISABLED";
 
     /**
-     * The name of the allowed interfaces property which specifies the allowed
-     * interfaces for host candidate allocations.
+     * The name of the allowed interfaces property which specifies the allowed interfaces for host candidate allocations.
      */
     public static final String ALLOWED_INTERFACES = "org.ice4j.ice.harvest.ALLOWED_INTERFACES";
 
     /**
-     * The name of the allowed interfaces property which specifies the blocked
-     * interfaces for host candidate allocations.
+     * The name of the allowed interfaces property which specifies the blocked interfaces for host candidate allocations.
      */
     public static final String BLOCKED_INTERFACES = "org.ice4j.ice.harvest.BLOCKED_INTERFACES";
 
     /**
-     * The name of the property which specifies a ";"-separated list of IP
-     * addresses that are allowed to be used for host candidate allocations.
+     * The name of the property which specifies a ";"-separated list of IP addresses that are allowed to be used for host candidate allocations.
      *
-     * NOTE: this is currently only supported by
-     * {@link org.ice4j.ice.harvest.TcpHarvester}.
+     * NOTE: this is currently only supported by {@link org.ice4j.ice.harvest.TcpHarvester}.
      */
     public static final String ALLOWED_ADDRESSES = "org.ice4j.ice.harvest.ALLOWED_ADDRESSES";
 
     /**
-     * The name of the property which, if set to true, specifies that IPv6
-     * link local addresses should not be used for candidate allocations.
+     * The name of the property which, if set to true, specifies that IPv6 link local addresses should not be used for candidate allocations.
      */
     public static final String DISABLE_LINK_LOCAL_ADDRESSES = "org.ice4j.ice.harvest.DISABLE_LINK_LOCAL_ADDRESSES";
 
     /**
-     * The name of the property which specifies a ";"-separated list of IP
-     * addresses that are not allowed to be used for host candidate allocations.
+     * The name of the property which specifies a ";"-separated list of IP addresses that are not allowed to be used for host candidate allocations.
      *
-     * NOTE: this is currently only supported by
-     * {@link org.ice4j.ice.harvest.TcpHarvester}.
+     * NOTE: this is currently only supported by {@link org.ice4j.ice.harvest.TcpHarvester}.
      */
     public static final String BLOCKED_ADDRESSES = "org.ice4j.ice.harvest.BLOCKED_ADDRESSES";
 
     /**
-     * The name of the property which specifies whether the dynamic port UDP
-     * host harvester should be used by Agent instances.
+     * The name of the property which specifies whether the dynamic port UDP host harvester should be used by Agent instances.
      */
     public static final String USE_DYNAMIC_HOST_HARVESTER = "org.ice4j.ice.harvest.USE_DYNAMIC_HOST_HARVESTER";
 
@@ -226,13 +220,13 @@ public class StackProperties {
     public static String getString(String propertyName) {
         Object obj = System.getProperty(propertyName);
         String str;
-
         if (obj == null) {
             str = null;
         } else {
             str = obj.toString().trim();
-            if (str.length() == 0)
+            if (str.length() == 0) {
                 str = null;
+            }
         }
         return str;
     }
@@ -249,20 +243,20 @@ public class StackProperties {
      */
     public static String[] getStringArray(String propertyName, String regex) {
         String str = getString(propertyName);
-        if (str == null)
+        if (str == null) {
             return null;
-
+        }
         String[] parts = str.split(regex);
-
         // Remove mal-formatted entries.
         List<String> res = new ArrayList<>();
-        for (String s : parts)
-            if (s != null && s.trim().length() != 0)
+        for (String s : parts) {
+            if (s != null && s.trim().length() != 0) {
                 res.add(s);
-
-        if (res.size() == 0)
+            }
+        }
+        if (res.size() == 0) {
             return null;
-
+        }
         return res.toArray(new String[res.size()]);
     }
 
@@ -288,12 +282,13 @@ public class StackProperties {
     public static int getInt(String propertyName, int defaultValue) {
         String stringValue = getString(propertyName);
         int intValue = defaultValue;
-
-        if ((stringValue != null) && (stringValue.length() > 0)) {
+        if (stringValue != null && stringValue.length() > 0) {
             try {
                 intValue = Integer.parseInt(stringValue);
             } catch (NumberFormatException ex) {
-                logger.log(Level.FINE, propertyName + " does not appear to be an integer. " + "Defaulting to " + defaultValue + ".", ex);
+                if (logger.isDebugEnabled()) {
+                    logger.warn("{} does not appear to be an integer; defaulting to {}", propertyName, defaultValue, ex);
+                }
             }
         }
         return intValue;
@@ -316,7 +311,6 @@ public class StackProperties {
      */
     public static boolean getBoolean(String propertyName, boolean defaultValue) {
         String str = getString(propertyName);
-
         return (str == null) ? defaultValue : Boolean.parseBoolean(str);
     }
 }

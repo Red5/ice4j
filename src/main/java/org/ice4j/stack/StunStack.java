@@ -102,7 +102,7 @@ public class StunStack implements MessageEventHandler {
     /**
      * Internal NIO server for SocketChannel and DatagramChannel creation and handling.
      */
-    private static NioServer server = new NioServer();
+    private NioServer server;
 
     static {
         // The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after
@@ -117,12 +117,15 @@ public class StunStack implements MessageEventHandler {
     public StunStack() {
         // create a new network access manager
         netAccessManager = new NetAccessManager(this);
-        server.setInputBufferSize(receiveBufferSize);
-        //logger.info("Initialized recv buf size: {} of requested: {}", server.getInputBufferSize(), receiveBufferSize);
-        server.setOutputBufferSize(sendBufferSize);
-        //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
+        // get an instance
+        server = NioServer.getInstance();
         if (!server.getState().equals(NioServer.State.STARTED)) {
             logger.debug("Starting Nio server");
+            // set input and output buffer sizes
+            server.setInputBufferSize(receiveBufferSize);
+            //logger.info("Initialized recv buf size: {} of requested: {}", server.getInputBufferSize(), receiveBufferSize);
+            server.setOutputBufferSize(sendBufferSize);
+            //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
             server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
             server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
             server.setBlockingIO(StackProperties.getBoolean("IO_BLOCKING", false));
@@ -736,9 +739,10 @@ public class StunStack implements MessageEventHandler {
         }
         serverTransactions.clear();
         netAccessManager.stop();
-        if (server.getState().equals(NioServer.State.STARTED)) {
+        // don't stop the NIO server unless we are NOT in shared mode
+        if (!NioServer.isShared()) {
             // stop the NIO server
-            //server.stop();
+            server.stop();
         }
     }
 

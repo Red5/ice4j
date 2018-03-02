@@ -22,8 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ThreadFactory;
 
+import org.ice4j.StackProperties;
 import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,8 +155,6 @@ public class NioServer {
 
     private final PropertyChangeSupport propSupport = new PropertyChangeSupport(this); // Properties
 
-    private ThreadFactory threadFactory; // Optional thread factory
-
     // I/O thread
     private Thread ioThread;
 
@@ -231,22 +229,40 @@ public class NioServer {
 
     private final Set<SelectionKey> closeAfterWriting = new HashSet<SelectionKey>();
 
+    // if we're using a single instance of the server for all stack instances
+    private static NioServer instance;
+
     /* ******** C O N S T R U C T O R S ******** */
 
     /**
      * Constructs a new NioServer, listening to nothing, and not started.
      */
-    public NioServer() {
+    private NioServer() {
+        logger.info("New NIO ICE server instanced");
     }
 
     /**
-     * Constructs a new NioServer, listening to nothing, and not started.
-     * The provided ThreadFactory will be used when starting and running the server.
+     * Returns a static instance or a new instance, based upon the NIO_SHARED_MODE configuration property.
      * 
-     * @param factory the ThreadFactory to use when starting the server
+     * @return NioServer
      */
-    public NioServer(ThreadFactory factory) {
-        this.threadFactory = factory;
+    public static NioServer getInstance() {
+        if (StackProperties.getBoolean("NIO_SHARED_MODE", true)) {
+            if (instance == null) {
+                instance = new NioServer();
+            }
+            return instance;
+        }
+        return new NioServer();
+    }
+
+    /**
+     * Returns whether or not shared mode is in-use.
+     * 
+     * @return true if shared and false otherwise
+     */
+    public static boolean isShared() {
+        return instance != null;
     }
 
     /**
@@ -340,7 +356,7 @@ public class NioServer {
      * @see NioServer.Listener
      */
     public synchronized void start() {
-        if (this.currentState == State.STOPPED) { // Only if we're stopped now
+        if (currentState == State.STOPPED) { // Only if we're stopped now
             assert ioThread == null : ioThread; // Shouldn't have a thread
             Runnable run = new Runnable() {
                 @Override
@@ -350,11 +366,7 @@ public class NioServer {
                     setState(State.STOPPED); // Clear thread
                 } // end run
             }; // end runnable
-            if (threadFactory != null) { // User-specified threads
-                ioThread = threadFactory.newThread(run);
-            } else { // Our own threads
-                ioThread = new Thread(run, this.getClass().getName()); // Named
-            }
+            ioThread = new Thread(run, this.getClass().getName()); // Named
             setState(State.STARTING); // Update state
             ioThread.setPriority(priority);
             ioThread.start(); // Start thread
@@ -370,10 +382,10 @@ public class NioServer {
      * @see NioServer.Listener
      */
     public synchronized void stop() {
-        if (this.currentState == State.STARTED || this.currentState == State.STARTING) { // Only if already STARTED
+        if (currentState == State.STARTED || currentState == State.STARTING) { // Only if already STARTED
             setState(State.STOPPING); // Mark as STOPPING
-            if (this.selector != null) {
-                this.selector.wakeup();
+            if (selector != null) {
+                selector.wakeup();
             } // end if: not null
         } // end if: already STARTED
     } // end stop

@@ -47,10 +47,10 @@ public class Ice {
     static long startTime;
 
     // local coTurn testing
-    private static final TransportAddress stun4 = new TransportAddress("10.0.0.5", 3478, Transport.UDP);
+    //private static final TransportAddress stun4 = new TransportAddress("10.0.0.5", 3478, Transport.UDP);
 
     // stun.l.google.com stun1.l.google.com:19302 stun2.l.google.com:19302
-    //private static final TransportAddress stun4 = new TransportAddress("stun3.l.google.com", 19302, Transport.UDP);
+    private static final TransportAddress stun4 = new TransportAddress("stun3.l.google.com", 19302, Transport.UDP);
 
     // jitsi stun
     //private static final TransportAddress stun4 = new TransportAddress("stun.jitsi.net", 3478, Transport.UDP);
@@ -66,7 +66,8 @@ public class Ice {
     public static void main(String[] args) throws Throwable {
         // disable IPv6 for this test
         System.setProperty("org.ice4j.ipv6.DISABLED", "true");
-        System.setProperty("org.ice4j.TERMINATION_DELAY", "100");
+        //System.setProperty("NIO_SHARED_MODE", "false");
+        System.setProperty("org.ice4j.TERMINATION_DELAY", "10");
         // set blocking or non-blocking
         System.setProperty("IO_BLOCKING", "true");
         startTime = System.currentTimeMillis();
