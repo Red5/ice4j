@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -183,12 +184,7 @@ public class Agent {
      * address then we should add it to the list of candidates. Otherwise we should wait for the remote party to send their media description
      * before being able to determine.
      */
-    private IceProcessingState state = IceProcessingState.WAITING;
-
-    /**
-     * Object used to synchronize access to {@link #state}.
-     */
-    private final Object stateSyncRoot = new Object();
+    private AtomicReference<IceProcessingState> state = new AtomicReference<>(IceProcessingState.WAITING);
 
     /**
      * Contains {@link PropertyChangeListener}s registered with this {@link Agent} and following its changes of state.
@@ -526,7 +522,8 @@ public class Agent {
      * state) and false otherwise.
      */
     public boolean isStarted() {
-        return state != IceProcessingState.WAITING && state != IceProcessingState.COMPLETED && state != IceProcessingState.TERMINATED;
+        // state != IceProcessingState.WAITING && state != IceProcessingState.COMPLETED && state != IceProcessingState.TERMINATED;
+        return state.get() == IceProcessingState.RUNNING;
     }
 
     /**
@@ -536,8 +533,7 @@ public class Agent {
      * {@link IceProcessingState#TERMINATED} and false otherwise
      */
     public boolean isOver() {
-        IceProcessingState state = getState();
-        return (state != null) && state.isOver();
+        return state.get().isOver();
     }
 
     /**
@@ -546,7 +542,7 @@ public class Agent {
      * @return the state of ICE processing for this Agent
      */
     public IceProcessingState getState() {
-        return state;
+        return state.get();
     }
 
     /**
@@ -601,11 +597,7 @@ public class Agent {
      * a result of this call.
      */
     private boolean setState(IceProcessingState newState) {
-        IceProcessingState oldState;
-        synchronized (stateSyncRoot) {
-            oldState = state;
-            this.state = newState;
-        }
+        IceProcessingState oldState = state.getAndSet(newState);
         if (!oldState.equals(newState)) {
             logger.info("ICE state changed from {} to {}. Local ufrag {}", oldState, newState, getLocalUfrag());
             fireStateChange(oldState, newState);
@@ -1080,16 +1072,14 @@ public class Agent {
             triggeredPair.setUseCandidateReceived();
         }
         synchronized (startLock) {
-            if (state == IceProcessingState.WAITING) {
+            if (state.get() == IceProcessingState.WAITING) {
                 logger.debug("Receive STUN checks before our ICE has started");
                 // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
-                this.preDiscoveredPairsQueue.add(triggeredPair);
-            } else if (state == IceProcessingState.FAILED) {
-                // Failure is permanent, currently
-            } else {
-                // Running, Connected or Terminated
+                preDiscoveredPairsQueue.add(triggeredPair);
+            } else if (state.get() != IceProcessingState.FAILED) {
+                // Running, Connected or Terminated, but not Failed
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Received check from " + triggeredPair.toShortString() + " triggered a check.Local ufrag " + getLocalUfrag());
+                    logger.debug("Received check from {} triggered a check.Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
                 }
                 // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
                 triggerCheck(triggeredPair);
@@ -1274,7 +1264,7 @@ public class Agent {
             return;
         }
         // keep ICE running (answer STUN Binding requests, send STUN Binding indications or requests)
-        if (stunKeepAlive == null && !StackProperties.getBoolean(StackProperties.NO_KEEP_ALIVES, false)) {
+        if (stunKeepAlive == null && !StackProperties.getBoolean(StackProperties.NO_KEEP_ALIVES, true)) {
             // schedule STUN checks for selected candidates
             scheduleStunKeepAlive();
         }
@@ -1404,7 +1394,6 @@ public class Agent {
          * RFC 5245 says: RTO = MAX (100ms, Ta * (number of pairs)) where the number of pairs refers to the number of pairs of candidates with STUN or TURN servers. Go figure what
          * "pairs of candidates with STUN or TURN servers" means. Let's assume they meant the number stun transactions we'll start while harvesting.
          */
-
         return Math.max(100, calculateTa() * 2 * countHostCandidates());
     }
 
@@ -1435,18 +1424,15 @@ public class Agent {
     }
 
     /**
-     * Initializes and starts the background Thread which is to send
-     * STUN keep-alives once this Agent is COMPLETED.
+     * Initializes and starts the background Thread which is to send STUN keep-alives once this Agent is COMPLETED.
      */
     private void scheduleStunKeepAlive() {
-        if (stunKeepAlive == null) {
-            stunKeepAlive = submit(new Runnable() {
-                public void run() {
-                    Thread.currentThread().setName("StunKeepAliveThread");
-                    runInStunKeepAliveThread();
-                }
-            });
-        }
+        stunKeepAlive = submit(new Runnable() {
+            public void run() {
+                Thread.currentThread().setName("StunKeepAliveThread");
+                runInStunKeepAliveThread();
+            }
+        });
     }
 
     /**
@@ -1625,18 +1611,16 @@ public class Agent {
             } catch (InterruptedException e) {
             }
         }
-        logger.info(Thread.currentThread().getName() + " ends.");
+        logger.info("{} ends", Thread.currentThread().getName());
     }
 
     /**
      * Determines whether {@link #runInStunKeepAliveThread()} is to run.
      *
-     * @return true if runInStunKeepAliveThread() is to run;
-     * otherwise, false
+     * @return true if runInStunKeepAliveThread() is to run; otherwise, false
      */
     private boolean runInStunKeepAliveThreadCondition() {
-        IceProcessingState state = this.state;
-        return (IceProcessingState.COMPLETED.equals(state) || IceProcessingState.TERMINATED.equals(state)) && !shutdown;
+        return state.get().isEstablished() && !shutdown;
     }
 
     /**

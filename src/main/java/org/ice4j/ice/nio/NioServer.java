@@ -16,12 +16,14 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.ice4j.StackProperties;
 import org.ice4j.socket.IceSocketWrapper;
@@ -132,7 +134,7 @@ public class NioServer {
         STARTING, STARTED, STOPPING, STOPPED
     };
 
-    private State currentState = State.STOPPED;
+    private AtomicReference<State> currentState = new AtomicReference<>(State.STOPPED);
 
     /**
      * Refers to the state of the server (STARTING, STARTED, STOPPING, STOPPED).
@@ -355,8 +357,8 @@ public class NioServer {
      *
      * @see NioServer.Listener
      */
-    public synchronized void start() {
-        if (currentState == State.STOPPED) { // Only if we're stopped now
+    public void start() {
+        if (currentState.compareAndSet(State.STOPPED, State.STARTING)) { // Only if we're stopped now
             assert ioThread == null : ioThread; // Shouldn't have a thread
             Runnable run = new Runnable() {
                 @Override
@@ -367,7 +369,6 @@ public class NioServer {
                 } // end run
             }; // end runnable
             ioThread = new Thread(run, this.getClass().getName()); // Named
-            setState(State.STARTING); // Update state
             ioThread.setPriority(priority);
             ioThread.start(); // Start thread
         } // end if: currently stopped
@@ -381,9 +382,8 @@ public class NioServer {
      *
      * @see NioServer.Listener
      */
-    public synchronized void stop() {
-        if (currentState == State.STARTED || currentState == State.STARTING) { // Only if already STARTED
-            setState(State.STOPPING); // Mark as STOPPING
+    public void stop() {
+        if (currentState.compareAndSet(State.STARTED, State.STOPPING) || currentState.compareAndSet(State.STARTING, State.STOPPING)) { // Only if already STARTED
             if (selector != null) {
                 selector.wakeup();
             } // end if: not null
@@ -395,8 +395,8 @@ public class NioServer {
      * STARTING, STARTED, STOPPING, or STOPPED.
      * @return state of the server
      */
-    public synchronized State getState() {
-        return this.currentState;
+    public State getState() {
+        return currentState.get();
     }
 
     /**
@@ -405,9 +405,8 @@ public class NioServer {
      * what is reflected by the currentState variable.
      * @param state the new state of the server
      */
-    protected synchronized void setState(State state) {
-        State oldVal = this.currentState;
-        this.currentState = state;
+    protected void setState(State state) {
+        State oldVal = currentState.getAndSet(state);
         firePropertyChange(STATE_PROP, oldVal, state);
     }
 
@@ -419,8 +418,8 @@ public class NioServer {
      * want to look at the source code for this method to check it out.
      */
     @SuppressWarnings("incomplete-switch")
-    public synchronized void reset() {
-        switch (this.currentState) {
+    public void reset() {
+        switch (currentState.get()) {
             case STARTED:
                 this.addPropertyChangeListener(STATE_PROP, new PropertyChangeListener() {
                     public void propertyChange(PropertyChangeEvent evt) {
@@ -456,7 +455,7 @@ public class NioServer {
                     logger.trace("selector.select() <= 0"); // Possible false start
                     Thread.sleep(selectorSleepMs); // Let's not run away from ourselves
                 }///////  B L O C K S   H E R E
-                if (this.currentState == State.STOPPING) {
+                if (currentState.get() == State.STOPPING) {
                     try {
                         for (SelectionKey key : this.selector.keys()) {
                             key.channel().close();
@@ -511,7 +510,7 @@ public class NioServer {
             } // end while: selector is open
               // Handle closing and exceptions, etc
         } catch (Exception exc) {
-            if (this.currentState == State.STOPPING) { // User asked to stop
+            if (currentState.get() == State.STOPPING) { // User asked to stop
                 try {
                     this.selector.close();
                     this.selector = null;
@@ -544,19 +543,19 @@ public class NioServer {
      * @return true if while loop should continue
      * @throws java.io.IOException if something within throws it
      */
-    private synchronized boolean runLoopCheck() throws IOException {
-        if (this.currentState == State.STOPPING) {
+    private boolean runLoopCheck() throws IOException {
+        if (currentState.get() == State.STOPPING) {
             logger.debug("Stopping server by request.");
-            assert this.selector != null;
-            this.selector.close();
-        } else if (this.selector == null) {
-            this.selector = Selector.open();
+            assert selector != null;
+            selector.close();
+        } else if (selector == null) {
+            selector = Selector.open();
         }
-        if (!this.selector.isOpen()) {
+        if (!selector.isOpen()) {
             return false;
         }
         // Pending TCP Adds
-        for (SocketAddress addr : this.pendingTcpAdds) { // For each add
+        for (SocketAddress addr : pendingTcpAdds) { // For each add
             logger.debug("Binding TCP: {}", addr);
             // Open a channel
             ServerSocketChannel sc = ServerSocketChannel.open();
@@ -565,44 +564,44 @@ public class NioServer {
             sc.bind(addr);
             sc.configureBlocking(blockingIO); // set per blocking config
             // Register with master Selector
-            SelectionKey acceptKey = sc.register(this.selector, SelectionKey.OP_ACCEPT); // We want to "accept" connections
-            this.tcpBindings.put(addr, acceptKey); // Save the accKey
+            SelectionKey acceptKey = sc.register(selector, SelectionKey.OP_ACCEPT); // We want to "accept" connections
+            tcpBindings.put(addr, acceptKey); // Save the accKey
             // fire event for those listeners needing to know about bindings
             fireNewBinding(sc); // Fire event
         } // end for: each address
-        this.pendingTcpAdds.clear(); // Remove list of pending adds
+        pendingTcpAdds.clear(); // Remove list of pending adds
         // Pending UDP Adds
-        for (SocketAddress addr : this.pendingUdpAdds) { // Same comments as for TCP
+        for (SocketAddress addr : pendingUdpAdds) { // Same comments as for TCP
             logger.debug("Binding UDP: {}", addr);
             DatagramChannel dc = DatagramChannel.open();
             dc.bind(addr);
             dc.configureBlocking(false); // UDP + blocking causes IllegalBlockingModeEx
-            SelectionKey acceptKey = dc.register(this.selector, SelectionKey.OP_READ);
-            this.udpBindings.put(addr, acceptKey);
+            SelectionKey acceptKey = dc.register(selector, SelectionKey.OP_READ);
+            udpBindings.put(addr, acceptKey);
             // fire event for those listeners needing to know about bindings
             fireNewBinding(dc); // Fire event
         } // end for: each address
-        this.pendingUdpAdds.clear();
+        pendingUdpAdds.clear();
         // Pending TCP Removes
-        for (Map.Entry<SocketAddress, SelectionKey> e : this.pendingTcpRemoves.entrySet()) {
+        for (Map.Entry<SocketAddress, SelectionKey> e : pendingTcpRemoves.entrySet()) {
             SelectionKey key = e.getValue(); // Get the registered accKey
             if (key != null) { // Might be null if someone gave us bogus address
                 key.channel().close(); // Close the channel
                 key.cancel(); // And cancel the accKey (redundant?)
             } // end if: accKey != null
         } // end for: each remove
-        this.pendingTcpRemoves.clear(); // Remove from list of pending removes
+        pendingTcpRemoves.clear(); // Remove from list of pending removes
         // Pending UDP Removes
-        for (Map.Entry<SocketAddress, SelectionKey> e : this.pendingUdpRemoves.entrySet()) {
+        for (Map.Entry<SocketAddress, SelectionKey> e : pendingUdpRemoves.entrySet()) {
             SelectionKey key = e.getValue(); // Get the registered accKey
             if (key != null) { // Might be null if someone gave us bogus address
                 key.channel().close(); // Close the channel
                 key.cancel(); // And cancel the accKey (redundant?)
             } // end if: accKey != null
         } // end for: each remove
-        this.pendingUdpRemoves.clear(); // Remove from list of pending removes
+        pendingUdpRemoves.clear(); // Remove from list of pending removes
         // Pending TCP Notify on Writable
-        for (Map.Entry<SelectionKey, Boolean> e : this.pendingTcpNotifyOnWritable.entrySet()) {
+        for (Map.Entry<SelectionKey, Boolean> e : pendingTcpNotifyOnWritable.entrySet()) {
             SelectionKey key = e.getKey();
             if (key != null && key.isValid()) {
                 int ops = e.getKey().interestOps(); // Current ops
@@ -614,7 +613,7 @@ public class NioServer {
                 e.getKey().interestOps(ops); // Set new interests
             } // end if: valid accKey
         } // end for: each notify on writable
-        this.pendingTcpNotifyOnWritable.clear(); // Remove from list of pending changes
+        pendingTcpNotifyOnWritable.clear(); // Remove from list of pending changes
         return true; // Continue main run loop
     }
 
@@ -634,7 +633,7 @@ public class NioServer {
         while ((incoming = ch.accept()) != null) { // Iterate over all pending connections
             incoming.configureBlocking(blockingIO); // set per blocking config
             SelectionKey incomingReadKey = incoming.register( // Register new connection
-                    this.selector, // With the Selector
+                    selector, // With the Selector
                     SelectionKey.OP_READ | SelectionKey.OP_WRITE); // Want to READ and write data
 
             outBuff.clear().flip(); // Show outBuff as having nothing
@@ -646,8 +645,8 @@ public class NioServer {
                 ByteBuffer leftover = ByteBuffer.allocateDirect(outBuff.remaining()); // Create/resize
                 leftover.put(outBuff).flip(); // Save new leftovers
                 assert knownState(leftover, "[PrrL..]");
-                this.leftoverForWriting.put(incomingReadKey, leftover); // Save leftovers for next time
-                this.setNotifyOnWritable(incomingReadKey, true); // Notify that we have something to write
+                leftoverForWriting.put(incomingReadKey, leftover); // Save leftovers for next time
+                setNotifyOnWritable(incomingReadKey, true); // Notify that we have something to write
             } // end if: has remaining bytes
             if (logger.isTraceEnabled()) {
                 logger.trace("  {}, key: {}", incoming, incomingReadKey);
@@ -701,7 +700,7 @@ public class NioServer {
                 // If there is also data to be written, save them in the leftover-for-writing outBuff
                 // and indicate that we should be notified about writability.
                 if (outBuff.remaining() > 0) { // Did the user leave data to be written?
-                    ByteBuffer leftoverW = this.leftoverForWriting.get(key); // Leftover still to be written
+                    ByteBuffer leftoverW = leftoverForWriting.get(key); // Leftover still to be written
                     if (leftoverW == null) { // Leftover outBuff not yet created?
                         leftoverW = ByteBuffer.allocateDirect(outBuff.remaining()); // Create/resize
                     } else {
@@ -730,8 +729,8 @@ public class NioServer {
                     assert knownState(leftoverW, "[PrrL..]");
                     assert knownState(outBuff, "[..PL..]");
 
-                    this.leftoverForWriting.put(key, leftoverW); // Save leftovers for next time
-                    this.setNotifyOnWritable(key, true); // Make sure server processes writes
+                    leftoverForWriting.put(key, leftoverW); // Save leftovers for next time
+                    setNotifyOnWritable(key, true); // Make sure server processes writes
                 } // end if: has remaining bytes
 
                 // If there's leftover data that wasn't read, save that for next time the event is fired.
@@ -817,11 +816,11 @@ public class NioServer {
                 leftover.put(outBuff).flip(); // Save new leftovers
                 assert knownState(leftover, "[PrrL..]");
             }
-            this.leftoverForWriting.put(key, leftover); // Save leftovers for next time
+            leftoverForWriting.put(key, leftover); // Save leftovers for next time
         } // end if: proceed with fresh buffer to user
           // After all this writing, see if there's anything left.
           // If nothing is left, and "close after writing" has been set, then close the channel.
-        if (this.closeAfterWriting.contains(key) && // Has user requested "close after writing?"
+        if (closeAfterWriting.contains(key) && // Has user requested "close after writing?"
                 (leftover == null || !leftover.hasRemaining())) { // And is there nothing left to write?
             ch.close(); // Then close the channel
         }
@@ -861,9 +860,9 @@ public class NioServer {
         if (key == null) {
             throw new NullPointerException("Cannot set notifications for null key.");
         }
-        this.pendingTcpNotifyOnWritable.put(key, notify);
-        if (this.selector != null) {
-            this.selector.wakeup();
+        pendingTcpNotifyOnWritable.put(key, notify);
+        if (selector != null) {
+            selector.wakeup();
         }
     }
 
@@ -872,8 +871,8 @@ public class NioServer {
      * after the last byte of the output buffer has been written.
      * @param key the SelectionKey for the corresponding connection
      */
-    public synchronized void closeAfterWriting(SelectionKey key) {
-        this.closeAfterWriting.add(key);
+    public void closeAfterWriting(SelectionKey key) {
+        closeAfterWriting.add(key);
     } // end closeAfterWriting
 
     /**
@@ -919,8 +918,8 @@ public class NioServer {
      * objects as data is received and so forth.
      * @return The size of the ByteBuffer
      */
-    public synchronized int getInputBufferSize() {
-        return this.inputBufferSize;
+    public int getInputBufferSize() {
+        return inputBufferSize;
     }
 
     /**
@@ -931,14 +930,14 @@ public class NioServer {
      * @param size The size of the ByteBuffer
      * @throws IllegalArgumentException if size is not positive
      */
-    public synchronized void setInputBufferSize(int size) {
+    public void setInputBufferSize(int size) {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-        int oldVal = this.inputBufferSize;
-        this.inputBufferSize = size;
-        if (this.selector != null) {
-            this.selector.wakeup();
+        int oldVal = inputBufferSize;
+        inputBufferSize = size;
+        if (selector != null) {
+            selector.wakeup();
         }
         firePropertyChange(INPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
@@ -950,8 +949,8 @@ public class NioServer {
      * objects.
      * @return The size of the ByteBuffer
      */
-    public synchronized int getOutputBufferSize() {
-        return this.outputBufferSize;
+    public int getOutputBufferSize() {
+        return outputBufferSize;
     }
 
     /**
@@ -962,14 +961,14 @@ public class NioServer {
      * @param size The size of the ByteBuffer
      * @throws IllegalArgumentException if size is not positive
      */
-    public synchronized void setOutputBufferSize(int size) {
+    public void setOutputBufferSize(int size) {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-        int oldVal = this.outputBufferSize;
-        this.outputBufferSize = size;
-        if (this.selector != null) {
-            this.selector.wakeup();
+        int oldVal = outputBufferSize;
+        outputBufferSize = size;
+        if (selector != null) {
+            selector.wakeup();
         }
         firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
@@ -987,13 +986,13 @@ public class NioServer {
      * @return "this" to aid in chaining commands
      */
     public synchronized NioServer addTcpBinding(SocketAddress addr) {
-        Set<SocketAddress> oldVal = this.getTcpBindings(); // Save old set for prop change event
-        this.tcpBindings.put(addr, null); // Add binding
-        Set<SocketAddress> newVal = this.getTcpBindings(); // Save new set for prop change event
-        this.pendingTcpAdds.add(addr); // Prepare pending add action
-        this.pendingTcpRemoves.remove(addr); // In case it's also pending a remove
-        if (this.selector != null) { // If there's a selector...
-            this.selector.wakeup(); // Wake it up to handle the add action
+        Set<SocketAddress> oldVal = getTcpBindings(); // Save old set for prop change event
+        tcpBindings.put(addr, null); // Add binding
+        Set<SocketAddress> newVal = getTcpBindings(); // Save new set for prop change event
+        pendingTcpAdds.add(addr); // Prepare pending add action
+        pendingTcpRemoves.remove(addr); // In case it's also pending a remove
+        if (selector != null) { // If there's a selector...
+            selector.wakeup(); // Wake it up to handle the add action
         }
         firePropertyChange(TCP_BINDINGS_PROP, oldVal, newVal); // Fire prop change
         return this;
@@ -1006,13 +1005,13 @@ public class NioServer {
      * @return "this" to aid in chaining commands
      */
     public synchronized NioServer removeTcpBinding(SocketAddress addr) {
-        Set<SocketAddress> oldVal = this.getTcpBindings(); // Save old set for prop change event
-        this.pendingTcpRemoves.put(addr, this.tcpBindings.get(addr)); // Prepare pending remove action
-        this.tcpBindings.remove(addr); // Remove binding
-        this.pendingTcpAdds.remove(addr); // In case it's also pending an add
-        Set<SocketAddress> newVal = this.getTcpBindings(); // Save new set for prop change event
-        if (this.selector != null) { // If there's a selector...
-            this.selector.wakeup(); // Wake it up to handle the remove action
+        Set<SocketAddress> oldVal = getTcpBindings(); // Save old set for prop change event
+        pendingTcpRemoves.put(addr, tcpBindings.get(addr)); // Prepare pending remove action
+        tcpBindings.remove(addr); // Remove binding
+        pendingTcpAdds.remove(addr); // In case it's also pending an add
+        Set<SocketAddress> newVal = getTcpBindings(); // Save new set for prop change event
+        if (selector != null) { // If there's a selector...
+            selector.wakeup(); // Wake it up to handle the remove action
         }
         // remove any listeners for the binding as well
         for (Listener listener : listeners) {
@@ -1027,21 +1026,16 @@ public class NioServer {
     }
 
     /**
-     * Returns a set of socket addresses that the server is (or will
-     * be when started) bound to/listening on. This set is not
-     * backed by the actual data structures. Changes to this returned
-     * set have no effect on the server.
+     * Returns a set of socket addresses that the server is (or will be when started) bound to/listening on. This set is not
+     * backed by the actual data structures. Changes to this returned set have no effect on the server.
      * @return set of tcp listening points
      */
-    public synchronized Set<SocketAddress> getTcpBindings() {
-        Set<SocketAddress> bindings = new HashSet<SocketAddress>();
-        bindings.addAll(this.tcpBindings.keySet());
-        return bindings;
+    public Set<SocketAddress> getTcpBindings() {
+        return Collections.unmodifiableSet(tcpBindings.keySet());
     }
 
     /**
-     * <p>Sets the TCP bindings that the server should use.
-     * The expression <code>setTcpBindings( getTcpBindings() )</code>
+     * <p>Sets the TCP bindings that the server should use. The expression <code>setTcpBindings( getTcpBindings() )</code>
      * should result in no change to the server.</p>
      * @param newSet
      * @return "this" to aid in chaining commands
@@ -1069,7 +1063,7 @@ public class NioServer {
      * Clears all TCP bindings.
      * @return "this" to aid in chaining commands
      */
-    public synchronized NioServer clearTcpBindings() {
+    public NioServer clearTcpBindings() {
         for (SocketAddress addr : getTcpBindings()) {
             removeTcpBinding(addr);
         }
@@ -1089,13 +1083,13 @@ public class NioServer {
      * @return "this" to aid in chaining commands
      */
     public synchronized NioServer addUdpBinding(SocketAddress addr) {
-        Set<SocketAddress> oldVal = this.getUdpBindings();
-        this.udpBindings.put(addr, null);
-        this.pendingUdpAdds.add(addr);
-        this.pendingUdpRemoves.remove(addr);
-        Set<SocketAddress> newVal = this.getUdpBindings();
-        if (this.selector != null) {
-            this.selector.wakeup();
+        Set<SocketAddress> oldVal = getUdpBindings();
+        udpBindings.put(addr, null);
+        pendingUdpAdds.add(addr);
+        pendingUdpRemoves.remove(addr);
+        Set<SocketAddress> newVal = getUdpBindings();
+        if (selector != null) {
+            selector.wakeup();
         }
         firePropertyChange(UDP_BINDINGS_PROP, oldVal, newVal);
         return this;
@@ -1108,13 +1102,13 @@ public class NioServer {
      * @return "this" to aid in chaining commands
      */
     public synchronized NioServer removeUdpBinding(SocketAddress addr) {
-        Set<SocketAddress> oldVal = this.getUdpBindings(); // Save old set for prop change event
-        this.pendingUdpRemoves.put(addr, this.udpBindings.get(addr)); // Prepare pending remove action
-        this.udpBindings.remove(addr); // Remove binding
-        this.pendingUdpAdds.remove(addr); // In case it's also pending an add
-        Set<SocketAddress> newVal = this.getUdpBindings(); // Save new set for prop change event
-        if (this.selector != null) { // If there's a selector...
-            this.selector.wakeup(); // Wake it up to handle the remove action
+        Set<SocketAddress> oldVal = getUdpBindings(); // Save old set for prop change event
+        pendingUdpRemoves.put(addr, udpBindings.get(addr)); // Prepare pending remove action
+        udpBindings.remove(addr); // Remove binding
+        pendingUdpAdds.remove(addr); // In case it's also pending an add
+        Set<SocketAddress> newVal = getUdpBindings(); // Save new set for prop change event
+        if (selector != null) { // If there's a selector...
+            selector.wakeup(); // Wake it up to handle the remove action
         }
         // remove any listeners for the binding as well
         for (Listener listener : listeners) {
@@ -1129,14 +1123,12 @@ public class NioServer {
     }
 
     /**
-     * Returns a map of socket addresses that the server is (or will
-     * be when started) bound to/listening on. This set is not
-     * backed by the actual data structures. Changes to this returned
-     * set have no effect on the server.
+     * Returns a map of socket addresses that the server is (or will be when started) bound to/listening on. This set is not
+     * backed by the actual data structures. Changes to this returned set have no effect on the server.
      * @return set of udp listening points
      */
-    public synchronized Set<SocketAddress> getUdpBindings() {
-        return new HashSet<>(this.udpBindings.keySet());
+    public Set<SocketAddress> getUdpBindings() {
+        return Collections.unmodifiableSet(udpBindings.keySet());
     }
 
     /**
@@ -1170,7 +1162,7 @@ public class NioServer {
      * Clears all UDP bindings.
      * @return "this" to aid in chaining commands
      */
-    public synchronized NioServer clearUdpBindings() {
+    public NioServer clearUdpBindings() {
         for (SocketAddress addr : getUdpBindings()) {
             removeUdpBinding(addr);
         }
