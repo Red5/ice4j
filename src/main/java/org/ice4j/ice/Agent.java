@@ -13,8 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -163,11 +161,6 @@ public class Agent {
     private boolean isControlling = true;
 
     /**
-     * Executor for all threads and tasks needed in this agent.
-     */
-    private ExecutorService executor = Executors.newCachedThreadPool();
-
-    /**
      * The entity that will be taking care of outgoing connectivity checks.
      */
     private final ConnectivityCheckClient connCheckClient;
@@ -289,7 +282,7 @@ public class Agent {
      * @return Future<?>
      */
     public Future<?> submit(Runnable task) {
-        return executor.submit(task);
+        return stunStack.submit(task);
     }
 
     /**
@@ -1554,7 +1547,6 @@ public class Agent {
             Thread.currentThread().interrupt();
         }
         getStunStack().shutDown();
-        executor.shutdownNow();
         logger.debug("ICE agent freed");
     }
 

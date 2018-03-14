@@ -3,6 +3,11 @@ package org.ice4j;
 
 import java.util.Arrays;
 import java.util.Vector;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
@@ -363,7 +368,7 @@ public class TransactionSupportTests extends TestCase {
      */
     private class PlainRequestCollector implements RequestListener {
 
-        private Vector<StunMessageEvent> receivedRequestsVector = new Vector<>();
+        private BlockingDeque<StunMessageEvent> receivedRequests = new LinkedBlockingDeque<>();
 
         /**
          * Logs the newly received request.
@@ -371,10 +376,7 @@ public class TransactionSupportTests extends TestCase {
          * @param evt the {@link StunMessageEvent} to log.
          */
         public void processRequest(StunMessageEvent evt) {
-            synchronized (this) {
-                receivedRequestsVector.add(evt);
-                notifyAll();
-            }
+            receivedRequests.offer(evt);
         }
 
         /**
@@ -388,10 +390,11 @@ public class TransactionSupportTests extends TestCase {
          */
         public Vector<StunMessageEvent> getRequestsForTransaction(byte[] tranid) {
             Vector<StunMessageEvent> newVec = new Vector<>();
-            for (StunMessageEvent evt : receivedRequestsVector) {
+            for (StunMessageEvent evt : receivedRequests) {
                 Message msg = evt.getMessage();
-                if (Arrays.equals(tranid, msg.getTransactionID()))
+                if (Arrays.equals(tranid, msg.getTransactionID())) {
                     newVec.add(evt);
+                }
             }
             return newVec;
         }
@@ -400,11 +403,13 @@ public class TransactionSupportTests extends TestCase {
          * Blocks until a request arrives or 50 ms pass.
          */
         public void waitForRequest() {
-            synchronized (this) {
-                try {
-                    wait(50);
-                } catch (InterruptedException e) {
+            try {
+                StunMessageEvent evt = receivedRequests.poll(50L, TimeUnit.MILLISECONDS);
+                if (evt != null) {
+                    receivedRequests.addFirst(evt);
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -416,7 +421,7 @@ public class TransactionSupportTests extends TestCase {
         /**
          * The responses we've collected so far.
          */
-        public final Vector<Object> receivedResponses = new Vector<>();
+        public final BlockingQueue<Object> receivedResponses = new LinkedBlockingQueue<>();
 
         /**
          * Notifies this ResponseCollector that a transaction described by
@@ -429,14 +434,14 @@ public class TransactionSupportTests extends TestCase {
          */
         protected void processFailure(BaseStunMessageEvent event) {
             String receivedResponse;
-
-            if (event instanceof StunFailureEvent)
+            if (event instanceof StunFailureEvent) {
                 receivedResponse = "unreachable";
-            else if (event instanceof StunTimeoutEvent)
+            } else if (event instanceof StunTimeoutEvent) {
                 receivedResponse = "timeout";
-            else
+            } else {
                 receivedResponse = "failure";
-            receivedResponses.add(receivedResponse);
+            }
+            receivedResponses.offer(receivedResponse);
         }
 
         /**
@@ -445,7 +450,8 @@ public class TransactionSupportTests extends TestCase {
          * @param response the event to log.
          */
         public void processResponse(StunResponseEvent response) {
-            receivedResponses.add(response);
+            receivedResponses.offer(response);
         }
+
     }
 }

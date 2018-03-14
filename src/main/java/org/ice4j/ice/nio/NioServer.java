@@ -23,10 +23,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ice4j.StackProperties;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,19 +101,10 @@ public class NioServer {
 
     private final static Logger logger = LoggerFactory.getLogger(NioServer.class);
 
-    /**
-     * Refers to the size of the input buffer.
-     * @see #setInputBufferSize(int) 
-     * @see #getInputBufferSize()
-     */
-    public final static String INPUT_BUFFER_SIZE_PROP = "bufferSize";
+    // if we're using a single instance of the server for all stack instances
+    private static NioServer instance;
 
-    /**
-     * Refers to the size of the output buffer.
-     * @see #setOutputBufferSize(int)
-     * @see #getOutputBufferSize()
-     */
-    public final static String OUTPUT_BUFFER_SIZE_PROP = "bufferSize";
+    private static boolean SHARED_MODE = StackProperties.getBoolean("NIO_SHARED_MODE", false);
 
     private final static int BUFFER_SIZE_DEFAULT = 4096;
 
@@ -157,17 +151,17 @@ public class NioServer {
 
     private final PropertyChangeSupport propSupport = new PropertyChangeSupport(this); // Properties
 
-    // I/O thread
-    private Thread ioThread;
-
     // I/O thread priority
     private int priority = Thread.MAX_PRIORITY - 4;
 
-    // Time to sleep between selector checks
-    private long selectorSleepMs = 10L;
-
     // Blocking or Non-blocking I/O setting
-    private boolean blockingIO = false;
+    private boolean blockingIO;
+
+    // The future for the submitted worker
+    private Future<?> future;
+
+    // Worker buffers
+    private ByteBuffer inBuff, outBuff;
 
     private Selector selector; // Brokers all the connections
 
@@ -211,36 +205,46 @@ public class NioServer {
      */
     public final static String SINGLE_UDP_PORT_PROP = "singleUdpPort";
 
-    private final Map<SocketAddress, SelectionKey> tcpBindings = new HashMap<SocketAddress, SelectionKey>();// Requested TCP bindings, e.g., "listen on port 80"
+    private final Map<SocketAddress, SelectionKey> tcpBindings = new HashMap<>();// Requested TCP bindings, e.g., "listen on port 80"
 
-    private final Map<SocketAddress, SelectionKey> udpBindings = new HashMap<SocketAddress, SelectionKey>();// Requested UDP bindings
+    private final Map<SocketAddress, SelectionKey> udpBindings = new HashMap<>();// Requested UDP bindings
 
-    private final Set<SocketAddress> pendingTcpAdds = new HashSet<SocketAddress>(); // TCP bindings to add to selector on next cycle
+    private final Set<SocketAddress> pendingTcpAdds = new CopyOnWriteArraySet<>(); // TCP bindings to add to selector on next cycle
 
-    private final Set<SocketAddress> pendingUdpAdds = new HashSet<SocketAddress>(); // UDP bindings to add to selector on next cycle
+    private final Set<SocketAddress> pendingUdpAdds = new CopyOnWriteArraySet<>(); // UDP bindings to add to selector on next cycle
 
-    private final Map<SocketAddress, SelectionKey> pendingTcpRemoves = new HashMap<SocketAddress, SelectionKey>(); // TCP bindings to remove from selector on next cycle
+    private final Map<SocketAddress, SelectionKey> pendingTcpRemoves = new HashMap<>(); // TCP bindings to remove from selector on next cycle
 
-    private final Map<SocketAddress, SelectionKey> pendingUdpRemoves = new HashMap<SocketAddress, SelectionKey>(); // UDP bindings to remove from selector on next cycle
+    private final Map<SocketAddress, SelectionKey> pendingUdpRemoves = new HashMap<>(); // UDP bindings to remove from selector on next cycle
 
-    private final Map<SelectionKey, Boolean> pendingTcpNotifyOnWritable = new HashMap<SelectionKey, Boolean>(); // Turning on and off writable notifications
+    private final Map<SelectionKey, Boolean> pendingTcpNotifyOnWritable = new HashMap<>(); // Turning on and off writable notifications
 
-    private final Map<SelectionKey, ByteBuffer> leftoverForReading = new HashMap<SelectionKey, ByteBuffer>(); // Store leftovers from the last read
+    private final Map<SelectionKey, ByteBuffer> leftoverForReading = new HashMap<>(); // Store leftovers from the last read
 
-    private final Map<SelectionKey, ByteBuffer> leftoverForWriting = new HashMap<SelectionKey, ByteBuffer>(); // Store leftovers that still need to be written
+    private final Map<SelectionKey, ByteBuffer> leftoverForWriting = new HashMap<>(); // Store leftovers that still need to be written
 
-    private final Set<SelectionKey> closeAfterWriting = new HashSet<SelectionKey>();
+    private final Set<SelectionKey> closeAfterWriting = new HashSet<>();
 
-    // if we're using a single instance of the server for all stack instances
-    private static NioServer instance;
+    // simple identifier for the thread
+    private final long id;
+
+    // stun stack instance
+    private StunStack stunStack;
 
     /* ******** C O N S T R U C T O R S ******** */
 
     /**
      * Constructs a new NioServer, listening to nothing, and not started.
      */
-    private NioServer() {
-        logger.info("New NIO ICE server instanced");
+    private NioServer(StunStack stunStack) {
+        // generate an id
+        id = System.nanoTime();
+        // set the stun stack
+        this.stunStack = stunStack;
+        logger.info("New NIO ICE {}server instanced: {}", (SHARED_MODE ? "shared " : ""), id);
+        // create direct buffers for in/out
+        inBuff = ByteBuffer.allocateDirect(inputBufferSize); // Buffer to use for everything
+        outBuff = ByteBuffer.allocateDirect(outputBufferSize); // Buffer to use for everything
     }
 
     /**
@@ -248,14 +252,14 @@ public class NioServer {
      * 
      * @return NioServer
      */
-    public static NioServer getInstance() {
-        if (StackProperties.getBoolean("NIO_SHARED_MODE", true)) {
+    public static NioServer getInstance(StunStack stunStack) {
+        if (SHARED_MODE) {
             if (instance == null) {
-                instance = new NioServer();
+                instance = new NioServer(stunStack);
             }
             return instance;
         }
-        return new NioServer();
+        return new NioServer(stunStack);
     }
 
     /**
@@ -264,7 +268,7 @@ public class NioServer {
      * @return true if shared and false otherwise
      */
     public static boolean isShared() {
-        return instance != null;
+        return SHARED_MODE;
     }
 
     /**
@@ -352,47 +356,54 @@ public class NioServer {
 
     /**
      * Attempts to start the server listening and returns immediately.
-     * Listen for start events to know if the server was
-     * successfully started.
+     * Listen for start events to know if the server was successfully started.
      *
      * @see NioServer.Listener
      */
     public void start() {
         if (currentState.compareAndSet(State.STOPPED, State.STARTING)) { // Only if we're stopped now
-            assert ioThread == null : ioThread; // Shouldn't have a thread
-            Runnable run = new Runnable() {
+            setState(State.STARTED); // Mark as started
+            pendingTcpAdds.addAll(tcpBindings.keySet());
+            pendingUdpAdds.addAll(udpBindings.keySet());
+            future = stunStack.submit(new Runnable() {
                 @Override
                 public void run() {
-                    runServer(); // This runs for a long time
-                    ioThread = null;
-                    setState(State.STOPPED); // Clear thread
+                    Thread.currentThread().setName(String.format("NioServer@%d", id));
+                    Thread.currentThread().setPriority(priority);
+                    runServer();
+                    logger.debug("Server loop exited: {}", id);
+                    stop();
                 } // end run
-            }; // end runnable
-            ioThread = new Thread(run, this.getClass().getName()); // Named
-            ioThread.setPriority(priority);
-            ioThread.start(); // Start thread
+            }); // end runnable
         } // end if: currently stopped
     } // end start
 
     /**
-     * Attempts to stop the server, if the server is in
-     * the STARTED state, and returns immediately.
-     * Be sure to listen for stop events to know if the server was
-     * successfully stopped.
+     * Attempts to stop the server, if the server is in the STARTED state, and returns immediately.
+     * Be sure to listen for stop events to know if the server was successfully stopped.
      *
      * @see NioServer.Listener
      */
     public void stop() {
+        logger.info("stop: {} state: {}", id, getState());
         if (currentState.compareAndSet(State.STARTED, State.STOPPING) || currentState.compareAndSet(State.STARTING, State.STOPPING)) { // Only if already STARTED
+            // cancel future first to interrupt the runnable
+            if (future.cancel(true)) {
+                logger.info("Cancelling job: {}", id);
+            } else {
+                logger.warn("Job: {} could not be cancelled", id);
+            }
+            // try the wakeup
             if (selector != null) {
                 selector.wakeup();
             } // end if: not null
+            setState(State.STOPPED);
         } // end if: already STARTED
     } // end stop
 
     /**
-     * Returns the current state of the server, one of
-     * STARTING, STARTED, STOPPING, or STOPPED.
+     * Returns the current state of the server, one of STARTING, STARTED, STOPPING, or STOPPED.
+     * 
      * @return state of the server
      */
     public State getState() {
@@ -400,12 +411,13 @@ public class NioServer {
     }
 
     /**
-     * Sets the state and fires an event. This method
-     * does not change what the server is doing, only
+     * Sets the state and fires an event. This method does not change what the server is doing, only
      * what is reflected by the currentState variable.
+     * 
      * @param state the new state of the server
      */
     protected void setState(State state) {
+        logger.info("setState to {} from {}", state, currentState.get());
         State oldVal = currentState.getAndSet(state);
         firePropertyChange(STATE_PROP, oldVal, state);
     }
@@ -421,7 +433,7 @@ public class NioServer {
     public void reset() {
         switch (currentState.get()) {
             case STARTED:
-                this.addPropertyChangeListener(STATE_PROP, new PropertyChangeListener() {
+                addPropertyChangeListener(STATE_PROP, new PropertyChangeListener() {
                     public void propertyChange(PropertyChangeEvent evt) {
                         State newState = (State) evt.getNewValue();
                         if (newState == State.STOPPED) {
@@ -440,43 +452,27 @@ public class NioServer {
      * This method starts up and listens indefinitely for network connections. On entering this method,
      * the state is assumed to be STARTING. Upon exiting this method, the state will be STOPPING.
      */
-    protected void runServer() {
+    private void runServer() {
         try {
-            ByteBuffer inBuff = ByteBuffer.allocateDirect(this.inputBufferSize); // Buffer to use for everything
-            ByteBuffer outBuff = ByteBuffer.allocateDirect(this.outputBufferSize); // Buffer to use for everything
-            synchronized (this) {
-                this.pendingTcpAdds.addAll(this.tcpBindings.keySet());
-                this.pendingUdpAdds.addAll(this.udpBindings.keySet());
-            }
-            setState(State.STARTED); // Mark as started
             while (runLoopCheck()) {
                 ////////  B L O C K S   H E R E
-                if (this.selector.select() <= 0) { // Block until notified
-                    logger.trace("selector.select() <= 0"); // Possible false start
-                    Thread.sleep(selectorSleepMs); // Let's not run away from ourselves
-                }///////  B L O C K S   H E R E
-                if (currentState.get() == State.STOPPING) {
-                    try {
-                        for (SelectionKey key : this.selector.keys()) {
-                            key.channel().close();
-                            key.cancel();
-                        }
-                    } catch (IOException exc) {
-                        fireExceptionNotification(exc);
-                        logger.error("An error occurred while closing the server. This try{may have left the server in an undefined state.", exc);
-                    }
-                } else {
+                if (selector.select() <= 0) { // Block until notified
+                    //Thread.sleep(1L);
+                    //Thread.yield();
+                }
+                ///////  B L O C K S   H E R E
+                if (currentState.get() == State.STARTED) {
                     // Possibly resize outBuff if a change was requested since last cycle
-                    if (this.inputBufferSize != inBuff.capacity()) { // Mismatch size means someone asked for something new
-                        assert this.inputBufferSize >= 0 : this.inputBufferSize; // We check for this in setBufferSize(..)
-                        inBuff = ByteBuffer.allocateDirect(this.inputBufferSize); // Resize and use direct for OS efficiencies
+                    if (inputBufferSize != inBuff.capacity()) { // Mismatch size means someone asked for something new
+                        assert inputBufferSize >= 0 : inputBufferSize; // We check for this in setBufferSize(..)
+                        inBuff = ByteBuffer.allocateDirect(inputBufferSize); // Resize and use direct for OS efficiencies
                     }
                     // Possibly resize outBuff if a change was requested since last cycle
-                    if (this.outputBufferSize != outBuff.capacity()) { // Mismatch size means someone asked for something new
-                        assert this.outputBufferSize >= 0 : this.outputBufferSize; // We check for this in setBufferSize(..)
-                        outBuff = ByteBuffer.allocateDirect(this.outputBufferSize); // Resize and use direct for OS efficiencies
+                    if (outputBufferSize != outBuff.capacity()) { // Mismatch size means someone asked for something new
+                        assert outputBufferSize >= 0 : outputBufferSize; // We check for this in setBufferSize(..)
+                        outBuff = ByteBuffer.allocateDirect(outputBufferSize); // Resize and use direct for OS efficiencies
                     }
-                    Set<SelectionKey> keys = this.selector.selectedKeys(); // These keys need attention
+                    Set<SelectionKey> keys = selector.selectedKeys(); // These keys need attention
                     if (logger.isTraceEnabled()) { // Only report this at finest grained logging level
                         logger.trace("Keys: {}", keys); // Which keys are being examined this round
                     }
@@ -506,36 +502,29 @@ public class NioServer {
                             key.channel().close();
                         } // end catch
                     } // end while: keys
+                } else {
+                    for (SelectionKey key : selector.keys()) {
+                        key.channel().close();
+                        key.cancel();
+                        fireConnectionClosed(key); // Fire event for connection closed
+                    }
                 }
             } // end while: selector is open
-              // Handle closing and exceptions, etc
         } catch (Exception exc) {
-            if (currentState.get() == State.STOPPING) { // User asked to stop
-                try {
-                    this.selector.close();
-                    this.selector = null;
-                    logger.info("Server closed normally.");
-                } catch (IOException exc2) {
-                    this.lastException = exc2;
-                    logger.error("An error occurred while closing the server. This may have left the server in an undefined state.", exc2);
-                    fireExceptionNotification(exc2);
-                } // end catch IOException
-            } else {
-                logger.warn("Server closed unexpectedly: {}", exc.getMessage(), exc);
-            } // end else
+            logger.error("An error occurred while closing the server. This may have left the server in an undefined state.", exc);
             fireExceptionNotification(exc);
         } finally {
-            setState(State.STOPPING);
-            if (this.selector != null) {
+            if (selector != null) {
                 try {
-                    this.selector.close();
+                    selector.close();
                 } catch (IOException exc2) {
                     logger.error("An error occurred while closing the server. This may have left the server in an undefined state.", exc2);
                     fireExceptionNotification(exc2);
                 } // end catch IOException
             } // end if: not null
-            this.selector = null;
+            selector = null;
         } // end finally
+        logger.info("Server exit: {}", id);
     }
 
     /**
@@ -545,8 +534,10 @@ public class NioServer {
      */
     private boolean runLoopCheck() throws IOException {
         if (currentState.get() == State.STOPPING) {
-            logger.debug("Stopping server by request.");
+            logger.debug("Stopping server by request");
             assert selector != null;
+            // no key needed on close
+            fireConnectionClosed(null); // Fire event for connection closed
             selector.close();
         } else if (selector == null) {
             selector = Selector.open();
@@ -832,11 +823,11 @@ public class NioServer {
      * @param key the accKey that's closing
      */
     private void cleanupClosedConnection(SelectionKey key) {
-        this.pendingTcpNotifyOnWritable.remove(key);
-        this.leftoverForReading.remove(key);
-        this.leftoverForWriting.remove(key);
-        this.closeAfterWriting.remove(key);
-        this.pendingTcpNotifyOnWritable.remove(key);
+        pendingTcpNotifyOnWritable.remove(key);
+        leftoverForReading.remove(key);
+        leftoverForWriting.remove(key);
+        closeAfterWriting.remove(key);
+        pendingTcpNotifyOnWritable.remove(key);
     }
 
     /**
@@ -889,8 +880,9 @@ public class NioServer {
      * 
      * @param selectorSleepMs
      */
+    @Deprecated
     public void setSelectorSleepMs(long selectorSleepMs) {
-        this.selectorSleepMs = selectorSleepMs;
+        //this.selectorSleepMs = selectorSleepMs;
     }
 
     /**
@@ -923,10 +915,9 @@ public class NioServer {
     }
 
     /**
-     * Sets the size of the ByteBuffer used to read
-     * from the connections. This refers to the buffer
-     * that will be passed along with {@link Event}
-     * objects as data is received and so forth.
+     * Sets the size of the ByteBuffer used to read from the connections. This refers to the buffer
+     * that will be passed along with {@link Event} objects as data is received and so forth.
+     * 
      * @param size The size of the ByteBuffer
      * @throws IllegalArgumentException if size is not positive
      */
@@ -934,19 +925,18 @@ public class NioServer {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-        int oldVal = inputBufferSize;
+          //int oldVal = inputBufferSize;
         inputBufferSize = size;
         if (selector != null) {
             selector.wakeup();
         }
-        firePropertyChange(INPUT_BUFFER_SIZE_PROP, oldVal, size);
+        //firePropertyChange(INPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
 
     /**
-     * Returns the size of the ByteBuffer used to write
-     * to the connections. This refers to the buffer
-     * that will be passed along with {@link Event}
-     * objects.
+     * Returns the size of the ByteBuffer used to write to the connections. This refers to the buffer
+     * that will be passed along with {@link Event} objects.
+     * 
      * @return The size of the ByteBuffer
      */
     public int getOutputBufferSize() {
@@ -965,12 +955,12 @@ public class NioServer {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-        int oldVal = outputBufferSize;
+          //int oldVal = outputBufferSize;
         outputBufferSize = size;
         if (selector != null) {
             selector.wakeup();
         }
-        firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, oldVal, size);
+        //firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
 
     /* ******** T C P B I N D I N G S ******** */
@@ -1368,7 +1358,7 @@ public class NioServer {
      * @param channel SelectableChannel that has been bound
      */
     protected synchronized void fireNewBinding(SelectableChannel channel) {
-        BindingEvent bound = new BindingEvent(channel);
+        BindingEvent bound = new BindingEvent(this, channel);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
@@ -1390,8 +1380,8 @@ public class NioServer {
      */
     public synchronized void fireProperties() {
         firePropertyChange(STATE_PROP, null, getState());
-        firePropertyChange(INPUT_BUFFER_SIZE_PROP, null, getInputBufferSize());
-        firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, null, getOutputBufferSize());
+        //firePropertyChange(INPUT_BUFFER_SIZE_PROP, null, getInputBufferSize());
+        //firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, null, getOutputBufferSize());
     }
 
     /**
@@ -1738,12 +1728,24 @@ public class NioServer {
 
         private final static long serialVersionUID = 1;
 
-        public BindingEvent(SelectableChannel src) {
+        private final NioServer server;
+
+        public BindingEvent(NioServer server, SelectableChannel src) {
             super(src);
+            this.server = server;
         }
 
         public Object getSource() {
             return source;
+        }
+
+        /**
+         * Returns the server to which the binding completed, a {@link NioServer}.
+         * 
+         * @return the server
+         */
+        public NioServer getNioServer() {
+            return server;
         }
 
     }

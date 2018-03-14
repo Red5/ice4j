@@ -6,11 +6,15 @@
  */
 package org.ice4j.stunclient;
 
-import junit.framework.*;
+import junit.framework.TestCase;
 
-import org.ice4j.*;
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
+import org.ice4j.StackProperties;
+import org.ice4j.StunException;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Response;
+import org.ice4j.stack.StunStack;
 
 import test.PortUtil;
 

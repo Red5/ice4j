@@ -1,40 +1,39 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.message;
 
-import java.util.*;
+import java.util.Arrays;
 
-import junit.framework.*;
+import junit.framework.TestCase;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.stack.*;
+import org.ice4j.MsgFixture;
+import org.ice4j.StunException;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ChangeRequestAttribute;
+import org.ice4j.attribute.ChangedAddressAttribute;
+import org.ice4j.attribute.MappedAddressAttribute;
+import org.ice4j.attribute.SourceAddressAttribute;
+import org.ice4j.stack.StunStack;
 
-public class MessageTest extends TestCase
-{
-    private Message bindingRequest       = null;
-    private Message bindingResponse      = null;
+public class MessageTest extends TestCase {
+    private Message bindingRequest = null;
 
-    private MappedAddressAttribute  mappedAddress = null;
-    private SourceAddressAttribute  sourceAddress = null;
+    private Message bindingResponse = null;
+
+    private MappedAddressAttribute mappedAddress = null;
+
+    private SourceAddressAttribute sourceAddress = null;
+
     private ChangedAddressAttribute changedAddress = null;
 
-    private ChangeRequestAttribute  changeRequest = null;
+    private ChangeRequestAttribute changeRequest = null;
 
     private MsgFixture msgFixture;
 
@@ -43,19 +42,18 @@ public class MessageTest extends TestCase
      */
     private StunStack stunStack;
 
-    protected void setUp() throws Exception
-    {
+    protected void setUp() throws Exception {
         super.setUp();
 
         msgFixture = new MsgFixture();
+
         stunStack = new StunStack();
 
         //binding request
         bindingRequest = new Request();
         bindingRequest.setMessageType(Message.BINDING_REQUEST);
 
-        changeRequest = AttributeFactory.createChangeRequestAttribute(
-                   MsgFixture.CHANGE_IP_FLAG_1, MsgFixture.CHANGE_PORT_FLAG_1);
+        changeRequest = AttributeFactory.createChangeRequestAttribute(MsgFixture.CHANGE_IP_FLAG_1, MsgFixture.CHANGE_PORT_FLAG_1);
         bindingRequest.putAttribute(changeRequest);
         bindingRequest.setTransactionID(MsgFixture.TRANSACTION_ID);
 
@@ -63,32 +61,21 @@ public class MessageTest extends TestCase
         bindingResponse = new Response();
         bindingResponse.setMessageType(Message.BINDING_SUCCESS_RESPONSE);
 
-        mappedAddress = AttributeFactory.createMappedAddressAttribute(
-            new TransportAddress(
-                            MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS,
-                            MsgFixture.ADDRESS_ATTRIBUTE_PORT,
-                            Transport.UDP));
+        mappedAddress = AttributeFactory.createMappedAddressAttribute(new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS, MsgFixture.ADDRESS_ATTRIBUTE_PORT, Transport.UDP));
 
         bindingResponse.putAttribute(mappedAddress);
 
-        sourceAddress = AttributeFactory.createSourceAddressAttribute(
-            new TransportAddress(
-                            MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_2,
-                            MsgFixture.ADDRESS_ATTRIBUTE_PORT_2,
-                            Transport.UDP));
+        sourceAddress = AttributeFactory.createSourceAddressAttribute(new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_2, MsgFixture.ADDRESS_ATTRIBUTE_PORT_2, Transport.UDP));
 
         bindingResponse.putAttribute(sourceAddress);
 
-        changedAddress = AttributeFactory.createChangedAddressAttribute(
-            new TransportAddress( MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_3,
-                        MsgFixture.ADDRESS_ATTRIBUTE_PORT_3, Transport.UDP));
+        changedAddress = AttributeFactory.createChangedAddressAttribute(new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_3, MsgFixture.ADDRESS_ATTRIBUTE_PORT_3, Transport.UDP));
 
         bindingResponse.putAttribute(changedAddress);
         bindingResponse.setTransactionID(MsgFixture.TRANSACTION_ID);
     }
 
-    protected void tearDown() throws Exception
-    {
+    protected void tearDown() throws Exception {
         bindingRequest = null;
         bindingResponse = null;
         mappedAddress = null;
@@ -99,7 +86,6 @@ public class MessageTest extends TestCase
 
         stunStack = null;
         msgFixture = null;
-
         super.tearDown();
     }
 
@@ -110,31 +96,23 @@ public class MessageTest extends TestCase
      *
      * @throws StunException java.lang.Exception if we fail
      */
-    public void testAddAndGetAttribute() throws StunException
-    {
+    public void testAddAndGetAttribute() throws StunException {
 
-        Response   message = new Response();
+        Response message = new Response();
         message.setMessageType(Message.BINDING_SUCCESS_RESPONSE);
         message.putAttribute(mappedAddress);
 
         Attribute getResult = null;
 
-
         getResult = message.getAttribute(mappedAddress.getAttributeType());
-        assertEquals("Originally added attribute did not match the one retrned "
-                     +"by getAttribute()",
-                     mappedAddress,
-                     getResult);
+        assertEquals("Originally added attribute did not match the one retrned " + "by getAttribute()", mappedAddress, getResult);
 
         //do it again
         message.putAttribute(sourceAddress);
 
         getResult = message.getAttribute(sourceAddress.getAttributeType());
 
-
-        assertEquals("The second attribute could not be extracted.",
-                    sourceAddress,
-                    getResult);
+        assertEquals("The second attribute could not be extracted.", sourceAddress, getResult);
     }
 
     /**
@@ -143,23 +121,19 @@ public class MessageTest extends TestCase
      *
      * @throws StunException java.lang.Exception if we fail
      */
-    public void testEncode()
-        throws StunException
-    {
+    public void testEncode() throws StunException {
         //Binding Request
         byte[] expectedReturn = msgFixture.bindingRequest;
 
         byte[] actualReturn = bindingRequest.encode(stunStack);
-        assertTrue("A binding request was not properly encoded",
-                   Arrays.equals(  expectedReturn, actualReturn ) );
+        assertTrue("A binding request was not properly encoded", Arrays.equals(expectedReturn, actualReturn));
 
         //Binding Response
         expectedReturn = msgFixture.bindingResponse;
 
         actualReturn = bindingResponse.encode(stunStack);
 
-        assertTrue("A binding response was not properly encoded",
-                     Arrays.equals(  expectedReturn, actualReturn ) );
+        assertTrue("A binding response was not properly encoded", Arrays.equals(expectedReturn, actualReturn));
     }
 
     /**
@@ -168,28 +142,20 @@ public class MessageTest extends TestCase
      *
      * @throws Exception java.lang.Exception if we fail
      */
-    public void testDecode()
-        throws Exception
-    {
+    public void testDecode() throws Exception {
         //Binding Request
         Message expectedReturn = bindingRequest;
 
-        Message actualReturn = Message.decode(msgFixture.bindingRequest,
-                                     (char)0,
-                                     (char)msgFixture.bindingRequest.length);
+        Message actualReturn = Message.decode(msgFixture.bindingRequest, (char) 0, (char) msgFixture.bindingRequest.length);
 
-        assertEquals("A binding request was not properly decoded",
-                     expectedReturn, actualReturn );
+        assertEquals("A binding request was not properly decoded", expectedReturn, actualReturn);
 
         //Binding Response
         expectedReturn = bindingResponse;
 
-        actualReturn = Message.decode(msgFixture.bindingResponse,
-                                     (char)0,
-                                     (char)msgFixture.bindingResponse.length);
+        actualReturn = Message.decode(msgFixture.bindingResponse, (char) 0, (char) msgFixture.bindingResponse.length);
 
-        assertEquals("A binding response was not properly decoded",
-                     expectedReturn, actualReturn );
+        assertEquals("A binding response was not properly decoded", expectedReturn, actualReturn);
     }
 
     /**
@@ -198,27 +164,21 @@ public class MessageTest extends TestCase
      *
      * @throws StunException java.lang.Exception if we fail
      */
-    public void testEquals()
-        throws StunException
-    {
+    public void testEquals() throws StunException {
         Object target = null;
         boolean expectedReturn = false;
         boolean actualReturn = bindingRequest.equals(target);
-        assertEquals("Equals failed against a null target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against a null target", expectedReturn, actualReturn);
 
         actualReturn = bindingResponse.equals(target);
-        assertEquals("Equals failed against a null target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against a null target", expectedReturn, actualReturn);
 
         //different
         actualReturn = bindingRequest.equals(bindingResponse);
-        assertEquals("Equals failed against a different target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against a different target", expectedReturn, actualReturn);
 
         actualReturn = bindingResponse.equals(bindingRequest);
-        assertEquals("Equals failed against a different target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against a different target", expectedReturn, actualReturn);
 
         //same
         expectedReturn = true;
@@ -229,8 +189,7 @@ public class MessageTest extends TestCase
         binReqTarget.setMessageType(Message.BINDING_REQUEST);
         binReqTarget.putAttribute(changeRequest);
         actualReturn = bindingRequest.equals(binReqTarget);
-        assertEquals("Equals failed against an equal target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against an equal target", expectedReturn, actualReturn);
 
         //Create a binding response with the same attributes as
         //this.bindingRequest
@@ -240,41 +199,33 @@ public class MessageTest extends TestCase
         binResTarget.putAttribute(sourceAddress);
         binResTarget.putAttribute(changedAddress);
         actualReturn = bindingResponse.equals(binResTarget);
-        assertEquals("Equals failed against a different target",
-                        expectedReturn, actualReturn);
+        assertEquals("Equals failed against a different target", expectedReturn, actualReturn);
     }
 
     /**
      * Tests  whether attributes are properly counted
      */
-    public void testGetAttributeCount()
-    {
+    public void testGetAttributeCount() {
         int expectedReturn = 1;
         int actualReturn = bindingRequest.getAttributeCount();
-        assertEquals("getAttributeCount failed for a bindingRequest",
-                     expectedReturn, actualReturn);
+        assertEquals("getAttributeCount failed for a bindingRequest", expectedReturn, actualReturn);
         expectedReturn = 3;
         actualReturn = bindingResponse.getAttributeCount();
-        assertEquals("getAttributeCount failed for a bindingRequest",
-                     expectedReturn, actualReturn);
+        assertEquals("getAttributeCount failed for a bindingRequest", expectedReturn, actualReturn);
     }
 
     /**
      * Test whether attributes are properly removed.
      */
-    public void testRemoveAttribute()
-    {
+    public void testRemoveAttribute() {
 
         bindingRequest.removeAttribute(changeRequest.getAttributeType());
 
-        assertNull("An attribute was still in the request after being removed",
-               bindingRequest.getAttribute(changeRequest.getAttributeType()));
+        assertNull("An attribute was still in the request after being removed", bindingRequest.getAttribute(changeRequest.getAttributeType()));
 
         //test count
         int expectedReturn = 0;
         int actualReturn = bindingRequest.getAttributeCount();
-        assertEquals(
-            "Attribute count did not change after removing an attribute",
-            expectedReturn, actualReturn);
+        assertEquals("Attribute count did not change after removing an attribute", expectedReturn, actualReturn);
     }
 }

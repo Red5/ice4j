@@ -39,9 +39,6 @@ public class ShallowStackTest extends TestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(ShallowStackTest.class);
 
-    /**
-     * The StunStack used by this ShallowStackTest
-     */
     private StunStack stunStack;
 
     private MsgFixture msgFixture;

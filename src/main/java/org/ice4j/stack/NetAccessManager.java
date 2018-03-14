@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
@@ -57,11 +55,6 @@ class NetAccessManager {
     private final Queue<RawMessage> messageQueue = new ArrayDeque<>(4);
 
     /**
-     * A thread executor for message processors.
-     */
-    private final ExecutorService executor = Executors.newCachedThreadPool();
-
-    /**
      * The StunStack which has created this instance, is its owner and is the handler that incoming message requests should be passed to.
      */
     private final StunStack stunStack;
@@ -74,11 +67,7 @@ class NetAccessManager {
      */
     NetAccessManager(StunStack stunStack) {
         this.stunStack = stunStack;
-        // start off with 1..n message processor(s)
-        //for (int i = 0; i < 2; i++) {
-            MessageProcessor messageProc = new MessageProcessor(this, messageQueue);
-            messageProc.setFutureRef(executor.submit(messageProc));
-        //}
+        this.stunStack.submit(new MessageProcessor(this, messageQueue));
     }
 
     /**
@@ -164,7 +153,7 @@ class NetAccessManager {
      * Stops NetAccessManager and all of its MessageProcessor.
      */
     public void stop() {
-        executor.shutdownNow();
+        logger.info("stop");
         // close all udp
         for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
             for (Connector connector : map.values()) {

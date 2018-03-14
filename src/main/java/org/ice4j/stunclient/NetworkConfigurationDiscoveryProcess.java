@@ -117,7 +117,7 @@ public class NetworkConfigurationDiscoveryProcess {
         sock = null;
         localAddress = null;
         requestSender = null;
-        this.started = false;
+        started = false;
     }
 
     /**

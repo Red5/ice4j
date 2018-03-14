@@ -49,8 +49,8 @@ public class Ice {
     // local coTurn testing
     //private static final TransportAddress stun4 = new TransportAddress("10.0.0.5", 3478, Transport.UDP);
 
-    // stun.l.google.com stun1.l.google.com:19302 stun2.l.google.com:19302
-    private static final TransportAddress stun4 = new TransportAddress("stun3.l.google.com", 19302, Transport.UDP);
+    // stun.l.google.com stun1.l.google.com stun2.l.google.com stun3.l.google.com
+    private static final TransportAddress stun4 = new TransportAddress("stun1.l.google.com", 19302, Transport.UDP);
 
     // jitsi stun
     //private static final TransportAddress stun4 = new TransportAddress("stun.jitsi.net", 3478, Transport.UDP);

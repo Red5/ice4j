@@ -2,7 +2,6 @@
 package org.ice4j.stack;
 
 import java.util.Queue;
-import java.util.concurrent.Future;
 
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
@@ -16,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * @author Emil Ivov
  */
 class MessageProcessor implements Runnable {
- 
+
     private static final Logger logger = LoggerFactory.getLogger(MessageProcessor.class);
 
     /**
@@ -30,9 +29,9 @@ class MessageProcessor implements Runnable {
     private final MessageEventHandler messageEventHandler;
 
     /**
-     * A reference to the future that we use to execute ourselves.
+     * Loop flag for our execution.
      */
-    private Future<?> future;
+    private boolean process = true;
 
     /**
      * Creates a Message processor.
@@ -57,10 +56,9 @@ class MessageProcessor implements Runnable {
      * Does the message parsing.
      */
     public void run() {
-        Thread.currentThread().setName("MessageProcessor@" + System.currentTimeMillis());
-        // add an extra try/catch block that handles uncaught errors and helps avoid having dead threads in our pools.
-        try {
-            while (true) {
+        Thread.currentThread().setName("MessageProcessor@" + System.nanoTime());
+        while (process) {
+            try {
                 RawMessage rawMessage = messageQueue.poll();
                 // anything to parse?
                 if (rawMessage != null) {
@@ -74,31 +72,27 @@ class MessageProcessor implements Runnable {
                     logger.trace("Dispatching a StunMessageEvent");
                     StunMessageEvent stunMessageEvent = new StunMessageEvent((StunStack) messageEventHandler, rawMessage, stunMessage);
                     messageEventHandler.handleMessageEvent(stunMessageEvent);
+                } else {
+                    Thread.sleep(10L);
                 }
-                Thread.sleep(10L);
+            } catch (InterruptedException iex) {
+                // no-op
+                logger.debug("Interrupted!");
+                stop();
+            } catch (Throwable err) {
+                // notify and bail
+                logger.warn("Unexpected Error!", err);
             }
-        } catch (InterruptedException iex) {
-            // no-op
-        } catch (Throwable err) {
-            // notify and bail
-            logger.warn("Unexpected Error!", err);
         }
+        logger.info("Message processor exit");
     }
 
     /**
      * Shut down the message processor.
      */
     void stop() {
-        future.cancel(true);
-    }
-
-    /**
-     * Sets a local reference to the future which owns this instance.
-     * 
-     * @param future
-     */
-    public void setFutureRef(Future<?> future) {
-        this.future = future;
+        logger.info("stop");
+        process = false;
     }
 
 }

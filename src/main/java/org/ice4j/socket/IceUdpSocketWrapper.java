@@ -67,8 +67,13 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 if (logger.isDebugEnabled()) {
                     logger.debug("newBinding: {}", evt);
                 }
+                if (server == null) {
+                    // get the server
+                    server = evt.getNioServer();
+                }
                 if (channel == null) {
                     try {
+                        // get the channel
                         DatagramChannel tmp = (DatagramChannel) evt.getSource();
                         //logger.debug("Binding: {} == {}", transportAddress, tmp.getLocalAddress());
                         if (transportAddress.equals(tmp.getLocalAddress())) {
@@ -89,22 +94,26 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 }
                 // is the data for us?
                 if (transportAddress.equals(evt.getLocalSocketAddress())) {
+                    if (server == null) {
+                        // get the server
+                        server = evt.getNioServer();
+                    }
                     if (channel == null) {
                         //logger.debug("Setting channel since its null");
                         channel = evt.getKey().channel();
                     }
                     // get the data
                     ByteBuffer recvBuf = evt.getInputBuffer();
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Recv bb: {} {}", recvBuf.position(), recvBuf.limit());
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Recv bb: {} {}", recvBuf.position(), recvBuf.limit());
                     }
                     // pull the bytes out
                     byte[] buf = new byte[recvBuf.remaining()];
                     recvBuf.get(buf);
                     // clear the receive buffer
                     recvBuf.clear();
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Recv cleared bb: {} {} buf: {}", recvBuf.position(), recvBuf.limit(), DatatypeConverter.printHexBinary(buf));
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Recv cleared bb: {} {} buf: {}", recvBuf.position(), recvBuf.limit(), DatatypeConverter.printHexBinary(buf));
                     }
                     // filter the data if filters exist
                     boolean reject = false;
@@ -126,8 +135,8 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         // add the message to the queue, which is shared with the Connector, etc...
                         messageQueue.add(rawMessage);
                     } else {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("RawMessage sequence number: {} length: {}", ((buf[2] & 0xFF) << 8 | (buf[3] & 0xFF)), buf.length);
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("RawMessage sequence number: {} length: {}", ((buf[2] & 0xFF) << 8 | (buf[3] & 0xFF)), buf.length);
                         }
                         //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
                         rawMessageQueue.add(rawMessage);

@@ -16,6 +16,7 @@ import java.util.concurrent.LinkedTransferQueue;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.NioServer;
 import org.ice4j.ice.nio.NioServer.Listener;
 import org.ice4j.socket.filter.DataFilter;
 import org.ice4j.stack.RawMessage;
@@ -40,6 +41,11 @@ public abstract class IceSocketWrapper {
     protected TransportAddress transportAddress;
 
     protected TransportAddress remoteTransportAddress;
+
+    /**
+     * NIO server the connection is bound with.
+     */
+    protected NioServer server;
 
     /**
      * NIO server listener.
@@ -134,9 +140,21 @@ public abstract class IceSocketWrapper {
         if (channel != null) {
             logger.debug("close: {}", channel);
             try {
+                // removals depend upon getting at least one message over the wire
+                if (server != null) {
+                    // remove our binding
+                    if (transportAddress.getTransport() == Transport.UDP) {
+                        server.removeUdpBinding(transportAddress);
+                    } else {
+                        server.removeTcpBinding(transportAddress);
+                    }
+                    // remove our listener
+                    server.removeNioServerListener(serverListener);
+                }
+                // close the channel
                 channel.close();
-            } catch (IOException e) {
-                logger.warn("Fail on close", e);
+            } catch (Throwable t) {
+                logger.warn("Fail on close", t);
             } finally {
                 channel = null;
             }

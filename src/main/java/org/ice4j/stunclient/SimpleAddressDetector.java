@@ -1,14 +1,20 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stunclient;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.BindException;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.MappedAddressAttribute;
+import org.ice4j.attribute.XorMappedAddressAttribute;
+import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Response;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,19 +66,19 @@ public class SimpleAddressDetector {
     }
 
     /**
+     * Puts the discoverer into an operational state.
+     */
+    public void start() {
+        stunStack = new StunStack();
+    }
+
+    /**
      * Shuts down the underlying stack and prepares the object for garbage
      * collection.
      */
     public void shutDown() {
         stunStack = null;
         requestSender = null;
-    }
-
-    /**
-     * Puts the discoverer into an operational state.
-     */
-    public void start() {
-        stunStack = new StunStack();
     }
 
     /**

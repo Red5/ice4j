@@ -24,6 +24,7 @@ import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.NioServer;
 import org.ice4j.ice.nio.NioServer.Event;
 import org.ice4j.message.Message;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,23 +41,6 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractUdpListener {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractUdpListener.class);
-
-    /**
-     * The size for newly allocated Buffer instances. This limits the maximum size of datagrams we can receive.
-     *
-     * XXX should we increase this in case of other MTUs, or set it dynamically according to the available network interfaces?
-     */
-    //private static final int BUFFER_SIZE = /* assumed MTU */1500 - /* IPv4 header */20 - /* UDP header */8;
-
-    /**
-     * The name of the property which controls the size of the receive buffer for the sockets created.
-     */
-    private static final String SO_RCVBUF_PNAME = AbstractUdpListener.class.getName() + ".SO_RCVBUF";
-
-    /**
-     * The name of the property which controls the size of the send buffer for the sockets created.
-     */
-    private static final String SO_SNDBUF_PNAME = AbstractUdpListener.class.getName() + ".SO_SNDBUF";
 
     /**
      * Returns the list of {@link TransportAddress}es, one for each allowed IP address found on each allowed network interface, with the given port.
@@ -143,22 +127,12 @@ public abstract class AbstractUdpListener {
         } else {
             this.localAddress = localAddress;
         }
+        // create a stunstack
+        final StunStack stunStack = new StunStack();
         // instance a new NIO server
-        server = NioServer.getInstance();
+        server = NioServer.getInstance(stunStack);
         // add the local binding
         server.addUdpBinding(localAddress);
-        // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
-        int receiveBufferSize = StackProperties.getInt(SO_RCVBUF_PNAME, -1);
-        if (receiveBufferSize > 0) {
-            server.setInputBufferSize(receiveBufferSize);
-        }
-        logger.info("Initialized AbstractUdpListener on: {} with recv buf size: {} of requested: {}", localAddress, server.getInputBufferSize(), receiveBufferSize);
-        // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
-        int sendBufferSize = StackProperties.getInt(SO_SNDBUF_PNAME, -1);
-        if (sendBufferSize > 0) {
-            server.setOutputBufferSize(sendBufferSize);
-        }
-        logger.info("Initialized AbstractUdpListener on: {} with send buf size: {} of requested: {}", localAddress, server.getOutputBufferSize(), sendBufferSize);
         // add a listener for data events
         server.addNioServerListener(new NioServer.Adapter(null) {
 
@@ -199,6 +173,7 @@ public abstract class AbstractUdpListener {
                 if (destinationSocket != null) {
                     destinationSocket.close();
                 }
+                stunStack.shutDown();
             }
 
         });

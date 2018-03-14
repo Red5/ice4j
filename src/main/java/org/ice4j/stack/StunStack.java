@@ -2,6 +2,7 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -11,6 +12,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 
 import javax.crypto.Mac;
 
@@ -100,9 +105,28 @@ public class StunStack implements MessageEventHandler {
     private static int sendBufferSize = StackProperties.getInt("SO_SNDBUF", 1500);
 
     /**
+     * Executor for all threads and tasks needed in this agent.
+     */
+    private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+
+                @Override
+                public void uncaughtException(Thread t, Throwable e) {
+                    logger.warn("Uncaught exception on {}", t.getName(), e);
+                }
+
+            });
+            return t;
+        }
+    });
+
+    /**
      * Internal NIO server for SocketChannel and DatagramChannel creation and handling.
      */
-    private NioServer server;
+    private final NioServer server;
 
     static {
         // The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after
@@ -118,7 +142,7 @@ public class StunStack implements MessageEventHandler {
         // create a new network access manager
         netAccessManager = new NetAccessManager(this);
         // get an instance
-        server = NioServer.getInstance();
+        server = NioServer.getInstance(this);
         if (!server.getState().equals(NioServer.State.STARTED)) {
             logger.debug("Starting Nio server");
             // set input and output buffer sizes
@@ -127,8 +151,9 @@ public class StunStack implements MessageEventHandler {
             server.setOutputBufferSize(sendBufferSize);
             //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
             server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
-            server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
+            //server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
             server.setBlockingIO(StackProperties.getBoolean("IO_BLOCKING", false));
+            // start it up
             server.start();
         }
     }
@@ -726,6 +751,12 @@ public class StunStack implements MessageEventHandler {
      * Cancels all running transactions and prepares for garbage collection
      */
     public void shutDown() {
+        // stop the executor
+        try {
+            executor.shutdownNow();
+        } catch (Exception e) {
+            logger.warn("Exception during shutdown", e);
+        }
         // remove all listeners
         eventDispatcher.removeAllListeners();
         // clientTransactions
@@ -1070,6 +1101,10 @@ public class StunStack implements MessageEventHandler {
      */
     NioServer getNioServer() {
         return server;
+    }
+
+    public Future<?> submit(Runnable task) {
+        return executor.submit(task);
     }
 
 }

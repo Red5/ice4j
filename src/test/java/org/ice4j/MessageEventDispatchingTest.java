@@ -1,7 +1,10 @@
 /* See LICENSE.md for license information */
 package org.ice4j;
 
-import java.util.Vector;
+import java.util.Queue;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
@@ -140,8 +143,8 @@ public class MessageEventDispatchingTest extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "1");
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         responseCollector.waitForTimeout();
-        assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.size(), 1);
-        assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.get(0), "timeout");
+        assertEquals("No timeout was produced upon expiration of a client transaction", 1, responseCollector.receivedResponses.size());
+        assertEquals("No timeout was produced upon expiration of a client transaction", "timeout", responseCollector.receivedResponses.remove());
         //restore the retransmissions prop in case others are counting on defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
@@ -197,9 +200,9 @@ public class MessageEventDispatchingTest extends TestCase {
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         // wait for the message to arrive
         requestCollector.waitForRequest();
-        Vector<StunMessageEvent> reqs = requestCollector.receivedRequests;
+        Queue<StunMessageEvent> reqs = requestCollector.receivedRequests;
         assertFalse(reqs.isEmpty());
-        StunMessageEvent evt = reqs.get(0);
+        StunMessageEvent evt = reqs.remove();
         byte[] tid = evt.getMessage().getTransactionID();
         stunStack.sendResponse(tid, bindingResponse, serverAddress, clientAddress);
         // wait for retransmissions
@@ -213,7 +216,7 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     private class PlainRequestCollector implements RequestListener {
         /** all requests we've received so far. */
-        public final Vector<StunMessageEvent> receivedRequests = new Vector<>();
+        public final BlockingDeque<StunMessageEvent> receivedRequests = new LinkedBlockingDeque<>();
 
         /**
          * Stores incoming requests.
@@ -221,20 +224,17 @@ public class MessageEventDispatchingTest extends TestCase {
          * @param evt the event containing the incoming request.
          */
         public void processRequest(StunMessageEvent evt) {
-            synchronized (this) {
-                receivedRequests.add(evt);
-                notifyAll();
-            }
+            receivedRequests.offer(evt);
         }
 
         public void waitForRequest() {
-            synchronized (this) {
-                if (receivedRequests.size() > 0)
-                    return;
-                try {
-                    wait(50);
-                } catch (InterruptedException e) {
+            try {
+                StunMessageEvent evt = receivedRequests.poll(50L, TimeUnit.MILLISECONDS);
+                if (evt != null) {
+                    // put it back on the head
+                    receivedRequests.addFirst(evt);
                 }
+            } catch (InterruptedException e) {
             }
         }
     }
@@ -243,7 +243,8 @@ public class MessageEventDispatchingTest extends TestCase {
      * A utility class to collect incoming responses.
      */
     private static class PlainResponseCollector extends AbstractResponseCollector {
-        public final Vector<Object> receivedResponses = new Vector<>();
+
+        public final BlockingDeque<Object> receivedResponses = new LinkedBlockingDeque<>();
 
         /**
          * Notifies this ResponseCollector that a transaction described by
@@ -254,17 +255,16 @@ public class MessageEventDispatchingTest extends TestCase {
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
-        protected synchronized void processFailure(BaseStunMessageEvent event) {
+        protected void processFailure(BaseStunMessageEvent event) {
             String receivedResponse;
-
-            if (event instanceof StunFailureEvent)
+            if (event instanceof StunFailureEvent) {
                 receivedResponse = "unreachable";
-            else if (event instanceof StunTimeoutEvent)
+            } else if (event instanceof StunTimeoutEvent) {
                 receivedResponse = "timeout";
-            else
+            } else {
                 receivedResponse = "failure";
-            receivedResponses.add(receivedResponse);
-            notifyAll();
+            }
+            receivedResponses.offer(receivedResponse);
         }
 
         /**
@@ -273,18 +273,19 @@ public class MessageEventDispatchingTest extends TestCase {
          * @param response a StunMessageEvent which describes the
          * received STUN Response
          */
-        public synchronized void processResponse(StunResponseEvent response) {
-            receivedResponses.add(response);
-            notifyAll();
+        public void processResponse(StunResponseEvent response) {
+            receivedResponses.offer(response);
         }
 
         /**
          * Waits for a short period of time for a response to arrive
          */
-        public synchronized void waitForResponse() {
+        public void waitForResponse() {
             try {
-                if (receivedResponses.size() == 0)
-                    wait(50);
+                Object obj = receivedResponses.poll(50L, TimeUnit.MILLISECONDS);
+                if (obj != null) {
+                    receivedResponses.addFirst(obj);
+                }
             } catch (InterruptedException e) {
             }
         }
@@ -292,10 +293,12 @@ public class MessageEventDispatchingTest extends TestCase {
         /**
          * Waits for a long period of time for a timeout trigger to fire.
          */
-        public synchronized void waitForTimeout() {
+        public void waitForTimeout() {
             try {
-                if (receivedResponses.size() == 0)
-                    wait(12000);
+                Object obj = receivedResponses.poll(7000L, TimeUnit.MILLISECONDS);
+                if (obj != null) {
+                    receivedResponses.addFirst(obj);
+                }
             } catch (InterruptedException e) {
             }
         }
