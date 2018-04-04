@@ -742,7 +742,7 @@ public class StunStack implements MessageEventHandler {
     public void shutDown() {
         // stop the executor
         try {
-            executor.shutdownNow();
+            executor.shutdown();
         } catch (Exception e) {
             logger.warn("Exception during shutdown", e);
         }
@@ -1092,7 +1092,14 @@ public class StunStack implements MessageEventHandler {
         return server;
     }
 
+    /**
+     * Submit a task to the internal executor.
+     * 
+     * @param task
+     * @return Future
+     */
     public Future<?> submit(Runnable task) {
+        logger.info("Submitting task: {}", task);
         return executor.submit(task);
     }
 
