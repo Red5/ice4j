@@ -63,7 +63,7 @@ class NetAccessManager {
     /**
      * Future for the message processor worker.
      */
-    private Future<?> messageProcessor;
+    private Future<?> messageProcessorFuture;
 
     /**
      * Constructs a NetAccessManager.
@@ -73,7 +73,7 @@ class NetAccessManager {
      */
     NetAccessManager(StunStack stunStack) {
         this.stunStack = stunStack;
-        messageProcessor = this.stunStack.submit(new MessageProcessor(this, messageQueue));
+        messageProcessorFuture = this.stunStack.submit(new MessageProcessor(this, messageQueue));
     }
 
     /**
@@ -159,9 +159,9 @@ class NetAccessManager {
      * Stops NetAccessManager and all of its MessageProcessor.
      */
     public void stop() {
-        logger.info("stop");
+        logger.debug("stop");
         // to interrupt or not to interrupt
-        if (!messageProcessor.cancel(false)) {
+        if (!messageProcessorFuture.cancel(true)) {
             logger.warn("Message processor was not cancelled");
         }
         // close all udp

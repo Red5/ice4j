@@ -75,13 +75,12 @@ class MessageProcessor implements Runnable {
                 } else {
                     Thread.sleep(10L);
                 }
-            } catch (InterruptedException iex) {
-                // no-op
-                logger.debug("Interrupted!");
-                stop();
             } catch (Throwable err) {
                 // notify and bail
-                logger.warn("Unexpected Error!", err);
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Exception during processing", err);
+                }
+                stop();
             }
         }
         logger.info("Message processor exit");
