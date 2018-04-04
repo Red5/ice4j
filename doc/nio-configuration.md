@@ -11,7 +11,7 @@ Configuration of the send buffer is handled via the `SO_SNDBUF` property. The de
 Configuration of the receive buffer is handled via the `SO_RCVBUF` property. The default is 1500 and any target amount should take MTU size ~1500 into account.
 
 ## I/O thread priority
-Setting the I/O thread priority is handled via the `IO_THREAD_PRIORITY` property. The default priority is 6 and the maximum availabe in Java is 10.
+Setting the I/O thread priority is handled via the `IO_THREAD_PRIORITY` property. The default priority is 6 and the maximum available in Java is 10.
 
 ## NIO selector sleep milliseconds
 Providing adequate time between NIO selector checks is handled via the `NIO_SELECTOR_SLEEP_MS` property. The default sleep time between checks is 10 milliseconds.

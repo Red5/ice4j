@@ -152,7 +152,9 @@ public abstract class IceSocketWrapper {
                     server.removeNioServerListener(serverListener);
                 }
                 // close the channel
-                channel.close();
+                if (channel.isOpen()) {
+                    channel.close();
+                }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
             } finally {

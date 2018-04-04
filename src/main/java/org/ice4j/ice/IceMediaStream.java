@@ -416,7 +416,7 @@ public class IceMediaStream {
      * @param candidatePair the pair that we'd like to add to this streams.
      */
     protected void addToCheckList(CandidatePair candidatePair) {
-        checkList.add(candidatePair);
+        checkList.offer(candidatePair);
     }
 
     /**

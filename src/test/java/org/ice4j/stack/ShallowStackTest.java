@@ -200,7 +200,8 @@ public class ShallowStackTest extends TestCase {
         SimpleResponseCollector collector = new SimpleResponseCollector();
         //--------------- send the original request ----------------------------
         Request bindingRequest = MessageFactory.createBindingRequest();
-        stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, collector);
+        TransactionID transId = stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, collector);
+        logger.info("Request transaction id: {}", transId);
         // wait for its arrival
         collector.waitForResponse();
         // create the right response
@@ -411,7 +412,7 @@ public class ShallowStackTest extends TestCase {
             } else {
                 msg = "Failure";
             }
-            logger.info(msg);
+            logger.info("SimpleResponseCollector {}", msg);
         }
 
         /**
@@ -427,15 +428,13 @@ public class ShallowStackTest extends TestCase {
 
         /**
          * Blocks until a request arrives or 50 ms pass.
+         * @throws InterruptedException 
          */
-        public void waitForResponse() {
-            if (collectedResponse == null) {
-                try {
-                    Thread.sleep(100L);
-                } catch (InterruptedException e) {
-                    logger.warn("oops", e);
-                }
-            }
+        public void waitForResponse() throws InterruptedException {
+            do {
+                Thread.sleep(50L);
+                break;
+            } while (collectedResponse == null);
         }
     }
 

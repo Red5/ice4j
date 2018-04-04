@@ -98,12 +98,6 @@ public class StunStack implements MessageEventHandler {
      */
     private static PacketLogger packetLogger;
 
-    // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
-    private static int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", 1500);
-
-    // https://docs.oracle.com/javase/8/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
-    private static int sendBufferSize = StackProperties.getInt("SO_SNDBUF", 1500);
-
     /**
      * Executor for all threads and tasks needed in this agent.
      */
@@ -145,13 +139,8 @@ public class StunStack implements MessageEventHandler {
         server = NioServer.getInstance(this);
         if (!server.getState().equals(NioServer.State.STARTED)) {
             logger.debug("Starting Nio server");
-            // set input and output buffer sizes
-            server.setInputBufferSize(receiveBufferSize);
-            //logger.info("Initialized recv buf size: {} of requested: {}", server.getInputBufferSize(), receiveBufferSize);
-            server.setOutputBufferSize(sendBufferSize);
-            //logger.info("Initialized send buf size: {} of requested: {}", server.getOutputBufferSize(), sendBufferSize);
             server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
-            //server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
+            server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
             server.setBlockingIO(StackProperties.getBoolean("IO_BLOCKING", false));
             // start it up
             server.start();
@@ -175,10 +164,10 @@ public class StunStack implements MessageEventHandler {
      * is UDP.
      */
     public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
-        // add a listener for data events
-        server.addNioServerListener(wrapper.getServerListener());
         // get the local address
         TransportAddress localAddress = wrapper.getTransportAddress();
+        // add a listener for data events
+        server.addNioServerListener(localAddress, wrapper.getServerListener());
         if (localAddress.getTransport() == Transport.UDP) {
             // attempt to add a binding to the server
             server.addUdpBinding(localAddress);

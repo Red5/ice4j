@@ -81,7 +81,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     public void startChecks() {
         List<IceMediaStream> streamsWithPendingConnectivityEstablishment = parentAgent.getStreamsWithPendingConnectivityEstablishment();
         if (streamsWithPendingConnectivityEstablishment.size() > 0) {
-            logger.info("Start connectivity checks. Local ufrag " + parentAgent.getLocalUfrag());
+            logger.info("Start connectivity checks. Local ufrag {}", parentAgent.getLocalUfrag());
             startChecks(streamsWithPendingConnectivityEstablishment.get(0).getCheckList());
         } else {
             logger.info("Not starting any checks, because there are no pending streams.");
@@ -209,7 +209,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         CandidatePair checkedPair = (CandidatePair) ev.getTransactionID().getApplicationData();
         // make sure that the response came from the right place.
         if (!checkSymmetricAddresses(ev)) {
-            logger.info("Received a non-symmetric response for pair: " + checkedPair.toShortString() + ". Failing.");
+            logger.info("Received a non-symmetric response for pair: {}, Failing", checkedPair.toShortString());
             checkedPair.setStateFailed();
         } else {
             Response response = ev.getResponse();
@@ -253,8 +253,16 @@ class ConnectivityCheckClient implements ResponseCollector {
                     logger.info("CheckList will failed in a few seconds if no succeeded checks come");
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run() {
+                            long countdown = 3000L;
                             try {
-                                Thread.sleep(3000L);
+                                do {
+                                    Thread.sleep(500L);
+                                    if (checkList.getState() == CheckListState.RUNNING) {
+                                        countdown -= 500L;
+                                    } else {
+                                        break;
+                                    }
+                                } while (countdown > 0);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
                                     logger.info("CheckList for stream {} FAILED", streamName);
                                     checkList.setState(CheckListState.FAILED);
@@ -328,7 +336,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             //generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Receive a peer-reflexive candidate: " + peerReflexiveCandidate.getTransportAddress() + ". Local ufrag " + parentAgent.getLocalUfrag());
+                logger.info("Receive a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
             }
         }
         // check if the resulting valid pair was already in our check lists.
@@ -345,25 +353,25 @@ class ConnectivityCheckClient implements ResponseCollector {
             //The agent sets the state of the pair that *generated* the check to Succeeded.  Note that, the pair which *generated* the check may be
             //different than the valid pair constructed above
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Pair succeeded: " + checkedPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
+                logger.info("Pair succeeded: {} Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
             }
             checkedPair.setStateSucceeded();
         }
         if (!validPair.isValid()) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Pair validated: " + validPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
+                logger.info("Pair validated: {} Local ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
             }
             parentAgent.validatePair(validPair);
         }
         //The agent changes the states for all other Frozen pairs for the same media stream and same foundation to Waiting.
         IceMediaStream parentStream = checkedPair.getParentComponent().getParentStream();
-        synchronized (this) {
+        //synchronized (this) {
             for (CandidatePair pair : parentStream.getCheckList()) {
                 if (pair.getState() == CandidatePairState.FROZEN && checkedPair.getFoundation().equals(pair.getFoundation())) {
                     pair.setStateWaiting();
                 }
             }
-        }
+        //}
         // The agent examines the check list for all other streams in turn. If the check list is active, the agent changes the state of all Frozen
         // pairs in that check list whose foundation matches a pair in the valid list under consideration to Waiting.
         List<IceMediaStream> allOtherStreams = parentAgent.getStreams();
@@ -371,13 +379,13 @@ class ConnectivityCheckClient implements ResponseCollector {
         for (IceMediaStream stream : allOtherStreams) {
             CheckList checkList = stream.getCheckList();
             boolean wasFrozen = checkList.isFrozen();
-            synchronized (checkList) {
+            //synchronized (checkList) {
                 for (CandidatePair pair : checkList) {
                     if (parentStream.validListContainsFoundation(pair.getFoundation()) && pair.getState() == CandidatePairState.FROZEN) {
                         pair.setStateWaiting();
                     }
                 }
-            }
+            //}
             //if the checklList is still frozen after the above operations, the agent groups together all of the pairs with the same
             //foundation, and for each group, sets the state of the pair with the lowest component ID to Waiting.  If there is more than one
             //such pair, the one with the highest priority is used.
@@ -393,7 +401,6 @@ class ConnectivityCheckClient implements ResponseCollector {
         if (validPair.getParentComponent().getSelectedPair() == null) {
             logger.info("IsControlling: " + parentAgent.isControlling() + " USE-CANDIDATE:" + (attr != null || checkedPair.useCandidateSent()) + ". Local ufrag " + parentAgent.getLocalUfrag());
         }
-
         //If the agent was a controlling agent, and it had included a USE-CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
         if (parentAgent.isControlling() && attr != null) {
@@ -415,7 +422,6 @@ class ConnectivityCheckClient implements ResponseCollector {
                 logger.debug("Keep alive for pair: {}", validPair.toShortString());
             }
         }
-
         // Selected pairs get their consent freshness confirmed.
         // XXX Should we also confirm consent freshness for non-selected pairs?
         if (checkedPair.equals(checkedPair.getParentComponent().getSelectedPair())) {
@@ -460,7 +466,6 @@ class ConnectivityCheckClient implements ResponseCollector {
         int co = errorAttr.getErrorNumber() & 0xff;
         char errorCode = errorAttr.getErrorCode();
         logger.debug("Received error code {}", (int) errorCode);
-
         CandidatePair pair = (CandidatePair) ev.getTransactionID().getApplicationData();
         //RESOLVE ROLE_CONFLICTS
         if (errorCode == ErrorCodeAttribute.ROLE_CONFLICT) {

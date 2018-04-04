@@ -8,11 +8,13 @@ import java.math.BigInteger;
 import java.net.BindException;
 import java.security.SecureRandom;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,12 +79,6 @@ public class Agent {
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
      */
     public static final int DEFAULT_TERMINATION_DELAY = 50; // spec says 3s, but there's no good reason for that value imho
-
-    /**
-     * The constant which defines an empty array with element type PropertyChangeListener and represents the fact that there are no
-     * IceProcessingState change listeners added to an Agent (using {@link #addStateChangeListener(PropertyChangeListener)}.
-     */
-    private static final PropertyChangeListener[] NO_STATE_CHANGE_LISTENERS = new PropertyChangeListener[0];
 
     /**
      * The name of the {@link PropertyChangeEvent} that we use to deliver events on changes in the state of ICE processing in this agent.
@@ -182,7 +178,7 @@ public class Agent {
     /**
      * Contains {@link PropertyChangeListener}s registered with this {@link Agent} and following its changes of state.
      */
-    private final List<PropertyChangeListener> stateListeners = new LinkedList<>();
+    private final CopyOnWriteArraySet<PropertyChangeListener> stateListeners = new CopyOnWriteArraySet<>();
 
     /**
      * The StunStack used by this Agent.
@@ -544,11 +540,7 @@ public class Agent {
      * @param l the listener to register.
      */
     public void addStateChangeListener(PropertyChangeListener l) {
-        synchronized (stateListeners) {
-            if (!stateListeners.contains(l)) {
-                stateListeners.add(l);
-            }
-        }
+        stateListeners.add(l);
     }
 
     /**
@@ -557,9 +549,7 @@ public class Agent {
      * @param l the listener to remove.
      */
     public void removeStateChangeListener(PropertyChangeListener l) {
-        synchronized (stateListeners) {
-            stateListeners.remove(l);
-        }
+        stateListeners.remove(l);
     }
 
     /**
@@ -569,15 +559,10 @@ public class Agent {
      * @param newState the {@link IceProcessingState} we had after the change
      */
     private void fireStateChange(IceProcessingState oldState, IceProcessingState newState) {
-        PropertyChangeListener[] stateListenersCopy;
-        synchronized (stateListeners) {
-            stateListenersCopy = stateListeners.toArray(NO_STATE_CHANGE_LISTENERS);
-        }
-        if (stateListenersCopy.length != 0) {
-            PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_ICE_PROCESSING_STATE, oldState, newState);
-            for (PropertyChangeListener l : stateListenersCopy) {
-                l.propertyChange(evt);
-            }
+        Collection<PropertyChangeListener> stateListenersCopy = Collections.unmodifiableCollection(stateListeners);
+        final PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_ICE_PROCESSING_STATE, oldState, newState);
+        for (PropertyChangeListener l : stateListenersCopy) {
+            l.propertyChange(evt);
         }
     }
 
@@ -1599,7 +1584,7 @@ public class Agent {
             }
             try {
                 Thread.sleep(consentFreshnessInterval);
-                Thread.yield();
+                //Thread.yield();
             } catch (InterruptedException e) {
             }
         }

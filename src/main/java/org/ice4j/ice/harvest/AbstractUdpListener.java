@@ -117,6 +117,7 @@ public abstract class AbstractUdpListener {
 
     /**
      * Initializes a new SinglePortUdpHarvester instance which is to bind on the specified local address.
+     * 
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
      */
@@ -131,13 +132,11 @@ public abstract class AbstractUdpListener {
         final StunStack stunStack = new StunStack();
         // instance a new NIO server
         server = NioServer.getInstance(stunStack);
-        // add the local binding
-        server.addUdpBinding(localAddress);
         // add a listener for data events
-        server.addNioServerListener(new NioServer.Adapter(null) {
+        server.addNioServerListener(localAddress, new NioServer.Adapter(null) {
 
             @Override
-            public void udpDataReceived(Event evt) {
+            public boolean udpDataReceived(Event evt) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("udpDataReceived: {}", evt);
                 }
@@ -162,10 +161,11 @@ public abstract class AbstractUdpListener {
                         // Not a STUN Binding Request or doesn't have a valid USERNAME attribute, drop it.
                     }
                 }
+                return true;
             }
 
             @Override
-            public void connectionClosed(Event evt) {
+            public boolean connectionClosed(Event evt) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("connectionClosed: {}", evt);
                 }
@@ -174,9 +174,12 @@ public abstract class AbstractUdpListener {
                     destinationSocket.close();
                 }
                 stunStack.shutDown();
+                return true;
             }
 
         });
+        // add the local binding
+        server.addUdpBinding(localAddress);
         // start it up!
         server.start();
     }

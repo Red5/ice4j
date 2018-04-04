@@ -63,7 +63,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         serverListener = new NioServer.Adapter(this) {
 
             @Override
-            public void newBinding(BindingEvent evt) {
+            public boolean newBinding(BindingEvent evt) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("newBinding: {}", evt);
                 }
@@ -79,15 +79,17 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         if (transportAddress.equals(tmp.getLocalAddress())) {
                             //logger.debug("Setting channel since its null");
                             channel = tmp;
+                            return true;
                         }
                     } catch (Exception e) {
                         logger.warn("Exception setting up channel", e);
                     }
                 }
+                return false;
             }
 
             @Override
-            public void udpDataReceived(Event evt) {
+            public boolean udpDataReceived(Event evt) {
                 if (logger.isTraceEnabled()) {
                     //logger.trace("udpDataReceived: {}", evt);
                     logger.trace("udpDataReceived at {} for {} from {}", transportAddress, evt.getLocalSocketAddress(), evt.getRemoteSocketAddress());
@@ -141,18 +143,25 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         //    logger.debug("Rejected: {}", DatatypeConverter.printHexBinary(buf));
                         rawMessageQueue.add(rawMessage);
                     }
+                    return true;
                 } else {
                     //logger.debug("Data is not for us");
                 }
+                return false;
             }
 
             @Override
-            public void connectionClosed(Event evt) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("connectionClosed: {}", evt);
+            public boolean connectionClosed(Event evt) {
+                // ensure the connection closed event is meant for us
+                if (transportAddress.equals(evt.getLocalSocketAddress())) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("connectionClosed: {}", evt);
+                    }
+                    // remove the binding
+                    evt.getNioServer().removeUdpBinding(transportAddress);
+                    return true;
                 }
-                // remove the binding
-                evt.getNioServer().removeUdpBinding(transportAddress);
+                return false;
             }
 
         };

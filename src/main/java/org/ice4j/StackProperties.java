@@ -29,11 +29,10 @@ public class StackProperties {
     public static final String BIND_RETRIES = "org.ice4j.BIND_RETRIES";
 
     /**
-     * The default number of binds that we would try
-     * implementation should execute in case a port is already bound to (each
+     * The default number of binds that we would try implementation should execute in case a port is already bound to (each
      * retry would be on a different port).
      */
-    public static final int BIND_RETRIES_DEFAULT_VALUE = 50;
+    public static final int BIND_RETRIES_DEFAULT_VALUE = 3;
 
     /**
      * The name of the property that tells if we should bind to the

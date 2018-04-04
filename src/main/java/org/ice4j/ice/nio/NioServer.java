@@ -15,14 +15,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
@@ -101,16 +101,16 @@ public class NioServer {
 
     private final static Logger logger = LoggerFactory.getLogger(NioServer.class);
 
+    private final static int BUFFER_SIZE_DEFAULT = 65535;
+
     // if we're using a single instance of the server for all stack instances
     private static NioServer instance;
 
-    private static boolean SHARED_MODE = StackProperties.getBoolean("NIO_SHARED_MODE", false);
+    private static boolean SHARED_MODE = StackProperties.getBoolean("NIO_SHARED_MODE", true);
 
-    private final static int BUFFER_SIZE_DEFAULT = 4096;
+    private int inputBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
 
-    private int inputBufferSize = BUFFER_SIZE_DEFAULT;
-
-    private int outputBufferSize = BUFFER_SIZE_DEFAULT;
+    private int outputBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
     /**
      * <p>One of four possible states for the server to be in:</p>
@@ -145,7 +145,7 @@ public class NioServer {
 
     private Throwable lastException;
 
-    private final Collection<NioServer.Listener> listeners = new ConcurrentLinkedQueue<NioServer.Listener>(); // Event listeners
+    private final ConcurrentMap<SocketAddress, NioServer.Listener> listeners = new ConcurrentHashMap<>(); // Event listeners
 
     private final NioServer.Event event = new NioServer.Event(this); // Shared event
 
@@ -153,6 +153,8 @@ public class NioServer {
 
     // I/O thread priority
     private int priority = Thread.MAX_PRIORITY - 4;
+
+    private long selectorSleepMs = 10L;
 
     // Blocking or Non-blocking I/O setting
     private boolean blockingIO;
@@ -272,8 +274,7 @@ public class NioServer {
     }
 
     /**
-     * Used to aid in assertions. If you are running with assertions
-     * turned off, then this method will never be run since it is
+     * Used to aid in assertions. If you are running with assertions turned off, then this method will never be run since it is
      * always called in the form <code>assert knownState(buff, "[PL..]").</code>
      *
      * @param buff the buffer
@@ -387,16 +388,20 @@ public class NioServer {
     public void stop() {
         logger.info("stop: {} state: {}", id, getState());
         if (currentState.compareAndSet(State.STARTED, State.STOPPING) || currentState.compareAndSet(State.STARTING, State.STOPPING)) { // Only if already STARTED
+            // try the wakeup
+            //            if (selector != null) {
+            //                try {
+            //                    //selector.wakeup();
+            //                } catch (IOException e) {
+            //                    logger.warn("Exception waking selector for stop", e);
+            //                }
+            //            } // end if: not null
             // cancel future first to interrupt the runnable
             if (future.cancel(true)) {
                 logger.info("Cancelling job: {}", id);
             } else {
                 logger.warn("Job: {} could not be cancelled", id);
             }
-            // try the wakeup
-            if (selector != null) {
-                selector.wakeup();
-            } // end if: not null
             setState(State.STOPPED);
         } // end if: already STARTED
     } // end stop
@@ -454,63 +459,71 @@ public class NioServer {
      */
     private void runServer() {
         try {
+            // Possibly resize outBuff if a change was requested since last cycle
+            if (inputBufferSize != inBuff.capacity()) { // Mismatch size means someone asked for something new
+                assert inputBufferSize >= 0 : inputBufferSize; // We check for this in setBufferSize(..)
+                inBuff = ByteBuffer.allocateDirect(inputBufferSize); // Resize and use direct for OS efficiencies
+            }
+            // Possibly resize outBuff if a change was requested since last cycle
+            if (outputBufferSize != outBuff.capacity()) { // Mismatch size means someone asked for something new
+                assert outputBufferSize >= 0 : outputBufferSize; // We check for this in setBufferSize(..)
+                outBuff = ByteBuffer.allocateDirect(outputBufferSize); // Resize and use direct for OS efficiencies
+            }
+            // open / set selector
+            selector = Selector.open();
+            // run loop
             while (runLoopCheck()) {
                 ////////  B L O C K S   H E R E
-                if (selector.select() <= 0) { // Block until notified
-                    //Thread.sleep(1L);
-                    //Thread.yield();
+                int keyCount = selector.keys().size();
+                //logger.debug("Pre-select keys: {}", keyCount);
+                if (keyCount > 0) {
+                    selector.select(selectorSleepMs); // block up-to timeout
+                } else {
+                    selector.select(); // block until interrupted, woke, or selected
                 }
+                //logger.debug("Post-select keys: {}", selector.keys().size());
                 ///////  B L O C K S   H E R E
                 if (currentState.get() == State.STARTED) {
-                    // Possibly resize outBuff if a change was requested since last cycle
-                    if (inputBufferSize != inBuff.capacity()) { // Mismatch size means someone asked for something new
-                        assert inputBufferSize >= 0 : inputBufferSize; // We check for this in setBufferSize(..)
-                        inBuff = ByteBuffer.allocateDirect(inputBufferSize); // Resize and use direct for OS efficiencies
-                    }
-                    // Possibly resize outBuff if a change was requested since last cycle
-                    if (outputBufferSize != outBuff.capacity()) { // Mismatch size means someone asked for something new
-                        assert outputBufferSize >= 0 : outputBufferSize; // We check for this in setBufferSize(..)
-                        outBuff = ByteBuffer.allocateDirect(outputBufferSize); // Resize and use direct for OS efficiencies
-                    }
                     Set<SelectionKey> keys = selector.selectedKeys(); // These keys need attention
-                    if (logger.isTraceEnabled()) { // Only report this at finest grained logging level
-                        logger.trace("Keys: {}", keys); // Which keys are being examined this round
-                    }
+                    //if (logger.isTraceEnabled()) { // Only report this at finest grained logging level
+                    //    logger.trace("Keys: {}", keys); // Which keys are being examined this round
+                    //}
                     Iterator<SelectionKey> iter = keys.iterator(); // Iterate over keys -- cannot use "for" loop since we remove keys
                     while (iter.hasNext()) { // Each accKey
                         SelectionKey key = iter.next(); // The accKey
+                        //logger.debug("Key valid: {}", key.isValid());
                         iter.remove(); // Remove from list
-                        try {
-                            // Accept connections
-                            // This should only be from the TCP bindings
-                            if (key.isAcceptable()) { // New, incoming connection?
-                                handleAccept(key, outBuff); // Handle accepting connections
+                        if (key.isValid()) {
+                            try {
+                                // Accept connections
+                                // This should only be from the TCP bindings
+                                if (key.isAcceptable()) { // New, incoming connection?
+                                    handleAccept(key, outBuff); // Handle accepting connections
+                                }
+                                // Data to read
+                                // This could be an ongoing TCP connection or a new (is there any other kind) UDP datagram
+                                else if (key.isReadable()) { // Existing connection has data (or is closing)
+                                    handleRead(key, inBuff, outBuff); // Handle data
+                                } // end if: readable
+                                  // Available to write
+                                  // This could be an ongoing TCP connection or a new (is there any other kind) UDP datagram
+                                else if (key.isWritable()) { // Existing connection has data (or is closing)
+                                    handleWrite(key, inBuff, outBuff); // Handle data
+                                } // end if: readable
+                            } catch (IOException exc) {
+                                logger.warn("Exception on a connection. Valid: {}", key.isValid(), exc);
+                                fireExceptionNotification(exc);
+                                key.channel().close();
+                                fireConnectionClosed(key); // Fire event for connection closed
                             }
-                            // Data to read
-                            // This could be an ongoing TCP connection or a new (is there any other kind) UDP datagram
-                            else if (key.isReadable()) { // Existing connection has data (or is closing)
-                                handleRead(key, inBuff, outBuff); // Handle data
-                            } // end if: readable
-                              // Available to write
-                              // This could be an ongoing TCP connection or a new (is there any other kind) UDP datagram
-                            else if (key.isWritable()) { // Existing connection has data (or is closing)
-                                handleWrite(key, inBuff, outBuff); // Handle data
-                            } // end if: readable
-                        } catch (IOException exc) {
-                            logger.warn("Encountered an error with a connection", exc);
-                            fireExceptionNotification(exc);
-                            key.channel().close();
-                        } // end catch
+                        } else {
+                            // we have an invalid key, fire closed event on it
+                            fireConnectionClosed(key); // Fire event for connection closed
+                        }
                     } // end while: keys
-                } else {
-                    for (SelectionKey key : selector.keys()) {
-                        key.channel().close();
-                        key.cancel();
-                        fireConnectionClosed(key); // Fire event for connection closed
-                    }
                 }
             } // end while: selector is open
-        } catch (Exception exc) {
+        } catch (Throwable exc) {
             logger.error("An error occurred while closing the server. This may have left the server in an undefined state.", exc);
             fireExceptionNotification(exc);
         } finally {
@@ -536,11 +549,14 @@ public class NioServer {
         if (currentState.get() == State.STOPPING) {
             logger.debug("Stopping server by request");
             assert selector != null;
+            for (SelectionKey key : selector.keys()) {
+                key.channel().close();
+                key.cancel();
+                fireConnectionClosed(key); // Fire event for connection closed
+            }
             // no key needed on close
-            fireConnectionClosed(null); // Fire event for connection closed
+            //fireConnectionClosed(null); // Fire event for connection closed
             selector.close();
-        } else if (selector == null) {
-            selector = Selector.open();
         }
         if (!selector.isOpen()) {
             return false;
@@ -880,9 +896,8 @@ public class NioServer {
      * 
      * @param selectorSleepMs
      */
-    @Deprecated
     public void setSelectorSleepMs(long selectorSleepMs) {
-        //this.selectorSleepMs = selectorSleepMs;
+        this.selectorSleepMs = selectorSleepMs;
     }
 
     /**
@@ -925,12 +940,7 @@ public class NioServer {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-          //int oldVal = inputBufferSize;
         inputBufferSize = size;
-        if (selector != null) {
-            selector.wakeup();
-        }
-        //firePropertyChange(INPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
 
     /**
@@ -955,12 +965,7 @@ public class NioServer {
         if (size <= 0) {
             throw new IllegalArgumentException("New buffer size must be positive: " + size);
         } // end if: size outside range
-          //int oldVal = outputBufferSize;
         outputBufferSize = size;
-        if (selector != null) {
-            selector.wakeup();
-        }
-        //firePropertyChange(OUTPUT_BUFFER_SIZE_PROP, oldVal, size);
     }
 
     /* ******** T C P B I N D I N G S ******** */
@@ -1000,17 +1005,11 @@ public class NioServer {
         tcpBindings.remove(addr); // Remove binding
         pendingTcpAdds.remove(addr); // In case it's also pending an add
         Set<SocketAddress> newVal = getTcpBindings(); // Save new set for prop change event
-        if (selector != null) { // If there's a selector...
-            selector.wakeup(); // Wake it up to handle the remove action
-        }
+        //if (selector != null) { // If there's a selector...
+        //    selector.wakeup(); // Wake it up to handle the remove action
+        //}
         // remove any listeners for the binding as well
-        for (Listener listener : listeners) {
-            IceSocketWrapper wrapper = ((Adapter) listener).getWrapper();
-            if (wrapper != null && wrapper.getTransportAddress().equals(addr)) {
-                removeNioServerListener(listener);
-                break;
-            }
-        }
+        listeners.remove(addr);
         firePropertyChange(TCP_BINDINGS_PROP, oldVal, newVal); // Fire prop change
         return this;
     }
@@ -1097,17 +1096,11 @@ public class NioServer {
         udpBindings.remove(addr); // Remove binding
         pendingUdpAdds.remove(addr); // In case it's also pending an add
         Set<SocketAddress> newVal = getUdpBindings(); // Save new set for prop change event
-        if (selector != null) { // If there's a selector...
-            selector.wakeup(); // Wake it up to handle the remove action
-        }
+        //if (selector != null) { // If there's a selector...
+        //    selector.wakeup(); // Wake it up to handle the remove action
+        //}
         // remove any listeners for the binding as well
-        for (Listener listener : listeners) {
-            IceSocketWrapper wrapper = ((Adapter) listener).getWrapper();
-            if (wrapper != null && wrapper.getTransportAddress().equals(addr)) {
-                removeNioServerListener(listener);
-                break;
-            }
-        }
+        listeners.remove(addr);
         firePropertyChange(UDP_BINDINGS_PROP, oldVal, newVal); // Fire prop change
         return this;
     }
@@ -1237,18 +1230,30 @@ public class NioServer {
 
     /**
      * Adds a {@link Listener}.
-     * @param l the listener
+     * 
+     * @param addr the socket address
+     * @param listener the listener
      */
-    public void addNioServerListener(NioServer.Listener l) {
-        listeners.add(l);
+    public void addNioServerListener(SocketAddress addr, NioServer.Listener listener) {
+        listeners.put(addr, listener);
     }
 
     /**
      * Removes a {@link Listener}.
-     * @param l the listener
+     * 
+     * @param addr the socket address
      */
-    public void removeNioServerListener(NioServer.Listener l) {
-        listeners.remove(l);
+    public void removeNioServerListener(SocketAddress addr) {
+        listeners.remove(addr);
+    }
+
+    /**
+     * Removes a {@link Listener}.
+     * 
+     * @param listener the listener
+     */
+    public void removeNioServerListener(NioServer.Listener listener) {
+        listeners.values().remove(listener);
     }
 
     /**
@@ -1257,15 +1262,16 @@ public class NioServer {
      * @param outBuff the outBuff containing the new (and possibly leftoverR) data
      */
     protected synchronized void fireTcpDataReceived(SelectionKey key, ByteBuffer inBuff, ByteBuffer outBuff) {
-        this.event.reset(key, inBuff, outBuff, null);
+        event.reset(key, inBuff, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        NioServer.Listener listener = listeners.get(event.getLocalSocketAddress());
+        if (listener != null) {
             try {
-                l.tcpDataReceived(event);
+                listener.tcpDataReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1278,16 +1284,17 @@ public class NioServer {
      */
     protected synchronized void fireTcpReadyToWrite(SelectionKey key, ByteBuffer outBuff) {
         assert knownState(outBuff, "[PL..]");
-        this.event.reset(key, null, outBuff, null);
+        event.reset(key, null, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        NioServer.Listener listener = listeners.get(event.getLocalSocketAddress());
+        if (listener != null) {
             try {
-                l.tcpReadyToWrite(event);
+                listener.tcpReadyToWrite(event);
             } catch (Exception exc) {
                 exc.printStackTrace();//TODO REMOVE THIS
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1301,15 +1308,16 @@ public class NioServer {
      * @param outBuff the output buffer for writing data
      */
     protected synchronized void fireUdpDataReceived(SelectionKey key, ByteBuffer inBuff, ByteBuffer outBuff, SocketAddress remote) {
-        this.event.reset(key, inBuff, outBuff, remote);
+        event.reset(key, inBuff, outBuff, remote);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        NioServer.Listener listener = listeners.get(event.getLocalSocketAddress());
+        if (listener != null) {
             try {
-                l.udpDataReceived(event);
+                listener.udpDataReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1320,15 +1328,16 @@ public class NioServer {
      * @param key The accKey for the closed connection.
      */
     protected synchronized void fireConnectionClosed(SelectionKey key) {
-        this.event.reset(key, null, null, null);
+        event.reset(key, null, null, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        NioServer.Listener listener = listeners.get(event.getLocalSocketAddress());
+        if (listener != null) {
             try {
-                l.connectionClosed(event);
+                listener.connectionClosed(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1339,15 +1348,16 @@ public class NioServer {
      * @param key the SelectionKey associated with the connection
      */
     protected synchronized void fireNewConnection(SelectionKey key, ByteBuffer outBuff) {
-        this.event.reset(key, null, outBuff, null);
+        event.reset(key, null, outBuff, null);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        NioServer.Listener listener = listeners.get(event.getLocalSocketAddress());
+        if (listener != null) {
             try {
-                l.newConnectionReceived(event);
+                listener.newConnectionReceived(event);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1357,16 +1367,29 @@ public class NioServer {
      * Fire when a local binding is established.
      * @param channel SelectableChannel that has been bound
      */
-    protected synchronized void fireNewBinding(SelectableChannel channel) {
+    protected void fireNewBinding(SelectableChannel channel) {
         BindingEvent bound = new BindingEvent(this, channel);
         // Make a Runnable object to execute the calls to listeners.
         // In the event we don't have an Executor, this results in an unnecessary object instantiation, but it also makes
         // the code more maintainable.
-        for (NioServer.Listener l : listeners) {
+        SocketAddress addr = null;
+        if (channel instanceof DatagramChannel) {
             try {
-                l.newBinding(bound);
+                addr = ((DatagramChannel) channel).getLocalAddress();
+            } catch (IOException e) {
+            }
+        } else {
+            try {
+                addr = ((SocketChannel) channel).getLocalAddress();
+            } catch (IOException e) {
+            }
+        }
+        NioServer.Listener listener = listeners.get(addr);
+        if (listener != null) {
+            try {
+                listener.newBinding(bound);
             } catch (Exception exc) {
-                logger.warn("NioServer.Listener {} threw an exception: ", l, exc);
+                logger.warn("NioServer.Listener {} threw an exception: ", listener, exc);
                 fireExceptionNotification(exc);
             } // end catch
         } // end for: each listener
@@ -1583,8 +1606,9 @@ public class NioServer {
          * IP and port in the datagram. Your firewall mileage may vary.</p>
          *
          * @param evt the shared event
+         * @return cancel bubble true if receiver accepted the event and required no further processing
          */
-        public abstract void udpDataReceived(NioServer.Event evt);
+        public abstract boolean udpDataReceived(NioServer.Event evt);
 
         /**
          * <p>Fired when a TCP channel is ready to be written to.
@@ -1623,16 +1647,16 @@ public class NioServer {
         public abstract void tcpReadyToWrite(NioServer.Event evt);
 
         /**
-         * Called when a TCP connection is closed.
+         * Called when a connection is closed.
          * @param evt the shared event
          */
-        public abstract void connectionClosed(NioServer.Event evt);
+        public abstract boolean connectionClosed(NioServer.Event evt);
 
         /**
          * Called when a channel is bound.
          * @param evt the event
          */
-        public abstract void newBinding(NioServer.BindingEvent evt);
+        public abstract boolean newBinding(NioServer.BindingEvent evt);
 
     } // end inner static class Listener
 
@@ -1668,52 +1692,31 @@ public class NioServer {
             return wrapper;
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the shared event
-         */
+        /** {@inheritDoc} */
         public void tcpDataReceived(NioServer.Event evt) {
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the shared event
-         */
-        public void udpDataReceived(NioServer.Event evt) {
+        /** {@inheritDoc} */
+        public boolean udpDataReceived(NioServer.Event evt) {
+            return false;
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the shared event
-         */
+        /** {@inheritDoc} */
         public void newConnectionReceived(NioServer.Event evt) {
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the shared event
-         */
-        public void connectionClosed(NioServer.Event evt) {
+        /** {@inheritDoc} */
+        public boolean connectionClosed(NioServer.Event evt) {
+            return false;
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the shared event
-         */
+        /** {@inheritDoc} */
         public void tcpReadyToWrite(NioServer.Event evt) {
         }
 
-        /**
-         * Empty method.
-         * @see Listener
-         * @param evt the event
-         */
-        public void newBinding(BindingEvent evt) {
+        /** {@inheritDoc} */
+        public boolean newBinding(BindingEvent evt) {
+            return false;
         }
 
     } // end static inner class Adapter
