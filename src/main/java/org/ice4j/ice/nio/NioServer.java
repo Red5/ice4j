@@ -247,6 +247,14 @@ public class NioServer {
         // create direct buffers for in/out
         inBuff = ByteBuffer.allocateDirect(inputBufferSize); // Buffer to use for everything
         outBuff = ByteBuffer.allocateDirect(outputBufferSize); // Buffer to use for everything
+        // configure DNS cache ttl
+        String ttl = System.getProperty("networkaddress.cache.ttl");
+        if (ttl == null) {
+            // persist successful lookup forever (during jvm instance existence)
+            System.setProperty("networkaddress.cache.ttl", "-1");
+        } else {
+            logger.debug("DNS cache ttl: {}", ttl);
+        }
     }
 
     /**

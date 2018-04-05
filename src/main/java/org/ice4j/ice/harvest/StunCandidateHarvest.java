@@ -172,13 +172,13 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      */
     protected boolean addShortTermCredentialAttributes(Request request) {
         String shortTermCredentialUsername = harvester.getShortTermCredentialUsername();
-
         if (shortTermCredentialUsername != null) {
             request.putAttribute(AttributeFactory.createUsernameAttribute(shortTermCredentialUsername));
             request.putAttribute(AttributeFactory.createMessageIntegrityAttribute(shortTermCredentialUsername));
             return true;
-        } else
+        } else {
             return false;
+        }
     }
 
     /**
