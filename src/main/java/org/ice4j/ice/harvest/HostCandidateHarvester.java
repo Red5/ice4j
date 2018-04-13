@@ -287,7 +287,7 @@ public class HostCandidateHarvester {
                     // checks. In case we have enabled STUN, we are going to use them as well while harvesting reflexive candidates.
                     sock.addFilter(new StunDataFilter());
                     // add the socket wrapper to the stack which gets the bind and listening process started
-                    candidate.getStunStack().addSocket(sock);
+                    candidate.getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
                     component.getComponentSocket().setSocket(sock);
                 }
             }

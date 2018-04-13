@@ -67,16 +67,17 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 if (logger.isDebugEnabled()) {
                     logger.debug("newBinding: {}", evt);
                 }
-                if (server == null) {
-                    // get the server
-                    server = evt.getNioServer();
-                }
                 if (channel == null) {
                     try {
                         // get the channel
                         DatagramChannel tmp = (DatagramChannel) evt.getSource();
                         //logger.debug("Binding: {} == {}", transportAddress, tmp.getLocalAddress());
                         if (transportAddress.equals(tmp.getLocalAddress())) {
+                            // set server if not already set when addresses match
+                            if (server == null) {
+                                // get the server
+                                server = evt.getNioServer();
+                            }
                             //logger.debug("Setting channel since its null");
                             channel = tmp;
                             return true;

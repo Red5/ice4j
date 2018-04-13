@@ -1,7 +1,8 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
 
 /**
  * This class encapsulates a STUN transaction ID. It is useful for storing
@@ -21,6 +22,13 @@ public class TransactionID {
      */
     public static final int RFC3489_TRANSACTION_ID_LENGTH = 16;
 
+    private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    /**
+     * Used to randomly generate transaction ids; seeded with current time.
+     */
+    private static final Random random = new Random(System.currentTimeMillis());
+
     /**
      * The id itself
      */
@@ -30,11 +38,6 @@ public class TransactionID {
      * Any object that the application would like to correlate to a transaction.
      */
     private Object applicationData;
-
-    /**
-     * The object to use to generate the rightmost 8 bytes of the id.
-     */
-    private static final Random random = new Random(System.currentTimeMillis());
 
     /**
      * A hashcode for hashtable storage.
@@ -69,7 +72,7 @@ public class TransactionID {
      */
     public static TransactionID createNewTransactionID() {
         TransactionID tid = new TransactionID();
-        generateTransactionID(tid, RFC5389_TRANSACTION_ID_LENGTH);
+        random.nextBytes(tid.transactionID);
         return tid;
     }
 
@@ -85,31 +88,13 @@ public class TransactionID {
      */
     public static TransactionID createNewRFC3489TransactionID() {
         TransactionID tid = new TransactionID(true);
-        generateTransactionID(tid, RFC3489_TRANSACTION_ID_LENGTH);
+        random.nextBytes(tid.transactionID);
         return tid;
     }
 
     /**
-     * Generates a random transaction ID
-     *
-     * @param tid transaction ID
-     * @param nb number of bytes to generate
-     */
-    private static void generateTransactionID(TransactionID tid, int nb) {
-        long left = System.currentTimeMillis();//the first nb/2 bytes of the id
-        long right = random.nextLong();//the last nb/2 bytes of the id
-        int b = nb / 2;
-        for (int i = 0; i < b; i++) {
-            tid.transactionID[i] = (byte) ((left >> (i * 8)) & 0xFFL);
-            tid.transactionID[i + b] = (byte) ((right >> (i * 8)) & 0xFFL);
-        }
-    }
-
-    /**
-     * Returns a TransactionID instance for the specified id. If
-     * transactionID is the ID of a client or a server transaction
-     * already known to the stack, then this method would return a reference
-     * to that transaction's instance so that we could use it to for storing
+     * Returns a TransactionID instance for the specified id. If transactionID is the ID of a client or a server transaction
+     * already known to the stack, then this method would return a reference to that transaction's instance so that we could use it to for storing
      * application data.
      *
      * @param stunStack the StunStack in the context of which the request to create a TransactionID is being made
@@ -218,18 +203,13 @@ public class TransactionID {
      * @return a hex string representing the id
      */
     public static String toString(byte[] transactionID) {
-        StringBuilder idStr = new StringBuilder();
-
-        idStr.append("0x");
-        for (int i = 0; i < transactionID.length; i++) {
-
-            if ((transactionID[i] & 0xFF) <= 15)
-                idStr.append("0");
-
-            idStr.append(Integer.toHexString(transactionID[i] & 0xFF).toUpperCase());
+        char[] hexChars = new char[transactionID.length * 2];
+        for (int j = 0; j < transactionID.length; j++) {
+            int v = transactionID[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
-
-        return idStr.toString();
+        return new String(hexChars);
     }
 
     /**

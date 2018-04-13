@@ -132,8 +132,7 @@ public class ShallowStackTest extends TestCase {
     }
 
     /**
-     * Sends a byte array containing a bindingRequest, through a datagram socket
-     * and verifies that the stack receives it alright.
+     * Sends a byte array containing a bindingRequest, through a datagram socket and verifies that the stack receives it alright.
      *
      * @throws java.lang.Exception if we fail
      */

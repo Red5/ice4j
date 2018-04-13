@@ -111,11 +111,6 @@ public abstract class AbstractUdpListener {
     protected final TransportAddress localAddress;
 
     /**
-     * Internal NIO server.
-     */
-    private NioServer server;
-
-    /**
      * Initializes a new SinglePortUdpHarvester instance which is to bind on the specified local address.
      * 
      * @param localAddress the address to bind to.

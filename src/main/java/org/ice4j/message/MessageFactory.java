@@ -44,8 +44,7 @@ public class MessageFactory {
     private static final Logger logger = LoggerFactory.getLogger(MessageFactory.class);
 
     /**
-     * Creates a default binding request. The request DOES NOT contains a
-     * ChangeRequest attribute with zero change ip and change port flags.
+     * Creates a default binding request. The request DOES NOT contain a ChangeRequest attribute with zero change ip and change port flags.
      *
      * @return a default binding request.
      */
@@ -133,8 +132,7 @@ public class MessageFactory {
         // mapped address
         MappedAddressAttribute mappedAddressAttribute = AttributeFactory.createMappedAddressAttribute(mappedAddress);
 
-        // the changed address and source address attribute were removed in
-        // RFC 5389 so we should be prepared to go without them.
+        // the changed address and source address attribute were removed in RFC 5389 so we should be prepared to go without them.
 
         // source address
         SourceAddressAttribute sourceAddressAttribute = null;
@@ -150,8 +148,7 @@ public class MessageFactory {
 
         bindingResponse.putAttribute(mappedAddressAttribute);
 
-        // the changed address and source address attribute were removed in
-        // RFC 5389 so we should be prepared to go without them.
+        // the changed address and source address attribute were removed in RFC 5389 so we should be prepared to go without them.
 
         if (sourceAddressAttribute != null)
             bindingResponse.putAttribute(sourceAddressAttribute);
@@ -408,11 +405,10 @@ public class MessageFactory {
     }
 
     /**
-     * Creates a allocation error response according to the specified error
-     * code.
+     * Creates a allocation error response according to the specified error code.
      *
      * @param errorCode the error code to encapsulate in this message attributes
-     * that had not been recognised.
+     * that had not been recognized.
      *
      * @return a allocation error response message containing an error code.
      */
@@ -426,7 +422,7 @@ public class MessageFactory {
      *
      * @param errorCode the error code to encapsulate in this message
      * @param reasonPhrase a human readable description of the error
-     * attributes that had not been recognised.
+     * attributes that had not been recognized.
      * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the
      * given parameters had an invalid value.
      *

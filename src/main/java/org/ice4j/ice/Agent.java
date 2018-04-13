@@ -7,13 +7,14 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.BindException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
@@ -86,9 +87,9 @@ public class Agent {
     public static final String PROPERTY_ICE_PROCESSING_STATE = "IceProcessingState";
 
     /**
-     * The LinkedHashMap used to store the media streams; it preserves their insertion order.
+     * The Map used to store the media streams.
      */
-    private final Map<String, IceMediaStream> mediaStreams = new LinkedHashMap<>();
+    private final ConcurrentMap<String, IceMediaStream> mediaStreams = new ConcurrentHashMap<>();
 
     /**
      * The candidate harvester that we use to gather candidate on the local machine.
@@ -595,7 +596,7 @@ public class Agent {
         int maxCheckListSize = Integer.getInteger(StackProperties.MAX_CHECK_LIST_SIZE, DEFAULT_MAX_CHECK_LIST_SIZE);
         int maxPerStreamSize = streamCount == 0 ? 0 : maxCheckListSize / streamCount;
         for (IceMediaStream stream : streams) {
-            logger.info("Init checklist for stream " + stream.getName());
+            logger.info("Init checklist for stream {}", stream.getName());
             stream.setMaxCheckListSize(maxPerStreamSize);
             stream.initCheckList();
         }
@@ -751,46 +752,37 @@ public class Agent {
      *
      * @param name the name of the stream that we'd like to obtain a reference to
      *
-     * @return the IceMediaStream with the specified name or null if no such stream has been registered with this
-     * Agent yet
+     * @return the IceMediaStream with the specified name or null if no such stream has been registered with this Agent yet
      */
     public IceMediaStream getStream(String name) {
-        synchronized (mediaStreams) {
-            return mediaStreams.get(name);
-        }
+        return mediaStreams.get(name);
     }
 
     /**
-     * Returns a List containing the names of all currently registered media streams.
+     * Returns a Set containing the names of all currently registered media streams.
      *
-     * @return a List containing the names of all currently registered media streams
+     * @return a Set containing the names of all currently registered media streams
      */
-    public List<String> getStreamNames() {
-        synchronized (mediaStreams) {
-            return new LinkedList<>(mediaStreams.keySet());
-        }
+    public Set<String> getStreamNames() {
+        return mediaStreams.keySet();
     }
 
     /**
-     * Returns a List containing all IceMediaStreams currently registered with this agent.
+     * Returns a Collection containing all IceMediaStreams currently registered with this agent.
      *
-     * @return a List containing all IceMediaStreams currently registered with this agent
+     * @return Collection of all IceMediaStreams
      */
-    public List<IceMediaStream> getStreams() {
-        synchronized (mediaStreams) {
-            return new LinkedList<>(mediaStreams.values());
-        }
+    public Collection<IceMediaStream> getStreams() {
+        return mediaStreams.values();
     }
 
     /**
      * Returns the number of IceMediaStreams currently registered with this agent.
      *
-     * @return  the number of IceMediaStreams currently registered with this agent
+     * @return the number of IceMediaStreams currently registered with this agent
      */
     public int getStreamCount() {
-        synchronized (mediaStreams) {
-            return mediaStreams.size();
-        }
+        return mediaStreams.size();
     }
 
     /**
@@ -806,14 +798,11 @@ public class Agent {
          * Lyubomir: We want to support establishing connectivity for streams which have been created after connectivity has been established for previously created streams. That
          * is why we will remove the streams which have their connectivity checks completed or failed i.e. these streams have been handled by a previous connectivity establishment.
          */
-        List<IceMediaStream> streams = getStreams();
-        Iterator<IceMediaStream> streamIter = streams.iterator();
-        while (streamIter.hasNext()) {
-            IceMediaStream stream = streamIter.next();
-            CheckList checkList = stream.getCheckList();
-            CheckListState checkListState = checkList.getState();
+        List<IceMediaStream> streams = new ArrayList<>(getStreams());
+        for (IceMediaStream stream : streams) {
+            CheckListState checkListState = stream.getCheckList().getState();
             if (CheckListState.COMPLETED.equals(checkListState) || CheckListState.FAILED.equals(checkListState)) {
-                streamIter.remove();
+                streams.remove(stream);
             }
         }
         return streams;
@@ -834,17 +823,13 @@ public class Agent {
      * @return the number of {@link CheckList}s that are currently active
      */
     protected int getActiveCheckListCount() {
-        synchronized (mediaStreams) {
-            int i = 0;
-            Collection<IceMediaStream> streams = mediaStreams.values();
-
-            for (IceMediaStream stream : streams) {
-                if (stream.getCheckList().isActive())
-                    i++;
+        int i = 0;
+        for (IceMediaStream stream : mediaStreams.values()) {
+            if (stream.getCheckList().isActive()) {
+                i++;
             }
-
-            return i;
         }
+        return i;
     }
 
     /**
@@ -883,8 +868,7 @@ public class Agent {
      */
     public void setControlling(boolean isControlling) {
         this.isControlling = isControlling;
-        //in case we have already initialized our check lists we'd need to
-        //recompute pair priorities.
+        //in case we have already initialized our check lists we'd need to recompute pair priorities.
         for (IceMediaStream stream : getStreams()) {
             CheckList list = stream.getCheckList();
             if (list != null) {
@@ -900,9 +884,7 @@ public class Agent {
      * @param stream the Component we'd like to remove and free
      */
     public void removeStream(IceMediaStream stream) {
-        synchronized (mediaStreams) {
-            mediaStreams.remove(stream.getName());
-        }
+        mediaStreams.remove(stream.getName());
         /*
          * XXX The invocation of IceMediaStream#free() on stream has been moved out of the synchronized block in order to reduce the chances of a deadlock. There was no obvious
          * reason why it should stay in the synchronized block at the time of the modification.
@@ -990,12 +972,10 @@ public class Agent {
      * {@link Agent}'s streams contain such a pair.
      */
     public CandidatePair findCandidatePair(TransportAddress localAddress, TransportAddress remoteAddress) {
-        synchronized (mediaStreams) {
-            for (IceMediaStream stream : mediaStreams.values()) {
-                CandidatePair pair = stream.findCandidatePair(localAddress, remoteAddress);
-                if (pair != null) {
-                    return pair;
-                }
+        for (IceMediaStream stream : mediaStreams.values()) {
+            CandidatePair pair = stream.findCandidatePair(localAddress, remoteAddress);
+            if (pair != null) {
+                return pair;
             }
         }
         return null;
@@ -1011,12 +991,10 @@ public class Agent {
      * {@link Agent}'s streams contain such a pair.
      */
     public CandidatePair findCandidatePair(String localUFrag, String remoteUFrag) {
-        synchronized (mediaStreams) {
-            for (IceMediaStream stream : mediaStreams.values()) {
-                CandidatePair pair = stream.findCandidatePair(localUFrag, remoteUFrag);
-                if (pair != null) {
-                    return pair;
-                }
+        for (IceMediaStream stream : mediaStreams.values()) {
+            CandidatePair pair = stream.findCandidatePair(localUFrag, remoteUFrag);
+            if (pair != null) {
+                return pair;
             }
         }
         return null;
@@ -1109,8 +1087,9 @@ public class Agent {
             // RFC 5245: If the pair is not already on the check list: The pair is inserted into the check list based on its priority
             // Its state is set to Waiting [and it] is enqueued into the triggered check queue.
             //
-            if (triggerPair.getParentComponent().getSelectedPair() == null)
+            if (triggerPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
+            }
             parentStream.addToCheckList(triggerPair);
         }
         // RFC 5245: The agent MUST create a new connectivity check for that pair (representing a new STUN Binding request transaction) by
@@ -1206,8 +1185,7 @@ public class Agent {
         if (getState().isEstablished()) {
             return;
         }
-        List<IceMediaStream> streams = getStreams();
-        for (IceMediaStream stream : streams) {
+        for (IceMediaStream stream : getStreams()) {
             CheckListState checkListState = stream.getCheckList().getState();
             if (checkListState == CheckListState.RUNNING) {
                 allListsEnded = false;
@@ -1221,7 +1199,7 @@ public class Agent {
             return;
         }
         if (!atLeastOneListSucceeded) {
-            //all lists ended but none succeeded. No love today ;(
+            // all lists ended but none succeeded. No love today ;(
             if (logger.isInfoEnabled()) {
                 if (connCheckClient.isAlive() || connCheckServer.isAlive()) {
                     logger.info("Suspicious ICE connectivity failure. Checks failed but the remote end was able to reach us.");
@@ -1257,36 +1235,27 @@ public class Agent {
      * were used (if any) to obtain them.
      */
     private void logCandTypes() {
-        List<IceMediaStream> strms = getStreams();
-
-        for (IceMediaStream stream : strms) {
+        for (IceMediaStream stream : getStreams()) {
             for (Component component : stream.getComponents()) {
                 CandidatePair selectedPair = component.getSelectedPair();
-
                 StringBuilder buf = new StringBuilder("Harvester used for selected pair for ");
                 buf.append(component.toShortString());
                 buf.append(" (local ufrag ").append(getLocalUfrag());
                 buf.append("): ");
-
                 if (selectedPair == null) {
                     buf.append("none (conn checks failed)");
                     logger.info(buf.toString());
                     continue;
                 }
-
                 Candidate<?> localCnd = selectedPair.getLocalCandidate();
-
                 TransportAddress serverAddr = localCnd.getStunServerAddress();
-
                 buf.append(localCnd.getType());
-
                 if (serverAddr != null) {
                     buf.append(" (STUN server = ");
                     buf.append(serverAddr);
                     buf.append(")");
                 } else {
                     TransportAddress relayAddr = localCnd.getRelayServerAddress();
-
                     if (relayAddr != null) {
                         buf.append(" (relay = ");
                         buf.append(relayAddr);
@@ -1305,15 +1274,9 @@ public class Agent {
      */
     protected int countHostCandidates() {
         int num = 0;
-
-        synchronized (mediaStreams) {
-            Collection<IceMediaStream> streamsCol = mediaStreams.values();
-
-            for (IceMediaStream stream : streamsCol) {
-                num += stream.countHostCandidates();
-            }
+        for (IceMediaStream stream : mediaStreams.values()) {
+            num += stream.countHostCandidates();
         }
-
         return num;
     }
 
@@ -1453,19 +1416,19 @@ public class Agent {
      * @throws NullPointerException if s is equal to null
      */
     private String ensureIceAttributeLength(String s, int min, int max) {
-        if (s == null)
+        if (s == null) {
             throw new NullPointerException("s");
-        if (min < 0)
+        }
+        if (min < 0) {
             throw new IllegalArgumentException("min " + min);
-        if (max < min)
+        }
+        if (max < min) {
             throw new IllegalArgumentException("max " + max);
-
+        }
         int length = s.length();
         int numberOfIceCharsToAdd = min - length;
-
         if (numberOfIceCharsToAdd > 0) {
             StringBuilder sb = new StringBuilder(min);
-
             for (; numberOfIceCharsToAdd > 0; --numberOfIceCharsToAdd) {
                 sb.append('0');
             }

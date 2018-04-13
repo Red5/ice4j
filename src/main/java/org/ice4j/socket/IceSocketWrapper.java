@@ -16,8 +16,6 @@ import java.util.concurrent.LinkedTransferQueue;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.nio.NioServer;
-import org.ice4j.ice.nio.NioServer.Listener;
 import org.ice4j.socket.filter.DataFilter;
 import org.ice4j.stack.RawMessage;
 import org.slf4j.Logger;
@@ -41,11 +39,6 @@ public abstract class IceSocketWrapper {
     protected TransportAddress transportAddress;
 
     protected TransportAddress remoteTransportAddress;
-
-    /**
-     * NIO server the connection is bound with.
-     */
-    protected NioServer server;
 
     /**
      * NIO server listener.

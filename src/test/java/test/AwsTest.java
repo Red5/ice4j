@@ -19,7 +19,7 @@ import org.ice4j.ice.harvest.*;
  */
 public class AwsTest extends Ice {
 
-    private static final Logger logger = Logger.getLogger(TrickleIce.class.getName());
+    private static final Logger logger = Logger.getLogger(AwsTest.class.getName());
 
     /**
      * Runs a test application that creates an agent, attaches an AWS harvester
@@ -44,16 +44,14 @@ public class AwsTest extends Ice {
 
         Agent localAgent = createAgent(2020, false, harvesters);
         localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
-
-        String localSDP = SdpUtils.createSDPDescription(localAgent);
+        // create a resource file for a test sdp
+        //String localSDP = SdpUtils.createSDPDescription(localAgent);
 
         //wait a bit so that the logger can stop dumping stuff:
         Thread.sleep(500);
 
         logger.info("=================== feed the following" + " to the remote agent ===================");
-
-        logger.info("\n" + localSDP);
-
+        //logger.info("\n" + localSDP);
         logger.info("======================================" + "========================================\n");
     }
 }

@@ -1,16 +1,33 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice;
 
-import java.net.*;
-import java.util.*;
+import java.net.NoRouteToHostException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.ResponseCollector;
+import org.ice4j.StunResponseEvent;
+import org.ice4j.StunTimeoutEvent;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.MessageIntegrityAttribute;
+import org.ice4j.attribute.PriorityAttribute;
+import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.attribute.XorMappedAddressAttribute;
+import org.ice4j.message.Indication;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.message.Response;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -277,7 +294,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             //For each frozen check list, the agent groups together all of the pairs with the same foundation, and for each group, sets the
             //state of the pair with the lowest component ID to Waiting.  If there is more than one such pair, the one with the highest
             //priority is used.
-            List<IceMediaStream> allOtherStreams = parentAgent.getStreams();
+            Collection<IceMediaStream> allOtherStreams = parentAgent.getStreams();
             allOtherStreams.remove(stream);
             for (IceMediaStream anotherStream : allOtherStreams) {
                 CheckList anotherCheckList = anotherStream.getCheckList();
@@ -366,25 +383,25 @@ class ConnectivityCheckClient implements ResponseCollector {
         //The agent changes the states for all other Frozen pairs for the same media stream and same foundation to Waiting.
         IceMediaStream parentStream = checkedPair.getParentComponent().getParentStream();
         //synchronized (this) {
-            for (CandidatePair pair : parentStream.getCheckList()) {
-                if (pair.getState() == CandidatePairState.FROZEN && checkedPair.getFoundation().equals(pair.getFoundation())) {
-                    pair.setStateWaiting();
-                }
+        for (CandidatePair pair : parentStream.getCheckList()) {
+            if (pair.getState() == CandidatePairState.FROZEN && checkedPair.getFoundation().equals(pair.getFoundation())) {
+                pair.setStateWaiting();
             }
+        }
         //}
         // The agent examines the check list for all other streams in turn. If the check list is active, the agent changes the state of all Frozen
         // pairs in that check list whose foundation matches a pair in the valid list under consideration to Waiting.
-        List<IceMediaStream> allOtherStreams = parentAgent.getStreams();
+        Collection<IceMediaStream> allOtherStreams = parentAgent.getStreams();
         allOtherStreams.remove(parentStream);
         for (IceMediaStream stream : allOtherStreams) {
             CheckList checkList = stream.getCheckList();
             boolean wasFrozen = checkList.isFrozen();
             //synchronized (checkList) {
-                for (CandidatePair pair : checkList) {
-                    if (parentStream.validListContainsFoundation(pair.getFoundation()) && pair.getState() == CandidatePairState.FROZEN) {
-                        pair.setStateWaiting();
-                    }
+            for (CandidatePair pair : checkList) {
+                if (parentStream.validListContainsFoundation(pair.getFoundation()) && pair.getState() == CandidatePairState.FROZEN) {
+                    pair.setStateWaiting();
                 }
+            }
             //}
             //if the checklList is still frozen after the above operations, the agent groups together all of the pairs with the same
             //foundation, and for each group, sets the state of the pair with the lowest component ID to Waiting.  If there is more than one

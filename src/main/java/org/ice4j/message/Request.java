@@ -16,11 +16,9 @@ public class Request extends Message {
     }
 
     /**
-     * Checks whether requestType is a valid request type and if yes sets it
-     * as the type of the current instance.
+     * Checks whether requestType is a valid request type and if yes sets it as the type of the current instance.
      * @param requestType the type to set
-     * @throws IllegalArgumentException if requestType is not a valid
-     * request type
+     * @throws IllegalArgumentException if requestType is not a valid request type
      */
     public void setMessageType(char requestType) throws IllegalArgumentException {
         if (!isRequestType(requestType)) {

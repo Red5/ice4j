@@ -3,6 +3,7 @@ package test;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.Collection;
 import java.util.List;
 
 import org.ice4j.Transport;
@@ -115,8 +116,7 @@ public class Ice {
         /**
          * System.exit()s as soon as ICE processing enters a final state.
          *
-         * @param evt the {@link PropertyChangeEvent} containing the old and new
-         * states of ICE processing.
+         * @param evt the {@link PropertyChangeEvent} containing the old and new states of ICE processing.
          */
         public void propertyChange(PropertyChangeEvent evt) {
             Object iceProcessingState = evt.getNewValue();
@@ -125,7 +125,7 @@ public class Ice {
             }
             if (iceProcessingState == IceProcessingState.COMPLETED) {
                 Agent agent = (Agent) evt.getSource();
-                List<IceMediaStream> streams = agent.getStreams();
+                Collection<IceMediaStream> streams = agent.getStreams();
                 for (IceMediaStream stream : streams) {
                     String streamName = stream.getName();
                     logger.info("Pairs selected for stream: {}", streamName);
@@ -153,18 +153,16 @@ public class Ice {
      * @param remotePeer a reference to what we'll pretend to be a remote agent.
      */
     static void transferRemoteCandidates(Agent localAgent, Agent remotePeer) {
-        List<IceMediaStream> streams = localAgent.getStreams();
-
+        Collection<IceMediaStream> streams = localAgent.getStreams();
         for (IceMediaStream localStream : streams) {
             String streamName = localStream.getName();
-
             //get a reference to the local stream
             IceMediaStream remoteStream = remotePeer.getStream(streamName);
-
-            if (remoteStream != null)
+            if (remoteStream != null) {
                 transferRemoteCandidates(localStream, remoteStream);
-            else
+            } else {
                 localAgent.removeStream(localStream);
+            }
         }
     }
 
@@ -178,16 +176,14 @@ public class Ice {
      */
     private static void transferRemoteCandidates(IceMediaStream localStream, IceMediaStream remoteStream) {
         List<Component> localComponents = localStream.getComponents();
-
         for (Component localComponent : localComponents) {
             int id = localComponent.getComponentID();
-
             Component remoteComponent = remoteStream.getComponent(id);
-
-            if (remoteComponent != null)
+            if (remoteComponent != null) {
                 transferRemoteCandidates(localComponent, remoteComponent);
-            else
+            } else {
                 localStream.removeComponent(localComponent);
+            }
         }
     }
 

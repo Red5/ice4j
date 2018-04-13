@@ -3,11 +3,6 @@ package org.ice4j;
 
 import java.util.Arrays;
 import java.util.Vector;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
@@ -19,6 +14,9 @@ import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
 import org.ice4j.stack.RequestListener;
 import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import test.PortUtil;
 
@@ -30,6 +28,9 @@ import test.PortUtil;
  * @author Emil Ivov
  */
 public class TransactionSupportTests extends TestCase {
+
+    private final static Logger logger = LoggerFactory.getLogger(TransactionSupportTests.class);
+
     /**
      * The client address we use for this test.
      */
@@ -104,6 +105,7 @@ public class TransactionSupportTests extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "");
         System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "");
         System.setProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER, "");
+
     }
 
     /**
@@ -193,7 +195,8 @@ public class TransactionSupportTests extends TestCase {
 
         assertTrue("Retransmissions of a binding request were propagated to the server", reqs.size() <= 1);
 
-        //restore the retransmissions prop in case others are counting on defaults.
+        //restore the retransmissions prop in case others are counting on
+        //defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
         else
@@ -218,13 +221,15 @@ public class TransactionSupportTests extends TestCase {
         //send
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
 
-        // wait for the message to arrive
+        //wait for the message to arrive
         requestCollector.waitForRequest();
 
         Vector<StunMessageEvent> reqs = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-        assertFalse(reqs.isEmpty());
+
         StunMessageEvent evt = reqs.get(0);
+
         byte[] tid = evt.getMessage().getTransactionID();
+
         stunStack.sendResponse(tid, bindingResponse, serverAddress, clientAddress);
 
         //wait for retransmissions
@@ -233,7 +238,8 @@ public class TransactionSupportTests extends TestCase {
         //verify that we received a fair number of retransmitted responses.
         assertTrue("There were too few retransmissions of a binding response: " + responseCollector.receivedResponses.size(), responseCollector.receivedResponses.size() < 3);
 
-        //restore the retransmissions prop in case others are counting on defaults.
+        //restore the retransmissions prop in case others are counting on
+        //defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
         else
@@ -247,6 +253,7 @@ public class TransactionSupportTests extends TestCase {
      * @throws Exception in case we feel like it.
      */
     public void testUniqueIDs() throws Exception {
+        logger.info("---------------------------------\n testUniqueIDs");
         stunStack.addRequestListener(serverAddress, requestCollector);
         //send req 1
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
@@ -255,7 +262,6 @@ public class TransactionSupportTests extends TestCase {
         requestCollector.waitForRequest();
 
         Vector<StunMessageEvent> reqs1 = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-        assertFalse(reqs1.isEmpty());
         StunMessageEvent evt1 = reqs1.get(0);
 
         //send a response to make the other guy shut up
@@ -270,8 +276,9 @@ public class TransactionSupportTests extends TestCase {
         Thread.sleep(1000);
 
         Vector<StunMessageEvent> reqs2 = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-        assertFalse(reqs2.isEmpty());
         StunMessageEvent evt2 = reqs2.get(0);
+
+        logger.info("txid: {} txid: {}", evt1.getMessage().getTransactionID(), evt2.getMessage().getTransactionID());
         assertFalse("Consecutive requests were assigned the same transaction id", Arrays.equals(evt1.getMessage().getTransactionID(), evt2.getMessage().getTransactionID()));
     }
 
@@ -353,14 +360,14 @@ public class TransactionSupportTests extends TestCase {
 
         //verify
         Vector<StunMessageEvent> reqs = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-        assertEquals("Not all retransmissions were made for the expected period of time", 12, reqs.size());
+        assertEquals("Not all retransmissions were made for the expected period " + "of time", 12, reqs.size());
 
         //wait for a send
         Thread.sleep(1800);
 
         //verify
         reqs = requestCollector.getRequestsForTransaction(bindingRequest.getTransactionID());
-        assertEquals("A retransmissions of the request was sent, while not supposed to", 12, reqs.size());
+        assertEquals("A retransmissions of the request was sent, while not " + "supposed to", 12, reqs.size());
     }
 
     /**
@@ -368,7 +375,9 @@ public class TransactionSupportTests extends TestCase {
      */
     private class PlainRequestCollector implements RequestListener {
 
-        private BlockingDeque<StunMessageEvent> receivedRequests = new LinkedBlockingDeque<>();
+        private Vector<StunMessageEvent> receivedRequestsVector = new Vector<>();
+
+        private Boolean lock = Boolean.TRUE;
 
         /**
          * Logs the newly received request.
@@ -376,21 +385,24 @@ public class TransactionSupportTests extends TestCase {
          * @param evt the {@link StunMessageEvent} to log.
          */
         public void processRequest(StunMessageEvent evt) {
-            receivedRequests.offer(evt);
+            logger.info("processRequest: {}", evt);
+            synchronized (lock) {
+                receivedRequestsVector.add(evt);
+                lock.notify();
+            }
         }
 
         /**
-         * Only return requests from the specified tran because we might have
-         * capture others too.
+         * Only return requests from the specified tran because we might have capture others too.
          *
          * @param tranid the transaction that we'd like to get requests for.
          *
-         * @return a Vector containing all request that we have received and
-         * that match tranid.
+         * @return a Vector containing all request that we have received and that match <tt>tranid</tt>.
          */
         public Vector<StunMessageEvent> getRequestsForTransaction(byte[] tranid) {
+            logger.info("getRequestsForTransaction: {}", TransactionID.toString(tranid));
             Vector<StunMessageEvent> newVec = new Vector<>();
-            for (StunMessageEvent evt : receivedRequests) {
+            for (StunMessageEvent evt : receivedRequestsVector) {
                 Message msg = evt.getMessage();
                 if (Arrays.equals(tranid, msg.getTransactionID())) {
                     newVec.add(evt);
@@ -403,13 +415,11 @@ public class TransactionSupportTests extends TestCase {
          * Blocks until a request arrives or 50 ms pass.
          */
         public void waitForRequest() {
-            try {
-                StunMessageEvent evt = receivedRequests.poll(50L, TimeUnit.MILLISECONDS);
-                if (evt != null) {
-                    receivedRequests.addFirst(evt);
+            synchronized (lock) {
+                try {
+                    lock.wait(50);
+                } catch (InterruptedException e) {
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -421,37 +431,37 @@ public class TransactionSupportTests extends TestCase {
         /**
          * The responses we've collected so far.
          */
-        public final BlockingQueue<Object> receivedResponses = new LinkedBlockingQueue<>();
+        public final Vector<Object> receivedResponses = new Vector<>();
 
         /**
-         * Notifies this ResponseCollector that a transaction described by
-         * the specified BaseStunMessageEvent has failed. The possible
+         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
+         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the BaseStunMessageEvent which describes the failed
+         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
         protected void processFailure(BaseStunMessageEvent event) {
+            logger.info("processFailure: {}", event);
             String receivedResponse;
-            if (event instanceof StunFailureEvent) {
+            if (event instanceof StunFailureEvent)
                 receivedResponse = "unreachable";
-            } else if (event instanceof StunTimeoutEvent) {
+            else if (event instanceof StunTimeoutEvent)
                 receivedResponse = "timeout";
-            } else {
+            else
                 receivedResponse = "failure";
-            }
-            receivedResponses.offer(receivedResponse);
+            receivedResponses.add(receivedResponse);
         }
 
         /**
-         * Logs the received response
+         * Logs the received <tt>response</tt>
          *
          * @param response the event to log.
          */
         public void processResponse(StunResponseEvent response) {
-            receivedResponses.offer(response);
+            logger.info("processResponse: {}", response);
+            receivedResponses.add(response);
         }
-
     }
 }

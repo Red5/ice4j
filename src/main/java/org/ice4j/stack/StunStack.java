@@ -30,7 +30,7 @@ import org.ice4j.attribute.ErrorCodeAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.OptionalAttribute;
 import org.ice4j.attribute.UsernameAttribute;
-import org.ice4j.ice.nio.NioServer;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.message.ChannelData;
 import org.ice4j.message.Indication;
 import org.ice4j.message.Message;
@@ -117,11 +117,6 @@ public class StunStack implements MessageEventHandler {
         }
     });
 
-    /**
-     * Internal NIO server for SocketChannel and DatagramChannel creation and handling.
-     */
-    private final NioServer server;
-
     static {
         // The Mac instantiation used in MessageIntegrityAttribute could take several hundred milliseconds so we don't want it instantiated only after
         // we get a response because the delay may cause the transaction to fail.
@@ -135,25 +130,6 @@ public class StunStack implements MessageEventHandler {
     public StunStack() {
         // create a new network access manager
         netAccessManager = new NetAccessManager(this);
-        // get an instance
-        server = NioServer.getInstance(this);
-        if (!server.getState().equals(NioServer.State.STARTED)) {
-            logger.debug("Starting Nio server");
-            server.setPriority(StackProperties.getInt("IO_THREAD_PRIORITY", 6));
-            server.setSelectorSleepMs((long) StackProperties.getInt("NIO_SELECTOR_SLEEP_MS", 10));
-            server.setBlockingIO(StackProperties.getBoolean("IO_BLOCKING", false));
-            // start it up
-            server.start();
-        }
-    }
-
-    /**
-     * Creates and starts a Network Access Point (Connector) based on the specified socket.
-     *
-     * @param wrapper The socket that the new access point should represent.
-     */
-    public void addSocket(IceSocketWrapper wrapper) {
-        addSocket(wrapper, wrapper.getRemoteTransportAddress());
     }
 
     /**
@@ -164,20 +140,8 @@ public class StunStack implements MessageEventHandler {
      * is UDP.
      */
     public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
-        // get the local address
-        TransportAddress localAddress = wrapper.getTransportAddress();
-        // add a listener for data events
-        server.addNioServerListener(localAddress, wrapper.getServerListener());
-        if (localAddress.getTransport() == Transport.UDP) {
-            // attempt to add a binding to the server
-            server.addUdpBinding(localAddress);
-        } else {
-            // attempt to add a binding to the server
-            server.addTcpBinding(localAddress);
-        }
-        if (logger.isTraceEnabled()) {
-            logger.trace("Binding added: {}", localAddress);
-        }
+        // add the stun stack and wrapper for binding
+        IceTransport.getInstance().addBinding(this, wrapper);
         // add the socket to the net access manager
         netAccessManager.addSocket(wrapper, remoteAddress);
     }
@@ -201,7 +165,7 @@ public class StunStack implements MessageEventHandler {
      */
     public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
         // clean up server bindings and listener
-        server.removeUdpBinding(localAddr);
+        IceTransport.getInstance().removeBinding(localAddr);
         // first cancel all transactions using this address
         cancelTransactionsForAddress(localAddr, remoteAddr);
         netAccessManager.removeSocket(localAddr, remoteAddr);
@@ -759,24 +723,15 @@ public class StunStack implements MessageEventHandler {
         }
         serverTransactions.clear();
         netAccessManager.stop();
-        // don't stop the NIO server unless we are NOT in shared mode
-        if (!NioServer.isShared()) {
-            // stop the NIO server
-            server.stop();
-        }
     }
 
     /**
-     * Executes actions related specific attributes like asserting proper
-     * checksums or verifying the validity of user names.
+     * Executes actions related specific attributes like asserting proper checksums or verifying the validity of user names.
      *
-     * @param evt the {@link StunMessageEvent} that contains the {@link
-     * Request} that we need to validate.
+     * @param evt the {@link StunMessageEvent} that contains the {@link Request} that we need to validate.
      *
-     * @throws IllegalArgumentException if there's something in the
-     * attribute that caused us to discard the whole message (e.g. an
-     * invalid checksum
-     * or username)
+     * @throws IllegalArgumentException if there's something in the attribute that caused us to discard the whole message (e.g. an
+     * invalid checksum or username)
      * @throws StunException if we fail while sending an error response.
      * @throws IOException if we fail while sending an error response.
      */
@@ -1081,15 +1036,6 @@ public class StunStack implements MessageEventHandler {
             int toIndex = isSent ? 1 : 0;
             getPacketLogger().logPacket(addr[fromIndex].getAddress(), port[fromIndex], addr[toIndex].getAddress(), port[toIndex], p.getData(), isSent);
         }
-    }
-
-    /**
-     * Returns the internal NioServer reference for this StunStack instance.
-     * 
-     * @return
-     */
-    NioServer getNioServer() {
-        return server;
     }
 
     /**

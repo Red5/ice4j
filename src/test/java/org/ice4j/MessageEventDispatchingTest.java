@@ -1,10 +1,7 @@
 /* See LICENSE.md for license information */
 package org.ice4j;
 
-import java.util.Queue;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
+import java.util.Vector;
 
 import junit.framework.TestCase;
 
@@ -139,13 +136,18 @@ public class MessageEventDispatchingTest extends TestCase {
      * @throws Exception upon a stun failure
      */
     public void testClientTransactionTimeouts() throws Exception {
+        logger.info("----------------------------------------\ntestClientTransactionTimeouts");
         String oldRetransValue = System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS);
         System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "1");
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         responseCollector.waitForTimeout();
-        assertEquals("No timeout was produced upon expiration of a client transaction", 1, responseCollector.receivedResponses.size());
-        assertEquals("No timeout was produced upon expiration of a client transaction", "timeout", responseCollector.receivedResponses.remove());
-        //restore the retransmissions prop in case others are counting on defaults.
+
+        assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.size(), 1);
+
+        assertEquals("No timeout was produced upon expiration of a client transaction", responseCollector.receivedResponses.get(0), "timeout");
+
+        //restore the retransmissions prop in case others are counting on
+        //defaults.
         if (oldRetransValue != null)
             System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, oldRetransValue);
         else
@@ -158,8 +160,11 @@ public class MessageEventDispatchingTest extends TestCase {
      * @throws java.lang.Exception upon any failure
      */
     public void testEventDispatchingUponIncomingRequests() throws Exception {
+        logger.info("----------------------------------------\ntestEventDispatchingUponIncomingRequests");
         //prepare to listen
         stunStack.addRequestListener(requestCollector);
+        //stunStack.addRequestListener(clientAddress, requestCollector);
+        logger.info("server/to: {} client/from: {}", serverAddress, clientAddress);
         //send
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
         //wait for retransmissions
@@ -169,22 +174,26 @@ public class MessageEventDispatchingTest extends TestCase {
     }
 
     /**
-     * Test that reception of Message events is only received for accesspoints
+     * Test that reception of Message events is only received for access points
      * that we have been registered for.
      *
      * @throws java.lang.Exception upon any failure
      */
     public void testSelectiveEventDispatchingUponIncomingRequests() throws Exception {
-        // prepare to listen
+        logger.info("----------------------------------------\ntestSelectiveEventDispatchingUponIncomingRequests");
+        //prepare to listen
         stunStack.addRequestListener(serverAddress, requestCollector);
+
         PlainRequestCollector requestCollector2 = new PlainRequestCollector();
         stunStack.addRequestListener(serverAddress2, requestCollector2);
-        // send
+
+        //send
         stunStack.sendRequest(bindingRequest, serverAddress2, clientAddress, responseCollector);
-        // wait for retransmissions
+        //wait for retransmissions
         requestCollector.waitForRequest();
         requestCollector2.waitForRequest();
-        // verify
+
+        //verify
         assertTrue("A MessageEvent was received by a non-interested selective listener", requestCollector.receivedRequests.size() == 0);
         assertTrue("No MessageEvents have been dispatched for a selective listener", requestCollector2.receivedRequests.size() == 1);
     }
@@ -194,20 +203,23 @@ public class MessageEventDispatchingTest extends TestCase {
      * @throws Exception if we screw up.
      */
     public void testServerResponseRetransmissions() throws Exception {
-        // prepare to listen
+        logger.info("----------------------------------------\ntestServerResponseRetransmissions");
+        //prepare to listen
         stunStack.addRequestListener(serverAddress, requestCollector);
-        // send
+        //send
         stunStack.sendRequest(bindingRequest, serverAddress, clientAddress, responseCollector);
-        // wait for the message to arrive
+
+        //wait for the message to arrive
         requestCollector.waitForRequest();
-        Queue<StunMessageEvent> reqs = requestCollector.receivedRequests;
-        assertFalse(reqs.isEmpty());
-        StunMessageEvent evt = reqs.remove();
+
+        StunMessageEvent evt = requestCollector.receivedRequests.get(0);
         byte[] tid = evt.getMessage().getTransactionID();
         stunStack.sendResponse(tid, bindingResponse, serverAddress, clientAddress);
-        // wait for retransmissions
+
+        //wait for retransmissions
         responseCollector.waitForResponse();
-        // verify that we got the response.
+
+        //verify that we got the response.
         assertTrue("There were no retransmissions of a binding response", responseCollector.receivedResponses.size() == 1);
     }
 
@@ -216,7 +228,7 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     private class PlainRequestCollector implements RequestListener {
         /** all requests we've received so far. */
-        public final BlockingDeque<StunMessageEvent> receivedRequests = new LinkedBlockingDeque<>();
+        public final Vector<StunMessageEvent> receivedRequests = new Vector<>();
 
         /**
          * Stores incoming requests.
@@ -224,17 +236,23 @@ public class MessageEventDispatchingTest extends TestCase {
          * @param evt the event containing the incoming request.
          */
         public void processRequest(StunMessageEvent evt) {
-            receivedRequests.offer(evt);
+            logger.info("processRequest: {}", evt);
+            synchronized (this) {
+                receivedRequests.add(evt);
+                notifyAll();
+            }
         }
 
         public void waitForRequest() {
-            try {
-                StunMessageEvent evt = receivedRequests.poll(50L, TimeUnit.MILLISECONDS);
-                if (evt != null) {
-                    // put it back on the head
-                    receivedRequests.addFirst(evt);
+            logger.info("waitForRequest");
+            synchronized (this) {
+                if (receivedRequests.size() > 0)
+                    return;
+                try {
+                    wait(50);
+                } catch (InterruptedException e) {
+                    logger.warn("waitForRequest", e);
                 }
-            } catch (InterruptedException e) {
             }
         }
     }
@@ -243,63 +261,65 @@ public class MessageEventDispatchingTest extends TestCase {
      * A utility class to collect incoming responses.
      */
     private static class PlainResponseCollector extends AbstractResponseCollector {
-
-        public final BlockingDeque<Object> receivedResponses = new LinkedBlockingDeque<>();
+        public final Vector<Object> receivedResponses = new Vector<>();
 
         /**
-         * Notifies this ResponseCollector that a transaction described by
-         * the specified BaseStunMessageEvent has failed. The possible
+         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
+         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the BaseStunMessageEvent which describes the failed
+         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
-        protected void processFailure(BaseStunMessageEvent event) {
+        protected synchronized void processFailure(BaseStunMessageEvent event) {
+            logger.info("processFailure: {}", event);
             String receivedResponse;
-            if (event instanceof StunFailureEvent) {
+            if (event instanceof StunFailureEvent)
                 receivedResponse = "unreachable";
-            } else if (event instanceof StunTimeoutEvent) {
+            else if (event instanceof StunTimeoutEvent)
                 receivedResponse = "timeout";
-            } else {
+            else
                 receivedResponse = "failure";
-            }
-            receivedResponses.offer(receivedResponse);
+            receivedResponses.add(receivedResponse);
+            notifyAll();
         }
 
         /**
          * Stores incoming responses.
          *
-         * @param response a StunMessageEvent which describes the
-         * received STUN Response
+         * @param response a <tt>StunMessageEvent</tt> which describes the
+         * received STUN <tt>Response</tt>
          */
-        public void processResponse(StunResponseEvent response) {
-            receivedResponses.offer(response);
+        public synchronized void processResponse(StunResponseEvent response) {
+            logger.info("processResponse: {}", response);
+            receivedResponses.add(response);
+            notifyAll();
         }
 
         /**
          * Waits for a short period of time for a response to arrive
          */
-        public void waitForResponse() {
+        public synchronized void waitForResponse() {
+            logger.info("waitForResponse");
             try {
-                Object obj = receivedResponses.poll(50L, TimeUnit.MILLISECONDS);
-                if (obj != null) {
-                    receivedResponses.addFirst(obj);
-                }
+                if (receivedResponses.size() == 0)
+                    wait(50);
             } catch (InterruptedException e) {
+                logger.warn("waitForResponse", e);
             }
         }
 
         /**
          * Waits for a long period of time for a timeout trigger to fire.
          */
-        public void waitForTimeout() {
+        public synchronized void waitForTimeout() {
+            logger.info("waitForTimeout");
             try {
-                Object obj = receivedResponses.poll(7000L, TimeUnit.MILLISECONDS);
-                if (obj != null) {
-                    receivedResponses.addFirst(obj);
-                }
+                if (receivedResponses.size() == 0)
+                    wait(12000);
             } catch (InterruptedException e) {
+                logger.warn("waitForTimeout", e);
             }
         }
     }
