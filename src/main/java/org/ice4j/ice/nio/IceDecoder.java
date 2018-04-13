@@ -15,14 +15,18 @@ import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.ice.nio.IceTransport.Ice;
+import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.RawMessage;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * This class handles the socket decoding.
- * 
  * 
  * @author Paul Gregoire
  */
@@ -60,7 +64,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 decoderState = new DecoderState();
                 session.setAttribute(Key.DECODER_STATE_KEY, decoderState);
             }
-            // there is incoming data from the websocket, decode it
+            // there is incoming data from the socket, decode it
             decodeIncommingData(in, session);
             // this will be null until all the fragments are collected
             RawMessage message = (RawMessage) session.getAttribute(Key.DECODED_MESSAGE_KEY);
@@ -68,10 +72,24 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 logger.trace("State: {} message: {}", decoderState, message);
             }
             if (message != null) {
-                // set the originating connection on the message
-                message.setConnection(conn);
-                // write the message
-                out.write(message);
+                byte[] buf = message.getBytes();
+                // if its a stun message, process it
+                if (isStun(buf)) {
+                    StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
+                    try {
+                        Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
+                        logger.trace("Dispatching a StunMessageEvent");
+                        StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
+                        stunStack.handleMessageEvent(stunMessageEvent);
+                    } catch (StunException ex) {
+                        logger.warn("Failed to decode a stun message!", ex);
+                    }
+                } else if (isDtls(buf)) {
+                    conn.getRawMessageQueue().offer(message);
+                } else {
+                    // write the message
+                    out.write(message);
+                }
                 // remove decoded message
                 session.removeAttribute(Key.DECODED_MESSAGE_KEY);
             } else {
@@ -79,288 +97,12 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 return false;
             }
         } else {
-            // session is known to be from a native socket. So simply wrap and pass through
+            // no connection, pass through
             resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
             in.position(in.limit());
             out.write(resultBuffer);
         }
         return true;
-    }
-
-    /**
-     * Try parsing the message as a websocket handshake request. If it is such a request, then send the corresponding handshake response (as in Section 4.2.2 RFC 6455).
-     */
-    @SuppressWarnings("unchecked")
-    private boolean doHandShake(IoSession session, IoBuffer in) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Handshake: {}", in);
-        }
-        // incoming data
-        byte[] data = null;
-        // check for existing HS data
-        if (session.containsAttribute(Constants.WS_HANDSHAKE)) {
-            byte[] tmp = (byte[]) session.getAttribute(Constants.WS_HANDSHAKE);
-            // size to hold existing and incoming
-            data = new byte[tmp.length + in.remaining()];
-            System.arraycopy(tmp, 0, data, 0, tmp.length);
-            // get incoming bytes
-            in.get(data, tmp.length, in.remaining());
-        } else {
-            // size for incoming bytes
-            data = new byte[in.remaining()];
-            // get incoming bytes
-            in.get(data, 0, data.length);
-        }
-        // ensure the incoming data is complete (ends with crlfcrlf)
-        byte[] tail = Arrays.copyOfRange(data, data.length - 4, data.length);
-        if (!Arrays.equals(tail, Constants.END_OF_REQ)) {
-            // accumulate the HS data
-            session.setAttribute(Constants.WS_HANDSHAKE, data);
-            return false;
-        }
-        // create the connection obj
-        WebSocketConnection conn = new WebSocketConnection(session);
-        // mark as secure if using ssl
-        if (session.getFilterChain().contains("sslFilter")) {
-            conn.setSecure(true);
-        }
-        try {
-            Map<String, Object> headers = parseClientRequest(conn, new String(data));
-            if (logger.isTraceEnabled()) {
-                logger.trace("Header map: {}", headers);
-            }
-            if (!headers.isEmpty() && headers.containsKey(Constants.WS_HEADER_KEY)) {
-                // add the headers to the connection, they may be of use to implementers
-                conn.setHeaders(headers);
-                // add query string parameters
-                if (headers.containsKey(Constants.URI_QS_PARAMETERS)) {
-                    conn.setQuerystringParameters((Map<String, Object>) headers.remove(Constants.URI_QS_PARAMETERS));
-                }
-                // check the version
-                if (!"13".equals(headers.get(Constants.WS_HEADER_VERSION))) {
-                    logger.info("Version 13 was not found in the request, communications may fail");
-                }
-                // get the path 
-                String path = conn.getPath();
-                // get the scope manager
-                WebSocketScopeManager manager = (WebSocketScopeManager) session.getAttribute(Constants.MANAGER);
-                if (manager == null) {
-                    WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
-                    manager = plugin.getManager(path);
-                }
-                // TODO add handling for extensions
-
-                // TODO expand handling for protocols requested by the client, instead of just echoing back
-                if (headers.containsKey(Constants.WS_HEADER_PROTOCOL)) {
-                    boolean protocolSupported = false;
-                    String protocol = (String) headers.get(Constants.WS_HEADER_PROTOCOL);
-                    logger.debug("Protocol '{}' found in the request", protocol);
-                    // add protocol to the connection
-                    conn.setProtocol(protocol);
-                    // TODO check listeners for "protocol" support
-                    Set<IWebSocketDataListener> listeners = manager.getScope(path).getListeners();
-                    for (IWebSocketDataListener listener : listeners) {
-                        if (listener.getProtocol().equals(protocol)) {
-                            //logger.debug("Scope has listener support for the {} protocol", protocol);
-                            protocolSupported = true;
-                            break;
-                        }
-                    }
-                    logger.debug("Scope listener does{} support the '{}' protocol", (protocolSupported ? "" : "n't"), protocol);
-                }
-                // store manager in the current session
-                session.setAttribute(Constants.MANAGER, manager);
-                // store connection in the current session
-                session.setAttribute(Constants.CONNECTION, conn);
-                // handshake is finished
-                conn.setConnected();
-                // add connection to the manager
-                manager.addConnection(conn);
-                // prepare response and write it to the directly to the session
-                HandshakeResponse wsResponse = buildHandshakeResponse(conn, (String) headers.get(Constants.WS_HEADER_KEY));
-                session.write(wsResponse);
-                // remove handshake acculator
-                session.removeAttribute(Constants.WS_HANDSHAKE);
-                logger.debug("Handshake complete");
-                return true;
-            }
-            // set connection as native / direct
-            conn.setType(ConnectionType.DIRECT);
-        } catch (Exception e) {
-            // input is not a websocket handshake request
-            logger.warn("Handshake failed", e);
-        }
-        return false;
-    }
-
-    /**
-     * Parse the client request and return a map containing the header contents. If the requested application is not enabled, return a 400 error.
-     * 
-     * @param conn
-     * @param requestData
-     * @return map of headers
-     * @throws WebSocketException
-     */
-    private Map<String, Object> parseClientRequest(WebSocketConnection conn, String requestData) throws WebSocketException {
-        String[] request = requestData.split("\r\n");
-        if (logger.isTraceEnabled()) {
-            logger.trace("Request: {}", Arrays.toString(request));
-        }
-        Map<String, Object> map = new HashMap<>();
-        for (int i = 0; i < request.length; i++) {
-            logger.trace("Request {}: {}", i, request[i]);
-            if (request[i].startsWith("GET ") || request[i].startsWith("POST ") || request[i].startsWith("PUT ")) {
-                // "GET /chat/room1?id=publisher1 HTTP/1.1"
-                // split it on space
-                String requestPath = request[i].split("\\s+")[1];
-                // get the path data for handShake
-                int start = requestPath.indexOf('/');
-                int end = requestPath.length();
-                int ques = requestPath.indexOf('?');
-                if (ques > 0) {
-                    end = ques;
-                }
-                logger.trace("Request path: {} to {} ques: {}", start, end, ques);
-                String path = requestPath.substring(start, end).trim();
-                logger.trace("Client request path: {}", path);
-                conn.setPath(path);
-                // check for '?' or included query string
-                if (ques > 0) {
-                    // parse any included query string
-                    String qs = requestPath.substring(ques).trim();
-                    logger.trace("Request querystring: {}", qs);
-                    map.put(Constants.URI_QS_PARAMETERS, parseQuerystring(qs));
-                }
-                // get the manager
-                WebSocketPlugin plugin = (WebSocketPlugin) PluginRegistry.getPlugin("WebSocketPlugin");
-                if (plugin != null) {
-                    logger.trace("Found plugin");
-                    WebSocketScopeManager manager = plugin.getManager(path);
-                    logger.trace("Manager was found? : {}", manager);
-                    // only check that the application is enabled, not the room or sub levels
-                    if (manager != null && manager.isEnabled(path)) {
-                        logger.trace("Path enabled: {}", path);
-                    } else {
-                        // invalid scope or its application is not enabled, send disconnect message
-                        HandshakeResponse errResponse = build400Response(conn);
-                        WriteFuture future = conn.getSession().write(errResponse);
-                        future.addListener(new IoFutureListener<IoFuture>() {
-                            @Override
-                            public void operationComplete(IoFuture future) {
-                                // close connection
-                                future.getSession().closeOnFlush();
-                            }
-                        });
-                        throw new WebSocketException("Handshake failed, path not enabled");
-                    }
-                } else {
-                    logger.warn("Plugin lookup failed");
-                    HandshakeResponse errResponse = build400Response(conn);
-                    WriteFuture future = conn.getSession().write(errResponse);
-                    future.addListener(new IoFutureListener<IoFuture>() {
-                        @Override
-                        public void operationComplete(IoFuture future) {
-                            // close connection
-                            future.getSession().closeOnFlush();
-                        }
-                    });
-                    throw new WebSocketException("Handshake failed, missing plugin");
-                }
-            } else if (request[i].contains(Constants.WS_HEADER_KEY)) {
-                map.put(Constants.WS_HEADER_KEY, extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.WS_HEADER_VERSION)) {
-                map.put(Constants.WS_HEADER_VERSION, extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.WS_HEADER_EXTENSIONS)) {
-                map.put(Constants.WS_HEADER_EXTENSIONS, extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.WS_HEADER_PROTOCOL)) {
-                map.put(Constants.WS_HEADER_PROTOCOL, extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.HTTP_HEADER_HOST)) {
-                // get the host data
-                conn.setHost(extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.HTTP_HEADER_ORIGIN)) {
-                // get the origin data
-                conn.setOrigin(extractHeaderValue(request[i]));
-            } else if (request[i].contains(Constants.HTTP_HEADER_USERAGENT)) {
-                map.put(Constants.HTTP_HEADER_USERAGENT, extractHeaderValue(request[i]));
-            } else if (request[i].startsWith(Constants.WS_HEADER_GENERIC_PREFIX)) {
-                map.put(getHeaderName(request[i]), extractHeaderValue(request[i]));
-            }
-        }
-        return map;
-    }
-
-    /**
-     * Returns the trimmed header name.
-     * 
-     * @param requestHeader
-     * @return value
-     */
-    private String getHeaderName(String requestHeader) {
-        return requestHeader.substring(0, requestHeader.indexOf(':')).trim();
-    }
-
-    /**
-     * Returns the trimmed header value.
-     * 
-     * @param requestHeader
-     * @return value
-     */
-    private String extractHeaderValue(String requestHeader) {
-        return requestHeader.substring(requestHeader.indexOf(':') + 1).trim();
-    }
-
-    /**
-     * Build a handshake response based on the given client key.
-     * 
-     * @param clientKey
-     * @return response
-     * @throws WebSocketException
-     */
-    private HandshakeResponse buildHandshakeResponse(WebSocketConnection conn, String clientKey) throws WebSocketException {
-        byte[] accept;
-        try {
-            // performs the accept creation routine from RFC6455 @see <a href="http://tools.ietf.org/html/rfc6455">RFC6455</a>
-            // concatenate the key and magic string, then SHA1 hash and base64 encode
-            MessageDigest md = MessageDigest.getInstance("SHA1");
-            accept = Base64.encode(md.digest((clientKey + Constants.WEBSOCKET_MAGIC_STRING).getBytes()));
-        } catch (NoSuchAlgorithmException e) {
-            throw new WebSocketException("Algorithm is missing");
-        }
-        // make up reply data...
-        IoBuffer buf = IoBuffer.allocate(308);
-        buf.setAutoExpand(true);
-        buf.put("HTTP/1.1 101 Switching Protocols".getBytes());
-        buf.put(Constants.CRLF);
-        buf.put("Upgrade: websocket".getBytes());
-        buf.put(Constants.CRLF);
-        buf.put("Connection: Upgrade".getBytes());
-        buf.put(Constants.CRLF);
-        buf.put("Server: Red5".getBytes());
-        buf.put(Constants.CRLF);
-        buf.put("Sec-WebSocket-Version-Server: 13".getBytes());
-        buf.put(Constants.CRLF);
-        buf.put(String.format("Sec-WebSocket-Origin: %s", conn.getOrigin()).getBytes());
-        buf.put(Constants.CRLF);
-        buf.put(String.format("Sec-WebSocket-Location: %s", conn.getHost()).getBytes());
-        buf.put(Constants.CRLF);
-        // send back extensions if enabled
-        if (conn.hasExtensions()) {
-            buf.put(String.format("Sec-WebSocket-Extensions: %s", conn.getExtensionsAsString()).getBytes());
-            buf.put(Constants.CRLF);
-        }
-        // send back protocol if enabled
-        if (conn.hasProtocol()) {
-            buf.put(String.format("Sec-WebSocket-Protocol: %s", conn.getProtocol()).getBytes());
-            buf.put(Constants.CRLF);
-        }
-        buf.put(String.format("Sec-WebSocket-Accept: %s", new String(accept)).getBytes());
-        buf.put(Constants.CRLF);
-        buf.put(Constants.CRLF);
-        // if any bytes follow this crlf, the follow-up data will be corrupted
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handshake response size: {}", buf.limit());
-        }
-        return new HandshakeResponse(buf);
     }
 
     /**
@@ -537,6 +279,62 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 session.removeAttribute(DECODED_MESSAGE_TYPE_KEY);
             }
         }
+    }
+
+    /**
+     * Determines whether data in a byte array represents a STUN message.
+     *
+     * @param buf the bytes to check
+     * @return true if the bytes look like STUN, otherwise false
+     */
+    public boolean isStun(byte[] buf) {
+        // If this is a STUN packet
+        boolean isStunPacket = false;
+        // All STUN messages MUST start with a 20-byte header followed by zero or more Attributes
+        if (buf.length >= 20) {
+            // If the MAGIC COOKIE is present this is a STUN packet (RFC5389 compliant).
+            if (buf[4] == Message.MAGIC_COOKIE[0] && buf[5] == Message.MAGIC_COOKIE[1] && buf[6] == Message.MAGIC_COOKIE[2] && buf[7] == Message.MAGIC_COOKIE[3]) {
+                isStunPacket = true;
+            } else {
+                // Else, this packet may be a STUN packet (RFC3489 compliant). To determine this, we must continue the checks.
+                // The most significant 2 bits of every STUN message MUST be zeroes.  This can be used to differentiate STUN packets from
+                // other protocols when STUN is multiplexed with other protocols on the same port.
+                byte b0 = buf[0];
+                boolean areFirstTwoBitsValid = ((b0 & 0xC0) == 0);
+                // Checks if the length of the data correspond to the length field of the STUN header. The message length field of the
+                // STUN header does not include the 20-byte of the STUN header.
+                int total_header_length = ((((int) buf[2]) & 0xff) << 8) + (((int) buf[3]) & 0xff) + 20;
+                boolean isHeaderLengthValid = (buf.length == total_header_length);
+                isStunPacket = areFirstTwoBitsValid && isHeaderLengthValid;
+            }
+        }
+        if (isStunPacket) {
+            byte b0 = buf[0];
+            byte b1 = buf[1];
+            // we only accept the method Binding and the reserved methods 0x000 and 0x002/SharedSecret
+            int method = (b0 & 0xFE) | (b1 & 0xEF);
+            switch (method) {
+                case Message.STUN_METHOD_BINDING:
+                case Message.STUN_REQUEST:
+                case Message.SHARED_SECRET_REQUEST:
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Determines whether data in a byte array represents a DTLS message.
+     *
+     * @param buf the bytes to check
+     * @return true if the bytes look like DTLS, otherwise false
+     */
+    public boolean isDtls(byte[] buf) {
+        if (buf.length > 0) {
+            int fb = buf[0] & 0xff;
+            return 19 < fb && fb < 64;
+        }
+        return false;
     }
 
 }

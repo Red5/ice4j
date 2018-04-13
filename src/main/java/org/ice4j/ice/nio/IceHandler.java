@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
+import org.ice4j.Transport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
@@ -82,7 +83,11 @@ public class IceHandler extends IoHandlerAdapter {
     public void sessionClosed(IoSession session) throws Exception {
         log.trace("Session closed");
         // remove binding
-        IceTransport.getInstance().removeBinding(session.getLocalAddress());
+        if (session.getTransportMetadata().isConnectionless()) {
+            IceTransport.getInstance(Transport.UDP).removeBinding(session.getLocalAddress());
+        } else {
+            IceTransport.getInstance(Transport.TCP).removeBinding(session.getLocalAddress());
+        }
         // clean-up
         session.removeAttribute(IceTransport.Ice.STUN_STACK);
         session.removeAttribute(IceTransport.Ice.CONNECTION);
@@ -92,10 +97,14 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-        log.warn("Exception", cause);
         SocketAddress addr = session.getLocalAddress();
+        log.warn("Exception on {}", addr, cause);
         // remove binding
-        IceTransport.getInstance().removeBinding(addr);
+        if (session.getTransportMetadata().isConnectionless()) {
+            IceTransport.getInstance(Transport.UDP).removeBinding(addr);
+        } else {
+            IceTransport.getInstance(Transport.TCP).removeBinding(addr);
+        }
         // remove any map entries
         if (stunStacks.containsKey(addr)) {
             stunStacks.remove(addr);

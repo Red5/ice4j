@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Abstract socket wrapper that define a socket that could be UDP, TCP...
  *
- * @author Sebastien Vincent
  * @author Paul Gregoire
  */
 public abstract class IceSocketWrapper {

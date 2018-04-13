@@ -22,7 +22,6 @@ import org.ice4j.stack.RawMessage;
 /**
  * UDP implementation of the IceSocketWrapper.
  *
- * @author Sebastien Vincent
  * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
