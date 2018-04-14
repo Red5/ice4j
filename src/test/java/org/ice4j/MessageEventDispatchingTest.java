@@ -101,9 +101,9 @@ public class MessageEventDispatchingTest extends TestCase {
         serverSock = new IceUdpSocketWrapper(serverAddress);
         serverSock2 = new IceUdpSocketWrapper(serverAddress2);
         // add wrappers to the stack
-        stunStack.addSocket(clientSock);
-        stunStack.addSocket(serverSock);
-        stunStack.addSocket(serverSock2);
+        stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress());
+        stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress());
+        stunStack.addSocket(serverSock2, serverSock2.getRemoteTransportAddress());
         // create binding request and response
         bindingRequest = MessageFactory.createBindingRequest();
         bindingResponse = MessageFactory.create3489BindingResponse(clientAddress, clientAddress, serverAddress);

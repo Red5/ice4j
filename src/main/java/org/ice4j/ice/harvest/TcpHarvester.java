@@ -31,9 +31,6 @@ import org.ice4j.ice.IceProcessingState;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.ServerReflexiveCandidate;
 import org.ice4j.ice.TcpHostCandidate;
-import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.IceTcpSocketWrapper;
-import org.ice4j.socket.filter.StunDataFilter;
 
 /**
  * An implementation of {@link AbstractTcpListener} which acts as a
@@ -286,10 +283,8 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
         IceMediaStream stream = component.getParentStream();
         Agent agent = stream.getParentAgent();
         if (stream.getComponentCount() != 1 || agent.getStreamCount() != 1) {
-            /*
-             * TcpHarvester only works with streams with a single component, and agents with a single stream. This is because we use the local "ufrag" to de-multiplex the
-             * accept()-ed sockets between the known components.
-             */
+            // TcpHarvester only works with streams with a single component, and agents with a single stream. This is because we use the local "ufrag" to de-multiplex the
+            // accept()-ed sockets between the known components.
             logger.info("More than one Component for an Agent, cannot harvest.");
             return new LinkedList<>();
         }
@@ -346,10 +341,9 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
         if (logger.isLoggable(Level.FINE) && !IceProcessingState.WAITING.equals(state) && !IceProcessingState.RUNNING.equals(state)) {
             logger.fine("Adding a socket to an Agent in state " + state);
         }
+        /*
         // Socket to add to the candidate
         IceSocketWrapper candidateSocket = new IceTcpSocketWrapper(socket.getChannel());
-        // STUN-only filtered socket to add to the StunStack
-        candidateSocket.addFilter(new StunDataFilter());
         TcpHostCandidate candidate = findCandidate(component, socket);
         if (candidate == null) {
             throw new IOException("Failed to find the local candidate for socket: " + socket);
@@ -359,6 +353,8 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
         // TODO: Maybe move this code to the candidate.
         component.getComponentSocket().setSocket(candidateSocket);
         // the socket is not our responsibility anymore. It is up to the candidate/component to close/free it.
+        
+         */
     }
 
     /**

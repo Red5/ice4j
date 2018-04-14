@@ -101,12 +101,12 @@ public class IceMediaStream {
     /**
      * The user fragment that we received from the remote party.
      */
-    private String remoteUfrag = null;
+    private String remoteUfrag;
 
     /**
      * The password that we received from the remote party.
      */
-    private String remotePassword = null;
+    private String remotePassword;
 
     /**
      * The {@link Logger} used by {@link IceMediaStream} instances.

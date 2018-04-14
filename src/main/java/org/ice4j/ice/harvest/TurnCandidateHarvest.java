@@ -182,7 +182,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             if (relayedCandidate != null) {
                 // The ICE connectivity checks will utilize STUN on the (application-purposed) socket of the RelayedCandidate and will not add it to the
                 // StunStack so we have to do it.
-                harvester.getStunStack().addSocket(relayedCandidate.getStunSocket(null));
+                //harvester.getStunStack().addSocket(relayedCandidate.getStunSocket(null));
                 relayedCandidate.getParentComponent().getComponentSocket().setSocket(relayedCandidate.getCandidateIceSocketWrapper());
                 addCandidate(relayedCandidate);
             }

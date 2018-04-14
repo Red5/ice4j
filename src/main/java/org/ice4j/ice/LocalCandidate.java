@@ -5,10 +5,7 @@ import java.net.SocketAddress;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.filter.StunDataFilter;
 import org.ice4j.stack.StunStack;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * LocalCandidates are obtained by an agent for every stream component and are then included in outgoing offers or answers.
@@ -17,9 +14,6 @@ import org.slf4j.LoggerFactory;
  * @author Lyubomir Marinov
  */
 public abstract class LocalCandidate extends Candidate<LocalCandidate> {
-
-    @SuppressWarnings("unused")
-    private final static Logger logger = LoggerFactory.getLogger(LocalCandidate.class);
 
     /**
      * The type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed", "google turn
@@ -40,19 +34,13 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     /**
      * Creates a LocalCandidate instance for the specified transport address and properties.
      *
-     * @param transportAddress  the transport address that this candidate is
-     * encapsulating.
-     * @param parentComponent the Component that this candidate
-     * belongs to.
-     * @param type the CandidateType for this Candidate.
-     * @param extendedType The type of method used to discover this candidate
-     * ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn
-     * relayed", "google turn relayed", "google tcp turn relayed" or "jingle
-     * node").
-     * @param relatedCandidate the relatedCandidate: null for a host candidate,
-     * the base address (host candidate) for a reflexive candidate, the mapped
-     * address (the mapped address of the TURN allocate response) for a relayed
-     * candidate.
+     * @param transportAddress  the transport address that this candidate is encapsulating
+     * @param parentComponent the Component that this candidate belongs to
+     * @param type the CandidateType for this Candidate
+     * @param extendedType The type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn
+     * relayed", "google turn relayed", "google tcp turn relayed" or "jingle node")
+     * @param relatedCandidate the relatedCandidate: null for a host candidate, the base address (host candidate) for a reflexive candidate, the mapped
+     * address (the mapped address of the TURN allocate response) for a relayed candidate
      */
     public LocalCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, CandidateExtendedType extendedType, LocalCandidate relatedCandidate) {
         super(transportAddress, parentComponent, type, relatedCandidate);
@@ -85,12 +73,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      */
     public IceSocketWrapper getStunSocket(TransportAddress serverAddress) {
         IceSocketWrapper hostSocket = getCandidateIceSocketWrapper();
-        if (hostSocket != null) {
-            // create a stun packet filter
-            hostSocket.addFilter(new StunDataFilter());
-            return hostSocket;
-        }
-        return null;
+        return hostSocket;
     }
 
     /**
@@ -100,18 +83,6 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      */
     public StunStack getStunStack() {
         return getParentComponent().getParentStream().getParentAgent().getStunStack();
-    }
-
-    /**
-     * Creates a new StunDatagramPacketFilter which is to capture STUN messages and make them available to the DatagramSocket returned
-     * by {@link #getStunSocket(TransportAddress)}.
-     *
-     * @param serverAddress the address of the source we'd like to receive packets from or null if we'd like to intercept all STUN packets
-     * @return the StunDatagramPacketFilter which is to capture STUN messages and make them available to the DatagramSocket returned
-     * by {@link #getStunSocket(TransportAddress)}
-     */
-    protected StunDataFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
-        return new StunDataFilter(serverAddress);
     }
 
     /**

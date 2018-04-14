@@ -9,10 +9,8 @@ import org.ice4j.ice.harvest.*;
 import org.ice4j.socket.*;
 
 /**
- * Represents a Candidate obtained by sending a TURN Allocate request
- * from a HostCandidate to a TURN server.  The relayed candidate is
- * resident on the TURN server, and the TURN server relays packets back towards
- * the agent.
+ * Represents a Candidate obtained by sending a TURN Allocate request from a HostCandidate to a TURN server.  The relayed candidate is
+ * resident on the TURN server, and the TURN server relays packets back towards the agent.
  *
  * @author Lubomir Marinov
  */
@@ -34,24 +32,17 @@ public class RelayedCandidate extends LocalCandidate {
     private final TurnCandidateHarvest turnCandidateHarvest;
 
     /**
-     * Initializes a new RelayedCandidate which is to represent a
-     * specific TransportAddress harvested through a specific
-     * HostCandidate and a TURN server with a specific
-     * TransportAddress.
+     * Initializes a new RelayedCandidate which is to represent a specific TransportAddress harvested through a specific
+     * HostCandidate and a TURN server with a specific TransportAddress.
      *
-     * @param transportAddress the TransportAddress to be represented
-     * by the new instance
-     * @param turnCandidateHarvest the TurnCandidateHarvest which has
-     * harvested the new instance
-     * @param mappedAddress the mapped TransportAddress reported by the
-     * TURN server with the delivery of the replayed transportAddress
+     * @param transportAddress the TransportAddress to be represented by the new instance
+     * @param turnCandidateHarvest the TurnCandidateHarvest which has harvested the new instance
+     * @param mappedAddress the mapped TransportAddress reported by the TURN server with the delivery of the replayed transportAddress
      * to be represented by the new instance
      */
     public RelayedCandidate(TransportAddress transportAddress, TurnCandidateHarvest turnCandidateHarvest, TransportAddress mappedAddress) {
         super(transportAddress, turnCandidateHarvest.hostCandidate.getParentComponent(), CandidateType.RELAYED_CANDIDATE, CandidateExtendedType.TURN_RELAYED_CANDIDATE, turnCandidateHarvest.hostCandidate.getParentComponent().findLocalCandidate(mappedAddress));
-
         this.turnCandidateHarvest = turnCandidateHarvest;
-
         // RFC 5245: The base of a relayed candidate is that candidate itself.
         setBase(this);
         setRelayServerAddress(turnCandidateHarvest.harvester.stunServer);
@@ -85,7 +76,7 @@ public class RelayedCandidate extends LocalCandidate {
     @Override
     public synchronized IceSocketWrapper getCandidateIceSocketWrapper() {
         if (socket == null) {
-            socket = new IceUdpSocketWrapper(getRelayedCandidateDatagramSocket().getChannel());
+//            socket = new IceUdpSocketWrapper((TransportAddress) getRelayedCandidateDatagramSocket().getLocalSocketAddress());
         }
         return socket;
     }

@@ -1,22 +1,16 @@
 package org.ice4j.ice.nio;
 
 import java.io.ByteArrayOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.io.IOException;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.IoFuture;
-import org.apache.mina.core.future.IoFutureListener;
-import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
@@ -33,10 +27,6 @@ import org.slf4j.LoggerFactory;
 public class IceDecoder extends CumulativeProtocolDecoder {
 
     private static final Logger logger = LoggerFactory.getLogger(IceDecoder.class);
-
-    private enum Key {
-        DECODER_STATE_KEY, DECODED_MESSAGE_KEY, DECODED_MESSAGE_TYPE_KEY, DECODED_MESSAGE_FRAGMENTS_KEY;
-    }
 
     /**
      * Keeps track of the decoding state of a data packet.
@@ -55,19 +45,17 @@ public class IceDecoder extends CumulativeProtocolDecoder {
     @Override
     protected boolean doDecode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
         IoBuffer resultBuffer;
-        IceSocketWrapper conn = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
-        if (conn != null) {
+        IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
+        if (iceSocket != null) {
             logger.debug("Decode start pos: {}", in.position());
             // grab decoding state
-            DecoderState decoderState = (DecoderState) session.getAttribute(Key.DECODER_STATE_KEY);
+            DecoderState decoderState = (DecoderState) session.getAttribute(Ice.DECODER_STATE_KEY);
             if (decoderState == null) {
                 decoderState = new DecoderState();
-                session.setAttribute(Key.DECODER_STATE_KEY, decoderState);
+                session.setAttribute(Ice.DECODER_STATE_KEY, decoderState);
             }
             // there is incoming data from the socket, decode it
-            decodeIncommingData(in, session);
-            // this will be null until all the fragments are collected
-            RawMessage message = (RawMessage) session.getAttribute(Key.DECODED_MESSAGE_KEY);
+            RawMessage message = decodeIncommingData(in, session, decoderState);
             if (logger.isTraceEnabled()) {
                 logger.trace("State: {} message: {}", decoderState, message);
             }
@@ -85,13 +73,11 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                         logger.warn("Failed to decode a stun message!", ex);
                     }
                 } else if (isDtls(buf)) {
-                    conn.getRawMessageQueue().offer(message);
+                    iceSocket.getRawMessageQueue().offer(message);
                 } else {
                     // write the message
                     out.write(message);
                 }
-                // remove decoded message
-                session.removeAttribute(Key.DECODED_MESSAGE_KEY);
             } else {
                 // there was not enough data in the buffer to parse
                 return false;
@@ -106,179 +92,74 @@ public class IceDecoder extends CumulativeProtocolDecoder {
     }
 
     /**
-     * Decode the in buffer according to the Section 5.2. RFC 6455. If there are multiple websocket dataframes in the buffer, this will parse all and return one complete decoded buffer.
-     * 
-     * <pre>
-     * 	  0                   1                   2                   3
-     * 	  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     * 	 +-+-+-+-+-------+-+-------------+-------------------------------+
-     * 	 |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-     * 	 |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-     * 	 |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-     * 	 | |1|2|3|       |K|             |                               |
-     * 	 +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-     * 	 |     Extended payload length continued, if payload len == 127  |
-     * 	 + - - - - - - - - - - - - - - - +-------------------------------+
-     * 	 |                               |Masking-key, if MASK set to 1  |
-     * 	 +-------------------------------+-------------------------------+
-     * 	 | Masking-key (continued)       |          Payload Data         |
-     * 	 +-------------------------------- - - - - - - - - - - - - - - - +
-     * 	 :                     Payload Data continued ...                :
-     * 	 + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-     * 	 |                     Payload Data continued ...                |
-     * 	 +---------------------------------------------------------------+
-     * </pre>
+     * Decode the incoming buffer and return a RawMessage when all its content has arrived.
      * 
      * @param in
      * @param session
+     * @param decoderState
+     * @return RawMessage
      */
-    public static void decodeIncommingData(IoBuffer in, IoSession session) {
+    public RawMessage decodeIncommingData(IoBuffer in, IoSession session, DecoderState decoderState) {
         logger.trace("Decoding: {}", in);
-        // get decoder state
-        DecoderState decoderState = (DecoderState) session.getAttribute(DECODER_STATE_KEY);
-        if (decoderState.fin == Byte.MIN_VALUE) {
-            byte frameInfo = in.get();
-            // get FIN (1 bit)
-            //logger.debug("frameInfo: {}", Integer.toBinaryString((frameInfo & 0xFF) + 256));
-            decoderState.fin = (byte) ((frameInfo >>> 7) & 1);
-            logger.trace("FIN: {}", decoderState.fin);
-            // the next 3 bits are for RSV1-3 (not used here at the moment)			
-            // get the opcode (4 bits)
-            decoderState.opCode = (byte) (frameInfo & 0x0f);
-            logger.trace("Opcode: {}", decoderState.opCode);
-            // opcodes 3-7 and b-f are reserved for non-control frames
-        }
-        if (decoderState.mask == Byte.MIN_VALUE) {
-            byte frameInfo2 = in.get();
-            // get mask bit (1 bit)
-            decoderState.mask = (byte) ((frameInfo2 >>> 7) & 1);
-            logger.trace("Mask: {}", decoderState.mask);
-            // get payload length (7, 7+16, 7+64 bits)
-            decoderState.frameLen = (frameInfo2 & (byte) 0x7F);
-            logger.trace("Payload length: {}", decoderState.frameLen);
-            if (decoderState.frameLen == 126) {
-                decoderState.frameLen = in.getUnsignedShort();
-                logger.trace("Payload length updated: {}", decoderState.frameLen);
-            } else if (decoderState.frameLen == 127) {
-                long extendedLen = in.getLong();
-                if (extendedLen >= Integer.MAX_VALUE) {
-                    logger.error("Data frame is too large for this implementation. Length: {}", extendedLen);
-                } else {
-                    decoderState.frameLen = (int) extendedLen;
-                }
-                logger.trace("Payload length updated: {}", decoderState.frameLen);
+        RawMessage message = null;
+        // get the incoming bytes
+        byte[] buf = new byte[in.remaining()];
+        in.get(buf);
+        
+/*
+ * TCP has a 2b prefix containing its size
+     * Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port
+     * and address of this Socket.
+    public void receive(DatagramPacket p) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) channel;
+        while (frameLengthByteBuffer.hasRemaining()) {
+            int read = socketChannel.read(frameLengthByteBuffer);
+            if (read == -1) {
+                throw new SocketException("Failed to receive data from socket.");
             }
         }
-        // ensure enough bytes left to fill payload, if masked add 4 additional bytes
-        if (decoderState.frameLen + (decoderState.mask == 1 ? 4 : 0) > in.remaining()) {
-            logger.info("Not enough data available to decode, socket may be closed/closing");
+        frameLengthByteBuffer.flip();
+        int b0 = frameLengthByteBuffer.get();
+        int b1 = frameLengthByteBuffer.get();
+        int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF);
+        frameLengthByteBuffer.flip();
+        byte[] data = p.getData();
+        if (data == null || data.length < frameLength) {
+            data = new byte[frameLength];
+        }
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data, 0, frameLength);
+        while (byteBuffer.hasRemaining()) {
+            int read = socketChannel.read(byteBuffer);
+            if (read == -1) {
+                throw new SocketException("Failed to receive data from socket.");
+            }
+        }
+        p.setAddress(socketChannel.socket().getInetAddress());
+        p.setData(data, 0, frameLength);
+        p.setPort(socketChannel.socket().getPort());
+    }
+ */
+        
+        // does it look like we have a whole message or an ending fragment?
+        boolean wholeMessage = (buf.length < 1500);
+        // if there are less than 1500 bytes and decoderState is empty, we can be assured its a whole message
+        if (wholeMessage && decoderState.payload.size() == 0) {
+            // create a message
+            message = RawMessage.build(buf, session.getRemoteAddress(), session.getLocalAddress());
         } else {
-            // if the data is masked (xor'd)
-            if (decoderState.mask == 1) {
-                // get the mask key
-                byte maskKey[] = new byte[4];
-                for (int i = 0; i < 4; i++) {
-                    maskKey[i] = in.get();
-                }
-                /*  now un-mask frameLen bytes as per Section 5.3 RFC 6455
-                Octet i of the transformed data ("transformed-octet-i") is the XOR of
-                octet i of the original data ("original-octet-i") with octet at index
-                i modulo 4 of the masking key ("masking-key-octet-j"):
-                j                   = i MOD 4
-                transformed-octet-i = original-octet-i XOR masking-key-octet-j
-                */
-                decoderState.payload = new byte[decoderState.frameLen];
-                for (int i = 0; i < decoderState.frameLen; i++) {
-                    byte maskedByte = in.get();
-                    decoderState.payload[i] = (byte) (maskedByte ^ maskKey[i % 4]);
-                }
-            } else {
-                decoderState.payload = new byte[decoderState.frameLen];
-                in.get(decoderState.payload);
+            // add them to the payload
+            try {
+                decoderState.payload.write(buf);
+            } catch (IOException e) {
             }
-            // if FIN == 0 we have fragments
-            if (decoderState.fin == 0) {
-                // store the fragment and continue
-                IoBuffer fragments = (IoBuffer) session.getAttribute(DECODED_MESSAGE_FRAGMENTS_KEY);
-                if (fragments == null) {
-                    fragments = IoBuffer.allocate(decoderState.frameLen);
-                    fragments.setAutoExpand(true);
-                    session.setAttribute(DECODED_MESSAGE_FRAGMENTS_KEY, fragments);
-                    // store message type since following type may be a continuation
-                    MessageType messageType = MessageType.CLOSE;
-                    switch (decoderState.opCode) {
-                        case 0: // continuation
-                            messageType = MessageType.CONTINUATION;
-                            break;
-                        case 1: // text
-                            messageType = MessageType.TEXT;
-                            break;
-                        case 2: // binary
-                            messageType = MessageType.BINARY;
-                            break;
-                        case 9: // ping
-                            messageType = MessageType.PING;
-                            break;
-                        case 0xa: // pong
-                            messageType = MessageType.PONG;
-                            break;
-                    }
-                    session.setAttribute(DECODED_MESSAGE_TYPE_KEY, messageType);
-                }
-                fragments.put(decoderState.payload);
-                // remove decoder state
-                session.removeAttribute(DECODER_STATE_KEY);
-            } else {
+            if (wholeMessage) {
                 // create a message
-                WSMessage message = new WSMessage();
-                // check for previously set type from the first fragment (if we have fragments)
-                MessageType messageType = (MessageType) session.getAttribute(DECODED_MESSAGE_TYPE_KEY);
-                if (messageType == null) {
-                    switch (decoderState.opCode) {
-                        case 0: // continuation
-                            messageType = MessageType.CONTINUATION;
-                            break;
-                        case 1: // text
-                            messageType = MessageType.TEXT;
-                            break;
-                        case 2: // binary
-                            messageType = MessageType.BINARY;
-                            break;
-                        case 9: // ping
-                            messageType = MessageType.PING;
-                            break;
-                        case 0xa: // pong
-                            messageType = MessageType.PONG;
-                            break;
-                        case 8: // close
-                            messageType = MessageType.CLOSE;
-                            // handler or listener should close upon receipt
-                            break;
-                        default:
-                            // TODO throw ex?
-                            logger.info("Unhandled opcode: {}", decoderState.opCode);
-                    }
-                }
-                // set message type
-                message.setMessageType(messageType);
-                // check for fragments and piece them together, otherwise just send the single completed frame
-                IoBuffer fragments = (IoBuffer) session.removeAttribute(DECODED_MESSAGE_FRAGMENTS_KEY);
-                if (fragments != null) {
-                    fragments.put(decoderState.payload);
-                    fragments.flip();
-                    message.setPayload(fragments);
-                } else {
-                    // add the payload
-                    message.addPayload(decoderState.payload);
-                }
-                // set the message on the session
-                session.setAttribute(DECODED_MESSAGE_KEY, message);
-                // remove decoder state
-                session.removeAttribute(DECODER_STATE_KEY);
-                // remove type
-                session.removeAttribute(DECODED_MESSAGE_TYPE_KEY);
+                message = RawMessage.build(decoderState.payload.toByteArray(), session.getRemoteAddress(), session.getLocalAddress());
+                // reset decoder state payload so it may be re-used
+                decoderState.payload.reset();
             }
         }
+        return message;
     }
 
     /**
@@ -335,6 +216,49 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             return 19 < fb && fb < 64;
         }
         return false;
+    }
+
+    /**
+     * Tries to parse the bytes in buf at offset off (and length len) as a STUN Binding Request message. If successful,
+     * looks for a USERNAME attribute and returns the local username fragment part (see RFC5245 Section 7.1.2.3).
+     * In case of any failure returns null.
+     *
+     * @param buf the bytes.
+     * @param off the offset.
+     * @param len the length.
+     * @return the local ufrag from the USERNAME attribute of the STUN message contained in buf, or null.
+     */
+    static String getUfrag(byte[] buf, int off, int len) {
+        // RFC5389, Section 6: All STUN messages MUST start with a 20-byte header followed by zero or more Attributes.
+        if (buf == null || buf.length < off + len || len < 20) {
+            return null;
+        }
+        // RFC5389, Section 6: The magic cookie field MUST contain the fixed value 0x2112A442 in network byte order.
+        if (((buf[off + 4] & 0xFF) == 0x21 && (buf[off + 5] & 0xFF) == 0x12 && (buf[off + 6] & 0xFF) == 0xA4 && (buf[off + 7] & 0xFF) == 0x42)) {
+            try {
+                Message stunMessage = Message.decode(buf, off, len);
+                if (stunMessage.getMessageType() == Message.BINDING_REQUEST) {
+                    UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("usernameAttribute: {}", usernameAttribute);
+                    }
+                    if (usernameAttribute != null) {
+                        String usernameString = new String(usernameAttribute.getUsername());
+                        return usernameString.split(":")[0];
+                    }
+                }
+            } catch (Exception e) {
+                // Catch everything. We are going to log, and then drop the packet anyway.
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Failed to extract local ufrag", e);
+                }
+            }
+        } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Not a STUN packet, magic cookie not found.");
+            }
+        }
+        return null;
     }
 
 }

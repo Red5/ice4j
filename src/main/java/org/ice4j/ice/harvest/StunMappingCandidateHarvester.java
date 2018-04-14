@@ -24,10 +24,8 @@ public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
     private TransportAddress stunServerAddress;
 
     /**
-     * Initializes a new {@link StunMappingCandidateHarvester} instance with
-     * a given local address and a STUN server address. Note that the actual
-     * discovery of the public address needs to be initiated to a separate call
-     * to {@link #discover()}.
+     * Initializes a new {@link StunMappingCandidateHarvester} instance with a given local address and a STUN server address. Note that the actual
+     * discovery of the public address needs to be initiated to a separate call to {@link #discover()}.
      * @param localAddress The local address.
      * @param stunServerAddress The address of the STUN server.
      */
@@ -38,8 +36,7 @@ public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
 
     /**
      * Attempts to discover the the public address (mask) via the STUN server.
-     * Note that this will block until we either receive a response from the
-     * STUN server, or a timeout occurs.
+     * Note that this will block until we either receive a response from the STUN server, or a timeout occurs.
      */
     public void discover() {
         try {

@@ -30,7 +30,9 @@ import org.ice4j.attribute.ErrorCodeAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.OptionalAttribute;
 import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.ChannelData;
 import org.ice4j.message.Indication;
 import org.ice4j.message.Message;
@@ -40,6 +42,7 @@ import org.ice4j.message.Response;
 import org.ice4j.security.CredentialsManager;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.IceUdpSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,9 +82,9 @@ public class StunStack implements MessageEventHandler {
     private final ConcurrentMap<TransactionID, StunClientTransaction> clientTransactions = new ConcurrentHashMap<>();
 
     /**
-     * The Thread which expires the StunServerTransactions of this StunStack and removes them from {@link #serverTransactions}.
+     * The Future which expires the StunServerTransactions of this StunStack and removes them from {@link #serverTransactions}.
      */
-    private Thread serverTransactionExpireThread;
+    private Future<?> serverTransactionExpireFuture;
 
     /**
      * Currently open server transactions. Contains transaction id's for transactions corresponding to all non-answered received requests.
@@ -140,8 +143,13 @@ public class StunStack implements MessageEventHandler {
      * is UDP.
      */
     public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
+        logger.debug("addSocket: {} remote address: {}", wrapper, remoteAddress);
         // add the stun stack and wrapper for binding
-        IceTransport.getInstance().addBinding(this, wrapper);
+        if (wrapper instanceof IceUdpSocketWrapper) {
+            IceUdpTransport.getInstance().addBinding(this, wrapper);
+        } else {
+            IceTcpTransport.getInstance().addBinding(this, wrapper);
+        }
         // add the socket to the net access manager
         netAccessManager.addSocket(wrapper, remoteAddress);
     }
@@ -154,6 +162,7 @@ public class StunStack implements MessageEventHandler {
      * @param localAddr the local address of the socket to remove.
      */
     public void removeSocket(TransportAddress localAddr) {
+        logger.debug("removeSocket: {}", localAddr);
         removeSocket(localAddr, null);
     }
 
@@ -164,8 +173,9 @@ public class StunStack implements MessageEventHandler {
      * @param remoteAddr the remote address of the socket to remove. Use null for UDP.
      */
     public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
+        logger.debug("removeSocket: {} remote address: {}", localAddr, remoteAddr);
         // clean up server bindings and listener
-        IceTransport.getInstance().removeBinding(localAddr);
+        IceTransport.getInstance(remoteAddr == null ? Transport.UDP : Transport.TCP).removeBinding(localAddr);
         // first cancel all transactions using this address
         cancelTransactionsForAddress(localAddr, remoteAddr);
         netAccessManager.removeSocket(localAddr, remoteAddr);
@@ -301,15 +311,15 @@ public class StunStack implements MessageEventHandler {
      * @param sendFrom the TransportAddress from which the message was received
      * @throws StunException if anything goes wrong
      */
-    public void receiveUdpMessage(byte[] message, TransportAddress sentTo, TransportAddress sendFrom) throws StunException {
-        try {
-            getNetAccessManager().receiveMessage(message, sentTo, sendFrom);
-        } catch (IllegalArgumentException iaex) {
-            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to receive STUN indication: " + message, iaex);
-        } catch (IOException ioex) {
-            throw new StunException(StunException.NETWORK_ERROR, "Failed to receive STUN indication: " + message, ioex);
-        }
-    }
+    //    public void receiveUdpMessage(byte[] message, TransportAddress sentTo, TransportAddress sendFrom) throws StunException {
+    //        try {
+    //            getNetAccessManager().receiveMessage(message, sentTo, sendFrom);
+    //        } catch (IllegalArgumentException iaex) {
+    //            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to receive STUN indication: " + message, iaex);
+    //        } catch (IOException ioex) {
+    //            throw new StunException(StunException.NETWORK_ERROR, "Failed to receive STUN indication: " + message, ioex);
+    //        }
+    //    }
 
     /**
      * Sends a specific STUN Indication to a specific destination
@@ -704,6 +714,10 @@ public class StunStack implements MessageEventHandler {
      * Cancels all running transactions and prepares for garbage collection
      */
     public void shutDown() {
+        // cancel the expire job if one exists
+        if (serverTransactionExpireFuture != null) {
+            serverTransactionExpireFuture.cancel(true);
+        }
         // stop the executor
         try {
             executor.shutdown();
@@ -927,31 +941,19 @@ public class StunStack implements MessageEventHandler {
      * Initializes and starts {@link #serverTransactionExpireThread} if necessary.
      */
     private void maybeStartServerTransactionExpireThread() {
-        if (!serverTransactions.isEmpty() && serverTransactionExpireThread == null) {
-            Thread t = new Thread() {
+        if (!serverTransactions.isEmpty() && serverTransactionExpireFuture == null) {
+            serverTransactionExpireFuture = submit(new Runnable() {
                 @Override
                 public void run() {
+                    Thread.currentThread().setName("StunStack.serverTransactionExpireThread");
                     runInServerTransactionExpireThread();
                 }
-            };
-            t.setDaemon(true);
-            t.setName(getClass().getName() + ".serverTransactionExpireThread");
-            boolean started = false;
-            serverTransactionExpireThread = t;
-            try {
-                t.start();
-                started = true;
-            } finally {
-                if (!started && (serverTransactionExpireThread == t)) {
-                    serverTransactionExpireThread = null;
-                }
-            }
+            });
         }
     }
 
     /**
-     * Runs in {@link #serverTransactionExpireThread} and expires the
-     * StunServerTransactions of this StunStack and removes
+     * Runs in {@link #serverTransactionExpireThread} and expires the StunServerTransactions of this StunStack and removes
      * them from {@link #serverTransactions}.
      */
     private void runInServerTransactionExpireThread() {
@@ -961,10 +963,6 @@ public class StunStack implements MessageEventHandler {
                 try {
                     Thread.sleep(StunServerTransaction.LIFETIME);
                 } catch (InterruptedException ie) {
-                }
-                // Is the current Thread still designated to expire the StunServerTransactions of this StunStack?
-                if (Thread.currentThread() != serverTransactionExpireThread) {
-                    break;
                 }
                 long now = System.currentTimeMillis();
                 // Has the current Thread been idle long enough to merit disposing of it?
@@ -989,13 +987,10 @@ public class StunStack implements MessageEventHandler {
                 }
             } while (true);
         } finally {
-            if (serverTransactionExpireThread == Thread.currentThread()) {
-                serverTransactionExpireThread = null;
-            }
             // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
-            if (serverTransactionExpireThread == null) {
-                maybeStartServerTransactionExpireThread();
-            }
+            serverTransactionExpireFuture.cancel(true);
+            serverTransactionExpireFuture = null;
+            maybeStartServerTransactionExpireThread();
         }
     }
 

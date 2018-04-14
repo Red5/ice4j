@@ -6,7 +6,6 @@ import java.net.DatagramSocket;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.filter.StunDataFilter;
 
 /**
  * HostCandidates are obtained by binding to a specific port from an IP address on the host that is running us. This includes IP addresses on
@@ -57,21 +56,6 @@ public class HostCandidate extends LocalCandidate {
         super(new TransportAddress(socket.getLocalAddress(), socket.getLocalPort(), transport), parentComponent, CandidateType.HOST_CANDIDATE, CandidateExtendedType.HOST_CANDIDATE, null);
         this.socket = socket;
         setBase(this);
-    }
-
-    /**
-     * Creates a new StunDatagramPacketFilter which is to capture STUN messages and make them available to the DatagramSocket returned
-     * by {@link #getStunSocket(TransportAddress)}.
-     *
-     * @param serverAddress the address of the source we'd like to receive packets from or null if we'd like to intercept all STUN packets
-     * @return the StunDatagramPacketFilter which is to capture STUN messages and make them available to the DatagramSocket returned
-     * by {@link #getStunSocket(TransportAddress)}
-     * @see LocalCandidate#createStunDatagramPacketFilter(TransportAddress)
-     */
-    @Override
-    protected StunDataFilter createStunDatagramPacketFilter(TransportAddress serverAddress) {
-        // Since we support TURN as well, we have to be able to receive TURN messages as well.
-        return new StunDataFilter(serverAddress);
     }
 
     /**

@@ -82,7 +82,7 @@ public class ShallowStackTest extends TestCase {
         // access point
         localSock = new IceUdpSocketWrapper(localAddress);
         // add the wrapper to the stack
-        stunStack.addSocket(localSock);
+        stunStack.addSocket(localSock, localSock.getRemoteTransportAddress());
         // init the dummy server
         dummyServerSocket = new DatagramSocket(dummyServerAddress);
     }
@@ -169,9 +169,6 @@ public class ShallowStackTest extends TestCase {
         // wait for the packet to arrive
         requestCollector.waitForRequest();
         Request collectedRequest = requestCollector.collectedRequest;
-        if (collectedRequest != null) {
-            logger.warn("Collected request was null", stunStack.getNioServer().getLastException());
-        }
         assertNotNull(collectedRequest);
         byte[] expectedReturn = msgFixture.bindingRequest;
         byte[] actualReturn = collectedRequest.encode(stunStack);

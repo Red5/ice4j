@@ -52,14 +52,11 @@ public class EventDispatcher {
     }
 
     /**
-     * Registers a specific MessageEventHandler for notifications about
-     * old indications received at a specific local TransportAddress.
+     * Registers a specific MessageEventHandler for notifications about old indications received at a specific local TransportAddress.
      *
-     * @param localAddr the local TransportAddress STUN indications
-     * received at which are to be reported to the specified
+     * @param localAddr the local TransportAddress STUN indications received at which are to be reported to the specified
      * indicationListener
-     * @param indicationListener the MessageEventHandler which is to be
-     * registered for notifications about old indications received at the
+     * @param indicationListener the MessageEventHandler which is to be registered for notifications about old indications received at the
      * specified local TransportAddress
      */
     public void addOldIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
@@ -67,11 +64,9 @@ public class EventDispatcher {
     }
 
     /**
-     * Registers a specific MessageTypeEventHandler for notifications
-     * about received STUN messages.
+     * Registers a specific MessageTypeEventHandler for notifications about received STUN messages.
      *
-     * @param messageListener the MessageTypeEventHandler which is to
-     * be registered for notifications about received STUN messages
+     * @param messageListener the MessageTypeEventHandler which is to be registered for notifications about received STUN messages
      */
     private void addMessageListener(MessageTypeEventHandler<?> messageListener) {
         if (!messageListeners.contains(messageListener)) {
@@ -80,15 +75,11 @@ public class EventDispatcher {
     }
 
     /**
-     * Registers a specific MessageTypeEventHandler for notifications
-     * about STUN messages received at a specific local
-     * TransportAddress.
+     * Registers a specific MessageTypeEventHandler for notifications about STUN messages received at a specific local TransportAddress.
      *
-     * @param localAddr the local TransportAddress STUN messages
-     * received at which are to be reported to the specified
+     * @param localAddr the local TransportAddress STUN messages received at which are to be reported to the specified
      * messageListener
-     * @param messageListener the MessageTypeEventHandler which is to
-     * be registered for notifications about STUN messages received at the
+     * @param messageListener the MessageTypeEventHandler which is to be registered for notifications about STUN messages received at the
      * specified local TransportAddress
      */
     private void addMessageListener(TransportAddress localAddr, MessageTypeEventHandler<?> messageListener) {
@@ -101,8 +92,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Add a RequestListener to the listener list. The listener is registered
-     * for requests coming from no matter which NetAccessPoint.
+     * Add a RequestListener to the listener list. The listener is registered for requests coming from no matter which NetAccessPoint.
      *
      * @param listener  The RequestListener to be added
      */
@@ -111,8 +101,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Add a RequestListener for a specific NetAccessPoint. The listener
-     * will be invoked only when a call on fireRequestReceived is issued for
+     * Add a RequestListener for a specific NetAccessPoint. The listener will be invoked only when a call on fireRequestReceived is issued for
      * that specific NetAccessPoint.
      *
      * @param localAddr  The NETAP descriptor that we're interested in.
@@ -123,8 +112,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Unregisters a specific MessageTypeEventHandler from
-     * notifications about received STUN messages.
+     * Unregisters a specific MessageTypeEventHandler from notifications about received STUN messages.
      *
      * @param messageListener the MessageTypeEventHandler to be
      * unregistered for notifications about received STUN messages
@@ -134,9 +122,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Unregisters a specific MessageTypeEventHandler from
-     * notifications about STUN messages received at a specific local
-     * TransportAddress.
+     * Unregisters a specific MessageTypeEventHandler from notifications about STUN messages received at a specific local TransportAddress.
      *
      * @param localAddr the local TransportAddress STUN messages
      * received at which to no longer be reported to the specified
@@ -153,10 +139,8 @@ public class EventDispatcher {
     }
 
     /**
-     * Remove a RquestListener from the listener list.
-     * This removes a RequestListener that was registered
-     * for all NetAccessPoints and would not remove listeners registered for
-     * specific NetAccessPointDescriptors.
+     * Remove a RquestListener from the listener list. This removes a RequestListener that was registered
+     * for all NetAccessPoints and would not remove listeners registered for specific NetAccessPointDescriptors.
      *
      * @param listener The RequestListener to be removed
      */
@@ -165,8 +149,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Remove a RequestListener for a specific NetAccessPointDescriptor. This
-     * would only remove the listener for the specified NetAccessPointDescriptor
+     * Remove a RequestListener for a specific NetAccessPointDescriptor. This would only remove the listener for the specified NetAccessPointDescriptor
      * and would not remove it if it was also registered as a wildcard listener.
      *
      * @param localAddr  The NetAPDescriptor that was listened on.
@@ -196,8 +179,7 @@ public class EventDispatcher {
     }
 
     /**
-     * Check if there are any listeners for a specific address.
-     * (Generic listeners count as well)
+     * Check if there are any listeners for a specific address. (Generic listeners count as well)
      *
      * @param localAddr the NetAccessPointDescriptor.
      * @return true if there are one or more listeners for the specified NetAccessPointDescriptor
@@ -230,23 +212,19 @@ public class EventDispatcher {
     private static class IndicationEventHandler extends MessageTypeEventHandler<MessageEventHandler> {
 
         /**
-         * Initializes a new IndicationEventHandler which is to
-         * implement MessageEventHandler for a specific
+         * Initializes a new IndicationEventHandler which is to implement MessageEventHandler for a specific
          * MessageEventHandler which handles STUN indications.
          *
-         * @param indicationListener the RequestListener for which the
-         * new instance is to implement MessageEventHandler
+         * @param indicationListener the RequestListener for which the new instance is to implement MessageEventHandler
          */
         public IndicationEventHandler(MessageEventHandler indicationListener) {
             super(Message.STUN_INDICATION, indicationListener);
         }
 
         /**
-         * Notifies this MessageEventHandler that a STUN message has
-         * been received, parsed and is ready for delivery.
+         * Notifies this MessageEventHandler that a STUN message has been received, parsed and is ready for delivery.
          *
-         * @param e a StunMessageEvent which encapsulates the STUN
-         * message to be handled
+         * @param e a StunMessageEvent which encapsulates the STUN message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */
         public void handleMessageEvent(StunMessageEvent e) {
@@ -260,10 +238,8 @@ public class EventDispatcher {
     private static class OldIndicationEventHandler extends MessageTypeEventHandler<MessageEventHandler> {
 
         /**
-         * Initializes a new IndicationEventHandler which is to
-         * implement MessageEventHandler for a specific
-         * MessageEventHandler which handles old DATA indications
-         * (0x0115).
+         * Initializes a new IndicationEventHandler which is to implement MessageEventHandler for a specific
+         * MessageEventHandler which handles old DATA indications (0x0115).
          *
          * @param indicationListener the RequestListener for which the
          * new instance is to implement MessageEventHandler
@@ -273,11 +249,9 @@ public class EventDispatcher {
         }
 
         /**
-         * Notifies this MessageEventHandler that a STUN message has
-         * been received, parsed and is ready for delivery.
+         * Notifies this MessageEventHandler that a STUN message has been received, parsed and is ready for delivery.
          *
-         * @param e a StunMessageEvent which encapsulates the STUN
-         * message to be handled
+         * @param e a StunMessageEvent which encapsulates the STUN message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */
         public void handleMessageEvent(StunMessageEvent e) {
@@ -305,10 +279,8 @@ public class EventDispatcher {
         /**
          * Initializes a new MessageTypeEventHandler which is to forward STUN messages with a specific type to a specific handler.
          *
-         * @param messageType the type of the STUN messages that the new
-         * instance is to forward to the specified handler delegate
-         * @param delegate the handler to which the new instance is to forward
-         * STUN messages with the specified messageType
+         * @param messageType the type of the STUN messages that the new instance is to forward to the specified handler delegate
+         * @param delegate the handler to which the new instance is to forward STUN messages with the specified messageType
          */
         public MessageTypeEventHandler(char messageType, T delegate) {
             if (delegate == null){
@@ -352,23 +324,18 @@ public class EventDispatcher {
     private static class RequestListenerMessageEventHandler extends MessageTypeEventHandler<RequestListener> {
 
         /**
-         * Initializes a new RequestListenerMessageEventHandler which
-         * is to implement MessageEventHandler for a specific
-         * RequestListener.
+         * Initializes a new RequestListenerMessageEventHandler which is to implement MessageEventHandler for a specific RequestListener.
          *
-         * @param requestListener the RequestListener for which the new
-         * instance is to implement MessageEventHandler
+         * @param requestListener the RequestListener for which the new instance is to implement MessageEventHandler
          */
         public RequestListenerMessageEventHandler(RequestListener requestListener) {
             super(Message.STUN_REQUEST, requestListener);
         }
 
         /**
-         * Notifies this MessageEventHandler that a STUN message has
-         * been received, parsed and is ready for delivery.
+         * Notifies this MessageEventHandler that a STUN message has been received, parsed and is ready for delivery.
          *
-         * @param e a StunMessageEvent which encapsulates the STUN
-         * message to be handled
+         * @param e a StunMessageEvent which encapsulates the STUN message to be handled
          * @see MessageEventHandler#handleMessageEvent(StunMessageEvent)
          */
         public void handleMessageEvent(StunMessageEvent e) {

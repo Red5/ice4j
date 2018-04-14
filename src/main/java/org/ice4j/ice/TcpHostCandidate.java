@@ -1,13 +1,10 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice;
 
-import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
@@ -44,7 +41,7 @@ public class TcpHostCandidate extends HostCandidate {
     @Override
     protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
         for (IceSocketWrapper socket : sockets) {
-            if (((SocketChannel) socket.getChannel()).socket().getRemoteSocketAddress().equals(remoteAddress)) {
+            if (socket.getRemoteTransportAddress().equals(remoteAddress)) {
                 return socket;
             }
         }
@@ -60,9 +57,8 @@ public class TcpHostCandidate extends HostCandidate {
         StunStack stunStack = getStunStack();
         TransportAddress localAddr = getTransportAddress();
         for (IceSocketWrapper socket : sockets) {
-            //remove our sockets from the stack.
-            Socket tcpSocket = ((SocketChannel) socket.getChannel()).socket();
-            stunStack.removeSocket(localAddr, new TransportAddress(tcpSocket.getInetAddress(), tcpSocket.getPort(), Transport.TCP));
+            // remove our sockets from the stack
+            stunStack.removeSocket(localAddr, socket.getRemoteTransportAddress());
             socket.close();
         }
         super.free();

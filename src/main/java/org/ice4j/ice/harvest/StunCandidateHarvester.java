@@ -1,13 +1,14 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
-import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.mina.core.future.ConnectFuture;
+import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -15,6 +16,7 @@ import org.ice4j.ice.Candidate;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
@@ -251,21 +253,43 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Sends a binding request to our stun server through the specified
-     * hostCand candidate and adds it to the list of addresses still
+     * Sends a binding request to our stun server through the specified hostCand candidate and adds it to the list of addresses still
      * waiting for resolution.
      *
      * @param hostCand the HostCandidate that we'd like to resolve.
      */
     private void startResolvingCandidate(HostCandidate hostCand) {
-        //first of all, make sure that the STUN server and the Candidate
-        //address are of the same type and that they can communicate.
+        // first of all, make sure that the STUN server and the Candidate address are of the same type and that they can communicate.
         if (!hostCand.getTransportAddress().canReach(stunServer)) {
             return;
         }
-        HostCandidate cand = getHostCandidate(hostCand);
+        // Sets the host candidate. For UDP it simply returns the candidate passed as a parameter. For TCP, we cannot return the same hostCandidate
+        // because in Java a server socket cannot connect to a destination with the same local address/port (i.e. a Java Socket cannot act as both server/client).
+        HostCandidate cand = null;
+        // create a new TCP HostCandidate
+        if (hostCand.getTransport() == Transport.TCP) {
+            NioSocketConnector connector = new NioSocketConnector();
+            connector.setHandler(new IceHandler());
+            ConnectFuture future = connector.connect(stunServer);
+            // wait until a little past a standard time for STUN to complete
+            future.awaitUninterruptibly(4000L);
+            if (future.isConnected()) {
+                try {
+                    IceSocketWrapper sock = IceSocketWrapper.build(future.getSession());
+                    cand = new HostCandidate(sock, hostCand.getParentComponent());
+                    hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
+                    hostCand.getParentComponent().getComponentSocket().setSocket(sock);
+                } catch (Exception e) {
+                    logger.warn("Exception TCP client connect", e);
+                }
+            } else {
+                logger.warn("Connection to {} failed", stunServer);
+            }
+        } else {
+            cand = hostCand;
+        }
         if (cand == null) {
-            logger.info("server/candidate address type mismatch," + " skipping candidate in this harvester");
+            logger.info("server/candidate address type mismatch, skipping candidate in this harvester");
             return;
         }
         StunCandidateHarvest harvest = createHarvest(cand);
@@ -329,35 +353,6 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     public String toString() {
         String proto = (this instanceof TurnCandidateHarvester) ? "TURN" : "STUN";
         return proto + " harvester(srvr: " + this.stunServer + ")";
-    }
-
-    /**
-     * Returns the host candidate. For UDP it simply returns the candidate passed as a parameter.
-     *
-     * However for TCP, we cannot return the same hostCandidate because in Java a "server" socket cannot connect to a destination with the same local
-     * address/port (i.e. a Java Socket cannot act as both server/client).
-     *
-     * @param hostCand HostCandidate
-     * @return HostCandidate
-     */
-    protected HostCandidate getHostCandidate(HostCandidate hostCand) {
-        HostCandidate cand = null;
-        // create a new TCP HostCandidate
-        if (hostCand.getTransport() == Transport.TCP) {
-            try {
-                SocketChannel socketChannel = SocketChannel.open();
-                socketChannel.bind(stunServer);
-                IceSocketWrapper sock = IceSocketWrapper.build(socketChannel);
-                cand = new HostCandidate(sock, hostCand.getParentComponent());
-                hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(cand.getStunSocket(null));
-                hostCand.getParentComponent().getComponentSocket().setSocket(sock);
-            } catch (Exception io) {
-                logger.warn("Exception TCP client connect", io);
-            }
-        } else {
-            cand = hostCand;
-        }
-        return cand;
     }
 
 }

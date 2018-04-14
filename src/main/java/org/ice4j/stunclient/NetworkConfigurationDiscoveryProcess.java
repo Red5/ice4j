@@ -127,7 +127,7 @@ public class NetworkConfigurationDiscoveryProcess {
      */
     public void start() throws IOException, StunException {
         sock = new IceUdpSocketWrapper(localAddress);
-        stunStack.addSocket(sock);
+        stunStack.addSocket(sock, sock.getRemoteTransportAddress());
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         started = true;
     }

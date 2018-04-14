@@ -2,13 +2,10 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
@@ -51,19 +48,9 @@ class NetAccessManager {
     private final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> tcpConnectors = new ConcurrentHashMap<>();
 
     /**
-     * A fail-fast FIFO where incoming STUN messages are stacked for processing.
-     */
-    private final Queue<RawMessage> messageQueue = new ArrayDeque<>(4);
-
-    /**
      * The StunStack which has created this instance, is its owner and is the handler that incoming message requests should be passed to.
      */
     private final StunStack stunStack;
-
-    /**
-     * Future for the message processor worker.
-     */
-    private Future<?> messageProcessorFuture;
 
     /**
      * Constructs a NetAccessManager.
@@ -73,7 +60,6 @@ class NetAccessManager {
      */
     NetAccessManager(StunStack stunStack) {
         this.stunStack = stunStack;
-        messageProcessorFuture = this.stunStack.submit(new MessageProcessor(this, messageQueue));
     }
 
     /**
@@ -116,17 +102,13 @@ class NetAccessManager {
         if (connectorsForLocalAddress == null) {
             connectorsForLocalAddress = new HashMap<>();
             connectorsMap.put(localAddress, connectorsForLocalAddress);
-            Connector connector = new Connector(socket, remoteAddress, this, messageQueue);
+            Connector connector = new Connector(socket, remoteAddress, this);
             connectorsForLocalAddress.put(remoteAddress, connector);
-            // add the incoming message queue to the wrapper
-            socket.setMessageQueue(messageQueue);
         } else if (connectorsForLocalAddress.containsKey(remoteAddress)) {
             logger.info("Not creating a new Connector, because we already have one for the given address pair: {} -> {}", localAddress, remoteAddress);
         } else {
             logger.warn("Figure out if we actually need this section of code");
-            Connector connector = new Connector(socket, remoteAddress, this, messageQueue);
-            // add the incoming message queue to the wrapper
-            socket.setMessageQueue(messageQueue);
+            Connector connector = new Connector(socket, remoteAddress, this);
             @SuppressWarnings("unused")
             Connector prevConnector = connectorsForLocalAddress.put(remoteAddress, connector);
         }
@@ -160,10 +142,6 @@ class NetAccessManager {
      */
     public void stop() {
         logger.debug("stop");
-        // to interrupt or not to interrupt
-        if (!messageProcessorFuture.cancel(true)) {
-            logger.warn("Message processor was not cancelled");
-        }
         // close all udp
         for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
             for (Connector connector : map.values()) {
@@ -264,12 +242,12 @@ class NetAccessManager {
      * @throws IllegalArgumentException if the descriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
-    void receiveMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
-        Connector ap = getConnector(srcAddr, remoteAddr);
-        if (ap == null) {
-            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
-        }
-        ap.receiveMessage(bytes, remoteAddr);
-    }
+//    void receiveMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
+//        Connector ap = getConnector(srcAddr, remoteAddr);
+//        if (ap == null) {
+//            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
+//        }
+//        ap.receiveMessage(bytes, remoteAddr);
+//    }
 
 }

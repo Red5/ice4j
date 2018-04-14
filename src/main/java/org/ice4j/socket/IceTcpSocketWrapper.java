@@ -6,26 +6,18 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.SocketException;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 
+import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
 /**
  * TCP implementation of the IceSocketWrapper.
- *
- * @author Sebastien Vincent
+ * 
  * @author Paul Gregoire
  */
 public class IceTcpSocketWrapper extends IceSocketWrapper {
-
-    /**
-     * The ByteBuffer instance used in {@link #receiveFromChannel(java.nio.channels.SocketChannel, java.net.DatagramPacket)} to read the 2-byte length field into.
-     */
-    private final ByteBuffer frameLengthByteBuffer = ByteBuffer.allocate(2);
 
     /**
      * Constructor.
@@ -34,14 +26,24 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      *
      * @throws IOException if something goes wrong during initialization
      */
-    public IceTcpSocketWrapper(SocketChannel channel) throws IOException {
-        super(channel);
+    public IceTcpSocketWrapper(IoSession session) throws IOException {
+        super(session);
         try {
-            transportAddress = new TransportAddress((InetSocketAddress) ((SocketChannel) channel).getLocalAddress(), Transport.TCP);
-            channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            transportAddress = new TransportAddress((InetSocketAddress) session.getLocalAddress(), Transport.TCP);
         } catch (Exception e) {
             logger.warn("Exception configuring transport address", e);
         }
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param address TransportAddress
+     * @throws IOException 
+     */
+    public IceTcpSocketWrapper(TransportAddress address) throws IOException {
+        super((IoSession) null);
+        transportAddress = address;
     }
 
     /** {@inheritDoc} */
@@ -53,43 +55,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
         data.put((byte) ((len >> 8) & 0xff));
         data.put((byte) (len & 0xff));
         data.put(p.getData(), off, len);
-        ((SocketChannel) channel).write(data);
-    }
-
-    /**
-     * {@inheritDoc}
-     * <br>
-     * Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port
-     * and address of this Socket.
-     */
-    @Override
-    public void receive(DatagramPacket p) throws IOException {
-        SocketChannel socketChannel = (SocketChannel) channel;
-        while (frameLengthByteBuffer.hasRemaining()) {
-            int read = socketChannel.read(frameLengthByteBuffer);
-            if (read == -1) {
-                throw new SocketException("Failed to receive data from socket.");
-            }
-        }
-        frameLengthByteBuffer.flip();
-        int b0 = frameLengthByteBuffer.get();
-        int b1 = frameLengthByteBuffer.get();
-        int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF);
-        frameLengthByteBuffer.flip();
-        byte[] data = p.getData();
-        if (data == null || data.length < frameLength) {
-            data = new byte[frameLength];
-        }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data, 0, frameLength);
-        while (byteBuffer.hasRemaining()) {
-            int read = socketChannel.read(byteBuffer);
-            if (read == -1) {
-                throw new SocketException("Failed to receive data from socket.");
-            }
-        }
-        p.setAddress(socketChannel.socket().getInetAddress());
-        p.setData(data, 0, frameLength);
-        p.setPort(socketChannel.socket().getPort());
+        session.write(data);
     }
 
     /**
@@ -113,15 +79,10 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      */
     @Override
     public SocketAddress getLocalSocketAddress() {
-        if (channel == null) {
+        if (session == null) {
             return transportAddress;
-        } else {
-            try {
-                return ((SocketChannel) channel).getLocalAddress();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
-        return null;
+        return session.getLocalAddress();
     }
+
 }

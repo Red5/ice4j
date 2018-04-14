@@ -19,8 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The class provides basic means of discovering a public IP address. All it
- * does is send a binding request through a specified port and return the
+ * The class provides basic means of discovering a public IP address. All it does is send a binding request through a specified port and return the
  * mapped address it got back or null if there was no response.
  *
  * @author Emil Ivov
@@ -73,10 +72,10 @@ public class SimpleAddressDetector {
     }
 
     /**
-     * Shuts down the underlying stack and prepares the object for garbage
-     * collection.
+     * Shuts down the underlying stack and prepares the object for garbage collection.
      */
     public void shutDown() {
+        stunStack.shutDown();
         stunStack = null;
         requestSender = null;
     }
@@ -91,34 +90,34 @@ public class SimpleAddressDetector {
      */
     public TransportAddress getMappingFor(IceSocketWrapper socket) throws IOException, BindException {
         TransportAddress localAddress = socket.getTransportAddress();
-        stunStack.addSocket(socket);
+        // this should work for both udp and tcp
+        stunStack.addSocket(socket, socket.getRemoteTransportAddress());
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         StunMessageEvent evt = null;
         try {
             evt = requestSender.sendRequestAndWaitForResponse(MessageFactory.createBindingRequest(), serverAddress);
+            if (evt != null) {
+                Response res = (Response) evt.getMessage();
+                // in classic STUN, the response contains a MAPPED-ADDRESS
+                MappedAddressAttribute maAtt = (MappedAddressAttribute) res.getAttribute(Attribute.Type.MAPPED_ADDRESS);
+                if (maAtt != null) {
+                    return maAtt.getAddress();
+                }
+                // in STUN bis, the response contains a XOR-MAPPED-ADDRESS
+                XorMappedAddressAttribute xorAtt = (XorMappedAddressAttribute) res.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
+                if (xorAtt != null) {
+                    byte xoring[] = new byte[16];
+                    System.arraycopy(Message.MAGIC_COOKIE, 0, xoring, 0, 4);
+                    System.arraycopy(res.getTransactionID(), 0, xoring, 4, 12);
+                    return xorAtt.applyXor(xoring);
+                }
+            }
         } catch (StunException exc) {
             // this shouldn't be happening since we are the one that constructed the request, so let's catch it here and not oblige users to
             // handle exception they are not responsible for.
             logger.error("Internal Error. We apparently constructed a faulty request", exc);
-            return null;
         } finally {
             stunStack.removeSocket(localAddress);
-        }
-        if (evt != null) {
-            Response res = (Response) evt.getMessage();
-            // in classic STUN, the response contains a MAPPED-ADDRESS
-            MappedAddressAttribute maAtt = (MappedAddressAttribute) res.getAttribute(Attribute.Type.MAPPED_ADDRESS);
-            if (maAtt != null) {
-                return maAtt.getAddress();
-            }
-            // in STUN bis, the response contains a XOR-MAPPED-ADDRESS
-            XorMappedAddressAttribute xorAtt = (XorMappedAddressAttribute) res.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
-            if (xorAtt != null) {
-                byte xoring[] = new byte[16];
-                System.arraycopy(Message.MAGIC_COOKIE, 0, xoring, 0, 4);
-                System.arraycopy(res.getTransactionID(), 0, xoring, 4, 12);
-                return xorAtt.applyXor(xoring);
-            }
         }
         return null;
     }

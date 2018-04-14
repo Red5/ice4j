@@ -36,7 +36,7 @@ public class ChannelData {
     /**
      * The data.
      */
-    private byte data[] = null;
+    private byte[] data;
 
     /**
      * Size of the header.
@@ -133,25 +133,20 @@ public class ChannelData {
         int dataLength = getDataLength();
         if (pad)
             dataLength = padTo4(dataLength);
-        byte binMsg[] = new byte[HEADER_LENGTH + dataLength];
+        byte[] binMsg = new byte[HEADER_LENGTH + dataLength];
         int offset = 0;
-
         if (!validateChannelNumber(channelNumber)) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "Channel number invalid");
         }
-
         /* channel number */
         binMsg[offset++] = (byte) (channelNumber >> 8);
         binMsg[offset++] = (byte) (channelNumber & 0xff);
-
         /* length */
-        binMsg[offset++] = (byte) ((data != null) ? data.length >> 8 : 0);
-        binMsg[offset++] = (byte) ((data != null) ? data.length & 0xff : 0);
-
+        binMsg[offset++] = (byte) (data != null ? data.length >> 8 : 0);
+        binMsg[offset++] = (byte) (data != null ? data.length & 0xff : 0);
         if (data != null) {
             System.arraycopy(data, 0, binMsg, offset, data.length);
         }
-
         return binMsg;
     }
 
@@ -181,30 +176,23 @@ public class ChannelData {
         char msgLen = 0;
         char channelNumber = 0;
         ChannelData channelData = null;
-        byte data[] = null;
-
+        byte[] data = null;
         if ((binMessage.length - offset) < HEADER_LENGTH) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "Size too short");
         }
-
         channelNumber = (char) ((binMessage[offset++] << 8) | (binMessage[offset++] & 0xFF));
-
         if (!validateChannelNumber(channelNumber)) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "Channel number invalid");
         }
-
         msgLen = (char) ((binMessage[offset++] << 8) | (binMessage[offset++] & 0xFF));
         if (msgLen > (binMessage.length - offset)) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "Size mismatch");
         }
-
         data = new byte[msgLen];
         System.arraycopy(binMessage, offset, data, 0, msgLen);
-
         channelData = new ChannelData();
         channelData.setData(data);
         channelData.setChannelNumber(channelNumber);
-
         return channelData;
     }
 

@@ -91,8 +91,8 @@ public class TransactionSupportTests extends TestCase {
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
 
-        stunStack.addSocket(clientSock);
-        stunStack.addSocket(serverSock);
+        stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress());
+        stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress());
 
         bindingRequest = MessageFactory.createBindingRequest();
         bindingResponse = MessageFactory.create3489BindingResponse(clientAddress, clientAddress, serverAddress);

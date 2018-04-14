@@ -1,6 +1,8 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
+import java.net.SocketAddress;
+
 import org.ice4j.*;
 
 /**
@@ -89,14 +91,38 @@ public class RawMessage {
     /**
      * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
      *
-     * @param messageBytes the message itself.
-     * @param messageLength the number of bytes currently stored in the messageBytes array.
-     * @param remoteAddress the address where the message came from.
-     * @param localAddress the TransportAddress that the message was received on.
+     * @param messageBytes the message itself
+     * @param messageLength the number of bytes currently stored in the messageBytes array
+     * @param remoteAddress the address where the message came from
+     * @param localAddress the TransportAddress that the message was received on
      * @return RawMessage instance
      */
     public static RawMessage build(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
         return new RawMessage(messageBytes, messageLength, remoteAddress, localAddress);
+    }
+
+    /**
+     * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
+     *
+     * @param messageBytes the message itself
+     * @param remoteAddress the address where the message came from
+     * @param localAddress the TransportAddress that the message was received on
+     * @return RawMessage instance
+     */
+    public static RawMessage build(byte[] messageBytes, TransportAddress remoteAddress, TransportAddress localAddress) {
+        return new RawMessage(messageBytes, messageBytes.length, remoteAddress, localAddress);
+    }
+
+    /**
+     * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
+     *
+     * @param messageBytes the message itself
+     * @param remoteAddress the SocketAddress where the message came from
+     * @param localAddress the SocketAddress that the message was received on
+     * @return RawMessage instance
+     */
+    public static RawMessage build(byte[] messageBytes, SocketAddress remoteAddress, SocketAddress localAddress) {
+        return new RawMessage(messageBytes, messageBytes.length, (TransportAddress) remoteAddress, (TransportAddress) localAddress);
     }
 
 }

@@ -23,17 +23,14 @@ import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.IceTcpServerSocketWrapper;
+import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
-import org.ice4j.socket.filter.StunDataFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A HostCandidateHarvester gathers host Candidates for a
- * specified {@link org.ice4j.ice.Component}. Most CandidateHarvesters
- * would rely on the output of the host harvester, that is all host addresses,
- * to be already present and bound in a Component before being able to
+ * A HostCandidateHarvester gathers host Candidates for a specified {@link org.ice4j.ice.Component}. Most CandidateHarvesters
+ * would rely on the output of the host harvester, that is all host addresses, to be already present and bound in a Component before being able to
  * harvest the type of addresses that they are responsible for.
  *
  * @author Emil Ivov
@@ -283,9 +280,6 @@ public class HostCandidateHarvester {
                         // have to wait a client connection to add a STUN socket to the StunStack
                         continue;
                     }
-                    // We are most certainly going to use all local host candidates for sending and receiving STUN connectivity
-                    // checks. In case we have enabled STUN, we are going to use them as well while harvesting reflexive candidates.
-                    sock.addFilter(new StunDataFilter());
                     // add the socket wrapper to the stack which gets the bind and listening process started
                     candidate.getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
                     component.getComponentSocket().setSocket(sock);
@@ -381,9 +375,9 @@ public class HostCandidateHarvester {
         int port = preferredPort;
         for (int i = 0; i < bindRetries; i++) {
             try {
-                TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
+                TransportAddress localAddress = new TransportAddress(laddr, port, Transport.TCP);
                 // we successfully bound to the address so create a wrapper
-                IceTcpServerSocketWrapper sock = new IceTcpServerSocketWrapper(localAddress, component);
+                IceTcpSocketWrapper sock = new IceTcpSocketWrapper(localAddress);//, component);
                 // return the socket
                 return sock;
             } catch (Exception se) {

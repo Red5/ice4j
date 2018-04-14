@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
@@ -36,7 +37,9 @@ public class IceHandler extends IoHandlerAdapter {
      */
     public void addStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
         SocketAddress addr = iceSocket.getLocalSocketAddress();
-        stunStacks.putIfAbsent(addr, stunStack);
+        if (stunStack != null) {
+            stunStacks.putIfAbsent(addr, stunStack);
+        }
         iceSockets.putIfAbsent(addr, iceSocket);
     }
 
@@ -45,11 +48,15 @@ public class IceHandler extends IoHandlerAdapter {
     public void sessionCreated(IoSession session) throws Exception {
         log.trace("Created (session: {}) address: {}", session.getId(), session.getLocalAddress());
         SocketAddress addr = session.getLocalAddress();
-        if (stunStacks.containsKey(addr)) {
-            session.setAttribute(IceTransport.Ice.STUN_STACK, stunStacks.remove(addr));
+        IceSocketWrapper iceSocket = iceSockets.remove(addr);
+        if (iceSocket != null) {
+            iceSocket.setSession(session);
+            session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
         }
-        if (iceSockets.containsKey(addr)) {
-            session.setAttribute(IceTransport.Ice.CONNECTION, iceSockets.remove(addr));
+        StunStack stunStack = stunStacks.remove(addr);
+        if (stunStack != null) {
+            stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+            session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
         }
     }
 
@@ -82,15 +89,26 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionClosed(IoSession session) throws Exception {
         log.trace("Session closed");
+        SocketAddress addr = session.getLocalAddress();
         // remove binding
         if (session.getTransportMetadata().isConnectionless()) {
-            IceTransport.getInstance(Transport.UDP).removeBinding(session.getLocalAddress());
+            IceTransport.getInstance(Transport.UDP).removeBinding(addr);
         } else {
-            IceTransport.getInstance(Transport.TCP).removeBinding(session.getLocalAddress());
+            IceTransport.getInstance(Transport.TCP).removeBinding(addr);
         }
         // clean-up
-        session.removeAttribute(IceTransport.Ice.STUN_STACK);
-        session.removeAttribute(IceTransport.Ice.CONNECTION);
+        IceSocketWrapper iceSocket = null;
+        if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
+            iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+        }
+        if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
+            StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
+            if (iceSocket != null) {
+                stunStack.removeSocket((TransportAddress) addr, iceSocket.getRemoteTransportAddress());
+            } else {
+                stunStack.removeSocket((TransportAddress) addr, (TransportAddress) session.getRemoteAddress());
+            }
+        }
         super.sessionClosed(session);
     }
 
