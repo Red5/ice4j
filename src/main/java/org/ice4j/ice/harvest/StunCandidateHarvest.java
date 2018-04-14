@@ -133,16 +133,14 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Adds a specific LocalCandidate to the list of LocalCandidates harvested for {@link #hostCandidate} by this
-     * harvest.
+     * Adds a specific LocalCandidate to the list of LocalCandidates harvested for {@link #hostCandidate} by this harvest.
      *
-     * @param candidate the LocalCandidate to be added to the list of LocalCandidates harvested for {@link #hostCandidate} by this
-     * harvest
+     * @param candidate to be added to the list of LocalCandidates harvested for hostCandidate by this harvest
      * @return true if the list of LocalCandidates changed as a result of the method invocation; otherwise, false
      */
     protected boolean addCandidate(LocalCandidate candidate) {
         boolean added = false;
-        //try to add the candidate to the component and then only add it to the harvest if it wasn't deemed redundant
+        // try to add the candidate to the component and then only add it to the harvest if it wasn't deemed redundant
         if (!candidates.contains(candidate) && hostCandidate.getParentComponent().addLocalCandidate(candidate)) {
             added = candidates.add(candidate);
         }
@@ -150,17 +148,12 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Adds the Attributes to a specific Request which support
-     * the STUN short-term credential mechanism if the mechanism in question is
-     * utilized by this StunCandidateHarvest (i.e. by the associated
-     * StunCandidateHarvester).
+     * Adds the Attributes to a specific Request which support the STUN short-term credential mechanism if the mechanism in question is
+     * utilized by this StunCandidateHarvest (i.e. by the associated StunCandidateHarvester).
      *
-     * @param request the Request to which to add the
-     * Attributes supporting the STUN short-term credential mechanism
-     * if the mechanism in question is utilized by this
-     * StunCandidateHarvest
-     * @return true if the STUN short-term credential mechanism is
-     * actually utilized by this StunCandidateHarvest for the specified
+     * @param request the Request to which to add the Attributes supporting the STUN short-term credential mechanism
+     * if the mechanism in question is utilized by this StunCandidateHarvest
+     * @return true if the STUN short-term credential mechanism is actually utilized by this StunCandidateHarvest for the specified
      * request; otherwise, false
      */
     protected boolean addShortTermCredentialAttributes(Request request) {
@@ -174,26 +167,21 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Completes the harvesting of Candidates for
-     * {@link #hostCandidate}. Notifies {@link #harvester} about the completion
-     * of the harvesting of Candidate for hostCandidate
-     * performed by this StunCandidateHarvest.
+     * Completes the harvesting of Candidates for {@link #hostCandidate}. Notifies {@link #harvester} about the completion
+     * of the harvesting of Candidate for hostCandidate performed by this StunCandidateHarvest.
      *
-     * @param request the Request sent by this
-     * StunCandidateHarvest with which the harvesting of
+     * @param request the Request sent by this StunCandidateHarvest with which the harvesting of
      * Candidates for hostCandidate has completed
-     * @param response the Response received by this
-     * StunCandidateHarvest, if any, with which the harvesting of
+     * @param response the Response received by this StunCandidateHarvest, if any, with which the harvesting of
      * Candidates for hostCandidate has completed
-     * @return true if the harvesting of Candidates for
-     * hostCandidate performed by this StunCandidateHarvest
+     * @return true if the harvesting of Candidates for hostCandidate performed by this StunCandidateHarvest
      * has completed; otherwise, false
      */
     protected boolean completedResolvingCandidate(Request request, Response response) {
         if (!completedResolvingCandidate) {
             completedResolvingCandidate = true;
             try {
-                if (((response == null) || !response.isSuccessResponse()) && (longTermCredentialSession != null)) {
+                if ((response == null || !response.isSuccessResponse()) && longTermCredentialSession != null) {
                     harvester.getStunStack().getCredentialsManager().unregisterAuthority(longTermCredentialSession);
                     longTermCredentialSession = null;
                 }
@@ -205,15 +193,11 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Determines whether a specific LocalCandidate is contained in the
-     * list of LocalCandidates harvested for {@link #hostCandidate} by
+     * Determines whether a specific LocalCandidate is contained in the list of LocalCandidates harvested for {@link #hostCandidate} by
      * this harvest.
      *
-     * @param candidate the LocalCandidate to look for in the list of
-     * LocalCandidates harvested for {@link #hostCandidate} by this
-     * harvest
-     * @return true if the list of LocalCandidates contains
-     * the specified candidate; otherwise, false
+     * @param candidate the LocalCandidate to look for in the list of LocalCandidates harvested for {@link #hostCandidate} by this harvest
+     * @return true if the list of LocalCandidates contains the specified candidate; otherwise, false
      */
     protected boolean containsCandidate(LocalCandidate candidate) {
         if (candidate != null) {
@@ -315,13 +299,15 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      */
     protected void createServerReflexiveCandidate(Response response) {
         TransportAddress addr = getMappedAddress(response);
-        logger.debug("Mapped address: {}", addr);
+        logger.trace("Mapped address: {}", addr);
         if (addr != null) {
             ServerReflexiveCandidate srvrRflxCand = createServerReflexiveCandidate(addr);
             logger.debug("ServerReflexiveCandidate: {}", srvrRflxCand);
             if (srvrRflxCand != null) {
                 try {
-                    addCandidate(srvrRflxCand);
+                    if (!addCandidate(srvrRflxCand)) {
+                        logger.debug("Server reflexive candidate was not added");
+                    }
                 } finally {
                     // Free srvrRflxCand if it has not been consumed
                     if (!containsCandidate(srvrRflxCand)) {
@@ -570,7 +556,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     @Override
     public void processResponse(StunResponseEvent event) {
         TransactionID transactionID = event.getTransactionID();
-        logger.trace("Received a message: tranid={} localCand={}", transactionID, hostCandidate);
+        logger.trace("Received a message tid: {} localCand: {}", transactionID, hostCandidate);
         // Clean up for the purposes of the workaround which determines the STUN Request to which a STUN Response responds
         requests.remove(transactionID);
         // At long last, do start handling the received STUN Response
@@ -583,9 +569,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
                 // https://tools.ietf.org/html/rfc5389#section-7.3.3
                 if (response.getMessageType() == Message.BINDING_SUCCESS_RESPONSE) {
                     // check for mapped or xor mapped address in binding response
-                    if (response.containsAnyAttributes(EnumSet.of(Attribute.Type.MAPPED_ADDRESS, Attribute.Type.XOR_MAPPED_ADDRESS))) {
-                        
-                    } else {
+                    if (!response.containsAnyAttributes(EnumSet.of(Attribute.Type.MAPPED_ADDRESS, Attribute.Type.XOR_MAPPED_ADDRESS))) {
                         logger.warn("Mapped address attributes are absent, discarding response");
                         return;
                     }

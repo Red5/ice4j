@@ -14,9 +14,8 @@ import org.ice4j.socket.*;
  * ServerReflexiveCandidates are candidates whose IP address and port are a binding allocated by a NAT for an agent when it sent a packet through
  * the NAT to a server. ServerReflexiveCandidates can be learned by STUN servers using the Binding Request, or TURN servers, which provides both
  * a Relayed and Server Reflexive candidate.
- * <p>
+ * <br>
  * This class does not contain a socket itself and in order to send bytes over the network, one has to retrieve the socket of its base.
- * </p>
  *
  * @author Emil Ivov
  */
