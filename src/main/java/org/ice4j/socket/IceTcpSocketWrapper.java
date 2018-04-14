@@ -85,4 +85,10 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
         return session.getLocalAddress();
     }
 
+    @Override
+    public String toString() {
+        return "IceTcpSocketWrapper [transportAddress=" + transportAddress + ", session=" + session + "]";
+    }
+
 }
+

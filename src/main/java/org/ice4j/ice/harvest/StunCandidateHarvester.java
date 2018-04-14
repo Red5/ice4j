@@ -24,8 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a CandidateHarvester which gathers Candidates
- * for a specified {@link Component} using STUN as defined in RFC 5389 "Session
+ * Implements a CandidateHarvester which gathers Candidates for a specified {@link Component} using STUN as defined in RFC 5389 "Session
  * Traversal Utilities for NAT (STUN)" only.
  *
  * @author Emil Ivov
@@ -36,20 +35,17 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     private static final Logger logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
 
     /**
-     * The list of StunCandidateHarvests which have been successfully
-     * completed i.e. have harvested Candidates.
+     * The list of StunCandidateHarvests which have been successfully completed i.e. have harvested Candidates.
      */
     private final List<StunCandidateHarvest> completedHarvests = new LinkedList<>();
 
     /**
-     * The username used by this StunCandidateHarvester for the
-     * purposes of the STUN short-term credential mechanism.
+     * The username used by this StunCandidateHarvester for the purposes of the STUN short-term credential mechanism.
      */
     private final String shortTermCredentialUsername;
 
     /**
-     * The list of StunCandidateHarvests which have been started to
-     * harvest Candidates for HostCandidates and which have
+     * The list of StunCandidateHarvests which have been started to harvest Candidates for HostCandidates and which have
      * not completed yet so {@link #harvest(Component)} has to wait for them.
      */
     private final List<StunCandidateHarvest> startedHarvests = new LinkedList<>();
@@ -60,110 +56,91 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     public final TransportAddress stunServer;
 
     /**
-     * The StunStack used by this instance for the purposes of STUN
-     * communication.
+     * The StunStack used by this instance for the purposes of STUN communication.
      */
     private StunStack stunStack;
 
     /**
-     * Creates a new STUN harvester that will be running against the specified
-     * stunServer using a specific username for the purposes of the
+     * Creates a new STUN harvester that will be running against the specified stunServer using a specific username for the purposes of the
      * STUN short-term credential mechanism.
      *
-     * @param stunServer the address of the STUN server that we will be querying
-     * for our public bindings
+     * @param stunServer the address of the STUN server that we will be querying for our public bindings
      */
     public StunCandidateHarvester(TransportAddress stunServer) {
         this(stunServer, null);
     }
 
     /**
-     * Creates a new STUN harvester that will be running against the specified
-     * stunServer using a specific username for the purposes of the
+     * Creates a new STUN harvester that will be running against the specified stunServer using a specific username for the purposes of the
      * STUN short-term credential mechanism.
      *
-     * @param stunServer the address of the STUN server that we will be querying
-     * for our public bindings
-     * @param shortTermCredentialUsername the username to be used by the new
-     * instance for the purposes of the STUN short-term credential mechanism or
-     * null if the use of the STUN short-term credential mechanism is
-     * not determined at the time of the construction of the new instance
+     * @param stunServer the address of the STUN server that we will be querying for our public bindings
+     * @param shortTermCredentialUsername the username to be used by the new instance for the purposes of the STUN short-term credential mechanism or
+     * null if the use of the STUN short-term credential mechanism is not determined at the time of the construction of the new instance
      */
     public StunCandidateHarvester(TransportAddress stunServer, String shortTermCredentialUsername) {
         this.stunServer = stunServer;
         this.shortTermCredentialUsername = shortTermCredentialUsername;
-
         //these should be configurable.
-        if (System.getProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER) == null)
+        if (System.getProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER) == null) {
             System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "400");
-        if (System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS) == null)
+        }
+        if (System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS) == null) {
             System.setProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS, "3");
+        }
     }
 
     /**
-     * Notifies this StunCandidateHarvester that a specific
-     * StunCandidateHarvest has been completed. If the specified
-     * harvest has harvested Candidates, it is moved from
-     * {@link #startedHarvests} to {@link #completedHarvests}. Otherwise, it is
+     * Notifies this StunCandidateHarvester that a specific StunCandidateHarvest has been completed. If the specified
+     * harvest has harvested Candidates, it is moved from {@link #startedHarvests} to {@link #completedHarvests}. Otherwise, it is
      * just removed from {@link #startedHarvests}.
      *
      * @param harvest the StunCandidateHarvest which has been completed
      */
     void completedResolvingCandidate(StunCandidateHarvest harvest) {
         boolean doNotify = false;
-
         synchronized (startedHarvests) {
             startedHarvests.remove(harvest);
-
             // If this was the last candidate, we are done with the STUN
             // resolution and need to notify the waiters.
-            if (startedHarvests.isEmpty())
+            if (startedHarvests.isEmpty()) {
                 doNotify = true;
+            }
         }
-
         synchronized (completedHarvests) {
-            if (harvest.getCandidateCount() < 1)
+            if (harvest.getCandidateCount() < 1) {
                 completedHarvests.remove(harvest);
-            else if (!completedHarvests.contains(harvest))
+            } else if (!completedHarvests.contains(harvest)) {
                 completedHarvests.add(harvest);
+            }
         }
-
         synchronized (startedHarvests) {
-            if (doNotify)
+            if (doNotify) {
                 startedHarvests.notify();
+            }
         }
     }
 
     /**
-     * Creates a new StunCandidateHarvest instance which is to perform
-     * STUN harvesting of a specific HostCandidate.
+     * Creates a new StunCandidateHarvest instance which is to perform STUN harvesting of a specific HostCandidate.
      *
-     * @param hostCandidate the HostCandidate for which harvesting is
-     * to be performed by the new StunCandidateHarvest instance
-     * @return a new StunCandidateHarvest instance which is to perform
-     * STUN harvesting of the specified hostCandidate
+     * @param hostCandidate the HostCandidate for which harvesting is to be performed by the new StunCandidateHarvest instance
+     * @return a new StunCandidateHarvest instance which is to perform STUN harvesting of the specified hostCandidate
      */
     protected StunCandidateHarvest createHarvest(HostCandidate hostCandidate) {
         return new StunCandidateHarvest(this, hostCandidate);
     }
 
     /**
-     * Creates a LongTermCredential to be used by a specific
-     * StunCandidateHarvest for the purposes of the long-term
-     * credential mechanism in a specific realm of the STUN server
-     * associated with this StunCandidateHarvester. The default
-     * implementation returns null and allows extenders to override in
-     * order to support the long-term credential mechanism.
+     * Creates a LongTermCredential to be used by a specific StunCandidateHarvest for the purposes of the long-term
+     * credential mechanism in a specific realm of the STUN server associated with this StunCandidateHarvester. The default
+     * implementation returns null and allows extenders to override in order to support the long-term credential mechanism.
      *
-     * @param harvest the StunCandidateHarvest which asks for the
-     * LongTermCredential
-     * @param realm the realm of the STUN server associated with this
-     * StunCandidateHarvester in which harvest will use the
+     * @param harvest the StunCandidateHarvest which asks for the LongTermCredential
+     * @param realm the realm of the STUN server associated with this StunCandidateHarvester in which harvest will use the
      * returned LongTermCredential
-     * @return a LongTermCredential to be used by harvest for
-     * the purposes of the long-term credential mechanism in the specified
-     * realm of the STUN server associated with this
-     * StunCandidateHarvester
+     * @return a LongTermCredential to be used by harvest for the purposes of the long-term credential mechanism in the specified
+     * realm of the STUN server associated with this StunCandidateHarvester
      */
     protected LongTermCredential createLongTermCredential(StunCandidateHarvest harvest, byte[] realm) {
         // The long-term credential mechanism is not utilized by default.
@@ -171,25 +148,20 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Gets the username to be used by this StunCandidateHarvester for
-     * the purposes of the STUN short-term credential mechanism.
+     * Gets the username to be used by this StunCandidateHarvester for the purposes of the STUN short-term credential mechanism.
      *
-     * @return the username to be used by this StunCandidateHarvester
-     * for the purposes of the STUN short-term credential mechanism or
-     * null if the STUN short-term credential mechanism is not to be
-     * utilized
+     * @return the username to be used by this StunCandidateHarvester for the purposes of the STUN short-term credential mechanism or
+     * null if the STUN short-term credential mechanism is not to be utilized
      */
     protected String getShortTermCredentialUsername() {
         return shortTermCredentialUsername;
     }
 
     /**
-     * Gets the StunStack used by this CandidateHarvester for
-     * the purposes of STUN communication. It is guaranteed to be available only
+     * Gets the StunStack used by this CandidateHarvester for the purposes of STUN communication. It is guaranteed to be available only
      * during the execution of {@link CandidateHarvester#harvest(Component)}.
      *
-     * @return the StunStack used by this CandidateHarvester
-     * for the purposes of STUN communication
+     * @return the StunStack used by this CandidateHarvester for the purposes of STUN communication
      * @see CandidateHarvester#harvest(Component)
      */
     public StunStack getStunStack() {
@@ -197,50 +169,43 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Gathers STUN candidates for all host Candidates that are already
-     * present in the specified component. This method relies on the
-     * specified component to already contain all its host candidates
-     * so that it would resolve them.
+     * Gathers STUN candidates for all host Candidates that are already present in the specified component. This method relies on the
+     * specified component to already contain all its host candidates so that it would resolve them.
      *
-     * @param component the {@link Component} that we'd like to gather candidate
-     * STUN Candidates for
-     * @return  the LocalCandidates gathered by this
-     * CandidateHarvester
+     * @param component the {@link Component} that we'd like to gather candidate STUN Candidates for
+     * @return the LocalCandidates gathered by this CandidateHarvester
      */
     @Override
     public Collection<LocalCandidate> harvest(Component component) {
         if (logger.isDebugEnabled()) {
-            logger.debug("starting " + component.toShortString() + " harvest for: " + toString());
+            logger.debug("Starting {} harvest for: {}", component.toShortString(), toString());
         }
         stunStack = component.getParentStream().getParentAgent().getStunStack();
-
         for (Candidate<?> cand : component.getLocalCandidates()) {
             if ((cand instanceof HostCandidate) && (cand.getTransport() == stunServer.getTransport())) {
                 startResolvingCandidate((HostCandidate) cand);
             }
         }
-
         waitForResolutionEnd();
-
-        /*
-         * Report the LocalCandidates gathered by this CandidateHarvester so that the harvest is sure to be considered successful.
-         */
+        // Report the LocalCandidates gathered by this CandidateHarvester so that the harvest is sure to be considered successful.
         Collection<LocalCandidate> candidates = new HashSet<>();
-
         synchronized (completedHarvests) {
             for (StunCandidateHarvest completedHarvest : completedHarvests) {
                 LocalCandidate[] completedHarvestCandidates = completedHarvest.getCandidates();
-
                 if ((completedHarvestCandidates != null) && (completedHarvestCandidates.length != 0)) {
                     candidates.addAll(Arrays.asList(completedHarvestCandidates));
                 }
             }
-
             completedHarvests.clear();
         }
-
-        logger.debug("Completed " + component.toShortString() + " harvest: " + toString() + ". Found " + candidates.size() + " candidates: " + listCandidates(candidates));
-
+        if (logger.isDebugEnabled()) {
+            int cands = candidates.size();
+            if (cands == 0) {
+                logger.debug("Completed {} harvest: {}. Found 0 candidates", component.toShortString(), toString());
+            } else {
+                logger.debug("Completed {} harvest: {}. Found {} candidates: {}", component.toShortString(), toString(), cands, listCandidates(candidates));
+            }
+        }
         return candidates;
     }
 
@@ -276,9 +241,10 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             if (future.isConnected()) {
                 try {
                     IceSocketWrapper sock = IceSocketWrapper.build(future.getSession());
-                    cand = new HostCandidate(sock, hostCand.getParentComponent());
-                    hostCand.getParentComponent().getParentStream().getParentAgent().getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
-                    hostCand.getParentComponent().getComponentSocket().setSocket(sock);
+                    Component component = hostCand.getParentComponent();
+                    cand = new HostCandidate(sock, component);
+                    component.getParentStream().getParentAgent().getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
+                    component.getComponentSocket().setSocket(sock);
                 } catch (Exception e) {
                     logger.warn("Exception TCP client connect", e);
                 }
@@ -294,7 +260,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         }
         StunCandidateHarvest harvest = createHarvest(cand);
         if (harvest == null) {
-            logger.warn("failed to create harvest");
+            logger.warn("Failed to create harvest");
             return;
         }
         synchronized (startedHarvests) {
@@ -351,8 +317,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      */
     @Override
     public String toString() {
-        String proto = (this instanceof TurnCandidateHarvester) ? "TURN" : "STUN";
-        return proto + " harvester(srvr: " + this.stunServer + ")";
+        return String.format("%s harvester(srvr: %s)", ((this instanceof TurnCandidateHarvester) ? "TURN" : "STUN"), stunServer.toString());
     }
 
 }

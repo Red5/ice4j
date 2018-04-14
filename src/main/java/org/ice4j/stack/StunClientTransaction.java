@@ -335,16 +335,14 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Cancels the transaction. Once this method is called the transaction is
-     * considered terminated and will stop retransmissions.
+     * Cancels the transaction. Once this method is called the transaction is considered terminated and will stop retransmissions.
      */
     void cancel() {
         cancel(false);
     }
 
     /**
-     * Dispatches the response then cancels itself and notifies the StunStack
-     * for its termination.
+     * Dispatches the response then cancels itself and notifies the StunStack for its termination.
      *
      * @param evt the event that contains the newly received message
      */
@@ -377,7 +375,6 @@ public class StunClientTransaction implements Runnable {
     private void initTransactionConfiguration() {
         //Max Retransmissions
         String maxRetransmissionsStr = System.getProperty(StackProperties.MAX_CTRAN_RETRANSMISSIONS);
-
         if (maxRetransmissionsStr != null && maxRetransmissionsStr.trim().length() > 0) {
             try {
                 maxRetransmissions = Integer.parseInt(maxRetransmissionsStr);
@@ -386,10 +383,8 @@ public class StunClientTransaction implements Runnable {
                 maxRetransmissions = DEFAULT_MAX_RETRANSMISSIONS;
             }
         }
-
         //Original Wait Interval
         String originalWaitIntervalStr = System.getProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER);
-
         if (originalWaitIntervalStr != null && originalWaitIntervalStr.trim().length() > 0) {
             try {
                 originalWaitInterval = Integer.parseInt(originalWaitIntervalStr);
@@ -398,10 +393,8 @@ public class StunClientTransaction implements Runnable {
                 originalWaitInterval = DEFAULT_ORIGINAL_WAIT_INTERVAL;
             }
         }
-
         //Max Wait Interval
         String maxWaitIntervalStr = System.getProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER);
-
         if (maxWaitIntervalStr != null && maxWaitIntervalStr.trim().length() > 0) {
             try {
                 maxWaitInterval = Integer.parseInt(maxWaitIntervalStr);

@@ -1056,7 +1056,6 @@ public abstract class Message {
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
-
         stringBuilder.append(getName());
         stringBuilder.append("(0x");
         stringBuilder.append(Integer.toHexString(getMessageType()));
@@ -1064,9 +1063,7 @@ public abstract class Message {
         stringBuilder.append(getAttributeCount());
         stringBuilder.append(" len=");
         stringBuilder.append((int) this.getDataLength());
-
         byte[] transactionID = getTransactionID();
-
         if (transactionID != null) {
             stringBuilder.append(" tranID=");
             stringBuilder.append(TransactionID.toString(transactionID));

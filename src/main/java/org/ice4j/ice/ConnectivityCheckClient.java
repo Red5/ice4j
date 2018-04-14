@@ -231,16 +231,15 @@ class ConnectivityCheckClient implements ResponseCollector {
         } else {
             Response response = ev.getResponse();
             char messageType = response.getMessageType();
-            //handle error responses.
             if (messageType == Response.BINDING_ERROR_RESPONSE) {
+                // handle error responses
                 if (response.getAttribute(Attribute.Type.ERROR_CODE) == null) {
                     logger.debug("Received a malformed error response.");
                     return; //malformed error response
                 }
                 processErrorResponse(ev);
-            }
-            //handle success responses.
-            else if (messageType == Response.BINDING_SUCCESS_RESPONSE) {
+            } else if (messageType == Response.BINDING_SUCCESS_RESPONSE) {
+                // handle success responses
                 processSuccessResponse(ev);
             }
         }

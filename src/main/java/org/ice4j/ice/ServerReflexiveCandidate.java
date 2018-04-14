@@ -27,8 +27,7 @@ public class ServerReflexiveCandidate extends LocalCandidate {
     private final StunCandidateHarvest stunHarvest;
 
     /**
-     * Creates a ServerReflexiveCandidate for the specified transport
-     * address, and base.
+     * Creates a ServerReflexiveCandidate for the specified transport address, and base.
      *
      * @param address the {@link TransportAddress} that this Candidate is representing
      * @param base the {@link HostCandidate} that this server reflexive candidate was obtained through

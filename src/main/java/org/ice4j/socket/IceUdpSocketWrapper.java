@@ -138,4 +138,9 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         return session.getLocalAddress();
     }
 
+    @Override
+    public String toString() {
+        return "IceUdpSocketWrapper [transportAddress=" + transportAddress + ", session=" + session + "]";
+    }
+
 }

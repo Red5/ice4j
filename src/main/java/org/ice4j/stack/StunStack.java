@@ -602,7 +602,7 @@ public class StunStack implements MessageEventHandler {
         }
         //request
         if (msg instanceof Request) {
-            logger.trace("parsing request");
+            logger.trace("Parsing request");
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
             if (ua != null) {
@@ -621,7 +621,7 @@ public class StunStack implements MessageEventHandler {
             if (sTran != null) {
                 //logger.warn("Stored server transaction id: {}", sTran.getTransactionID().toString());
                 //requests from this transaction have already been seen retransmit the response if there was any
-                logger.trace("found an existing transaction");
+                logger.trace("Found an existing transaction");
                 try {
                     sTran.retransmitResponse();
                     logger.trace("Response retransmitted");
@@ -681,7 +681,7 @@ public class StunStack implements MessageEventHandler {
         }
         //response
         else if (msg instanceof Response) {
-            logger.trace("parsing response");
+            logger.trace("Parsing response");
             TransactionID tid = ev.getTransactionID();
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);

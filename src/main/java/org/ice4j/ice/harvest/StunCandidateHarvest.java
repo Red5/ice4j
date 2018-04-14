@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
 import java.io.IOException;
@@ -174,9 +169,8 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
             request.putAttribute(AttributeFactory.createUsernameAttribute(shortTermCredentialUsername));
             request.putAttribute(AttributeFactory.createMessageIntegrityAttribute(shortTermCredentialUsername));
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -254,8 +248,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * or the candidate is of an unsupported CandidateType
      */
     protected Message createKeepAliveMessage(LocalCandidate candidate) throws StunException {
-        // We'll not be keeping a STUN Binding alive for now. If we decide to in the future, we'll have to create a 
-        // Binding Indication and add support for sending it.
+        // not keeping a STUN Binding alive for now. If we decide to , we'll have to create a Binding Indication and add support for sending it.
         if (CandidateType.SERVER_REFLEXIVE_CANDIDATE.equals(candidate.getType())) {
             return null;
         } else {
@@ -264,19 +257,13 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Creates a new Request instance which is to be sent by this
-     * StunCandidateHarvest in order to retry a specific
-     * Request. For example, the long-term credential mechanism
-     * dictates that a Request is first sent by the client without any
-     * credential-related attributes, then it gets challenged by the server and
-     * the client retries the original Request with the appropriate
+     * Creates a new Request instance which is to be sent by this StunCandidateHarvest in order to retry a specific
+     * Request. For example, the long-term credential mechanism dictates that a Request is first sent by the client without any
+     * credential-related attributes, then it gets challenged by the server and the client retries the original Request with the appropriate
      * credential-related attributes in response.
      *
-     * @param request the Request which is to be retried by this
-     * StunCandidateHarvest
-     * @return the new Request instance which is to be sent by this
-     * StunCandidateHarvest in order to retry the specified
-     * request
+     * @param request the Request which is to be retried by this StunCandidateHarvest
+     * @return the new Request instance which is to be sent by this StunCandidateHarvest in order to retry the specified request
      */
     protected Request createRequestToRetry(Request request) {
         switch (request.getMessageType()) {
@@ -288,23 +275,18 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Creates a new Request which is to be sent to
-     * {@link StunCandidateHarvester#stunServer} in order to start resolving
+     * Creates a new Request which is to be sent to {@link StunCandidateHarvester#stunServer} in order to start resolving
      * {@link #hostCandidate}.
      *
-     * @return a new Request which is to be sent to
-     * {@link StunCandidateHarvester#stunServer} in order to start resolving
-     * {@link #hostCandidate}
+     * @return a new Request which is to be sent to stunServer in order to start resolving hostCandidate
      */
     protected Request createRequestToStartResolvingCandidate() {
         return MessageFactory.createBindingRequest();
     }
 
     /**
-     * Creates and starts the {@link #sendKeepAliveMessageThread} which is to
-     * send STUN keep-alive Messages to the STUN server associated with
-     * the StunCandidateHarvester of this instance in order to keep the
-     * Candidates harvested by this instance alive.
+     * Creates and starts the {@link #sendKeepAliveMessageThread} which is to send STUN keep-alive Messages to the STUN server associated with
+     * the StunCandidateHarvester of this instance in order to keep the Candidates harvested by this instance alive.
      */
     private void createSendKeepAliveMessageThread() {
         synchronized (sendKeepAliveMessageSyncRoot) {
@@ -317,31 +299,31 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
                 t.start();
                 started = true;
             } finally {
-                if (!started && (sendKeepAliveMessageThread == t))
+                if (!started && (sendKeepAliveMessageThread == t)) {
                     sendKeepAliveMessageThread = null;
+                }
             }
         }
     }
 
     /**
-     * Creates a ServerReflexiveCandidate using {@link #hostCandidate}
-     * as its base and the XOR-MAPPED-ADDRESS attribute in
-     * response for the actual TransportAddress of the new
-     * candidate. If the message is malformed and/or does not contain the
+     * Creates a ServerReflexiveCandidate using {@link #hostCandidate} as its base and the XOR-MAPPED-ADDRESS attribute in
+     * response for the actual TransportAddress of the new candidate. If the message is malformed and/or does not contain the
      * corresponding attribute, this method simply has no effect.
      *
-     * @param response the STUN Response which is supposed to contain
-     * the address we should use for the new candidate
+     * @param response the STUN Response which is supposed to contain the address we should use for the new candidate
      */
     protected void createServerReflexiveCandidate(Response response) {
         TransportAddress addr = getMappedAddress(response);
+        logger.debug("Mapped address: {}", addr);
         if (addr != null) {
             ServerReflexiveCandidate srvrRflxCand = createServerReflexiveCandidate(addr);
+            logger.debug("ServerReflexiveCandidate: {}", srvrRflxCand);
             if (srvrRflxCand != null) {
                 try {
                     addCandidate(srvrRflxCand);
                 } finally {
-                    // Free srvrRflxCand if it has not been consumed.
+                    // Free srvrRflxCand if it has not been consumed
                     if (!containsCandidate(srvrRflxCand)) {
                         try {
                             srvrRflxCand.free();
@@ -357,25 +339,19 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Creates a new ServerReflexiveCandidate instance which is to
-     * represent a specific TransportAddress harvested through
-     * {@link #hostCandidate} and the STUN server associated with
-     * {@link #harvester}.
+     * Creates a new ServerReflexiveCandidate instance which is to represent a specific TransportAddress harvested through
+     * {@link #hostCandidate} and the STUN server associated with {@link #harvester}.
      *
-     * @param transportAddress the TransportAddress to be represented
-     * by the new ServerReflexiveCandidate instance
-     * @return a new ServerReflexiveCandidate instance which represents
-     * the specified TransportAddress harvested through
-     * {@link #hostCandidate} and the STUN server associated with
-     * {@link #harvester}
+     * @param transportAddress the TransportAddress to be represented by the new ServerReflexiveCandidate instance
+     * @return a new ServerReflexiveCandidate instance which represents the specified TransportAddress harvested through
+     * {@link #hostCandidate} and the STUN server associated with {@link #harvester}
      */
     protected ServerReflexiveCandidate createServerReflexiveCandidate(TransportAddress transportAddress) {
         return new ServerReflexiveCandidate(transportAddress, hostCandidate, harvester.stunServer, CandidateExtendedType.STUN_SERVER_REFLEXIVE_CANDIDATE);
     }
 
     /**
-     * Runs in {@link #sendKeepAliveMessageThread} to notify this instance that
-     * sendKeepAliveMessageThread is about to exit.
+     * Runs in {@link #sendKeepAliveMessageThread} to notify this instance that sendKeepAliveMessageThread is about to exit.
      */
     private void exitSendKeepAliveMessageThread() {
         synchronized (sendKeepAliveMessageSyncRoot) {
@@ -413,14 +389,11 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Gets the TransportAddress specified in the XOR-MAPPED-ADDRESS
-     * attribute of a specific Response.
+     * Gets the TransportAddress specified in the XOR-MAPPED-ADDRESS attribute of a specific Response.
      *
-     * @param response the Response from which the XOR-MAPPED-ADDRESS
-     * attribute is to be retrieved and its TransportAddress value is
+     * @param response the Response from which the XOR-MAPPED-ADDRESS attribute is to be retrieved and its TransportAddress value is
      * to be returned
-     * @return the TransportAddress specified in the XOR-MAPPED-ADDRESS
-     * attribute of response
+     * @return the TransportAddress specified in the XOR-MAPPED-ADDRESS attribute of response
      */
     protected TransportAddress getMappedAddress(Response response) {
         Attribute attribute = response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
@@ -431,32 +404,22 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
         attribute = response.getAttribute(Attribute.Type.MAPPED_ADDRESS);
         if (attribute instanceof MappedAddressAttribute) {
             return ((MappedAddressAttribute) attribute).getAddress();
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
-     * Notifies this StunCandidateHarvest that a specific STUN
-     * Request has been challenged for a long-term credential (as the
-     * short-term credential mechanism does not utilize challenging) in a
-     * specific realm and with a specific nonce.
+     * Notifies this StunCandidateHarvest that a specific STUN Request has been challenged for a long-term credential (as the
+     * short-term credential mechanism does not utilize challenging) in a specific realm and with a specific nonce.
      *
-     * @param realm the realm in which the specified STUN Request has
-     * been challenged for a long-term credential
-     * @param nonce the nonce with which the specified STUN Request has
-     * been challenged for a long-term credential
-     * @param request the STUN Request which has been challenged for a
-     * long-term credential
-     * @param requestTransactionID the TransactionID of
-     * request because request only has it as a byte
-     * array and TransactionID is required for the
-     * applicationData property value
-     * @return true if the challenge has been processed and this
-     * StunCandidateHarvest is to continue processing STUN
+     * @param realm the realm in which the specified STUN Request has been challenged for a long-term credential
+     * @param nonce the nonce with which the specified STUN Request has been challenged for a long-term credential
+     * @param request the STUN Request which has been challenged for a long-term credential
+     * @param requestTransactionID the TransactionID of request because request only has it as a byte
+     * array and TransactionID is required for the applicationData property value
+     * @return true if the challenge has been processed and this StunCandidateHarvest is to continue processing STUN
      * Responses; otherwise, false
-     * @throws StunException if anything goes wrong while processing the
-     * challenge
+     * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(byte[] realm, byte[] nonce, Request request, TransactionID requestTransactionID) throws StunException {
         UsernameAttribute usernameAttribute = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
@@ -515,17 +478,12 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * Request for a long-term credential (as the short-term credential mechanism does not utilize challenging).
      *
      * @param response the STUN Response which has been received
-     * @param request the STUN Request to which response
-     * responds and which it challenges for a long-term credential
-     * @return true if the challenge has been processed and this
-     * StunCandidateHarvest is to continue processing STUN
+     * @param request the STUN Request to which response responds and which it challenges for a long-term credential
+     * @return true if the challenge has been processed and this StunCandidateHarvest is to continue processing STUN
      * Responses; otherwise, false
-     * @param transactionID the TransactionID of response and
-     * request because response and request only have
-     * it as a byte array and TransactionID is required for
-     * the applicationData property value
-     * @throws StunException if anything goes wrong while processing the
-     * challenge
+     * @param transactionID the TransactionID of response and request because response and request only have
+     * it as a byte array and TransactionID is required for the applicationData property value
+     * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(Response response, Request request, TransactionID transactionID) throws StunException {
         boolean retried = false;
@@ -613,28 +571,40 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     public void processResponse(StunResponseEvent event) {
         TransactionID transactionID = event.getTransactionID();
         logger.trace("Received a message: tranid={} localCand={}", transactionID, hostCandidate);
-        // Clean up for the purposes of the workaround which determines the STUN Request to which a STUN Response responds.
+        // Clean up for the purposes of the workaround which determines the STUN Request to which a STUN Response responds
         requests.remove(transactionID);
-        // At long last, do start handling the received STUN Response.
+        // At long last, do start handling the received STUN Response
         Response response = event.getResponse();
         Request request = event.getRequest();
         boolean completedResolvingCandidate = true;
         try {
+            logger.trace("Response: {}", response);
             if (response.isSuccessResponse()) {
-                EnumSet<Attribute.Type> includedRequestAttributeTypes = EnumSet.of(Attribute.Type.USERNAME, Attribute.Type.MESSAGE_INTEGRITY);
-                // For a request or indication message, the agent MUST include the USERNAME and MESSAGE-INTEGRITY attributes in the message.
-                if (request.containsAllAttributes(includedRequestAttributeTypes)) {
-                    MessageIntegrityAttribute messageIntegrityAttribute = (MessageIntegrityAttribute) response.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
-                    // Authentication and Message-Integrity Mechanisms
-                    UsernameAttribute usernameAttribute = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
-                    if (!harvester.getStunStack().validateMessageIntegrity(messageIntegrityAttribute, LongTermCredential.toString(usernameAttribute.getUsername()), request.getAttribute(Attribute.Type.REALM) == null && request.getAttribute(Attribute.Type.NONCE) == null, event.getRawMessage())) {
+                // https://tools.ietf.org/html/rfc5389#section-7.3.3
+                if (response.getMessageType() == Message.BINDING_SUCCESS_RESPONSE) {
+                    // check for mapped or xor mapped address in binding response
+                    if (response.containsAnyAttributes(EnumSet.of(Attribute.Type.MAPPED_ADDRESS, Attribute.Type.XOR_MAPPED_ADDRESS))) {
+                        
+                    } else {
+                        logger.warn("Mapped address attributes are absent, discarding response");
                         return;
                     }
                 } else {
-                    /*
-                     * RFC 5389: If MESSAGE-INTEGRITY was absent, the response MUST be discarded, as if it was never received.
-                     */
-                    return;
+                    EnumSet<Attribute.Type> includedRequestAttributeTypes = EnumSet.of(Attribute.Type.USERNAME, Attribute.Type.MESSAGE_INTEGRITY);
+                    // For a request or indication message, the agent MUST include the USERNAME and MESSAGE-INTEGRITY attributes in the message.
+                    if (request.containsAllAttributes(includedRequestAttributeTypes)) {
+                        MessageIntegrityAttribute messageIntegrityAttribute = (MessageIntegrityAttribute) response.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
+                        // Authentication and Message-Integrity Mechanisms
+                        UsernameAttribute usernameAttribute = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
+                        if (!harvester.getStunStack().validateMessageIntegrity(messageIntegrityAttribute, LongTermCredential.toString(usernameAttribute.getUsername()), request.getAttribute(Attribute.Type.REALM) == null && request.getAttribute(Attribute.Type.NONCE) == null, event.getRawMessage())) {
+                            logger.warn("MESSAGE-INTEGRITY not validated, discarding response");
+                            return;
+                        }
+                    } else {
+                        // RFC 5389: If MESSAGE-INTEGRITY was absent, the response MUST be discarded, as if it was never received.
+                        logger.warn("MESSAGE-INTEGRITY was absent, discarding response");
+                        return;
+                    }
                 }
                 processSuccess(response, request, transactionID);
             } else {
@@ -655,8 +625,9 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
                         completedResolvingCandidate = true;
                     }
                 }
-                if (completedResolvingCandidate && processErrorOrFailure(response, request, transactionID))
+                if (completedResolvingCandidate && processErrorOrFailure(response, request, transactionID)) {
                     completedResolvingCandidate = false;
+                }
             }
         } finally {
             if (completedResolvingCandidate) {
@@ -688,21 +659,18 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Handles a specific STUN success Response to a specific STUN
-     * Request.
+     * Handles a specific STUN success Response to a specific STUN Request.
      *
-     * @param response the received STUN success Response which is to
-     * be handled
-     * @param request the STUN Request to which response
-     * responds
-     * @param transactionID the TransactionID of response and
-     * request because response and request only have
-     * it as a byte array and TransactionID is required for
-     * the applicationData property value
+     * @param response the received STUN success Response which is to be handled
+     * @param request the STUN Request to which response responds
+     * @param transactionID the TransactionID of response and request because response and request only have
+     * it as a byte array and TransactionID is required for the applicationData property value
      */
     protected void processSuccess(Response response, Request request, TransactionID transactionID) {
-        if (!completedResolvingCandidate)
+        logger.debug("processSuccess - completed resolving: {} response: {}", completedResolvingCandidate, response);
+        if (!completedResolvingCandidate) {
             createCandidates(response);
+        }
     }
 
     /**
@@ -789,9 +757,11 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * keep-alive STUN Message
      */
     protected void sendKeepAliveMessage() throws StunException {
-        for (LocalCandidate candidate : getCandidates())
-            if (sendKeepAliveMessage(candidate))
+        for (LocalCandidate candidate : getCandidates()) {
+            if (sendKeepAliveMessage(candidate)) {
                 break;
+            }
+        }
     }
 
     /**
@@ -890,14 +860,11 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Starts the harvesting of Candidates to be performed for
-     * {@link #hostCandidate}.
+     * Starts the harvesting of Candidates to be performed for {@link #hostCandidate}.
      *
-     * @return true if this StunCandidateHarvest has started
-     * the harvesting of Candidates for {@link #hostCandidate};
+     * @return true if this StunCandidateHarvest has started the harvesting of Candidates for {@link #hostCandidate};
      * otherwise, false
-     * @throws Exception if anything goes wrong while starting the harvesting of
-     * Candidates to be performed for {@link #hostCandidate}
+     * @throws Exception if anything goes wrong while starting the harvesting of Candidates to be performed for {@link #hostCandidate}
      */
     boolean startResolvingCandidate() throws Exception {
         Request requestToStartResolvingCandidate;
@@ -923,20 +890,16 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      */
     private static class SendKeepAliveMessageThread extends Thread {
         /**
-         * The StunCandidateHarvest which has initialized this
-         * instance. The StunCandidateHarvest is referenced by a
-         * WeakReference in an attempt to reduce the risk that the
-         * Thread may live regardless of the fact that the specified
+         * The StunCandidateHarvest which has initialized this instance. The StunCandidateHarvest is referenced by a
+         * WeakReference in an attempt to reduce the risk that the Thread may live regardless of the fact that the specified
          * StunCandidateHarvest may no longer be reachable.
          */
         private final WeakReference<StunCandidateHarvest> harvest;
 
         /**
-         * Initializes a new SendKeepAliveMessageThread instance with a
-         * specific StunCandidateHarvest.
+         * Initializes a new SendKeepAliveMessageThread instance with a specific StunCandidateHarvest.
          *
-         * @param harvest the StunCandidateHarvest to initialize the
-         * new instance with
+         * @param harvest the StunCandidateHarvest to initialize the new instance with
          */
         public SendKeepAliveMessageThread(StunCandidateHarvest harvest) {
             this.harvest = new WeakReference<>(harvest);

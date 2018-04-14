@@ -81,6 +81,7 @@ public class ComponentSocket implements PropertyChangeListener {
      */
     @Override
     public void propertyChange(PropertyChangeEvent event) {
+        logger.debug("propertyChange: {}", event);
         if (event.getSource() instanceof CandidatePair) {
             CandidatePair pair = (CandidatePair) event.getSource();
             if (!pair.getParentComponent().equals(component)) {

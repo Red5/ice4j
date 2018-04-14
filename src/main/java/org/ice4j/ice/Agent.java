@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -758,21 +757,21 @@ public class Agent {
     }
 
     /**
-     * Returns a Set containing the names of all currently registered media streams.
+     * Returns the names of all currently registered media streams.
      *
-     * @return a Set containing the names of all currently registered media streams
+     * @return the names of all currently registered media streams
      */
-    public Set<String> getStreamNames() {
-        return mediaStreams.keySet();
+    public List<String> getStreamNames() {
+        return new ArrayList<>(mediaStreams.keySet());
     }
 
     /**
-     * Returns a Collection containing all IceMediaStreams currently registered with this agent.
+     * Returns all IceMediaStreams currently registered with this agent.
      *
-     * @return Collection of all IceMediaStreams
+     * @return all IceMediaStreams
      */
-    public Collection<IceMediaStream> getStreams() {
-        return mediaStreams.values();
+    public List<IceMediaStream> getStreams() {
+        return new ArrayList<>(mediaStreams.values());
     }
 
     /**
@@ -867,7 +866,7 @@ public class Agent {
      */
     public void setControlling(boolean isControlling) {
         this.isControlling = isControlling;
-        //in case we have already initialized our check lists we'd need to recompute pair priorities.
+        // in case we have already initialized our check lists we'd need to recompute pair priorities
         for (IceMediaStream stream : getStreams()) {
             CheckList list = stream.getCheckList();
             if (list != null) {
@@ -884,10 +883,6 @@ public class Agent {
      */
     public void removeStream(IceMediaStream stream) {
         mediaStreams.remove(stream.getName());
-        /*
-         * XXX The invocation of IceMediaStream#free() on stream has been moved out of the synchronized block in order to reduce the chances of a deadlock. There was no obvious
-         * reason why it should stay in the synchronized block at the time of the modification.
-         */
         stream.free();
     }
 
