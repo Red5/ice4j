@@ -47,7 +47,6 @@ public abstract class IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     public IceTransport() {
-        throw new UnsupportedOperationException("Instantiation of parent not supported");
     }
 
     /**

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 
 import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
+import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.DatagramAcceptor;
@@ -136,6 +137,15 @@ public class IceUdpTransport extends IceTransport {
      */
     public void setIoHandler(IoHandlerAdapter ioHandler) {
         acceptor.setHandler(ioHandler);
+    }
+
+    /**
+     * Returns the IoHandler.
+     * 
+     * @return IoHandler
+     */
+    public IoHandler getIoHandler() {
+        return acceptor.getHandler();
     }
 
 }
