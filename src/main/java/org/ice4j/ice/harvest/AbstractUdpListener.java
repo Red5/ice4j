@@ -96,13 +96,6 @@ public abstract class AbstractUdpListener {
 
         });
         IceUdpTransport.getInstance().addBinding(stunStack, iceSocket);
-        /*
-         * // get the remote address InetSocketAddress remoteAddress = (InetSocketAddress) evt.getRemoteSocketAddress(); // channel wrapper is created when binding request is
-         * received in maybeAcceptNewSession UdpChannel channel = sockets.get(remoteAddress); if (channel != null) { // make 'pkt' available for reading through destinationSocket
-         * channel.addBuffer(buf); } else { // Packet from an unknown source. Is it a STUN Binding Request? String ufrag = getUfrag(buf, 0, buf.length); if (ufrag != null) { //
-         * grab the datagram channel from the event and add to the UdpChannel maybeAcceptNewSession((DatagramChannel) evt.getKey().channel(), buf, remoteAddress, ufrag); } else {
-         * // Not a STUN Binding Request or doesn't have a valid USERNAME attribute, drop it. } } return true; }
-         */
     }
 
     /**

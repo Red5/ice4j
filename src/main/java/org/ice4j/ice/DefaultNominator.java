@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,6 @@ public class DefaultNominator implements PropertyChangeListener {
      */
     public void propertyChange(PropertyChangeEvent ev) {
         String propertyName = ev.getPropertyName();
-
         if (Agent.PROPERTY_ICE_PROCESSING_STATE.equals(propertyName)) {
             if (ev.getNewValue() != IceProcessingState.RUNNING)
                 return;
@@ -75,12 +75,10 @@ public class DefaultNominator implements PropertyChangeListener {
                 stream.getCheckList().addStateChangeListener(this);
             }
         }
-
-        if (!parentAgent.isControlling() //CONTROLLED agents cannot nominate
-                || strategy == NominationStrategy.NONE) {
+        //CONTROLLED agents cannot nominate
+        if (!parentAgent.isControlling() || strategy == NominationStrategy.NONE) {
             return;
         }
-
         if (ev.getSource() instanceof CandidatePair) {
             // STUN Usage for Consent Freshness is of no concern here.
             if (IceMediaStream.PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED.equals(propertyName))

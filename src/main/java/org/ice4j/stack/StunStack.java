@@ -30,6 +30,7 @@ import org.ice4j.attribute.ErrorCodeAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.OptionalAttribute;
 import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
@@ -144,11 +145,12 @@ public class StunStack implements MessageEventHandler {
      */
     public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
         logger.debug("addSocket: {} remote address: {}", wrapper, remoteAddress);
-        // add the stun stack and wrapper for binding
+        // add the wrapper for binding
         if (wrapper instanceof IceUdpSocketWrapper) {
-            IceUdpTransport.getInstance().addBinding(this, wrapper);
+            // add directly to the ice handler to prevent any unwanted binding
+            ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
         } else {
-            IceTcpTransport.getInstance().addBinding(this, wrapper);
+            ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
         }
         // add the socket to the net access manager
         netAccessManager.addSocket(wrapper, remoteAddress);

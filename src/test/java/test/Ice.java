@@ -70,7 +70,7 @@ public class Ice {
         //System.setProperty("NIO_SHARED_MODE", "false");
         System.setProperty("org.ice4j.TERMINATION_DELAY", "10");
         // set blocking or non-blocking
-        System.setProperty("IO_BLOCKING", "true");
+        //System.setProperty("IO_BLOCKING", "true");
         startTime = System.currentTimeMillis();
         Agent localAgent = createAgent(9090, false);
         localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);

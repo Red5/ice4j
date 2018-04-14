@@ -134,7 +134,6 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
      *
      * @param request the {@link Request} whose priority we'd like to obtain
      * @return the value of the {@link PriorityAttribute} in request if there is one
-     *
      * @throws IllegalArgumentException if the request does not contain a PRIORITY attribute and the stack needs to respond with a 400 Bad Request
      * {@link Response}.
      */
@@ -157,10 +156,8 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
      * returns true if the role conflict is silently resolved and processing can continue. It returns false if we had to reply
      * with a 487 and processing needs to stop until a repaired request is received.
      *
-     * @param evt the {@link StunMessageEvent} containing the ICE-CONTROLLING or ICE-CONTROLLED attribute that
-     * allowed us to detect the role conflict.
-     *
-     * @return true if the role conflict is silently resolved and processing can continue and false otherwise.
+     * @param evt the {@link StunMessageEvent} containing the ICE-CONTROLLING or ICE-CONTROLLED attribute that allowed us to detect the role conflict
+     * @return true if the role conflict is silently resolved and processing can continue and false otherwise
      */
     private boolean repairRoleConflict(StunMessageEvent evt) {
         Message req = evt.getMessage();

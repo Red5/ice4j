@@ -3,7 +3,6 @@ package org.ice4j.ice.nio;
 import java.io.IOException;
 import java.net.SocketAddress;
 
-import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
@@ -25,7 +24,7 @@ public class IceUdpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceUdpTransport.class);
 
-    private static IceUdpTransport instance;
+    private static final IceUdpTransport instance = new IceUdpTransport();
 
     // UDP
     private DatagramAcceptor acceptor;
@@ -48,8 +47,7 @@ public class IceUdpTransport extends IceTransport {
         acceptor.setCloseOnDeactivation(true);
         acceptor.setHandler(new IceHandler());
         // get the filter chain and add our codec factory
-        DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
-        chain.addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+        acceptor.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
         logger.info("Started socket transport");
         if (logger.isDebugEnabled()) {
             logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
@@ -62,9 +60,7 @@ public class IceUdpTransport extends IceTransport {
      * @return IceTransport
      */
     public static IceUdpTransport getInstance() {
-        if (instance == null) {
-            instance = new IceUdpTransport();
-        }
+        logger.trace("Instance: {}", instance);
         return instance;
     }
 

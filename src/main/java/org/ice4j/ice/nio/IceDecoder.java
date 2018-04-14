@@ -2,6 +2,8 @@ package org.ice4j.ice.nio;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
@@ -9,6 +11,8 @@ import org.apache.mina.filter.codec.CumulativeProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTransport.Ice;
@@ -44,10 +48,10 @@ public class IceDecoder extends CumulativeProtocolDecoder {
 
     @Override
     protected boolean doDecode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
+        logger.debug("Decode start pos: {} session: {}", in.position(), session.getId());
         IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
-            logger.debug("Decode start pos: {}", in.position());
             // grab decoding state
             DecoderState decoderState = (DecoderState) session.getAttribute(Ice.DECODER_STATE_KEY);
             if (decoderState == null) {
@@ -84,6 +88,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             }
         } else {
             // no connection, pass through
+            logger.warn("No ice socket in session");
             resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
             in.position(in.limit());
             out.write(resultBuffer);
@@ -139,13 +144,23 @@ public class IceDecoder extends CumulativeProtocolDecoder {
         p.setPort(socketChannel.socket().getPort());
     }
  */
-        
+        // SocketAddress from session are InetSocketAddress which fail cast to TransportAddress, so handle there here
+        SocketAddress localAddr = session.getLocalAddress();
+        if (localAddr instanceof InetSocketAddress) {
+            InetSocketAddress inetAddr = (InetSocketAddress) localAddr;
+            localAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+        }
+        SocketAddress remoteAddr = session.getRemoteAddress();
+        if (remoteAddr instanceof InetSocketAddress) {
+            InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
+            remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+        }
         // does it look like we have a whole message or an ending fragment?
         boolean wholeMessage = (buf.length < 1500);
         // if there are less than 1500 bytes and decoderState is empty, we can be assured its a whole message
         if (wholeMessage && decoderState.payload.size() == 0) {
             // create a message
-            message = RawMessage.build(buf, session.getRemoteAddress(), session.getLocalAddress());
+            message = RawMessage.build(buf, remoteAddr, localAddr);
         } else {
             // add them to the payload
             try {
@@ -154,7 +169,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             }
             if (wholeMessage) {
                 // create a message
-                message = RawMessage.build(decoderState.payload.toByteArray(), session.getRemoteAddress(), session.getLocalAddress());
+                message = RawMessage.build(decoderState.payload.toByteArray(), remoteAddr, localAddr);
                 // reset decoder state payload so it may be re-used
                 decoderState.payload.reset();
             }

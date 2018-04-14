@@ -6,14 +6,20 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceCodecFactory;
+import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceUdpTransport;
 
 /**
@@ -22,6 +28,8 @@ import org.ice4j.ice.nio.IceUdpTransport;
  * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
+
+    private Semaphore lock = new Semaphore(1, true);
 
     /**
      * Constructor.
@@ -60,28 +68,46 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         if (logger.isDebugEnabled()) {
             logger.debug("send: {}", p);
         }
-        if (session != null) {
-            session.write(IoBuffer.wrap(p.getData()), p.getSocketAddress());
-        } else {
-            //InetSocketAddress inetAddr = InetSocketAddress.createUnresolved(transportAddress.getHostString(), transportAddress.getPort());
-            logger.debug("No session, attempting connect: {}", transportAddress);
-            NioDatagramConnector connector = new NioDatagramConnector();
-            // re-use the io handler
-            connector.setHandler(IceUdpTransport.getInstance().getIoHandler());
-            ConnectFuture future = connector.connect(p.getSocketAddress(), transportAddress);
-            future.addListener(new IoFutureListener<ConnectFuture>() {
+        try {
+            // enforce fairness lock
+            if (lock.tryAcquire(0, TimeUnit.SECONDS)) {
+                if (session != null) {
+                    session.write(IoBuffer.wrap(p.getData()), p.getSocketAddress());
+                } else {
+                    logger.debug("No session, attempting connect: {}", transportAddress);
+                    NioDatagramConnector connector = new NioDatagramConnector();
+                    // re-use the io handler
+                    IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
+                    // set the handler on the connector
+                    connector.setHandler(handler);
+                    // add this socket for attachment to the session upon opening
+                    ((IceHandler) handler).addStackAndSocket(null, this);
+                    // add the ice protocol encoder/decoder
+                    connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+                    // connect it
+                    ConnectFuture future = connector.connect(p.getSocketAddress(), transportAddress);
+                    future.addListener(new IoFutureListener<ConnectFuture>() {
 
-                @Override
-                public void operationComplete(ConnectFuture future) {
-                    session = future.getSession();
+                        @Override
+                        public void operationComplete(ConnectFuture future) {
+                            if (!future.isConnected()) {
+                                logger.warn("Connect failed");
+                            }
+                        }
+
+                    });
+                    future.awaitUninterruptibly(3000L);
+                    logger.trace("Future await returned");
+                    if (session != null) {
+                        session.write(IoBuffer.wrap(p.getData()), p.getSocketAddress());
+                    } else {
+                        logger.warn("Send failed on session creation");
+                    }
                 }
-
-            });
-            if (future.awaitUninterruptibly(3000L)) {
-                session.write(IoBuffer.wrap(p.getData()), p.getSocketAddress());
-            } else {
-                logger.warn("Send failed");
+                lock.release();
             }
+        } catch (InterruptedException e) {
+            logger.warn("Exception acquiring send lock", e);
         }
     }
 

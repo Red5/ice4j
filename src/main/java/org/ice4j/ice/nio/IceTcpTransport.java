@@ -25,7 +25,7 @@ public class IceTcpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceTcpTransport.class);
 
-    private static IceTcpTransport instance;
+    private static final IceTcpTransport instance = new IceTcpTransport();
 
     // TCP
     private SocketAcceptor acceptor;
@@ -63,9 +63,7 @@ public class IceTcpTransport extends IceTransport {
      * @return IceTransport
      */
     public static IceTcpTransport getInstance() {
-        if (instance == null) {
-            instance = new IceTcpTransport();
-        }
+        logger.trace("Instance: {}", instance);
         return instance;
     }
 

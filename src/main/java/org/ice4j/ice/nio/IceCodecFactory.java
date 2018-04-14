@@ -4,6 +4,8 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFactory;
 import org.apache.mina.filter.codec.ProtocolDecoder;
 import org.apache.mina.filter.codec.ProtocolEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Codec Factory used for creating ice filter.
@@ -12,22 +14,21 @@ import org.apache.mina.filter.codec.ProtocolEncoder;
  */
 public class IceCodecFactory implements ProtocolCodecFactory {
 
-    private final ProtocolEncoder encoder;
+    private static final Logger logger = LoggerFactory.getLogger(IceCodecFactory.class);
 
-    private final ProtocolDecoder decoder;
+    private final ProtocolEncoder encoder = new IceEncoder();
 
-    public IceCodecFactory() {
-        encoder = new IceEncoder();
-        decoder = new IceDecoder();
-    }
+    private final ProtocolDecoder decoder = new IceDecoder();
 
     @Override
     public ProtocolDecoder getDecoder(IoSession session) throws Exception {
+        logger.trace("getDecoder: {}", session.getId());
         return decoder;
     }
 
     @Override
     public ProtocolEncoder getEncoder(IoSession session) throws Exception {
+        logger.trace("getEncoder: {}", session.getId());
         return encoder;
     }
 

@@ -1,5 +1,6 @@
 package org.ice4j.ice.nio;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -64,18 +65,36 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionOpened(IoSession session) throws Exception {
         log.trace("Opened (session: {}) address: {}", session.getId(), session.getLocalAddress());
+        SocketAddress addr = session.getLocalAddress();
+        IceSocketWrapper iceSocket = iceSockets.remove(addr);
+        if (iceSocket != null) {
+            iceSocket.setSession(session);
+            session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
+        } else {
+            iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
+        }
+        StunStack stunStack = stunStacks.remove(addr);
+        if (stunStack != null) {
+            // XXX may want to add a check on stun stack to skip accidental re-adds of the socket
+            stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+            session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
+        }
     }
 
     /** {@inheritDoc} */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
         log.trace("Message received (session: {}) address: {} {}", session.getId(), session.getLocalAddress(), message);
-        IceSocketWrapper conn = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
-        if (message instanceof RawMessage) {
-            if (conn != null) {
+        IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
+        if (iceSocket != null) {
+            if (message instanceof RawMessage) {
                 // non-stun message
-                conn.getRawMessageQueue().offer((RawMessage) message);
+                iceSocket.getRawMessageQueue().offer((RawMessage) message);
+            } else {
+                log.debug("Message type: {}", message.getClass().getName());
             }
+        } else {
+            log.debug("Ice socket was not found in session");
         }
     }
 
@@ -103,10 +122,19 @@ public class IceHandler extends IoHandlerAdapter {
         }
         if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
             StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
+            if (addr instanceof InetSocketAddress) {
+                InetSocketAddress inetAddr = (InetSocketAddress) addr;
+                addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+            }
             if (iceSocket != null) {
                 stunStack.removeSocket((TransportAddress) addr, iceSocket.getRemoteTransportAddress());
             } else {
-                stunStack.removeSocket((TransportAddress) addr, (TransportAddress) session.getRemoteAddress());
+                SocketAddress remoteAddr = session.getRemoteAddress();
+                if (remoteAddr instanceof InetSocketAddress) {
+                    InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
+                    remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+                }
+                stunStack.removeSocket((TransportAddress) addr, (TransportAddress) remoteAddr);
             }
         }
         super.sessionClosed(session);

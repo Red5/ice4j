@@ -225,11 +225,9 @@ public class HostCandidateHarvester {
      * before giving up and throwing an exception.
      * @param transport transport protocol used
      *
-     * @throws IllegalArgumentException if either minPort or
-     * maxPort is not a valid port number, minPort &gt;
+     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number, minPort &gt;
      * maxPort or if transport is not supported.
-     * @throws IOException if an error occurs while the underlying resolver lib
-     * is using sockets.
+     * @throws IOException if an error occurs
      */
     public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
         harvestStatistics.startHarvestTiming();

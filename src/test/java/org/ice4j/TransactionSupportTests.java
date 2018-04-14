@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
@@ -90,6 +91,9 @@ public class TransactionSupportTests extends TestCase {
 
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
+
+        // a non-controlling / passive stun (server) needs to be bound so it can receive
+        IceUdpTransport.getInstance().addBinding(stunStack, serverSock);
 
         stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress());
         stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress());

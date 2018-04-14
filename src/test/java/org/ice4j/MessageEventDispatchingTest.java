@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -100,6 +101,9 @@ public class MessageEventDispatchingTest extends TestCase {
         clientSock = new IceUdpSocketWrapper(clientAddress);
         serverSock = new IceUdpSocketWrapper(serverAddress);
         serverSock2 = new IceUdpSocketWrapper(serverAddress2);
+        // a non-controlling / passive stun (server) needs to be bound so it can receive
+        IceUdpTransport.getInstance().addBinding(stunStack, serverSock);
+        IceUdpTransport.getInstance().addBinding(stunStack, serverSock2);
         // add wrappers to the stack
         stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress());
         stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress());
