@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceDecoder;
 import org.ice4j.message.Message;
 
 /**
@@ -662,7 +663,7 @@ public abstract class AbstractTcpListener {
          */
         private void processFirstDatagram(byte[] bytesRead, ChannelDesc channelDesc, SelectionKey key) throws IOException, IllegalStateException {
             // Does this look like a STUN binding request? What's the username?
-            String ufrag = AbstractUdpListener.getUfrag(bytesRead, 0, bytesRead.length);
+            String ufrag = IceDecoder.getUfrag(bytesRead, 0, bytesRead.length);
             if (ufrag == null) {
                 throw new IOException("Cannot extract ufrag");
             }

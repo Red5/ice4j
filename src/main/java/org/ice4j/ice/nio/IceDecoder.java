@@ -228,7 +228,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
      * @param len the length.
      * @return the local ufrag from the USERNAME attribute of the STUN message contained in buf, or null.
      */
-    static String getUfrag(byte[] buf, int off, int len) {
+    public static String getUfrag(byte[] buf, int off, int len) {
         // RFC5389, Section 6: All STUN messages MUST start with a 20-byte header followed by zero or more Attributes.
         if (buf == null || buf.length < off + len || len < 20) {
             return null;
