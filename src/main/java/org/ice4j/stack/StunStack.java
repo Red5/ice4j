@@ -150,6 +150,7 @@ public class StunStack implements MessageEventHandler {
             // add directly to the ice handler to prevent any unwanted binding
             ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
         } else {
+            // add directly to the ice handler to prevent any unwanted binding
             ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
         }
         // add the socket to the net access manager

@@ -3,6 +3,7 @@ package org.ice4j.stack;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 
 import javax.xml.bind.DatatypeConverter;
@@ -18,6 +19,7 @@ import org.ice4j.StunResponseEvent;
 import org.ice4j.StunTimeoutEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -43,7 +45,7 @@ public class ShallowStackTest extends TestCase {
 
     private MsgFixture msgFixture;
 
-    private TransportAddress dummyServerAddress;
+    private TransportAddress serverAddress;
 
     private TransportAddress localAddress;
 
@@ -75,16 +77,19 @@ public class ShallowStackTest extends TestCase {
         msgFixture = new MsgFixture();
         // XXX Paul: ephemeral port selection using 0 isnt working since the InetSocketAddress used by TransportAddress doesnt show the selected port
         // this causes connector lookups to fail due to port being still set to 0
-        dummyServerAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
-        localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
+        int serverPort = PortUtil.getPort();
+        InetSocketAddress dummyServerAddress = new InetSocketAddress("127.0.0.1", serverPort);
+        serverAddress = new TransportAddress("127.0.0.1", serverPort, Transport.UDP);
+        // init the dummy server
+        dummyServerSocket = new DatagramSocket(dummyServerAddress);
+        dummyServerSocket.setReuseAddress(true);
         // init the stack
         stunStack = new StunStack();
         // access point
+        localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         localSock = new IceUdpSocketWrapper(localAddress);
         // add the wrapper to the stack
         stunStack.addSocket(localSock, localSock.getRemoteTransportAddress());
-        // init the dummy server
-        dummyServerSocket = new DatagramSocket(dummyServerAddress);
     }
 
     /**
@@ -113,7 +118,7 @@ public class ShallowStackTest extends TestCase {
         logger.info("\n SendRequest");
         Request bindingRequest = MessageFactory.createBindingRequest();
         dgramCollector.startListening(dummyServerSocket);
-        stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, new SimpleResponseCollector());
+        stunStack.sendRequest(bindingRequest, serverAddress, localAddress, new SimpleResponseCollector());
         // wait for its arrival
         dgramCollector.waitForPacket();
         DatagramPacket receivedPacket = dgramCollector.collectPacket();
@@ -138,6 +143,8 @@ public class ShallowStackTest extends TestCase {
      */
     public void testReceiveRequest() throws Exception {
         logger.info("\n ReceiveRequest");
+        // we're expecting to receive on the ice4j side (non-controlling)
+        IceUdpTransport.getInstance().addBinding(stunStack, localSock);
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
         dummyServerSocket.send(new DatagramPacket(msgFixture.bindingRequest2, msgFixture.bindingRequest2.length, localAddress));
@@ -162,6 +169,8 @@ public class ShallowStackTest extends TestCase {
      */
     public void testSendResponse() throws Exception {
         logger.info("\n SendResponse");
+        // we're expecting to receive on the ice4j side (non-controlling)
+        IceUdpTransport.getInstance().addBinding(stunStack, localSock);
         //---------- send & receive the request --------------------------------
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
@@ -177,7 +186,7 @@ public class ShallowStackTest extends TestCase {
         Response bindingResponse = MessageFactory.create3489BindingResponse(new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS, MsgFixture.ADDRESS_ATTRIBUTE_PORT, Transport.UDP), new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_2, MsgFixture.ADDRESS_ATTRIBUTE_PORT_2, Transport.UDP), new TransportAddress(MsgFixture.ADDRESS_ATTRIBUTE_ADDRESS_3, MsgFixture.ADDRESS_ATTRIBUTE_PORT_3, Transport.UDP));
         //---------- send & receive the response -------------------------------
         dgramCollector.startListening(dummyServerSocket);
-        stunStack.sendResponse(collectedRequest.getTransactionID(), bindingResponse, localAddress, dummyServerAddress);
+        stunStack.sendResponse(collectedRequest.getTransactionID(), bindingResponse, localAddress, serverAddress);
         // wait for its arrival
         dgramCollector.waitForPacket();
         DatagramPacket receivedPacket = dgramCollector.collectPacket();
@@ -196,7 +205,7 @@ public class ShallowStackTest extends TestCase {
         SimpleResponseCollector collector = new SimpleResponseCollector();
         //--------------- send the original request ----------------------------
         Request bindingRequest = MessageFactory.createBindingRequest();
-        TransactionID transId = stunStack.sendRequest(bindingRequest, dummyServerAddress, localAddress, collector);
+        TransactionID transId = stunStack.sendRequest(bindingRequest, serverAddress, localAddress, collector);
         logger.info("Request transaction id: {}", transId);
         // wait for its arrival
         collector.waitForResponse();

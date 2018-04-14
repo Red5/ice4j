@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.ice4j.ice.nio.IceUdpTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

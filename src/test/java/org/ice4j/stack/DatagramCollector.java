@@ -1,49 +1,56 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
-import java.net.*;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DatagramCollector implements Runnable {
 
-    DatagramPacket receivedPacket = null;
+    private static final Logger logger = LoggerFactory.getLogger(DatagramCollector.class);
 
-    DatagramSocket sock = null;
+    Boolean lock = Boolean.TRUE;
 
-    boolean packetReceived = false;
+    DatagramPacket receivedPacket;
+
+    DatagramSocket sock;
+
+    boolean packetReceived;
 
     public void run() {
+        logger.debug("Listening on: {}:{}", sock.getLocalAddress(), sock.getLocalPort());
         try {
-
+            receivedPacket = new DatagramPacket(new byte[4096], 4096);
             sock.receive(receivedPacket);
-
-            synchronized (this) {
+            synchronized (lock) {
                 packetReceived = true;
-                notifyAll();
+                lock.notify();
             }
-
-        } catch (IOException ex) {
+        } catch (IOException e) {
+            logger.warn("Exception on receive", e);
             receivedPacket = null;
         }
-
     }
 
     public void startListening(DatagramSocket sock) {
         this.sock = sock;
-        receivedPacket = new DatagramPacket(new byte[4096], 4096);
-
+        logger.debug("Bound: {} connected: {}", sock.isBound(), sock.isConnected());
         new Thread(this).start();
     }
 
     public void waitForPacket() {
-        synchronized (this) {
-            if (packetReceived)
+        logger.debug("waitForPacket: {}:{}", sock.getLocalAddress(), sock.getLocalPort());
+        synchronized (lock) {
+            if (packetReceived) {
                 return;
-
+            }
             try {
-                wait(50);
+                lock.wait(50);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.warn("Exception on wait", e);
             }
         }
     }
@@ -54,7 +61,6 @@ public class DatagramCollector implements Runnable {
         receivedPacket = null;
         sock = null;
         packetReceived = false;
-
         //return
         return returnValue;
     }
