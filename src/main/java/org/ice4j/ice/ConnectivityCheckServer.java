@@ -66,15 +66,11 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
     }
 
     /**
-     * Handles the {@link Request} delivered in evt by possibly
-     * queuing a triggered check and sending a success or an error response
+     * Handles the {@link Request} delivered in evt by possibly queuing a triggered check and sending a success or an error response
      * depending on how processing goes.
      *
-     * @param evt the {@link StunMessageEvent} containing the {@link Request}
-     * that we need to process.
-     *
-     * @throws IllegalArgumentException if the request is malformed and the
-     * stack needs to reply with a 400 Bad Request response.
+     * @param evt the {@link StunMessageEvent} containing the {@link Request} that we need to process
+     * @throws IllegalArgumentException if the request is malformed and the stack needs to reply with a 400 Bad Request response
      */
     public void processRequest(StunMessageEvent evt) throws IllegalArgumentException {
         if (logger.isDebugEnabled()) {
@@ -97,13 +93,23 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         // for a buggy peer that doesn't switch roles when it gets a role conflict error.
         long priority = extractPriority(request);
         boolean useCandidate = (request.getAttribute(Attribute.Type.USE_CANDIDATE) != null);
-        // caller gave us the entire username.
-        String remoteUfrag = username.split(":")[0];
-        String localUFrag = null;
+        if (logger.isDebugEnabled()) {
+            logger.debug("useCandidate: {}", useCandidate);
+        }
+        // caller gave us the entire username
+        boolean wholeUserName = username.contains(":");
+        String remoteUfrag = wholeUserName ? username.split(":")[0] : username;
+        String localUFrag = wholeUserName ? username.split(":")[1] : null;
+        if (logger.isTraceEnabled()) {
+            logger.trace("localUfrag: {} remoteUfrag: {}", localUFrag, remoteUfrag);
+        }
         //tell our address handler we saw a new remote address;
         parentAgent.incomingCheckReceived(evt.getRemoteAddress(), evt.getLocalAddress(), priority, remoteUfrag, localUFrag, useCandidate);
         boolean controlling = (parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
         boolean controlled = (!parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLED) != null);
+        if (logger.isTraceEnabled()) {
+            logger.trace("controlling: {} controlled: {}", controlling, controlled);
+        }
         //detect role conflicts
         if (controlling || controlled) {
             if (!repairRoleConflict(evt)) {
@@ -116,7 +122,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         // The responses utilize the same usernames and passwords as the requests
         Attribute usernameAttribute = AttributeFactory.createUsernameAttribute(uname.getUsername());
         response.putAttribute(usernameAttribute);
-        logger.debug("usernameAttribute: {}", usernameAttribute);
+        logger.debug("UsernameAttribute: {}", usernameAttribute);
         Attribute messageIntegrityAttribute = AttributeFactory.createMessageIntegrityAttribute(username);
         response.putAttribute(messageIntegrityAttribute);
         try {
@@ -144,7 +150,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         // extract priority
         if (priorityAttr == null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Received a connectivity check with no PRIORITY attribute. Discarding.");
+                logger.debug("Received a connectivity check with no PRIORITY attribute, discarding");
             }
             throw new IllegalArgumentException("Missing PRIORITY attribute!");
         }
@@ -195,8 +201,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         else if (!parentAgent.isControlling() && attr instanceof IceControlledAttribute) {
             IceControlledAttribute controlled = (IceControlledAttribute) attr;
             long theirTieBreaker = controlled.getTieBreaker();
-            // If the agent's tie-breaker is larger than or equal to the contents of the ICE-CONTROLLED attribute, the agent switches to
-            // the controlling role.
+            // If the agent's tie-breaker is larger than or equal to the contents of the ICE-CONTROLLED attribute, the agent switches to the controlling role.
             if (Long.compareUnsigned(ourTieBreaker, theirTieBreaker) >= 0) {
                 logger.debug("Switching to controlling because theirTieBreaker=" + theirTieBreaker + " and ourTieBreaker=" + ourTieBreaker);
                 parentAgent.setControlling(true);
@@ -215,6 +220,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
                 }
             }
         }
+        logger.debug("No role conflict");
         return true; // we don't have a role conflict
     }
 

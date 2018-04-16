@@ -21,7 +21,6 @@ import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.IceMediaStream;
 import org.ice4j.ice.IceProcessingState;
 import org.ice4j.ice.LocalCandidate;
-import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -180,26 +179,16 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             Agent agent = component.getParentStream().getParentAgent();
             IceProcessingState state = agent.getState();
             if (state == IceProcessingState.FAILED) {
-                throw new IOException("Cannot add socket to an Agent in state FAILED.");
+                throw new IOException("Cannot add socket to an Agent in state FAILED");
             } else if (state != null && state.isOver()) {
                 logger.debug("Adding a socket to a completed Agent, state: {}", state);
             }
             // Socket to add to the candidate
             StunStack stunStack = agent.getStunStack();
-            stunStack.addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP));
+            // if agent is not controlling, we're considered a server so add a binding
+            stunStack.addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP), !agent.isControlling()); // do socket binding
             // TODO: maybe move this code to the candidates
             component.getComponentSocket().setSocket(candidateSocket);
-            // if agent is not controlling, we're considered a server so add a binding
-            if (!agent.isControlling()) {
-                logger.debug("Candidate socket: {}:{}", candidateSocket.getLocalAddress(), candidateSocket.getLocalPort());
-                if (candidateSocket.getSession() == null) {
-                    IceUdpTransport.getInstance().addBinding(stunStack, candidateSocket);
-                } else {
-                    logger.debug("Candidate socket already has a session: {}", candidateSocket.getSession());
-                }
-            } else {
-                logger.debug("Agent is controlling");
-            }
             // if a socket already exists, it will be returned and closed after being replaced in the map
             IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
             if (oldSocket != null) {

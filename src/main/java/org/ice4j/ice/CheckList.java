@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +33,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * The name of the {@link PropertyChangeEvent} that we use to deliver
-     * changes on the state of this check list.
+     * The name of the {@link PropertyChangeEvent} that we use to deliver changes on the state of this check list.
      */
     public static final String PROPERTY_CHECK_LIST_STATE = "CheckListState";
 
@@ -46,7 +46,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
     /**
      * The state of this check list.
      */
-    private CheckListState state = CheckListState.RUNNING;
+    private AtomicReference<CheckListState> state = new AtomicReference<>(CheckListState.RUNNING);
 
     /**
      * The triggeredCheckQueue is a FIFO queue containing candidate pairs for which checks are to be sent at the next available opportunity.
@@ -85,7 +85,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @return the CheckListState of this check list.
      */
     public CheckListState getState() {
-        return state;
+        return state.get();
     }
 
     /**
@@ -94,8 +94,8 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param newState the CheckListState for this list.
      */
     protected void setState(CheckListState newState) {
-        CheckListState oldState = this.state;
-        this.state = newState;
+        logger.debug("setState: {}", newState);
+        CheckListState oldState = state.getAndSet(newState);
         fireStateChange(oldState, newState);
     }
 
@@ -314,6 +314,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param l the listener to register.
      */
     public void addStateChangeListener(PropertyChangeListener l) {
+        logger.debug("addStateChangeListener: {}", l);
         if (!stateListeners.contains(l)) {
             stateListeners.add(l);
         }
@@ -325,14 +326,15 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param l the listener to remove.
      */
     public void removeStateChangeListener(PropertyChangeListener l) {
+        logger.debug("removeStateChangeListener: {}", l);
         stateListeners.remove(l);
     }
 
     /**
      * Creates a new {@link PropertyChangeEvent} and delivers it to all currently registered state listeners.
      *
-     * @param oldState the {@link CheckListState} we had before the change
-     * @param newState the {@link CheckListState} we had after the change
+     * @param oldState the CheckListState we had before the change
+     * @param newState the CheckListState we had after the change
      */
     private void fireStateChange(CheckListState oldState, CheckListState newState) {
         PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_CHECK_LIST_STATE, oldState, newState);
@@ -347,6 +349,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param l CheckListener to add
      */
     public void addChecksListener(PropertyChangeListener l) {
+        logger.debug("addChecksListener: {}", l);
         if (!checkListeners.contains(l)) {
             checkListeners.add(l);
         }
@@ -358,6 +361,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @param l CheckListener to remove
      */
     public void removeChecksListener(PropertyChangeListener l) {
+        logger.debug("removeChecksListener: {}", l);
         if (checkListeners.contains(l)) {
             checkListeners.remove(l);
         }
@@ -376,7 +380,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
     /**
      * Returns a reference to the {@link IceMediaStream} that created and that maintains this check list.
      *
-     * @return a reference to the {@link IceMediaStream} that this list belongs to.
+     * @return a reference to the IceMediaStream that this list belongs to
      */
     public IceMediaStream getParentStream() {
         return parentStream;

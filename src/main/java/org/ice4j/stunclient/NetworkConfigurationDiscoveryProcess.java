@@ -122,12 +122,13 @@ public class NetworkConfigurationDiscoveryProcess {
 
     /**
      * Puts the discoverer into an operational state.
+     * 
      * @throws IOException if we fail to bind
      * @throws StunException if the stun4j stack fails start for some reason
      */
     public void start() throws IOException, StunException {
         sock = new IceUdpSocketWrapper(localAddress);
-        stunStack.addSocket(sock, sock.getRemoteTransportAddress());
+        stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         started = true;
     }

@@ -140,7 +140,7 @@ public class StunAddressDiscovererTest_v6 extends TestCase {
         expectedReturn.setPublicAddress(mappedClientAddress);
 
         StunDiscoveryReport actualReturn = stunAddressDiscoverer.determineAddress();
-        assertEquals("The StunAddressDiscoverer failed for" + " a no-udp environment.", expectedReturn, actualReturn);
+        assertEquals("The StunAddressDiscoverer failed for a no-udp environment.", expectedReturn, actualReturn);
 
     }
 

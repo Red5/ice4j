@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.attribute;
 
@@ -31,16 +20,13 @@ import org.ice4j.*;
  * @author Namal Senarathne
  * @author Aakash Garg
  */
-public class AttributeFactory
-{
+public class AttributeFactory {
     /**
-     * Creates a ChangeRequestAttribute with "false" values for the changeIP and
-     * changePort flags.
+     * Creates a ChangeRequestAttribute with "false" values for the changeIP and changePort flags.
      *
      * @return the newly created ChangeRequestAttribute.
      */
-    public static ChangeRequestAttribute createChangeRequestAttribute()
-    {
+    public static ChangeRequestAttribute createChangeRequestAttribute() {
         return createChangeRequestAttribute(false, false);
     }
 
@@ -51,173 +37,115 @@ public class AttributeFactory
      * @param changePort the value of the changePort flag.
      * @return the newly created ChangeRequestAttribute.
      */
-    public static ChangeRequestAttribute createChangeRequestAttribute(
-                    boolean changeIP, boolean changePort)
-    {
+    public static ChangeRequestAttribute createChangeRequestAttribute(boolean changeIP, boolean changePort) {
         ChangeRequestAttribute attribute = new ChangeRequestAttribute();
-
         attribute.setChangeIpFlag(changeIP);
         attribute.setChangePortFlag(changePort);
-
         return attribute;
     }
 
     /**
-     * Creates a changedAddressAttribute of the specified type and with the
-     * specified address and port
+     * Creates a changedAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
      * @return the newly created address attribute.
      */
-    public static ChangedAddressAttribute createChangedAddressAttribute(
-                    TransportAddress address)
-    {
+    public static ChangedAddressAttribute createChangedAddressAttribute(TransportAddress address) {
         ChangedAddressAttribute attribute = new ChangedAddressAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
     /**
-     * Creates an ErrorCodeAttribute with the specified error class and number
-     * and a default reason phrase.
+     * Creates an ErrorCodeAttribute with the specified error class and number and a default reason phrase.
      *
      * @param errorClass a valid error class.
      * @param errorNumber a valid error number.
      * @return the newly created attribute.
-     * @throws StunException if the error class or number have invalid values
-     * according to rfc3489.
+     * @throws StunException if the error class or number have invalid values according to rfc3489.
      */
-    public static ErrorCodeAttribute createErrorCodeAttribute(byte errorClass,
-                    byte errorNumber)
-        throws StunException
-    {
+    public static ErrorCodeAttribute createErrorCodeAttribute(byte errorClass, byte errorNumber) throws StunException {
         return createErrorCodeAttribute(errorClass, errorNumber, null);
     }
 
     /**
-     * Creates an ErrorCodeAttribute with the specified error class, number and
-     * reason phrase.
+     * Creates an ErrorCodeAttribute with the specified error class, number and reason phrase.
      *
-     * @param errorClass a valid error class.
-     * @param errorNumber a valid error number.
-     * @param reasonPhrase a human readable reason phrase. A null reason phrase
-     * would be replaced (if possible) by a default one as defined byte the
-     * rfc3489.
-     * @return the newly created attribute.
-     * @throws StunException if the error class or number have invalid values
-     * according to rfc3489.
+     * @param errorClass a valid error class
+     * @param errorNumber a valid error number
+     * @param reasonPhrase a human readable reason phrase. A null reason phrase would be replaced (if possible) by a default one as defined byte the
+     * rfc3489
+     * @return the newly created attribute
+     * @throws StunException if the error class or number have invalid values according to rfc3489
      */
-    public static ErrorCodeAttribute createErrorCodeAttribute(
-                                                        byte errorClass,
-                                                        byte errorNumber,
-                                                        String reasonPhrase)
-        throws StunException
-    {
+    public static ErrorCodeAttribute createErrorCodeAttribute(byte errorClass, byte errorNumber, String reasonPhrase) throws StunException {
         ErrorCodeAttribute attribute = new ErrorCodeAttribute();
-
         attribute.setErrorClass(errorClass);
         attribute.setErrorNumber(errorNumber);
-
-        attribute.setReasonPhrase(reasonPhrase == null ? ErrorCodeAttribute
-                        .getDefaultReasonPhrase(attribute.getErrorCode())
-                        : reasonPhrase);
-
+        attribute.setReasonPhrase(reasonPhrase == null ? ErrorCodeAttribute.getDefaultReasonPhrase(attribute.getErrorCode()) : reasonPhrase);
         return attribute;
     }
 
     /**
-     * Creates an ErrorCodeAttribute with the specified error code and a default
-     * reason phrase.
+     * Creates an ErrorCodeAttribute with the specified error code and a default reason phrase.
      *
-     * @param errorCode a valid error code.
-     * @return the newly created attribute.
-     * @throws StunException if errorCode is not a valid error code as defined
-     * by rfc3489
+     * @param errorCode a valid error code
+     * @return the newly created attribute
+     * @throws StunException if errorCode is not a valid error code as defined by rfc3489
      */
-    public static ErrorCodeAttribute createErrorCodeAttribute(char errorCode)
-                    throws StunException
-    {
+    public static ErrorCodeAttribute createErrorCodeAttribute(char errorCode) throws StunException {
         return createErrorCodeAttribute(errorCode, null);
     }
 
     /**
-     * Creates an ErrorCodeAttribute with the specified error code and reason
-     * phrase.
+     * Creates an ErrorCodeAttribute with the specified error code and reason phrase.
      *
-     * @param errorCode a valid error code.
-     * @param reasonPhrase a human readable reason phrase. A null reason phrase
-     * would be replaced (if possible) by a default one as defined byte the
-     * rfc3489.
-     *
-     * @return the newly created attribute.
-     * @throws IllegalArgumentException if errorCode is not a valid error code
-     * as defined by rfc3489
+     * @param errorCode a valid error code
+     * @param reasonPhrase a human readable reason phrase. A null reason phrase would be replaced (if possible) by a default one as defined byte the
+     * rfc3489
+     * @return the newly created attribute
+     * @throws IllegalArgumentException if errorCode is not a valid error code as defined by rfc3489
      */
-    public static ErrorCodeAttribute createErrorCodeAttribute(
-                                                          char errorCode,
-                                                          String reasonPhrase)
-        throws IllegalArgumentException
-    {
+    public static ErrorCodeAttribute createErrorCodeAttribute(char errorCode, String reasonPhrase) throws IllegalArgumentException {
         ErrorCodeAttribute attribute = new ErrorCodeAttribute();
-
         attribute.setErrorCode(errorCode);
-        attribute.setReasonPhrase(reasonPhrase == null ? ErrorCodeAttribute
-                        .getDefaultReasonPhrase(attribute.getErrorCode())
-                        : reasonPhrase);
-
+        attribute.setReasonPhrase(reasonPhrase == null ? ErrorCodeAttribute.getDefaultReasonPhrase(attribute.getErrorCode()) : reasonPhrase);
         return attribute;
     }
 
     /**
-     * Creates a MappedAddressAttribute of the specified type and with the
-     * specified address and port
+     * Creates a MappedAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
-     * @return the newly created address attribute.
+     * @return the newly created address attribute
      */
-    public static MappedAddressAttribute createMappedAddressAttribute(
-                    TransportAddress address)
-    {
+    public static MappedAddressAttribute createMappedAddressAttribute(TransportAddress address) {
         MappedAddressAttribute attribute = new MappedAddressAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
     /**
-     * Creates a ReflectedFromAddressAttribute of the specified type and with
-     * the specified address and port
+     * Creates a ReflectedFromAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
-     * @return the newly created address attribute.
+     * @return the newly created address attribute
      */
-    public static ReflectedFromAttribute createReflectedFromAttribute(
-                    TransportAddress address)
-    {
+    public static ReflectedFromAttribute createReflectedFromAttribute(TransportAddress address) {
         ReflectedFromAttribute attribute = new ReflectedFromAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
     /**
-     * Creates a ResponseFromAddressAttribute of the specified type and with the
-     * specified address and port
+     * Creates a ResponseFromAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
-     * @return the newly created address attribute.
+     * @return the newly created address attribute
      */
-    public static ResponseAddressAttribute createResponseAddressAttribute(
-                    TransportAddress address)
-    {
+    public static ResponseAddressAttribute createResponseAddressAttribute(TransportAddress address) {
         ResponseAddressAttribute attribute = new ResponseAddressAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
@@ -228,9 +156,7 @@ public class AttributeFactory
      * @param address the address value of the address attribute
      * @return the newly created address attribute.
      */
-    public static SourceAddressAttribute createSourceAddressAttribute(
-                    TransportAddress address)
-    {
+    public static SourceAddressAttribute createSourceAddressAttribute(TransportAddress address) {
         SourceAddressAttribute attribute = new SourceAddressAttribute();
 
         attribute.setAddress(address);
@@ -243,8 +169,7 @@ public class AttributeFactory
      *
      * @return the newly created UnknownAttributesAttribute
      */
-    public static UnknownAttributesAttribute createUnknownAttributesAttribute()
-    {
+    public static UnknownAttributesAttribute createUnknownAttributesAttribute() {
         UnknownAttributesAttribute attribute = new UnknownAttributesAttribute();
 
         return attribute;
@@ -260,9 +185,7 @@ public class AttributeFactory
      *
      * @return the newly created address attribute.
      */
-    public static XorRelayedAddressAttribute createXorRelayedAddressAttribute(
-                    TransportAddress address, byte[] tranID)
-    {
+    public static XorRelayedAddressAttribute createXorRelayedAddressAttribute(TransportAddress address, byte[] tranID) {
         XorRelayedAddressAttribute attribute = new XorRelayedAddressAttribute();
 
         // TODO (Emil): shouldn't we be XORing the address before setting it?
@@ -279,9 +202,7 @@ public class AttributeFactory
      * mask.
      * @return the newly created address attribute.
      */
-    public static XorPeerAddressAttribute createXorPeerAddressAttribute(
-                    TransportAddress address, byte[] tranID)
-    {
+    public static XorPeerAddressAttribute createXorPeerAddressAttribute(TransportAddress address, byte[] tranID) {
         XorPeerAddressAttribute attribute = new XorPeerAddressAttribute();
 
         // TODO (Emil): shouldn't we be XORing the address before setting it?
@@ -298,9 +219,7 @@ public class AttributeFactory
      *
      * @return the newly created XOR address attribute.
      */
-    public static XorMappedAddressAttribute createXorMappedAddressAttribute(
-                    TransportAddress address, byte[] tranID)
-    {
+    public static XorMappedAddressAttribute createXorMappedAddressAttribute(TransportAddress address, byte[] tranID) {
         XorMappedAddressAttribute attribute = new XorMappedAddressAttribute();
 
         attribute.setAddress(address, tranID);
@@ -315,8 +234,7 @@ public class AttributeFactory
      *
      * @return newly created UsernameAttribute
      */
-    public static UsernameAttribute createUsernameAttribute(byte username[])
-    {
+    public static UsernameAttribute createUsernameAttribute(byte username[]) {
         UsernameAttribute attribute = new UsernameAttribute();
 
         attribute.setUsername(username);
@@ -329,16 +247,12 @@ public class AttributeFactory
      * @param username the String value of the username
      * @return a new UsernameAttribute instance
      */
-    public static UsernameAttribute createUsernameAttribute(String username)
-    {
+    public static UsernameAttribute createUsernameAttribute(String username) {
         UsernameAttribute attribute = new UsernameAttribute();
 
-        try
-        {
+        try {
             attribute.setUsername(username.getBytes("UTF-8"));
-        }
-        catch (UnsupportedEncodingException ueex)
-        {
+        } catch (UnsupportedEncodingException ueex) {
             throw new UndeclaredThrowableException(ueex);
         }
         return attribute;
@@ -356,9 +270,7 @@ public class AttributeFactory
      *
      * @return the newly created address attribute.
      */
-    public static MessageIntegrityAttribute createMessageIntegrityAttribute(
-                                                    String username)
-    {
+    public static MessageIntegrityAttribute createMessageIntegrityAttribute(String username) {
         MessageIntegrityAttribute attribute = new MessageIntegrityAttribute();
 
         attribute.setUsername(username);
@@ -372,8 +284,7 @@ public class AttributeFactory
      *
      * @return the newly created FingerprintAttribute.
      */
-    public static FingerprintAttribute createFingerprintAttribute()
-    {
+    public static FingerprintAttribute createFingerprintAttribute() {
         FingerprintAttribute attribute = new FingerprintAttribute();
 
         return attribute;
@@ -385,9 +296,7 @@ public class AttributeFactory
      * @param channelNumber channel number
      * @return newly created ChannelNumberAttribute
      */
-    public static ChannelNumberAttribute createChannelNumberAttribute(
-                    char channelNumber)
-    {
+    public static ChannelNumberAttribute createChannelNumberAttribute(char channelNumber) {
         ChannelNumberAttribute attribute = new ChannelNumberAttribute();
 
         attribute.setChannelNumber(channelNumber);
@@ -400,8 +309,7 @@ public class AttributeFactory
      * @param realm realm value
      * @return newly created RealmAttribute
      */
-    public static RealmAttribute createRealmAttribute(byte realm[])
-    {
+    public static RealmAttribute createRealmAttribute(byte realm[]) {
         RealmAttribute attribute = new RealmAttribute();
 
         attribute.setRealm(realm);
@@ -414,8 +322,7 @@ public class AttributeFactory
      * @param nonce nonce value
      * @return newly created NonceAttribute
      */
-    public static NonceAttribute createNonceAttribute(byte nonce[])
-    {
+    public static NonceAttribute createNonceAttribute(byte nonce[]) {
         NonceAttribute attribute = new NonceAttribute();
 
         attribute.setNonce(nonce);
@@ -428,8 +335,7 @@ public class AttributeFactory
      * @param software software value
      * @return newly created SoftwareAttribute
      */
-    public static SoftwareAttribute createSoftwareAttribute(byte software[])
-    {
+    public static SoftwareAttribute createSoftwareAttribute(byte software[]) {
         SoftwareAttribute attribute = new SoftwareAttribute();
 
         attribute.setSoftware(software);
@@ -442,8 +348,7 @@ public class AttributeFactory
      * @param rFlag R flag
      * @return the newly created EventPortAttribute
      */
-    public static EvenPortAttribute createEvenPortAttribute(boolean rFlag)
-    {
+    public static EvenPortAttribute createEvenPortAttribute(boolean rFlag) {
         EvenPortAttribute attribute = new EvenPortAttribute();
 
         attribute.setRFlag(rFlag);
@@ -456,8 +361,7 @@ public class AttributeFactory
      * @param lifetime lifetime value
      * @return newly created LifetimeAttribute
      */
-    public static LifetimeAttribute createLifetimeAttribute(int lifetime)
-    {
+    public static LifetimeAttribute createLifetimeAttribute(int lifetime) {
         LifetimeAttribute attribute = new LifetimeAttribute();
 
         attribute.setLifetime(lifetime);
@@ -470,11 +374,8 @@ public class AttributeFactory
      * @param protocol transport protocol requested
      * @return newly created RequestedTransportAttribute
      */
-    public static RequestedTransportAttribute createRequestedTransportAttribute(
-                    byte protocol)
-    {
-        RequestedTransportAttribute attribute =
-            new RequestedTransportAttribute();
+    public static RequestedTransportAttribute createRequestedTransportAttribute(byte protocol) {
+        RequestedTransportAttribute attribute = new RequestedTransportAttribute();
 
         attribute.setRequestedTransport(protocol);
         return attribute;
@@ -486,9 +387,7 @@ public class AttributeFactory
      * @param token the token
      * @return newly created RequestedTransportAttribute
      */
-    public static ReservationTokenAttribute createReservationTokenAttribute(
-                    byte token[])
-    {
+    public static ReservationTokenAttribute createReservationTokenAttribute(byte token[]) {
         ReservationTokenAttribute attribute = new ReservationTokenAttribute();
 
         attribute.setReservationToken(token);
@@ -501,8 +400,7 @@ public class AttributeFactory
      * @param data the data
      * @return newly created DataAttribute
      */
-    public static DataAttribute createDataAttribute(byte data[])
-    {
+    public static DataAttribute createDataAttribute(byte data[]) {
         DataAttribute attribute = new DataAttribute();
 
         attribute.setData(data);
@@ -515,8 +413,7 @@ public class AttributeFactory
      * @param data the data
      * @return newly created DataAttribute
      */
-    public static DataAttribute createDataAttributeWithoutPadding(byte data[])
-    {
+    public static DataAttribute createDataAttributeWithoutPadding(byte data[]) {
         DataAttribute attribute = new DataAttribute(false);
 
         attribute.setData(data);
@@ -530,9 +427,7 @@ public class AttributeFactory
      * @param tieBreaker the tie-breaker value to be used
      * @return the created IceControlledAttribute
      */
-    public static IceControlledAttribute createIceControlledAttribute(
-                                                            long tieBreaker)
-    {
+    public static IceControlledAttribute createIceControlledAttribute(long tieBreaker) {
         IceControlledAttribute attribute = new IceControlledAttribute();
         attribute.setTieBreaker(tieBreaker);
 
@@ -547,9 +442,7 @@ public class AttributeFactory
      * @throws IllegalArgumentException if priority &lt; 0 or priority &gt;
      *             (2^31 - 1)
      */
-    public static PriorityAttribute createPriorityAttribute(long priority)
-                    throws IllegalArgumentException
-    {
+    public static PriorityAttribute createPriorityAttribute(long priority) throws IllegalArgumentException {
         PriorityAttribute attribute = new PriorityAttribute();
 
         attribute.setPriority(priority);
@@ -562,8 +455,7 @@ public class AttributeFactory
      *
      * @return the created UseCandidateAttribute
      */
-    public static UseCandidateAttribute createUseCandidateAttribute()
-    {
+    public static UseCandidateAttribute createUseCandidateAttribute() {
         UseCandidateAttribute attribute = new UseCandidateAttribute();
 
         return attribute;
@@ -576,9 +468,7 @@ public class AttributeFactory
      *
      * @return the created IceControllingAttribute
      */
-    public static IceControllingAttribute createIceControllingAttribute(
-                    long tieBreaker)
-    {
+    public static IceControllingAttribute createIceControllingAttribute(long tieBreaker) {
         IceControllingAttribute attribute = new IceControllingAttribute();
         attribute.setTieBreaker(tieBreaker);
 
@@ -590,8 +480,7 @@ public class AttributeFactory
      *
      * @return the created MagicCookieAttribute
      */
-    public static MagicCookieAttribute createMagicCookieAttribute()
-    {
+    public static MagicCookieAttribute createMagicCookieAttribute() {
         MagicCookieAttribute attribute = new MagicCookieAttribute();
         return attribute;
     }
@@ -603,17 +492,14 @@ public class AttributeFactory
      * @param address the address value of the address attribute
      * @return the newly created address attribute.
      */
-    public static DestinationAddressAttribute createDestinationAddressAttribute(
-                    TransportAddress address)
-    {
-        DestinationAddressAttribute attribute =
-            new DestinationAddressAttribute();
+    public static DestinationAddressAttribute createDestinationAddressAttribute(TransportAddress address) {
+        DestinationAddressAttribute attribute = new DestinationAddressAttribute();
 
         attribute.setAddress(address);
 
         return attribute;
     }
-    
+
     /**
      * Creates a new RequestedAddressFamilyAttribute of the specified family
      * 
@@ -621,45 +507,38 @@ public class AttributeFactory
      * @return the newly created RequestedAddressFamily attribute if family is
      *         IPv4/IPv6 otherwise null.
      */
-    public static RequestedAddressFamilyAttribute
-        createRequestedAddressFamilyAttribute(char family)
-    {
-		RequestedAddressFamilyAttribute attribute
-            = new RequestedAddressFamilyAttribute();
+    public static RequestedAddressFamilyAttribute createRequestedAddressFamilyAttribute(char family) {
+        RequestedAddressFamilyAttribute attribute = new RequestedAddressFamilyAttribute();
 
         boolean isSet = attribute.setFamily(family);
-		if(!isSet)
-        {
-			attribute = null;
-		}
+        if (!isSet) {
+            attribute = null;
+        }
 
         return attribute;
     }
-    
+
     /**
      * Creates a new ConnectionIdAttribute of the specified connectionIdValue
      * 
      * @param connectionIdValue the connection ID value.
      * @return the newly created ConnectionId attribute. 
      */
-    public static ConnectionIdAttribute createConnectionIdAttribute(
-        int connectionIdValue)
-	{
-		ConnectionIdAttribute attribute = new ConnectionIdAttribute();
+    public static ConnectionIdAttribute createConnectionIdAttribute(int connectionIdValue) {
+        ConnectionIdAttribute attribute = new ConnectionIdAttribute();
 
         attribute.setConnectionIdValue(connectionIdValue);
 
         return attribute;
     }
-    
+
     /**
      * Creates a new ConnectionIdAttribute. The connectionId value is set as the
      * hashcode value of the object.
      * 
      * @return the newly created ConnectionId attribute.
      */
-    public static ConnectionIdAttribute createConnectionIdAttribute()
-    {
+    public static ConnectionIdAttribute createConnectionIdAttribute() {
         ConnectionIdAttribute attribute = new ConnectionIdAttribute();
         int connectionIdValue = attribute.hashCode();
         attribute.setConnectionIdValue(connectionIdValue);

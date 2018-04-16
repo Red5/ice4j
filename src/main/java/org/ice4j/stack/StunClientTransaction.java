@@ -53,14 +53,11 @@ public class StunClientTransaction implements Runnable {
     public static final int DEFAULT_ORIGINAL_WAIT_INTERVAL = 100;
 
     /**
-     * The pool of Threads which retransmit
-     * StunClientTransactions.
+     * The pool of Threads which retransmit StunClientTransactions.
      */
     private static final ExecutorService retransmissionThreadPool = Executors.newCachedThreadPool(new ThreadFactory() {
         /**
-         * The default {@code ThreadFactory} implementation which is
-         * augmented by this instance to create daemon
-         * {@code Thread}s.
+         * The default {@code ThreadFactory} implementation which is augmented by this instance to create daemon {@code Thread}s.
          */
         private final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
 
@@ -130,7 +127,7 @@ public class StunClientTransaction implements Runnable {
     /**
      * Determines whether the transaction is active or not.
      */
-    private boolean cancelled = false;
+    private boolean cancelled;
 
     /**
      * The Lock which synchronizes the access to the state of this instance. Introduced along with {@link #lockCondition} in order to allow
@@ -230,13 +227,14 @@ public class StunClientTransaction implements Runnable {
             if (nextWaitInterval < maxWaitInterval) {
                 nextWaitInterval *= 2;
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Retrying STUN tid {} from {} to {} waited {}ms retrans {} of {}", transactionID, localAddress, requestDestination, curWaitInterval, (retransmissionCounter + 1), maxRetransmissions);
+            }
             try {
-                logger.debug("retrying STUN tid " + transactionID + " from " + localAddress + " to " + requestDestination + " waited " + curWaitInterval + " ms retrans " + (retransmissionCounter + 1) + " of " + maxRetransmissions);
                 sendRequest0();
             } catch (Exception ex) {
-                //I wonder whether we should notify anyone that a retransmission
-                // has failed
-                logger.warn("A client tran retransmission failed", ex);
+                //I wonder whether we should notify anyone that a retransmission has failed
+                logger.warn("A client tran {} retransmission failed", transactionID, ex);
             }
         }
         //before stating that a transaction has timeout-ed we should first wait for a reception of the response
@@ -299,7 +297,7 @@ public class StunClientTransaction implements Runnable {
      * @param millis the number of milliseconds to wait for.
      */
     void waitFor(long millis) {
-        logger.debug("waitFor: {}", millis);
+        logger.debug("Transaction: {} waitFor: {}", transactionID, millis);
         lock.lock();
         try {
             lockCondition.await(millis, TimeUnit.MILLISECONDS);

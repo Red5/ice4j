@@ -12,6 +12,7 @@ import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.Agent;
 import org.ice4j.ice.Candidate;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
@@ -243,7 +244,8 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                     IceSocketWrapper sock = IceSocketWrapper.build(future.getSession());
                     Component component = hostCand.getParentComponent();
                     cand = new HostCandidate(sock, component);
-                    component.getParentStream().getParentAgent().getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
+                    Agent agent = component.getParentStream().getParentAgent();
+                    agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
                     component.getComponentSocket().setSocket(sock);
                 } catch (Exception e) {
                     logger.warn("Exception TCP client connect", e);

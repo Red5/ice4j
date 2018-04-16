@@ -89,7 +89,7 @@ public class ShallowStackTest extends TestCase {
         localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), Transport.UDP);
         localSock = new IceUdpSocketWrapper(localAddress);
         // add the wrapper to the stack
-        stunStack.addSocket(localSock, localSock.getRemoteTransportAddress());
+        stunStack.addSocket(localSock, localSock.getRemoteTransportAddress(), false);
     }
 
     /**
@@ -144,7 +144,7 @@ public class ShallowStackTest extends TestCase {
     public void testReceiveRequest() throws Exception {
         logger.info("\n ReceiveRequest");
         // we're expecting to receive on the ice4j side (non-controlling)
-        IceUdpTransport.getInstance().addBinding(stunStack, localSock);
+        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, localSock);
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
         dummyServerSocket.send(new DatagramPacket(msgFixture.bindingRequest2, msgFixture.bindingRequest2.length, localAddress));
@@ -170,7 +170,7 @@ public class ShallowStackTest extends TestCase {
     public void testSendResponse() throws Exception {
         logger.info("\n SendResponse");
         // we're expecting to receive on the ice4j side (non-controlling)
-        IceUdpTransport.getInstance().addBinding(stunStack, localSock);
+        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, localSock);
         //---------- send & receive the request --------------------------------
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);

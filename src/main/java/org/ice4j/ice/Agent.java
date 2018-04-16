@@ -78,7 +78,7 @@ public class Agent {
     /**
      * The default maximum size for check lists.
      */
-    public static final int DEFAULT_MAX_CHECK_LIST_SIZE = 100;
+    public static final int DEFAULT_MAX_CHECK_LIST_SIZE = 12;
 
     /**
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
@@ -254,6 +254,8 @@ public class Agent {
         if (StackProperties.getString(StackProperties.SOFTWARE) == null) {
             System.setProperty(StackProperties.SOFTWARE, "ice4j.org");
         }
+        // pace timer
+        taValue = StackProperties.getInt(StackProperties.TA, 50);
         String ufrag = ufragPrefix == null ? "" : ufragPrefix;
         ufrag += new BigInteger(24, random).toString(32);
         ufrag += BigInteger.valueOf(System.currentTimeMillis()).toString(32);
@@ -452,7 +454,7 @@ public class Agent {
             setState(IceProcessingState.RUNNING);
             //if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
             if (preDiscoveredPairsQueue.size() > 0) {
-                logger.info("Trigger checks for pairs that were received beforerunning state");
+                logger.info("Trigger checks for pairs that were received before running state");
                 for (CandidatePair cp : preDiscoveredPairsQueue) {
                     triggerCheck(cp);
                 }
@@ -610,10 +612,11 @@ public class Agent {
      * @param harvester a CandidateHarvester that this agent should use when gathering candidates.
      */
     public void addCandidateHarvester(CandidateHarvester harvester) {
-        if (harvester.isHostHarvester())
+        if (harvester.isHostHarvester()) {
             hostHarvesters.add(harvester);
-        else
+        } else {
             harvesters.add(harvester);
+        }
     }
 
     /**
@@ -940,10 +943,9 @@ public class Agent {
      * Returns the remote Candidate with the specified remoteAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't.
      *
-     * @param remoteAddress the {@link TransportAddress} we are looking for.
-     *
+     * @param remoteAddress the {@link TransportAddress} we are looking for
      * @return the remote Candidate with the specified remoteAddress if it belongs to any of this {@link Agent}'s
-     * streams or null if it doesn't.
+     * streams or null if it doesn't
      */
     public RemoteCandidate findRemoteCandidate(TransportAddress remoteAddress) {
         for (IceMediaStream stream : mediaStreams.values()) {
@@ -961,9 +963,8 @@ public class Agent {
      *
      * @param localAddress the local {@link TransportAddress} of the pair we are looking for
      * @param remoteAddress the remote {@link TransportAddress} of the pair we are looking for
-     *
      * @return the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
-     * {@link Agent}'s streams contain such a pair.
+     * {@link Agent}'s streams contain such a pair
      */
     public CandidatePair findCandidatePair(TransportAddress localAddress, TransportAddress remoteAddress) {
         for (IceMediaStream stream : mediaStreams.values()) {
@@ -982,7 +983,7 @@ public class Agent {
      * @param localUFrag local user fragment
      * @param remoteUFrag remote user fragment
      * @return the {@link CandidatePair} with the specified remote and local addresses or null if neither of the {@link CheckList}s in this
-     * {@link Agent}'s streams contain such a pair.
+     * {@link Agent}'s streams contain such a pair
      */
     public CandidatePair findCandidatePair(String localUFrag, String remoteUFrag) {
         for (IceMediaStream stream : mediaStreams.values()) {
@@ -1017,7 +1018,7 @@ public class Agent {
         // We can not know the related candidate of a remote peer reflexive candidate. We must set it to "null".
         RemoteCandidate remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority, null, ufrag);
         CandidatePair triggeredPair = createCandidatePair(localCandidate, remoteCandidate);
-        logger.debug("set use-candidate {} for pair {}", useCandidate, triggeredPair.toShortString());
+        logger.debug("Set use-candidate {} for pair {}", useCandidate, triggeredPair.toShortString());
         if (useCandidate) {
             triggeredPair.setUseCandidateReceived();
         }
@@ -1029,7 +1030,7 @@ public class Agent {
             } else if (state.get() != IceProcessingState.FAILED) {
                 // Running, Connected or Terminated, but not Failed
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Received check from {} triggered a check.Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
+                    logger.debug("Received check from {} triggered a check. Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
                 }
                 // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
                 triggerCheck(triggeredPair);
@@ -1058,7 +1059,7 @@ public class Agent {
             if (knownPair.getState() == CandidatePairState.SUCCEEDED) {
                 //7.2.1.5. Updating the Nominated Flag
                 if (!isControlling() && useCand) {
-                    logger.debug("update nominated flag");
+                    logger.debug("Update nominated flag");
                     // If the Binding request received by the agent had the USE-CANDIDATE attribute set, and the agent is in the
                     // controlled role, the agent looks at the state of the pair.
                     // If the state of this pair is Succeeded, it means that a previous check generated by this pair produced a
@@ -1080,7 +1081,6 @@ public class Agent {
             //it appears that we've just discovered a peer-reflexive address.
             // RFC 5245: If the pair is not already on the check list: The pair is inserted into the check list based on its priority
             // Its state is set to Waiting [and it] is enqueued into the triggered check queue.
-            //
             if (triggerPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
             }
@@ -1131,7 +1131,7 @@ public class Agent {
         IceMediaStream parentStream = parentComponent.getParentStream();
         //If the pair is not already nominated and if its parent component does not already contain a nominated pair - nominate it.
         if (!pair.isNominated() && !parentStream.validListContainsNomineeForComponent(parentComponent)) {
-            logger.info("verify if nominated pair answer again");
+            logger.info("Verify if nominated pair answer again");
             pair.nominate();
             parentStream.getCheckList().scheduleTriggeredCheck(pair);
         }
@@ -1143,7 +1143,8 @@ public class Agent {
      * @param strategy the strategy that we'd like to use for nominating valid {@link CandidatePair}s.
      */
     public void setNominationStrategy(NominationStrategy strategy) {
-        this.nominator.setStrategy(strategy);
+        logger.debug("setNominationStrategy: {}", strategy);
+        nominator.setStrategy(strategy);
     }
 
     /**
@@ -1275,32 +1276,25 @@ public class Agent {
     }
 
     /**
-     * Lets the application specify a custom value for the Ta timer
-     * so that we don't calculate one.
+     * Lets the application specify a custom value for the Ta timer so that we don't calculate one.
      *
-     * @param taValue the value of the Ta timer that the application
-     * would like us to use rather than calculate one.
+     * @param taValue the value of the Ta timer that the application would like us to use rather than calculate one.
      */
     public void setTa(long taValue) {
         this.taValue = taValue;
     }
 
     /**
-     * Calculates the value of the Ta pace timer according to the
-     * number and type of {@link IceMediaStream}s this agent will be using.
+     * Calculates the value of the Ta pace timer according to the number and type of {@link IceMediaStream}s this agent will be using.
      * <p>
-     * During the gathering phase of ICE (Section 4.1.1) and while ICE is
-     * performing connectivity checks (Section 7), an agent sends STUN and
-     * TURN transactions.  These transactions are paced at a rate of one
-     * every Ta milliseconds.
+     * During the gathering phase of ICE (Section 4.1.1) and while ICE is performing connectivity checks (Section 7), an agent sends STUN and
+     * TURN transactions.  These transactions are paced at a rate of one every Ta milliseconds.
      * <p>
-     * As per RFC 5245, the value of Ta should be configurable so if
-     * someone has set a value of their own, we return that value rather than
+     * As per RFC 5245, the value of Ta should be configurable so if someone has set a value of their own, we return that value rather than
      * calculating a new one.
      *
-     * @return the value of the Ta pace timer according to the
-     * number and type of {@link IceMediaStream}s this agent will be using or
-     * a pre-configured value if the application has set one.
+     * @return the value of the Ta pace timer according to the number and type of {@link IceMediaStream}s this agent will be using or
+     * a pre-configured value if the application has set one
      */
     protected long calculateTa() {
         //if application specified a value - use it. other wise return ....
@@ -1317,12 +1311,10 @@ public class Agent {
     }
 
     /**
-     * Calculates the value of the retransmission timer to use in STUN
-     * transactions, while harvesting addresses (not to confuse with the RTO
+     * Calculates the value of the retransmission timer to use in STUN transactions, while harvesting addresses (not to confuse with the RTO
      * for the STUN transactions used in connectivity checks).
      *
-     * @return the value of the retransmission timer to use in STUN
-     * transactions, while harvesting addresses.
+     * @return the value of the retransmission timer to use in STUN transactions, while harvesting addresses
      */
     protected long calculateStunHarvestRTO() {
         /*
@@ -1333,12 +1325,10 @@ public class Agent {
     }
 
     /**
-     * Calculates the value of the retransmission timer to use in STUN
-     * transactions, used in connectivity checks (not to confused with the RTO
+     * Calculates the value of the retransmission timer to use in STUN transactions, used in connectivity checks (not to confused with the RTO
      * for the STUN address harvesting).
      *
-     * @return the value of the retransmission timer to use in STUN connectivity
-     * check transactions..
+     * @return the value of the retransmission timer to use in STUN connectivity check transactions
      */
     protected long calculateStunConnCheckRTO() {
         /*
@@ -1389,24 +1379,16 @@ public class Agent {
     }
 
     /**
-     * Adds or removes ICE characters (i.e. ALPHA, DIGIT, +, or /) to or from a
-     * specific String in order to produce a String with a
+     * Adds or removes ICE characters (i.e. ALPHA, DIGIT, +, or /) to or from a specific String in order to produce a String with a
      * length within a specific range.
      *
-     * @param s the String to add or remove characters to or from in
-     * case its length is less than min or greater than max
-     * @param min the minimum length in (ICE) characters of the returned
-     * String
-     * @param max the maximum length in (ICE) characters of the returned
-     * String
-     * @return s if its length is greater than or equal to
-     * min and less than or equal to max; a new
-     * String which is equal to s with prepended ICE
-     * characters if the length of s is less than min; a new
-     * String which is composed of the first max characters of
-     * s if the length of s is greater than max
-     * @throws IllegalArgumentException if min is negative or
-     * max is less than min
+     * @param s the String to add or remove characters to or from in case its length is less than min or greater than max
+     * @param min the minimum length in (ICE) characters of the returned String
+     * @param max the maximum length in (ICE) characters of the returned String
+     * @return s if its length is greater than or equal to min and less than or equal to max; a new
+     * String which is equal to s with prepended ICE characters if the length of s is less than min; a new
+     * String which is composed of the first max characters of s if the length of s is greater than max
+     * @throws IllegalArgumentException if min is negative or max is less than min
      * @throws NullPointerException if s is equal to null
      */
     private String ensureIceAttributeLength(String s, int min, int max) {
@@ -1435,12 +1417,10 @@ public class Agent {
     }
 
     /**
-     * Called by the garbage collector when garbage collection determines that
-     * there are no more references to this instance. Calls {@link #free()} on
+     * Called by the garbage collector when garbage collection determines that there are no more references to this instance. Calls {@link #free()} on
      * this instance.
      *
-     * @throws Throwable if anything goes wrong and the finalization of this
-     * instance is to be halted
+     * @throws Throwable if anything goes wrong and the finalization of this instance is to be halted
      * @see #free()
      */
     @Override
@@ -1450,10 +1430,8 @@ public class Agent {
     }
 
     /**
-     * Prepares this Agent for garbage collection by ending all related
-     * processes and freeing its IceMediaStreams, Components
-     * and Candidates. This method will also place the agent in the
-     * terminated state in case it wasn't already there.
+     * Prepares this Agent for garbage collection by ending all related processes and freeing its IceMediaStreams, Components
+     * and Candidates. This method will also place the agent in the terminated state in case it wasn't already there.
      */
     public void free() {
         logger.debug("Free ICE agent");
@@ -1475,9 +1453,9 @@ public class Agent {
         for (IceMediaStream stream : getStreams()) {
             try {
                 removeStream(stream);
-                logger.debug("remove stream {}", stream.getName());
+                logger.debug("Remove stream {}", stream.getName());
             } catch (Throwable t) {
-                logger.debug("remove stream {} failed", stream.getName(), t);
+                logger.debug("Remove stream {} failed", stream.getName(), t);
                 if (t instanceof InterruptedException) {
                     interrupted = true;
                 } else if (t instanceof ThreadDeath) {
@@ -1740,7 +1718,7 @@ public class Agent {
         public void run() {
             Thread.currentThread().setName("Terminator");
             long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
-            logger.info("Termination delay: {}", terminationDelay);
+            logger.trace("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {
                 try {
                     Thread.sleep(terminationDelay);

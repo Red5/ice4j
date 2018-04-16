@@ -4,8 +4,10 @@ package org.ice4j.ice;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -20,6 +22,8 @@ import org.slf4j.LoggerFactory;
  * @author Namal Senarathne
  */
 public class IceMediaStream {
+
+    private final static Logger logger = LoggerFactory.getLogger(IceMediaStream.class);
 
     /**
      * The property name that we use when delivering events notifying listeners that the consent freshness of a pair has changed.
@@ -94,7 +98,7 @@ public class IceMediaStream {
      * The maximum number of candidate pairs that we should have in our check list. This value depends on the total number of media streams which is
      * why it should be set by the agent:
      * In addition, in order to limit the attacks described in Section 18.5.2, an agent MUST limit the total number of connectivity checks they perform
-     * across all check lists to a specific value, adn this value MUST be configurable.  A default of 100 is RECOMMENDED.
+     * across all check lists to a specific value, and this value MUST be configurable.  A default of 100 is RECOMMENDED.
      */
     private int maxCheckListSize = Agent.DEFAULT_MAX_CHECK_LIST_SIZE;
 
@@ -107,11 +111,6 @@ public class IceMediaStream {
      * The password that we received from the remote party.
      */
     private String remotePassword;
-
-    /**
-     * The {@link Logger} used by {@link IceMediaStream} instances.
-     */
-    private final static Logger logger = LoggerFactory.getLogger(IceMediaStream.class);
 
     /**
      * Initializes a new IceMediaStream object.
@@ -231,7 +230,8 @@ public class IceMediaStream {
      */
     protected void initCheckList() {
         // first init the check list
-        checkList.clear();
+        //logger.debug("initCheckList: {}", checkList);
+        //checkList.clear();
         createCheckList(checkList);
         pruneCheckList(checkList);
         logger.trace("Checklist initialized");
@@ -279,14 +279,16 @@ public class IceMediaStream {
      * @param checkList the checklist to prune
      */
     protected void pruneCheckList(Queue<CandidatePair> checkList) {
+        //logger.trace("Pruning checklist: {}", checkList);
         // a list that we only use for storing pairs that we've already gone through. The list is destroyed at the end of this method.
-        List<CandidatePair> tmpCheckList = new ArrayList<>(checkList.size());
+        Set<CandidatePair> tmpCheckList = new HashSet<>(checkList.size());
         for (CandidatePair pair : checkList) {
-            // drop all pairs above MAX_CHECK_LIST_SIZE.
+            //logger.trace("Candidate pair: {}", pair);
+            // drop all pairs above MAX_CHECK_LIST_SIZE
             if (tmpCheckList.size() > maxCheckListSize) {
-                checkList.remove(pair);
-                continue;
+                break;
             }
+            /*
             // replace local server reflexive candidates with their base.
             LocalCandidate localCnd = pair.getLocalCandidate();
             if (localCnd.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
@@ -297,14 +299,23 @@ public class IceMediaStream {
                     continue;
                 }
             }
+            */
             tmpCheckList.add(pair);
         }
+        // clear original
+        checkList.clear();
+        // add those that are in the temporary set
+        checkList.addAll(tmpCheckList);
+        logger.debug("Pruned checklist: {}", checkList);
+        // clear the temporary list
+        tmpCheckList.clear();
+        tmpCheckList = null;
     }
 
     /**
      * Returns the list of CandidatePairs to be used in checks for this stream.
      *
-     * @return the list of CandidatePairs to be used in checks for this stream.
+     * @return the list of CandidatePairs to be used in checks for this stream
      */
     public CheckList getCheckList() {
         return checkList;
@@ -313,7 +324,7 @@ public class IceMediaStream {
     /**
      * Sets the maximum number of pairs that we should have in our check list.
      *
-     * @param nSize the size of our check list.
+     * @param nSize the size of our check list
      */
     protected void setMaxCheckListSize(int nSize) {
         this.maxCheckListSize = nSize;
@@ -323,9 +334,9 @@ public class IceMediaStream {
      * Returns the local LocalCandidate with the specified localAddress if it belongs to any of this stream's components
      * or null otherwise.
      *
-     * @param localAddress the {@link TransportAddress} we are looking for.
+     * @param localAddress the {@link TransportAddress} we are looking for
      * @return  the local LocalCandidate with the specified localAddress if it belongs to any of this stream's components
-     * or null otherwise.
+     * or null otherwise
      */
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
         for (Component cmp : components) {

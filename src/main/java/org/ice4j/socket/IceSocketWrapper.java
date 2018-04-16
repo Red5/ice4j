@@ -8,11 +8,17 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.Semaphore;
 
+import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.CloseFuture;
+import org.apache.mina.core.future.ConnectFuture;
+import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.stack.RawMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +32,13 @@ public abstract class IceSocketWrapper {
 
     protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
+    protected Semaphore lock = new Semaphore(1, true);
+
     protected TransportAddress transportAddress;
 
     protected TransportAddress remoteTransportAddress;
+
+    public boolean closed;
 
     /**
      * IoSession for this socket / connection; will be one of type NioDatagramSession for UDP or NioSocketSession for TCP.
@@ -45,13 +55,49 @@ public abstract class IceSocketWrapper {
      */
     protected LinkedTransferQueue<RawMessage> rawMessageQueue = new LinkedTransferQueue<>();
 
+    /**
+     * Reusable IoFutureListener for connect.
+     */
+    protected final IoFutureListener<ConnectFuture> connectListener = new IoFutureListener<ConnectFuture>() {
+
+        @Override
+        public void operationComplete(ConnectFuture future) {
+            if (!future.isConnected()) {
+                logger.warn("Connect failed");
+            }
+        }
+
+    };
+
+    /**
+     * Reusable IoFutureListener for writes.
+     */
+    protected final IoFutureListener<WriteFuture> writeListener = new IoFutureListener<WriteFuture>() {
+
+        @Override
+        public void operationComplete(WriteFuture future) {
+            if (!future.isWritten()) {
+                logger.debug("Write failed");
+            }
+        }
+
+    };
+
     IceSocketWrapper(IoSession session) {
         this.session = session;
     }
 
     /**
-     * Sends a DatagramPacket from this socket. It is a utility method to provide a common way to send for both
-     * UDP and TCP socket. If the underlying socket is a TCP one, it is still possible to get the OutputStream and do stuff with it.
+     * Sends an IoBuffer from this socket. It is a utility method to provide a common way to send for both UDP and TCP socket.
+     *
+     * @param buf IoBuffer to send
+     * @param destAddress destination SocketAddress to send to
+     * @throws IOException if something goes wrong
+     */
+    public abstract void send(IoBuffer buf, SocketAddress destAddress) throws IOException;
+
+    /**
+     * Sends a DatagramPacket from this socket. It is a utility method to provide a common way to send for both UDP and TCP socket.
      *
      * @param p DatagramPacket to send
      * @throws IOException if something goes wrong
@@ -65,9 +111,9 @@ public abstract class IceSocketWrapper {
      */
     public boolean isClosed() {
         if (session != null) {
-            return session.isClosing(); // covers closing and / or closed
+            closed = session.isClosing(); // covers closing and / or closed
         }
-        return true;
+        return closed;
     }
 
     /**
@@ -77,15 +123,14 @@ public abstract class IceSocketWrapper {
         if (session != null) {
             logger.debug("close: {}", session.getId());
             try {
+                @SuppressWarnings("unused")
                 CloseFuture future = session.closeNow();
                 // wait until the connection is closed
-                future.awaitUninterruptibly();
+                //future.awaitUninterruptibly();
                 // now connection should be closed.
-                assert future.isClosed();
+                //assert future.isClosed();
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
-            } finally {
-                session = null;
             }
         }
         // clear out raw messages lingering around at close
@@ -119,7 +164,11 @@ public abstract class IceSocketWrapper {
      * @param session
      */
     public void setSession(IoSession session) {
+        logger.trace("setSession - new: {} existing: {}", session, this.session);
         this.session = session;
+        if (session != null) {
+            session.setAttribute(IceTransport.Ice.CONNECTION, this);
+        }
     }
 
     /**
@@ -154,7 +203,10 @@ public abstract class IceSocketWrapper {
      * @param remoteAddress address
      */
     public void setRemoteTransportAddress(TransportAddress remoteAddress) {
-        this.remoteTransportAddress = remoteAddress;
+        // only set remote address for TCP
+        if (!session.getTransportMetadata().isConnectionless()) {
+            this.remoteTransportAddress = remoteAddress;
+        }
     }
 
     public TransportAddress getRemoteTransportAddress() {

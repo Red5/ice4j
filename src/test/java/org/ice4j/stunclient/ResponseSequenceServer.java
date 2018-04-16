@@ -61,7 +61,7 @@ public class ResponseSequenceServer implements RequestListener {
     public void start() throws IOException, StunException {
         localSocket = new IceUdpSocketWrapper(serverAddress);
         stunStack.addRequestListener(serverAddress, this);
-        IceUdpTransport.getInstance().addBinding(stunStack, localSocket);
+        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, localSocket);
     }
 
     /**

@@ -91,7 +91,7 @@ class NetAccessManager {
      * @throws IOException 
      */
     protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
-        logger.debug("addSocket: {} remote addr: {}", socket, remoteAddress);
+        logger.debug("addSocket: {} remote address: {}", socket, remoteAddress);
         TransportAddress localAddress = socket.getTransportAddress();
         // determine if UDP or TCP
         boolean udp = socket.isUDP();
@@ -113,7 +113,7 @@ class NetAccessManager {
             Connector prevConnector = connectorsForLocalAddress.put(remoteAddress, connector);
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Local connectors (add): {}", connectorsForLocalAddress);
+            logger.debug("Existing connectors (add): {}", connectorsForLocalAddress);
         }
     }
 

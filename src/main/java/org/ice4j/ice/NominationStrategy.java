@@ -1,22 +1,10 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
-
 
 /**
  * Contains the nomination strategies currently supported by this
@@ -29,8 +17,7 @@ package org.ice4j.ice;
  *
  * @author Emil Ivov
  */
-public enum NominationStrategy
-{
+public enum NominationStrategy {
     /**
      * Indicates that ice4j's nominator should nominate valid pairs and that
      * the application will be handling this.
@@ -75,8 +62,7 @@ public enum NominationStrategy
      * @param name the name of the NominationStrategy that we'd like
      * to create.
      */
-    private NominationStrategy(String name)
-    {
+    private NominationStrategy(String name) {
         this.strategyName = name;
     }
 
@@ -86,8 +72,7 @@ public enum NominationStrategy
      * @return the name of this NominationStrategy.
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         return strategyName;
     }
 }

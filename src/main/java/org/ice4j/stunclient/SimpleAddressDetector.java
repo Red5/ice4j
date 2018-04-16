@@ -91,7 +91,7 @@ public class SimpleAddressDetector {
     public TransportAddress getMappingFor(IceSocketWrapper socket) throws IOException, BindException {
         TransportAddress localAddress = socket.getTransportAddress();
         // this should work for both udp and tcp
-        stunStack.addSocket(socket, socket.getRemoteTransportAddress());
+        stunStack.addSocket(socket, socket.getRemoteTransportAddress(), true); // do socket binding
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         StunMessageEvent evt = null;
         try {

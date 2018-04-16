@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultNominator implements PropertyChangeListener {
 
+    private final static Logger logger = LoggerFactory.getLogger(DefaultNominator.class);
+
     /**
      * The Agent that created us.
      */
@@ -38,11 +40,6 @@ public class DefaultNominator implements PropertyChangeListener {
      * and a timer. It is used with the NOMINATE_FIRST_HIGHEST_VALID strategy.
      */
     private final Map<String, TimerTask> validatedCandidates = new HashMap<>();
-
-    /**
-     * The {@link Logger} used by {@link DefaultNominator} instances.
-     */
-    private final static Logger logger = LoggerFactory.getLogger(DefaultNominator.class);
 
     /**
      * Creates a new instance of this nominator using parentAgent as
@@ -66,39 +63,38 @@ public class DefaultNominator implements PropertyChangeListener {
     public void propertyChange(PropertyChangeEvent ev) {
         String propertyName = ev.getPropertyName();
         if (Agent.PROPERTY_ICE_PROCESSING_STATE.equals(propertyName)) {
-            if (ev.getNewValue() != IceProcessingState.RUNNING)
+            if (ev.getNewValue() != IceProcessingState.RUNNING) {
                 return;
-
+            }
             for (IceMediaStream stream : parentAgent.getStreams()) {
                 stream.addPairChangeListener(this);
                 stream.getCheckList().addStateChangeListener(this);
             }
         }
-        //CONTROLLED agents cannot nominate
+        // CONTROLLED agents cannot nominate
         if (!parentAgent.isControlling() || strategy == NominationStrategy.NONE) {
+            logger.debug("Non-controlling agent, cannot nominate");
             return;
         }
         if (ev.getSource() instanceof CandidatePair) {
             // STUN Usage for Consent Freshness is of no concern here.
-            if (IceMediaStream.PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED.equals(propertyName))
+            if (IceMediaStream.PROPERTY_PAIR_CONSENT_FRESHNESS_CHANGED.equals(propertyName)) {
                 return;
-
+            }
             CandidatePair validPair = (CandidatePair) ev.getSource();
-
-            // do not nominate pair if there is currently a selected pair for
-            // the component
+            // do not nominate pair if there is currently a selected pair for the component
             if (validPair.getParentComponent().getSelectedPair() != null) {
                 logger.debug("Keep-alive for pair: {}", validPair.toShortString());
                 return;
             }
         }
-
-        if (strategy == NominationStrategy.NOMINATE_FIRST_VALID)
+        if (strategy == NominationStrategy.NOMINATE_FIRST_VALID) {
             strategyNominateFirstValid(ev);
-        else if (strategy == NominationStrategy.NOMINATE_HIGHEST_PRIO)
+        } else if (strategy == NominationStrategy.NOMINATE_HIGHEST_PRIO) {
             strategyNominateHighestPrio(ev);
-        else if (strategy == NominationStrategy.NOMINATE_FIRST_HOST_OR_REFLEXIVE_VALID)
+        } else if (strategy == NominationStrategy.NOMINATE_FIRST_HOST_OR_REFLEXIVE_VALID) {
             strategyNominateFirstHostOrReflexiveValid(ev);
+        }
     }
 
     /**
@@ -148,11 +144,10 @@ public class DefaultNominator implements PropertyChangeListener {
     }
 
     /**
-     * The {@link NominationStrategy} that this nominator should use when
-     * deciding whether or not a valid {@link CandidatePair} is suitable for
+     * The {@link NominationStrategy} that this nominator should use when deciding whether or not a valid {@link CandidatePair} is suitable for
      * nomination.
      *
-     * @param strategy the {@link NominationStrategy} we should be using.
+     * @param strategy the NominationStrategy we should be using.
      */
     public void setStrategy(NominationStrategy strategy) {
         this.strategy = strategy;
@@ -171,22 +166,16 @@ public class DefaultNominator implements PropertyChangeListener {
     private void strategyNominateFirstHostOrReflexiveValid(PropertyChangeEvent evt) {
         if (IceMediaStream.PROPERTY_PAIR_VALIDATED.equals(evt.getPropertyName())) {
             CandidatePair validPair = (CandidatePair) evt.getSource();
-
             Component component = validPair.getParentComponent();
             LocalCandidate localCandidate = validPair.getLocalCandidate();
             boolean isRelayed = (localCandidate instanceof RelayedCandidate) || localCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE) || validPair.getRemoteCandidate().getType().equals(CandidateType.RELAYED_CANDIDATE);
             boolean nominate = false;
-
             synchronized (validatedCandidates) {
                 TimerTask task = validatedCandidates.get(component.toShortString());
-
                 if (isRelayed && task == null) {
-                    /*
-                     * armed a timer and see if a host or server reflexive pair gets nominated. Otherwise nominate the relayed candidate pair
-                     */
+                    // armed a timer and see if a host or server reflexive pair gets nominated. Otherwise nominate the relayed candidate pair
                     Timer timer = new Timer();
                     task = new RelayedCandidateTask(validPair);
-
                     logger.info("Wait timeout to nominate relayed candidate");
                     timer.schedule(task, 0);
                     validatedCandidates.put(component.toShortString(), task);
@@ -196,22 +185,18 @@ public class DefaultNominator implements PropertyChangeListener {
                         task.cancel();
                         logger.info("Found a better candidate pair to nominate for " + component.toShortString());
                     }
-
                     logger.info("Nominate (first highest valid): " + validPair.toShortString());
                     nominate = true;
                 }
             }
-
-            if (nominate)
+            if (nominate) {
                 parentAgent.nominate(validPair);
+            }
         }
     }
 
     /**
-     * TimerTask that will wait a certain amount of time to let other candidate
-     * pair to be validated and possibly be better than the relayed candidate.
-     *
-     * @author Sebastien Vincent
+     * TimerTask that will wait a certain amount of time to let other candidate pair to be validated and possibly be better than the relayed candidate.
      */
     private class RelayedCandidateTask extends TimerTask implements PropertyChangeListener {
         /**
@@ -293,7 +278,7 @@ public class DefaultNominator implements PropertyChangeListener {
             if (cancelled) {
                 return;
             }
-            logger.info("Nominate (first highest valid): " + pair.toShortString());
+            logger.info("Nominate (first highest valid): {}", pair.toShortString());
             // task has not been cancelled after WAIT_TIME milliseconds so nominate the pair
             parentAgent.nominate(pair);
         }

@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  */
 public class IceHandler extends IoHandlerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(IceHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(IceHandler.class);
 
     // temporary holding area for stun stacks awaiting session creation
     private ConcurrentMap<SocketAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
@@ -31,90 +31,90 @@ public class IceHandler extends IoHandlerAdapter {
     private ConcurrentMap<SocketAddress, IceSocketWrapper> iceSockets = new ConcurrentHashMap<>();
 
     /**
-     * Adds the StunStack and IceSocketWrapper to the internal maps to wait for their associated IoSession creation.
+     * Registers a StunStack and IceSocketWrapper to the internal maps to wait for their associated IoSession creation.
      * 
      * @param stunStack
      * @param iceSocket
      */
-    public void addStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
+    public void registerStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
+        logger.debug("registerStackAndSocket - stunStack: {} iceSocket: {}", stunStack, iceSocket);
         SocketAddress addr = iceSocket.getLocalSocketAddress();
         if (stunStack != null) {
             stunStacks.putIfAbsent(addr, stunStack);
+        } else {
+            logger.debug("Stun stack exists for address: {}", stunStacks.get(addr));
         }
         iceSockets.putIfAbsent(addr, iceSocket);
     }
 
     /** {@inheritDoc} */
     @Override
-    public void sessionCreated(IoSession session) throws Exception {
-        log.trace("Created (session: {}) address: {}", session.getId(), session.getLocalAddress());
-        SocketAddress addr = session.getLocalAddress();
-        IceSocketWrapper iceSocket = iceSockets.remove(addr);
-        if (iceSocket != null) {
-            iceSocket.setSession(session);
-            session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
-        }
-        StunStack stunStack = stunStacks.remove(addr);
-        if (stunStack != null) {
-            stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
-            session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public void sessionOpened(IoSession session) throws Exception {
-        log.trace("Opened (session: {}) address: {}", session.getId(), session.getLocalAddress());
+        logger.trace("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
+        Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
+        // set transport type, making it easier to look-up later
+        session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
+        logger.debug("Acceptor sessions: {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
+        //if (session.getId() == 3L) {
+        //    throw new Exception("Early exit");
+        //}
+        // get the local address
         SocketAddress addr = session.getLocalAddress();
-        IceSocketWrapper iceSocket = iceSockets.remove(addr);
+        IceSocketWrapper iceSocket = iceSockets.get(addr);
         if (iceSocket != null) {
             iceSocket.setSession(session);
-            session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
         } else {
-            iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
+            logger.debug("No ice socket at create for: {}", addr);
+            /*
+             * iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION); if (iceSocket != null) { iceSocket.setSession(session);
+             * logger.debug("Ice socket in session at create for: {} session in socket: {}", addr, iceSocket.getSession()); } else {
+             * logger.debug("Ice socket in session at create for: {} session in socket: null", addr); }
+             */
         }
-        StunStack stunStack = stunStacks.remove(addr);
+        StunStack stunStack = stunStacks.get(addr);
         if (stunStack != null) {
-            // XXX may want to add a check on stun stack to skip accidental re-adds of the socket
-            stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+            // XXX create socket registration check to stun stack
+            //stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
+        } else {
+            logger.debug("No stun stack at create for: {}", addr);
         }
     }
 
     /** {@inheritDoc} */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
-        log.trace("Message received (session: {}) address: {} {}", session.getId(), session.getLocalAddress(), message);
+        logger.trace("Message received (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
+        //logger.trace("Received: {}", String.valueOf(message));
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
         if (iceSocket != null) {
             if (message instanceof RawMessage) {
                 // non-stun message
                 iceSocket.getRawMessageQueue().offer((RawMessage) message);
             } else {
-                log.debug("Message type: {}", message.getClass().getName());
+                logger.debug("Message type: {}", message.getClass().getName());
             }
         } else {
-            log.debug("Ice socket was not found in session");
+            logger.debug("Ice socket was not found in session");
         }
     }
 
     /** {@inheritDoc} */
     @Override
     public void messageSent(IoSession session, Object message) throws Exception {
-        log.trace("Message sent (session: {}) address: {} {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), String.valueOf(message), session.getReadBytes(), session.getWrittenBytes());
+        logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
+        //logger.trace("Sent: {}", String.valueOf(message));
     }
 
     /** {@inheritDoc} */
     @Override
     public void sessionClosed(IoSession session) throws Exception {
-        log.trace("Session closed");
+        logger.trace("Session closed");
         SocketAddress addr = session.getLocalAddress();
+        // determine transport type
+        Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
         // remove binding
-        if (session.getTransportMetadata().isConnectionless()) {
-            IceTransport.getInstance(Transport.UDP).removeBinding(addr);
-        } else {
-            IceTransport.getInstance(Transport.TCP).removeBinding(addr);
-        }
+        IceTransport.getInstance(transport).removeBinding(addr);
         // clean-up
         IceSocketWrapper iceSocket = null;
         if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
@@ -124,7 +124,7 @@ public class IceHandler extends IoHandlerAdapter {
             StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
             if (addr instanceof InetSocketAddress) {
                 InetSocketAddress inetAddr = (InetSocketAddress) addr;
-                addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+                addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
             }
             if (iceSocket != null) {
                 stunStack.removeSocket((TransportAddress) addr, iceSocket.getRemoteTransportAddress());
@@ -132,11 +132,17 @@ public class IceHandler extends IoHandlerAdapter {
                 SocketAddress remoteAddr = session.getRemoteAddress();
                 if (remoteAddr instanceof InetSocketAddress) {
                     InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
-                    remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+                    remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
                 }
                 stunStack.removeSocket((TransportAddress) addr, (TransportAddress) remoteAddr);
             }
         }
+        if (iceSocket != null) {
+            iceSocket.setSession(null);
+        }
+        // remove any map entries
+        stunStacks.remove(addr);
+        iceSockets.remove(addr);
         super.sessionClosed(session);
     }
 
@@ -144,20 +150,14 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
         SocketAddress addr = session.getLocalAddress();
-        log.warn("Exception on {}", addr, cause);
+        logger.warn("Exception on {}", addr, cause);
+        // determine transport type
+        Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
         // remove binding
-        if (session.getTransportMetadata().isConnectionless()) {
-            IceTransport.getInstance(Transport.UDP).removeBinding(addr);
-        } else {
-            IceTransport.getInstance(Transport.TCP).removeBinding(addr);
-        }
+        IceTransport.getInstance(transport).removeBinding(addr);
         // remove any map entries
-        if (stunStacks.containsKey(addr)) {
-            stunStacks.remove(addr);
-        }
-        if (iceSockets.containsKey(addr)) {
-            iceSockets.remove(addr);
-        }
+        stunStacks.remove(addr);
+        iceSockets.remove(addr);
     }
 
 }

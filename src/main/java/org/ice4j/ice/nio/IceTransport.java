@@ -2,6 +2,7 @@ package org.ice4j.ice.nio;
 
 import java.net.SocketAddress;
 
+import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -27,9 +28,11 @@ public abstract class IceTransport {
 
     protected int ioThreads = 16;
 
+    protected IoAcceptor acceptor;
+
     // constants for the session map or anything else
     public enum Ice {
-        CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
+        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
     }
 
     static {
@@ -63,6 +66,15 @@ public abstract class IceTransport {
     }
 
     /**
+     * Returns the acceptor if it exists and null otherwise.
+     * 
+     * @return acceptor
+     */
+    public IoAcceptor getAcceptor() {
+        return acceptor;
+    }
+
+    /**
      * Adds a socket binding to the acceptor.
      * 
      * @param addr
@@ -73,13 +85,13 @@ public abstract class IceTransport {
     }
 
     /**
-     * Adds an ice socket and stun stack to the acceptor handler to await session creation.
+     * Registers a StunStack and IceSocketWrapper to the internal maps to wait for their associated IoSession creation. This causes a bind on the given local address.
      * 
      * @param stunStack
      * @param iceSocket
      * @return true if successful and false otherwise
      */
-    public boolean addBinding(StunStack stunStack, IceSocketWrapper iceSocket) {
+    public boolean registerStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
         return false;
     }
 
@@ -90,6 +102,14 @@ public abstract class IceTransport {
      * @return true if successful and false otherwise
      */
     public boolean removeBinding(SocketAddress addr) {
+        if (acceptor != null) {
+            try {
+                acceptor.unbind(addr);
+                return true;
+            } catch (Exception e) {
+                logger.warn("Remove binding failed on {}", addr, e);
+            }
+        }
         return false;
     }
 
@@ -97,6 +117,10 @@ public abstract class IceTransport {
      * Ports and addresses are unbound (stop listening).
      */
     public void stop() throws Exception {
+        if (acceptor != null) {
+            logger.info("Stopped socket transport");
+            acceptor.unbind();
+        }
     }
 
     /**

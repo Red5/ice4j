@@ -80,3 +80,7 @@ Example: `stun1.example.com:12345,stun2.example.com:23456`
 
 ### *org.ice4j.TERMINATION_DELAY*
 Waits the specified period of time or the default of three seconds and then moves an Agent into the terminated state and frees all non-nominated candidates.
+
+### *org.ice4j.ice.TA_PACE_TIMER*
+Ta pace timer in milliseconds. RFC 5245 says that Ta is: Ta_i = (stun_packet_size / rtp_packet_size) * rtp_ptime.
+

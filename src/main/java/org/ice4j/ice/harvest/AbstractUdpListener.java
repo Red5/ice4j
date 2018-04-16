@@ -95,7 +95,7 @@ public abstract class AbstractUdpListener {
             }
 
         });
-        IceUdpTransport.getInstance().addBinding(stunStack, iceSocket);
+        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, iceSocket);
     }
 
     /**

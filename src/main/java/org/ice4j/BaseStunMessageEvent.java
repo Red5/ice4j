@@ -92,7 +92,7 @@ public class BaseStunMessageEvent extends EventObject {
      * @return the ID of the transaction related to the STUN Message associated with this event
      */
     public TransactionID getTransactionID() {
-        //logger.debug("getTransactionID: {} rfc3489: {}", String.valueOf(transactionID), (transactionID != null ? transactionID.isRFC3489Compatible() : null));
+        //logger.debug("getTransactionID: {}", String.valueOf(transactionID));
         if (transactionID == null) {
             transactionID = TransactionID.createTransactionID(getStunStack(), getMessage().getTransactionID());
         }
@@ -105,7 +105,7 @@ public class BaseStunMessageEvent extends EventObject {
      * @param tranID the ID of the transaction associated with this event.
      */
     protected void setTransactionID(TransactionID tranID) {
-        //logger.debug("setTransactionID: {} rfc3489: {}", String.valueOf(tranID), (tranID != null ? tranID.isRFC3489Compatible() : null));
+        //logger.debug("setTransactionID: {}", String.valueOf(tranID));
         this.transactionID = tranID;
     }
 }

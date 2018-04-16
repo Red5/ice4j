@@ -53,6 +53,7 @@ public class ServerReflexiveCandidate extends LocalCandidate {
         setBase(base);
         setStunServerAddress(stunSrvrAddr);
         this.stunHarvest = stunHarvest;
+        computePriority();
     }
 
     /**

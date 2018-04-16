@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Arrays;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
@@ -48,7 +49,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
 
     @Override
     protected boolean doDecode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
-        logger.debug("Decode start pos: {} session: {}", in.position(), session.getId());
+        //logger.trace("Decode start pos: {} session: {}", in.position(), session.getId());
         IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
@@ -60,9 +61,9 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             }
             // there is incoming data from the socket, decode it
             RawMessage message = decodeIncommingData(in, session, decoderState);
-            if (logger.isTraceEnabled()) {
-                logger.trace("State: {} message: {}", decoderState, message);
-            }
+            //if (logger.isTraceEnabled()) {
+            //    logger.trace("State: {} message: {}", decoderState, message);
+            //}
             if (message != null) {
                 byte[] buf = message.getBytes();
                 // if its a stun message, process it
@@ -70,13 +71,14 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                     StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
                     try {
                         Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                        logger.trace("Dispatching a StunMessageEvent");
+                        logger.trace("Dispatching a STUN message");
                         StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
                         stunStack.handleMessageEvent(stunMessageEvent);
                     } catch (StunException ex) {
                         logger.warn("Failed to decode a stun message!", ex);
                     }
                 } else if (isDtls(buf)) {
+                    logger.trace("Queuing DTLS message: {}", StunStack.toHexString(Arrays.copyOfRange(buf, 0, 16)));
                     iceSocket.getRawMessageQueue().offer(message);
                 } else {
                     // write the message
@@ -105,7 +107,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
      * @return RawMessage
      */
     public RawMessage decodeIncommingData(IoBuffer in, IoSession session, DecoderState decoderState) {
-        logger.trace("Decoding: {}", in);
+        //logger.trace("Decoding: {}", in);
         RawMessage message = null;
         // get the incoming bytes
         byte[] buf = new byte[in.remaining()];
@@ -255,7 +257,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 if (stunMessage.getMessageType() == Message.BINDING_REQUEST) {
                     UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
                     if (logger.isTraceEnabled()) {
-                        logger.trace("usernameAttribute: {}", usernameAttribute);
+                        logger.trace("UsernameAttribute: {}", usernameAttribute);
                     }
                     if (usernameAttribute != null) {
                         String usernameString = new String(usernameAttribute.getUsername());

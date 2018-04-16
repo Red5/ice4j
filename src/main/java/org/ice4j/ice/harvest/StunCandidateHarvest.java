@@ -801,7 +801,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
             transactionID = (transactionIDAsBytes == null) ? TransactionID.createNewTransactionID() : TransactionID.createTransactionID(harvester.getStunStack(), transactionIDAsBytes);
             //logger.debug("TransactionID: {}", transactionID);
         }
-        logger.debug("Request transaction id: {} rfc3489: {}", transactionID.toString(), transactionID.isRFC3489Compatible());
+        logger.debug("Request transaction id: {}", transactionID.toString());
         try {
             transactionID = stunStack.sendRequest(request, stunServer, hostCandidateTransportAddress, this, transactionID);
         } catch (IllegalArgumentException iaex) {

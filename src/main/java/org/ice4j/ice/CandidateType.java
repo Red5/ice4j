@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 /**
@@ -23,8 +7,7 @@ package org.ice4j.ice;
  *
  * @author Emil Ivov
  */
-public enum CandidateType
-{
+public enum CandidateType {
     /**
      * Peer Reflexive Candidate: A candidate whose IP address and port are
      * a binding allocated by a NAT for an agent when it sent a STUN
@@ -90,8 +73,7 @@ public enum CandidateType
      * @param typeName the name of the CandidateType instance we'd
      * like to create.
      */
-    private CandidateType(String typeName)
-    {
+    private CandidateType(String typeName) {
         this.typeName = typeName;
     }
 
@@ -103,8 +85,7 @@ public enum CandidateType
      * "srflx", or "relay").
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         return typeName;
     }
 
@@ -120,29 +101,26 @@ public enum CandidateType
      * @throws IllegalArgumentException in case candidateTypeName is
      * not a valid or currently supported candidate type.
      */
-    public static CandidateType parse(String candidateTypeName)
-        throws IllegalArgumentException
-    {
-        if(PEER_REFLEXIVE_CANDIDATE.toString().equals(candidateTypeName))
+    public static CandidateType parse(String candidateTypeName) throws IllegalArgumentException {
+        if (PEER_REFLEXIVE_CANDIDATE.toString().equals(candidateTypeName))
             return PEER_REFLEXIVE_CANDIDATE;
 
-        if(SERVER_REFLEXIVE_CANDIDATE.toString().equals(candidateTypeName))
+        if (SERVER_REFLEXIVE_CANDIDATE.toString().equals(candidateTypeName))
             return SERVER_REFLEXIVE_CANDIDATE;
 
-        if(RELAYED_CANDIDATE.toString().equals(candidateTypeName))
+        if (RELAYED_CANDIDATE.toString().equals(candidateTypeName))
             return RELAYED_CANDIDATE;
 
-        if(HOST_CANDIDATE.toString().equals(candidateTypeName))
+        if (HOST_CANDIDATE.toString().equals(candidateTypeName))
             return HOST_CANDIDATE;
 
         // old name but returns the standard name
-        if(STUN_CANDIDATE.toString().equals(candidateTypeName))
+        if (STUN_CANDIDATE.toString().equals(candidateTypeName))
             return SERVER_REFLEXIVE_CANDIDATE;
 
-        if(LOCAL_CANDIDATE.toString().equals(candidateTypeName))
+        if (LOCAL_CANDIDATE.toString().equals(candidateTypeName))
             return HOST_CANDIDATE;
 
-        throw new IllegalArgumentException(
-            candidateTypeName + " is not a currently supported CandidateType");
+        throw new IllegalArgumentException(candidateTypeName + " is not a currently supported CandidateType");
     }
 }

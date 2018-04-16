@@ -3,6 +3,7 @@ package org.ice4j.ice;
 
 import java.net.NoRouteToHostException;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 
 import org.ice4j.ResponseCollector;
+import org.ice4j.StunException;
 import org.ice4j.StunResponseEvent;
 import org.ice4j.StunTimeoutEvent;
 import org.ice4j.Transport;
@@ -17,6 +19,8 @@ import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.AttributeFactory;
 import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.IceControlledAttribute;
+import org.ice4j.attribute.IceControllingAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.PriorityAttribute;
 import org.ice4j.attribute.UsernameAttribute;
@@ -125,7 +129,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         try {
             stunStack.sendIndication(indication, candidatePair.getRemoteCandidate().getTransportAddress(), localCandidate.getBase().getTransportAddress());
             if (logger.isTraceEnabled()) {
-                logger.trace("sending binding indication to pair {}", candidatePair);
+                logger.trace("Sending binding indication for pair {}", candidatePair);
             }
         } catch (Exception ex) {
             IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
@@ -161,25 +165,36 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) {
         LocalCandidate localCandidate = candidatePair.getLocalCandidate();
+        // the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check
+        long priority = localCandidate.computePriorityForType(CandidateType.PEER_REFLEXIVE_CANDIDATE);
         // we don't need to do a canReach() verification here as it has been already verified during the gathering process.
-        Request request = MessageFactory.createBindingRequest();
-        // the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check.
-        PriorityAttribute priority = AttributeFactory.createPriorityAttribute(localCandidate.computePriorityForType(CandidateType.PEER_REFLEXIVE_CANDIDATE));
-        request.putAttribute(priority);
+        Request request = null;
+        try {
+            request = MessageFactory.createBindingRequest(priority, parentAgent.isControlling(), parentAgent.getTieBreaker());
+        } catch (StunException e) {
+            logger.warn("Exception creating binding request", e);
+            request = MessageFactory.createBindingRequest();
+        }
         // controlling controlled
         if (parentAgent.isControlling()) {
-            request.putAttribute(AttributeFactory.createIceControllingAttribute(parentAgent.getTieBreaker()));
+            if (request.containsNoneAttributes(EnumSet.of(Attribute.Type.ICE_CONTROLLING))) {
+                IceControllingAttribute iceControllingAttribute = AttributeFactory.createIceControllingAttribute(parentAgent.getTieBreaker());
+                request.putAttribute(iceControllingAttribute);
+            }
             // if we are the controlling agent then we need to indicate our nominated pairs.
             if (candidatePair.isNominated()) {
                 logger.debug("Add USE-CANDIDATE in check for: {}", candidatePair.toShortString());
                 request.putAttribute(AttributeFactory.createUseCandidateAttribute());
             }
         } else {
-            request.putAttribute(AttributeFactory.createIceControlledAttribute(parentAgent.getTieBreaker()));
+            if (request.containsNoneAttributes(EnumSet.of(Attribute.Type.ICE_CONTROLLED))) {
+                IceControlledAttribute iceControlledAttribute = AttributeFactory.createIceControlledAttribute(parentAgent.getTieBreaker());
+                request.putAttribute(iceControlledAttribute);
+            }
         }
         // credentials
-        String media = candidatePair.getParentComponent().getParentStream().getName();
-        String localUserName = parentAgent.generateLocalUserName(media);
+        String streamName = candidatePair.getParentComponent().getParentStream().getName();
+        String localUserName = parentAgent.generateLocalUserName(streamName);
         if (localUserName == null) {
             return null;
         }
@@ -189,27 +204,26 @@ class ConnectivityCheckClient implements ResponseCollector {
         MessageIntegrityAttribute msgIntegrity = AttributeFactory.createMessageIntegrityAttribute(localUserName);
         // when we will encode the MESSAGE-INTEGRITY attribute (thus generate the HMAC-SHA1 authentication), we need to know the
         // remote key of the current stream, that why we pass the media name.
-        logger.debug("Media: {}", media);
-        msgIntegrity.setMedia(media);
+        msgIntegrity.setMedia(streamName); // used to be audio, video, etc...
         request.putAttribute(msgIntegrity);
         TransactionID tran = TransactionID.createNewTransactionID();
         tran.setApplicationData(candidatePair);
-        logger.debug("start check for {} tid {}", candidatePair.toShortString(), tran);
+        logger.debug("Start {} check for {} tid {}", streamName, candidatePair.toShortString(), tran);
         try {
             tran = stunStack.sendRequest(request, candidatePair.getRemoteCandidate().getTransportAddress(), localCandidate.getBase().getTransportAddress(), this, tran, originalWaitInterval, maxWaitInterval, maxRetransmissions);
             if (logger.isTraceEnabled()) {
-                logger.trace("checking pair {} tid {}", candidatePair, tran);
+                logger.trace("Transaction {} sent for pair {}", tran, candidatePair);
             }
         } catch (Exception ex) {
             tran = null;
             IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
             if (stunSocket != null) {
-                String msg = "Failed to send " + request + " through " + stunSocket.getLocalSocketAddress();
+                String msg = String.format("Failed to send %s through %s", String.valueOf(request), stunSocket.getLocalSocketAddress().toString());
                 if (ex instanceof NoRouteToHostException || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) {
-                    msg += ", No route to host.";
-                    //ex = null;
+                    logger.warn(msg.concat(", No route to host"), ex);
+                } else {
+                    logger.warn(msg, ex);
                 }
-                logger.warn(msg, ex);
             }
         }
         return tran;
@@ -224,7 +238,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     public void processResponse(StunResponseEvent ev) {
         alive = true;
         CandidatePair checkedPair = (CandidatePair) ev.getTransactionID().getApplicationData();
-        // make sure that the response came from the right place.
+        // make sure that the response came from the right place
         if (!checkSymmetricAddresses(ev)) {
             logger.info("Received a non-symmetric response for pair: {}, Failing", checkedPair.toShortString());
             checkedPair.setStateFailed();
@@ -234,8 +248,8 @@ class ConnectivityCheckClient implements ResponseCollector {
             if (messageType == Response.BINDING_ERROR_RESPONSE) {
                 // handle error responses
                 if (response.getAttribute(Attribute.Type.ERROR_CODE) == null) {
-                    logger.debug("Received a malformed error response.");
-                    return; //malformed error response
+                    logger.debug("Received a malformed error response");
+                    return; // malformed error response
                 }
                 processErrorResponse(ev);
             } else if (messageType == Response.BINDING_SUCCESS_RESPONSE) {
@@ -269,16 +283,8 @@ class ConnectivityCheckClient implements ResponseCollector {
                     logger.info("CheckList will failed in a few seconds if no succeeded checks come");
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run() {
-                            long countdown = 3000L;
                             try {
-                                do {
-                                    Thread.sleep(500L);
-                                    if (checkList.getState() == CheckListState.RUNNING) {
-                                        countdown -= 500L;
-                                    } else {
-                                        break;
-                                    }
-                                } while (countdown > 0);
+                                Thread.sleep(5000L);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
                                     logger.info("CheckList for stream {} FAILED", streamName);
                                     checkList.setState(CheckListState.FAILED);
@@ -333,23 +339,18 @@ class ConnectivityCheckClient implements ResponseCollector {
         // RFC 5245: The agent checks the mapped address from the STUN response. If the transport address does not match any of the
         // local candidates that the agent knows about, the mapped address represents a new candidate -- a peer reflexive candidate.
         if (validLocalCandidate == null) {
-            //Like other candidates, PEER-REFLEXIVE candidates have a type,
-            //base, priority, and foundation.  They are computed as follows:
-            //o The type is equal to peer reflexive.
-            //o The base is the local candidate of the candidate
-            //  pair from which the STUN check was sent.
-            //o Its priority is set equal to the value of the PRIORITY attribute
-            //  in the Binding request.
+            //Like other candidates, PEER-REFLEXIVE candidates have a type, base, priority, and foundation.  They are computed as follows:
+            //o The type is equal to peer reflexive
+            //o The base is the local candidate of the candidate pair from which the STUN check was sent
+            //o Its priority is set equal to the value of the PRIORITY attribute in the Binding request
             long priority = 0;
             PriorityAttribute prioAttr = (PriorityAttribute) request.getAttribute(Attribute.Type.PRIORITY);
             priority = prioAttr.getPriority();
             LocalCandidate peerReflexiveCandidate = new PeerReflexiveCandidate(mappedAddress, checkedPair.getParentComponent(), checkedPair.getLocalCandidate(), priority);
             peerReflexiveCandidate.setBase(checkedPair.getLocalCandidate());
-            //This peer reflexive candidate is then added to the list of local candidates for the media stream, so that it would be available for
-            //updated offers.
+            // peer reflexive candidate is then added to the list of local candidates for the media stream, so that it would be available for updated offers.
             checkedPair.getParentComponent().addLocalCandidate(peerReflexiveCandidate);
-            // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be
-            //generated from it momentarily
+            // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
                 logger.info("Receive a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
@@ -381,13 +382,11 @@ class ConnectivityCheckClient implements ResponseCollector {
         }
         //The agent changes the states for all other Frozen pairs for the same media stream and same foundation to Waiting.
         IceMediaStream parentStream = checkedPair.getParentComponent().getParentStream();
-        //synchronized (this) {
         for (CandidatePair pair : parentStream.getCheckList()) {
             if (pair.getState() == CandidatePairState.FROZEN && checkedPair.getFoundation().equals(pair.getFoundation())) {
                 pair.setStateWaiting();
             }
         }
-        //}
         // The agent examines the check list for all other streams in turn. If the check list is active, the agent changes the state of all Frozen
         // pairs in that check list whose foundation matches a pair in the valid list under consideration to Waiting.
         Collection<IceMediaStream> allOtherStreams = parentAgent.getStreams();
@@ -395,13 +394,11 @@ class ConnectivityCheckClient implements ResponseCollector {
         for (IceMediaStream stream : allOtherStreams) {
             CheckList checkList = stream.getCheckList();
             boolean wasFrozen = checkList.isFrozen();
-            //synchronized (checkList) {
             for (CandidatePair pair : checkList) {
                 if (parentStream.validListContainsFoundation(pair.getFoundation()) && pair.getState() == CandidatePairState.FROZEN) {
                     pair.setStateWaiting();
                 }
             }
-            //}
             //if the checklList is still frozen after the above operations, the agent groups together all of the pairs with the same
             //foundation, and for each group, sets the state of the pair with the lowest component ID to Waiting.  If there is more than one
             //such pair, the one with the highest priority is used.
@@ -415,7 +412,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         }
         Attribute attr = request.getAttribute(Attribute.Type.USE_CANDIDATE);
         if (validPair.getParentComponent().getSelectedPair() == null) {
-            logger.info("IsControlling: " + parentAgent.isControlling() + " USE-CANDIDATE:" + (attr != null || checkedPair.useCandidateSent()) + ". Local ufrag " + parentAgent.getLocalUfrag());
+            logger.info("IsControlling USE-CANDIDATE: {}. Local ufrag {}", parentAgent.isControlling(), (attr != null || checkedPair.useCandidateSent()), parentAgent.getLocalUfrag());
         }
         //If the agent was a controlling agent, and it had included a USE-CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
@@ -554,7 +551,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     long waitFor = getNextWaitInterval();
                     if (waitFor > 0) {
                         //logger.trace(">>>> Going to sleep for {}", waitFor);
-                        // waitFor will be 0 for the first check since we won't have any active check lists at that point yet.
+                        // waitFor will be 0 for the first check since we won't have any active check lists at that point yet
                         Thread.sleep(waitFor);
                     }
                     CandidatePair pairToCheck = checkList.popTriggeredCheck();
@@ -577,7 +574,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     } else {
                         // We are done sending checks for this list. We'll set its final state in either the processResponse(), 
                         // processTimeout() or processFailure() method.
-                        //logger.trace("will skip a check beat.");
+                        //logger.trace("will skip a check beat");
                         checkList.fireEndOfOrdinaryChecks();
                     }
                 }
@@ -587,6 +584,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     logger.warn("PaceMaker got interrupted", e);
                 }
             }
+            //logger.trace("exit");
         }
     }
 

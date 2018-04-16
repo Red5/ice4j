@@ -5,7 +5,6 @@ import java.util.Vector;
 
 import junit.framework.TestCase;
 
-import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
@@ -102,12 +101,12 @@ public class MessageEventDispatchingTest extends TestCase {
         serverSock = new IceUdpSocketWrapper(serverAddress);
         serverSock2 = new IceUdpSocketWrapper(serverAddress2);
         // a non-controlling / passive stun (server) needs to be bound so it can receive
-        IceUdpTransport.getInstance().addBinding(stunStack, serverSock);
-        IceUdpTransport.getInstance().addBinding(stunStack, serverSock2);
+        //IceUdpTransport.getInstance().registerStackAndSocket(stunStack, serverSock);
+        //IceUdpTransport.getInstance().registerStackAndSocket(stunStack, serverSock2);
         // add wrappers to the stack
-        stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress());
-        stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress());
-        stunStack.addSocket(serverSock2, serverSock2.getRemoteTransportAddress());
+        stunStack.addSocket(clientSock, clientSock.getRemoteTransportAddress(), false);
+        stunStack.addSocket(serverSock, serverSock.getRemoteTransportAddress(), true); // do socket binding
+        stunStack.addSocket(serverSock2, serverSock2.getRemoteTransportAddress(), true); // do socket binding
         // create binding request and response
         bindingRequest = MessageFactory.createBindingRequest();
         bindingResponse = MessageFactory.create3489BindingResponse(clientAddress, clientAddress, serverAddress);

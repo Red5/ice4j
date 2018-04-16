@@ -204,6 +204,11 @@ public class StackProperties {
     public static final String HARVESTING_TIMEOUT = "org.ice4j.ice.harvest.HARVESTING_TIMEOUT";
 
     /**
+     * Ta pace timer in milliseconds.
+     */
+    public static final String TA = "org.ice4j.ice.TA_PACE_TIMER";
+
+    /**
      * Returns the String value of the specified property (minus all
      * encompassing whitespaces)and null in case no property value was mapped
      * against the specified propertyName, or in case the returned property

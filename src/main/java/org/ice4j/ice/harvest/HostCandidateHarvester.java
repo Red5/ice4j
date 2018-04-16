@@ -209,24 +209,16 @@ public class HostCandidateHarvester {
     }
 
     /**
-     * Gathers all candidate addresses on the local machine, binds sockets on
-     * them and creates {@link HostCandidate}s. The harvester would always
-     * try to bind the sockets on the specified preferredPort first.
-     * If that fails we will move through all ports between minPort and
+     * Gathers all candidate addresses on the local machine, binds sockets on them and creates {@link HostCandidate}s. The harvester would always
+     * try to bind the sockets on the specified preferredPort first. If that fails we will move through all ports between minPort and
      * maxPort and give up if still can't find a free port.
      *
-     * @param component the {@link Component} that we'd like to gather candidate
-     * addresses for.
-     * @param preferredPort the port number that should be tried first when
-     * binding local Candidate sockets for this Component.
-     * @param minPort the port number where we should first try to bind before
-     * moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding
-     * before giving up and throwing an exception.
+     * @param component the {@link Component} that we'd like to gather candidate addresses for
+     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component
+     * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
+     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
      * @param transport transport protocol used
-     *
-     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number, minPort &gt;
-     * maxPort or if transport is not supported.
+     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number, minPort &gt; maxPort or if transport is not supported
      * @throws IOException if an error occurs
      */
     public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
@@ -279,7 +271,7 @@ public class HostCandidateHarvester {
                         continue;
                     }
                     // add the socket wrapper to the stack which gets the bind and listening process started
-                    candidate.getStunStack().addSocket(sock, sock.getRemoteTransportAddress());
+                    candidate.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
                     component.getComponentSocket().setSocket(sock);
                 }
             }

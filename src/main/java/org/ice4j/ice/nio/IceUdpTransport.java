@@ -5,8 +5,11 @@ import java.net.SocketAddress;
 
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.service.IoService;
+import org.apache.mina.core.service.IoServiceListener;
+import org.apache.mina.core.session.IdleStatus;
+import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.apache.mina.transport.socket.DatagramAcceptor;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.ice4j.TransportAddress;
@@ -26,17 +29,47 @@ public class IceUdpTransport extends IceTransport {
 
     private static final IceUdpTransport instance = new IceUdpTransport();
 
-    // UDP
-    private DatagramAcceptor acceptor;
-
     /**
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceUdpTransport() {
         // create the nio acceptor
         acceptor = new NioDatagramAcceptor();
+        acceptor.addListener(new IoServiceListener() {
+
+            @Override
+            public void serviceActivated(IoService service) throws Exception {
+                logger.debug("serviceActivated: {}", service);
+            }
+
+            @Override
+            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+            }
+
+            @Override
+            public void serviceDeactivated(IoService service) throws Exception {
+                logger.debug("serviceDeactivated: {}", service);
+            }
+
+            @Override
+            public void sessionCreated(IoSession session) throws Exception {
+                logger.debug("sessionCreated: {}", session);
+                logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+            }
+
+            @Override
+            public void sessionClosed(IoSession session) throws Exception {
+                logger.debug("sessionClosed: {}", session);
+            }
+
+            @Override
+            public void sessionDestroyed(IoSession session) throws Exception {
+                logger.debug("sessionDestroyed: {}", session);
+            }
+        });
         // configure the acceptor
-        DatagramSessionConfig sessionConf = acceptor.getSessionConfig();
+        DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
         sessionConf.setReuseAddress(true);
         sessionConf.setSendBufferSize(sendBufferSize);
         sessionConf.setReadBufferSize(receiveBufferSize);
@@ -60,7 +93,7 @@ public class IceUdpTransport extends IceTransport {
      * @return IceTransport
      */
     public static IceUdpTransport getInstance() {
-        logger.trace("Instance: {}", instance);
+        //logger.trace("Instance: {}", instance);
         return instance;
     }
 
@@ -73,6 +106,9 @@ public class IceUdpTransport extends IceTransport {
     public boolean addBinding(SocketAddress addr) {
         try {
             acceptor.bind(addr);
+            if (logger.isTraceEnabled()) {
+                logger.trace("UDP binding added: {}", addr);
+            }
             return true;
         } catch (IOException e) {
             logger.warn("Add binding failed on {}", addr, e);
@@ -80,50 +116,18 @@ public class IceUdpTransport extends IceTransport {
         return false;
     }
 
-    /**
-     * Adds an ice socket and stun stack to the acceptor handler to await session creation.
-     * 
-     * @param stunStack
-     * @param iceSocket
-     * @return true if successful and false otherwise
-     */
-    public boolean addBinding(StunStack stunStack, IceSocketWrapper iceSocket) {
+    /** {@inheritDoc} */
+    public boolean registerStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
+        logger.debug("registerStackAndSocket - stunStack: {} iceSocket: {}", stunStack, iceSocket);
         boolean result = false;
         // add the stack and wrapper to a map which will hold them until an associated session is opened
         // when opened, the stack and wrapper will be added to the session as attributes
-        ((IceHandler) acceptor.getHandler()).addStackAndSocket(stunStack, iceSocket);
+        ((IceHandler) acceptor.getHandler()).registerStackAndSocket(stunStack, iceSocket);
         // get the local address
         TransportAddress localAddress = iceSocket.getTransportAddress();
         // attempt to add a binding to the server
         result = addBinding(localAddress);
-        if (logger.isTraceEnabled()) {
-            logger.trace("UDP binding added: {}", localAddress);
-        }
         return result;
-    }
-
-    /**
-     * Removes a socket binding from the acceptor.
-     * 
-     * @param addr
-     * @return true if successful and false otherwise
-     */
-    public boolean removeBinding(SocketAddress addr) {
-        try {
-            acceptor.unbind(addr);
-            return true;
-        } catch (Exception e) {
-            logger.warn("Remove binding failed on {}", addr, e);
-        }
-        return false;
-    }
-
-    /**
-     * Ports and addresses are unbound (stop listening).
-     */
-    public void stop() throws Exception {
-        logger.info("Stopped socket transport");
-        acceptor.unbind();
     }
 
     /**

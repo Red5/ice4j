@@ -397,7 +397,7 @@ public class Component implements PropertyChangeListener {
      */
     protected void selectDefaultCandidate() {
         for (LocalCandidate cand : localCandidates) {
-            if ((defaultCandidate == null) || (defaultCandidate.getDefaultPreference() < cand.getDefaultPreference())) {
+            if (defaultCandidate == null || defaultCandidate.getDefaultPreference() < cand.getDefaultPreference()) {
                 defaultCandidate = cand;
             }
         }

@@ -139,22 +139,30 @@ public class StunStack implements MessageEventHandler {
     /**
      * Creates and starts a Network Access Point (Connector) based on the specified socket and the specified remote address.
      *
-     * @param wrapper The socket that the new access point should represent.
-     * @param remoteAddress the remote address of the socket of the Connector to be created if it is a TCP socket, or null if it
-     * is UDP.
+     * @param iceSocket the socket wrapper that the new access point should represent
+     * @param remoteAddress of the Connector to be created if it is a TCP socket or null if it is UDP
+     * @param doBind perform bind on the wrappers local address if true and not if false
      */
-    public void addSocket(IceSocketWrapper wrapper, TransportAddress remoteAddress) {
-        logger.debug("addSocket: {} remote address: {}", wrapper, remoteAddress);
+    public void addSocket(IceSocketWrapper iceSocket, TransportAddress remoteAddress, boolean doBind) {
+        logger.debug("addSocket: {} remote address: {} bind? {}", iceSocket, remoteAddress, doBind);
         // add the wrapper for binding
-        if (wrapper instanceof IceUdpSocketWrapper) {
-            // add directly to the ice handler to prevent any unwanted binding
-            ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
+        if (iceSocket instanceof IceUdpSocketWrapper) {
+            if (doBind) {
+                IceUdpTransport.getInstance().registerStackAndSocket(this, iceSocket);
+            } else {
+                // add directly to the ice handler to prevent any unwanted binding
+                ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).registerStackAndSocket(this, iceSocket);
+            }
         } else {
-            // add directly to the ice handler to prevent any unwanted binding
-            ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).addStackAndSocket(this, wrapper);
+            if (doBind) {
+                IceTcpTransport.getInstance().registerStackAndSocket(this, iceSocket);
+            } else {
+                // add directly to the ice handler to prevent any unwanted binding
+                ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).registerStackAndSocket(this, iceSocket);
+            }
         }
         // add the socket to the net access manager
-        netAccessManager.addSocket(wrapper, remoteAddress);
+        netAccessManager.addSocket(iceSocket, remoteAddress);
     }
 
     /**
@@ -606,17 +614,18 @@ public class StunStack implements MessageEventHandler {
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
             if (ua != null) {
-                logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Username: {} length: {} data length: {}", ua.getUsername(), ua.getUsername().length, ua.getDataLength());
+                }
                 if (ua.getUsername().length != ua.getDataLength()) {
                     logger.warn("Invalid username size, rejecting request");
                     return;
                 }
-                logger.debug("Username: {}", ua.getUsername());
             } else {
                 logger.debug("Username was null");
             }
             TransactionID serverTid = ev.getTransactionID();
-            logger.debug("Event server transaction id: {} rfc3489: {}", serverTid.toString(), serverTid.isRFC3489Compatible());
+            logger.debug("Event server transaction id: {}", serverTid.toString());
             StunServerTransaction sTran = getServerTransaction(serverTid);
             if (sTran != null) {
                 //logger.warn("Stored server transaction id: {}", sTran.getTransactionID().toString());
@@ -633,7 +642,7 @@ public class StunStack implements MessageEventHandler {
                     return;
                 }
             } else {
-                logger.trace("existing transaction not found");
+                logger.trace("Existing transaction not found");
                 sTran = new StunServerTransaction(this, serverTid, ev.getLocalAddress(), ev.getRemoteAddress());
                 // if there is an OOM error here, it will lead to NetAccessManager.handleFatalError that will stop the
                 // MessageProcessor thread and restart it that will lead again to an OOM error and so on... So stop here right now
@@ -686,14 +695,16 @@ public class StunStack implements MessageEventHandler {
             // skip badly sized requests
             UsernameAttribute ua = (UsernameAttribute) msg.getAttribute(Attribute.Type.USERNAME);
             if (ua != null) {
-                logger.debug("Username: {}", ua.getUsername());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Username: {}", ua.getUsername());
+                }
             }
             StunClientTransaction tran = clientTransactions.remove(tid);
             if (tran != null) {
                 tran.handleResponse(ev);
             } else {
                 //do nothing - just drop the phantom response.
-                logger.debug("Dropped response - no matching client tran found for tid " + tid + "\nall tids in stock were " + clientTransactions.keySet());
+                logger.debug("Dropped response - no matching client tran found for tid {}\nall tids in stock were {}", tid, clientTransactions.keySet());
             }
         }
         // indication
@@ -749,68 +760,55 @@ public class StunStack implements MessageEventHandler {
      *
      * @throws IllegalArgumentException if there's something in the attribute that caused us to discard the whole message (e.g. an
      * invalid checksum or username)
-     * @throws StunException if we fail while sending an error response.
-     * @throws IOException if we fail while sending an error response.
+     * @throws StunException if we fail while sending an error response
+     * @throws IOException if we fail while sending an error response
      */
     private void validateRequestAttributes(StunMessageEvent evt) throws IllegalArgumentException, StunException, IOException {
         Message request = evt.getMessage();
-
         //assert valid username
         UsernameAttribute unameAttr = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
         String username = null;
-
         if (unameAttr != null) {
             username = LongTermCredential.toString(unameAttr.getUsername());
             if (!validateUsername(username)) {
                 Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "unknown user " + username);
-
                 sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
-
                 throw new IllegalArgumentException("Non-recognized username: " + username);
             }
         }
         boolean messageIntegrityRequired = StackProperties.getBoolean(StackProperties.REQUIRE_MESSAGE_INTEGRITY, false);
         //assert Message Integrity
         MessageIntegrityAttribute msgIntAttr = (MessageIntegrityAttribute) request.getAttribute(Attribute.Type.MESSAGE_INTEGRITY);
-
         if (msgIntAttr != null) {
             //we should complain if we have msg integrity and no username.
             if (unameAttr == null) {
                 Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.BAD_REQUEST, "missing username");
-
                 sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
-
                 throw new IllegalArgumentException("Missing USERNAME in the presence of MESSAGE-INTEGRITY: ");
             }
             if (!validateMessageIntegrity(msgIntAttr, username, true, evt.getRawMessage())) {
                 Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "Wrong MESSAGE-INTEGRITY value");
-
                 sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
-
-                throw new IllegalArgumentException("Wrong MESSAGE-INTEGRITY value.");
+                throw new IllegalArgumentException("Wrong MESSAGE-INTEGRITY value");
             }
         } else if (messageIntegrityRequired) {
             // no message integrity
             Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNAUTHORIZED, "Missing MESSAGE-INTEGRITY.");
-
             sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
-            throw new IllegalArgumentException("Missing MESSAGE-INTEGRITY.");
+            throw new IllegalArgumentException("Missing MESSAGE-INTEGRITY");
         }
-
         //look for unknown attributes.
         List<Attribute> allAttributes = request.getAttributes();
         StringBuilder sBuff = new StringBuilder();
         for (Attribute attr : allAttributes) {
-            if (attr instanceof OptionalAttribute && attr.getAttributeType().getType() < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType())
+            if (attr instanceof OptionalAttribute && attr.getAttributeType().getType() < Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE.getType()) {
                 sBuff.append(attr.getAttributeType());
+            }
         }
-
         if (sBuff.length() > 0) {
             Response error = createCorrespondingErrorResponse(request.getMessageType(), ErrorCodeAttribute.UNKNOWN_ATTRIBUTE, "unknown attribute ", sBuff.toString().toCharArray());
-
             sendResponse(request.getTransactionID(), error, evt.getLocalAddress(), evt.getRemoteAddress());
-
-            throw new IllegalArgumentException("Unknown attribute(s).");
+            throw new IllegalArgumentException("Unknown attribute(s)");
         }
     }
 
@@ -818,17 +816,16 @@ public class StunStack implements MessageEventHandler {
      * Recalculates the HMAC-SHA1 signature of the message array so that we could compare it with the value brought by the
      * {@link MessageIntegrityAttribute}.
      *
-     * @param msgInt the attribute that we need to validate.
-     * @param username the user name that the message integrity checksum is supposed to have been built for.
+     * @param msgInt the attribute that we need to validate
+     * @param username the user name that the message integrity checksum is supposed to have been built for
      * @param shortTermCredentialMechanism true if msgInt is to be validated as part of the STUN short-term credential mechanism or
      * false for the STUN long-term credential mechanism
-     * @param message the message whose SHA1 checksum we'd need to recalculate.
-     * @return true if msgInt contains a valid SHA1 value and false otherwise.
+     * @param message the message whose SHA1 checksum we'd need to recalculate
+     * @return true if msgInt contains a valid SHA1 value and false otherwise
      */
     public boolean validateMessageIntegrity(MessageIntegrityAttribute msgInt, String username, boolean shortTermCredentialMechanism, RawMessage message) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()));
-            logger.debug("RawMessage: {}\n{}", message.getMessageLength(), toHexString(message.getBytes()));
+        if (logger.isTraceEnabled()) {
+            logger.trace("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}\nRawMessage: {}\n{}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()), message.getMessageLength(), toHexString(message.getBytes()));
         }
         if ((username == null) || (username.length() < 1) || (shortTermCredentialMechanism && !username.contains(":"))) {
             logger.debug("Received a message with an improperly formatted username");
@@ -838,37 +835,31 @@ public class StunStack implements MessageEventHandler {
         if (shortTermCredentialMechanism) {
             username = usernameParts[0]; // lfrag
         }
-
         byte[] key = getCredentialsManager().getLocalKey(username);
         if (key == null) {
             logger.warn("Local key was not found for {}", username);
             return false;
         }
-        logger.debug("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
-
+        if (logger.isTraceEnabled()) {
+            logger.trace("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
+        }
         /*
          * Now check whether the SHA1 matches. Using MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the RawMessage will be incorrect if there are other Attributes
          * after the MessageIntegrityAttribute because the value of the MessageIntegrityAttribute is calculated on a STUN "Message Length" up to and including the MESSAGE-INTEGRITY
          * and excluding any Attributes after it.
          */
         byte[] binMsg = new byte[msgInt.getLocationInMessage()];
-
         System.arraycopy(message.getBytes(), 0, binMsg, 0, binMsg.length);
-
         int messageLength = (binMsg.length + Attribute.HEADER_LENGTH + msgInt.getDataLength() - Message.HEADER_LENGTH);
-
         binMsg[2] = (byte) (messageLength >> 8);
         binMsg[3] = (byte) (messageLength & 0xFF);
-
         byte[] expectedMsgIntHmacSha1Content;
         try {
             expectedMsgIntHmacSha1Content = MessageIntegrityAttribute.calculateHmacSha1(binMsg, 0, binMsg.length, key);
         } catch (IllegalArgumentException iaex) {
             expectedMsgIntHmacSha1Content = null;
         }
-
         byte[] msgIntHmacSha1Content = msgInt.getHmacSha1Content();
-
         if (!Arrays.equals(expectedMsgIntHmacSha1Content, msgIntHmacSha1Content)) {
             logger.warn("Received a message with a wrong MESSAGE-INTEGRITY signature expected:\n{}\nreceived:\n{}", toHexString(expectedMsgIntHmacSha1Content), toHexString(msgIntHmacSha1Content));
             return false;
