@@ -11,6 +11,8 @@ import org.ice4j.attribute.AttributeFactory;
 import org.ice4j.attribute.ChangeRequestAttribute;
 import org.ice4j.attribute.ChangedAddressAttribute;
 import org.ice4j.attribute.MappedAddressAttribute;
+import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.socket.IceSocketWrapper;
@@ -127,8 +129,14 @@ public class NetworkConfigurationDiscoveryProcess {
      * @throws StunException if the stun4j stack fails start for some reason
      */
     public void start() throws IOException, StunException {
-        sock = new IceUdpSocketWrapper(localAddress);
-        stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
+        logger.debug("start: {}", localAddress);
+        // check for existing binding before creating a new one
+        sock = ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+        // create a new socket since there isn't one registered for the local address
+        if (sock == null) {
+            sock = new IceUdpSocketWrapper(localAddress);
+            stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
+        }
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         started = true;
     }

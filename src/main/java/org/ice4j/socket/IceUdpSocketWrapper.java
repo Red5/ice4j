@@ -45,7 +45,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 logger.warn("Exception configuring transport address", e);
             }
         } else {
-            logger.debug("Datagram channel is not bound");
+            logger.debug("Datagram session is not bound");
         }
     }
 
@@ -70,61 +70,80 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             //if (logger.isTraceEnabled()) {
             //    logger.trace("send: {}", buf);
             //}
+            boolean aquired = false;
             try {
-                // enforce fairness lock
-                if (lock.tryAcquire(0, TimeUnit.SECONDS)) {
-                    if (session != null) {
-                        WriteFuture writeFuture = session.write(buf, destAddress);
+                IoSession sess = session.get();
+                if (sess != null) {
+                    // enforce fairness lock
+                    if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
+                        WriteFuture writeFuture = sess.write(buf, destAddress);
                         writeFuture.addListener(writeListener);
-                    } else {
-                        logger.debug("No session, attempting connect: {}", transportAddress);
-                        boolean bound = false;
+                    }
+                } else {
+                    logger.debug("No session, attempting connect: {}", transportAddress);
+                    // if we're not bound, attempt to create a client session
+                    try {
+                        NioDatagramConnector connector = new NioDatagramConnector();
+                        DatagramSessionConfig config = connector.getSessionConfig();
+                        config.setBroadcast(false);
+                        config.setReuseAddress(true);
+                        config.setCloseOnPortUnreachable(true);
+                        // add the ice protocol encoder/decoder
+                        connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+                        // re-use the io handler
+                        IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
+                        // set the handler on the connector
+                        connector.setHandler(handler);
+                        // check for existing registration
+                        if (((IceHandler) handler).lookupBinding(transportAddress) == null) {
+                            // add this socket for attachment to the session upon opening
+                            ((IceHandler) handler).registerStackAndSocket(null, this);
+                        }
+                        // connect it
+                        ConnectFuture future = connector.connect(destAddress, transportAddress);
+                        future.addListener(connectListener);
+                        //future.awaitUninterruptibly(500L);
+                        //logger.trace("Future await returned");
+                    } catch (Throwable t) {
+                        logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
                         // look for an existing acceptor
                         NioDatagramAcceptor acceptor = (NioDatagramAcceptor) IceUdpTransport.getInstance().getAcceptor();
                         if (acceptor != null) {
                             try {
                                 // attempt to create a server session, if it fails the local address isn't bound
-                                IoSession session = acceptor.newSession(destAddress, transportAddress);
-                                if (session != null) {
-                                    // if no session is set back on this socket wrapper, we'll need to add it here
-                                    bound = true;
+                                sess = acceptor.newSession(destAddress, transportAddress);
+                                if (sess != null) {
+                                    // set session on this socket wrapper
+                                    setSession(sess);
+                                    // count down since we have a session
+                                    connectLatch.countDown();
                                 }
-                            } catch (IllegalStateException ise) {
-                                logger.warn("Exception creating new session for {}", transportAddress, ise);
+                            } catch (Exception e) {
+                                logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
                             }
                         }
-                        // if we're not bound, attempt to create a client session
-                        if (!bound) {
-                            NioDatagramConnector connector = new NioDatagramConnector();
-                            DatagramSessionConfig config = connector.getSessionConfig();
-                            config.setBroadcast(false);
-                            config.setReuseAddress(true);
-                            config.setCloseOnPortUnreachable(true);
-                            // re-use the io handler
-                            IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
-                            // set the handler on the connector
-                            connector.setHandler(handler);
-                            // add this socket for attachment to the session upon opening
-                            ((IceHandler) handler).registerStackAndSocket(null, this);
-                            // add the ice protocol encoder/decoder
-                            connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
-                            // connect it
-                            ConnectFuture future = connector.connect(destAddress, transportAddress);
-                            future.addListener(connectListener);
-                            future.awaitUninterruptibly(500L);
-                            //logger.trace("Future await returned");
-                        }
-                        if (session != null) {
-                            WriteFuture writeFuture = session.write(buf, destAddress);
-                            writeFuture.addListener(writeListener);
+                    }
+                    // wait up-to 500 milliseconds for a connection to be established
+                    if (connectLatch.await(500, TimeUnit.MILLISECONDS)) {
+                        // attempt to get a newly added session from connect process
+                        sess = session.get();
+                        if (sess != null) {
+                            // enforce fairness lock
+                            if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
+                                WriteFuture writeFuture = sess.write(buf, destAddress);
+                                writeFuture.addListener(writeListener);
+                            }
                         } else {
                             logger.warn("Send failed on session creation");
                         }
                     }
-                    lock.release();
                 }
             } catch (Throwable t) {
                 logger.warn("Exception acquiring send lock", t);
+            } finally {
+                if (aquired) {
+                    lock.release();
+                }
             }
         }
     }
@@ -151,17 +170,6 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     @Override
     public int getLocalPort() {
         return transportAddress.getPort();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public SocketAddress getLocalSocketAddress() {
-        if (session == null) {
-            return transportAddress;
-        }
-        return session.getLocalAddress();
     }
 
     @Override

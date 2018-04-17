@@ -32,7 +32,7 @@ public abstract class IceTransport {
 
     // constants for the session map or anything else
     public enum Ice {
-        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
+        TRANSPORT, DTLS_VERSION, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
     }
 
     static {
@@ -120,6 +120,9 @@ public abstract class IceTransport {
         if (acceptor != null) {
             logger.info("Stopped socket transport");
             acceptor.unbind();
+            acceptor.dispose(true);
+            logger.info("Disposed socket transport");
+            acceptor = null;
         }
     }
 

@@ -132,6 +132,7 @@ public class TransactionSupportTests extends TestCase {
         System.setProperty(StackProperties.MAX_CTRAN_RETRANS_TIMER, "");
         System.setProperty(StackProperties.FIRST_CTRAN_RETRANS_AFTER, "");
 
+        //IceUdpTransport.getInstance().stop();
         super.tearDown();
     }
 

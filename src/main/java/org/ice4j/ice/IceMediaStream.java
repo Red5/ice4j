@@ -278,6 +278,7 @@ public class IceMediaStream {
      *
      * @param checkList the checklist to prune
      */
+    @SuppressWarnings("incomplete-switch")
     protected void pruneCheckList(Queue<CandidatePair> checkList) {
         //logger.trace("Pruning checklist: {}", checkList);
         // a list that we only use for storing pairs that we've already gone through. The list is destroyed at the end of this method.
@@ -288,18 +289,18 @@ public class IceMediaStream {
             if (tmpCheckList.size() > maxCheckListSize) {
                 break;
             }
-            /*
             // replace local server reflexive candidates with their base.
             LocalCandidate localCnd = pair.getLocalCandidate();
-            if (localCnd.getType() == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
-                pair.setLocalCandidate(localCnd.getBase());
-                // if the new pair corresponds to another one with a higher priority, then remove it.
-                if (tmpCheckList.contains(pair)) {
-                    checkList.remove(pair);
-                    continue;
-                }
+            switch (localCnd.getType()) {
+                case SERVER_REFLEXIVE_CANDIDATE:
+                case PEER_REFLEXIVE_CANDIDATE:
+                    pair.setLocalCandidate(localCnd.getBase());
+                    // if the new pair corresponds to another one with a higher priority, then remove it.
+                    if (tmpCheckList.contains(pair)) {
+                        continue;
+                    }
+                    break;
             }
-            */
             tmpCheckList.add(pair);
         }
         // clear original

@@ -17,6 +17,7 @@ import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -77,15 +78,22 @@ public abstract class AbstractUdpListener {
         } else {
             this.localAddress = localAddress;
         }
+        IceHandler iceHandler = ((IceHandler) IceUdpTransport.getInstance().getIoHandler());
+        // look for existing socket with the local address
+        IceSocketWrapper lookedUpSocket = iceHandler.lookupBinding(this.localAddress);
         // create a stun stack and unconnected udp socket wrapper, then add them to the udp transport
-        IceUdpSocketWrapper iceSocket = new IceUdpSocketWrapper(this.localAddress);
-        StunStack stunStack = new StunStack();
-        stunStack.addRequestListener(localAddress, new RequestListener() {
+        final IceSocketWrapper iceSocket = (lookedUpSocket != null) ? lookedUpSocket : new IceUdpSocketWrapper(this.localAddress);
+        // look for existing stun stack with the local address
+        StunStack stunStack = iceHandler.lookupStunStack(this.localAddress);
+        if (stunStack == null) {
+            stunStack = new StunStack();
+        }
+        stunStack.addRequestListener(this.localAddress, new RequestListener() {
 
             @Override
             public void processRequest(StunMessageEvent evt) throws IllegalArgumentException {
                 TransportAddress remoteAddress = evt.getRemoteAddress();
-                sockets.put(remoteAddress, iceSocket);
+                sockets.put(remoteAddress, (IceUdpSocketWrapper) iceSocket);
                 UsernameAttribute ua = (UsernameAttribute) evt.getMessage().getAttribute(Attribute.Type.USERNAME);
                 if (ua != null) {
                     logger.debug("Username length: {} data length: {}", ua.getUsername().length, ua.getDataLength());

@@ -56,9 +56,9 @@ public class StunTestSuite extends TestCase {
         // transactions
         suite.addTestSuite(org.ice4j.TransactionSupportTests.class);
         // client
-        suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest.class);
-        suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest_v6.class);
-        suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest_v4v6.class);
+        //suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest.class);
+        //suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest_v6.class);
+        //suite.addTestSuite(org.ice4j.stunclient.StunAddressDiscovererTest_v4v6.class);
         return suite;
     }
 }

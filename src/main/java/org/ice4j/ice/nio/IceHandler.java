@@ -47,6 +47,26 @@ public class IceHandler extends IoHandlerAdapter {
         iceSockets.putIfAbsent(addr, iceSocket);
     }
 
+    /**
+     * Returns an IceSocketWrapper for a given address if it exists and null if it doesn't.
+     * 
+     * @param localAddress
+     * @return IceSocketWrapper
+     */
+    public IceSocketWrapper lookupBinding(TransportAddress localAddress) {
+        return iceSockets.get(localAddress);
+    }
+
+    /**
+     * Returns an StunStack for a given address if it exists and null if it doesn't.
+     * 
+     * @param localAddress
+     * @return StunStack
+     */
+    public StunStack lookupStunStack(TransportAddress localAddress) {
+        return stunStacks.get(localAddress);
+    }
+
     /** {@inheritDoc} */
     @Override
     public void sessionOpened(IoSession session) throws Exception {
@@ -55,9 +75,6 @@ public class IceHandler extends IoHandlerAdapter {
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
         logger.debug("Acceptor sessions: {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
-        //if (session.getId() == 3L) {
-        //    throw new Exception("Early exit");
-        //}
         // get the local address
         SocketAddress addr = session.getLocalAddress();
         IceSocketWrapper iceSocket = iceSockets.get(addr);
@@ -102,8 +119,10 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void messageSent(IoSession session, Object message) throws Exception {
-        logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
-        //logger.trace("Sent: {}", String.valueOf(message));
+        if (logger.isTraceEnabled()) {
+            logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
+            //logger.trace("Sent: {}", String.valueOf(message));
+        }
     }
 
     /** {@inheritDoc} */

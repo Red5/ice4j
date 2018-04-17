@@ -70,8 +70,9 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             try {
                 // enforce fairness lock
                 if (lock.tryAcquire(0, TimeUnit.SECONDS)) {
-                    if (session != null) {
-                        WriteFuture writeFuture = session.write(buf, destAddress);
+                    IoSession sess = session.get();
+                    if (sess != null) {
+                        WriteFuture writeFuture = sess.write(buf, destAddress);
                         writeFuture.addListener(writeListener);
                     } else {
                         logger.debug("No session, attempting connect: {}", transportAddress);
@@ -79,21 +80,26 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         SocketSessionConfig config = connector.getSessionConfig();
                         config.setReuseAddress(true);
                         config.setTcpNoDelay(true);
+                        // add the ice protocol encoder/decoder
+                        connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
                         // re-use the io handler
                         IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
                         // set the handler on the connector
                         connector.setHandler(handler);
-                        // add this socket for attachment to the session upon opening
-                        ((IceHandler) handler).registerStackAndSocket(null, this);
-                        // add the ice protocol encoder/decoder
-                        connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+                        // check for existing registration
+                        if (((IceHandler) handler).lookupBinding(transportAddress) == null) {
+                            // add this socket for attachment to the session upon opening
+                            ((IceHandler) handler).registerStackAndSocket(null, this);
+                        }
                         // connect it
                         ConnectFuture future = connector.connect(destAddress, transportAddress);
                         future.addListener(connectListener);
                         future.awaitUninterruptibly(500L);
                         logger.trace("Future await returned");
-                        if (session != null) {
-                            WriteFuture writeFuture = session.write(buf, destAddress);
+                        // attempt to get a newly added session from connect process
+                        sess = session.get();
+                        if (sess != null) {
+                            WriteFuture writeFuture = sess.write(buf, destAddress);
                             writeFuture.addListener(writeListener);
                         } else {
                             logger.warn("Send failed on session creation");
@@ -133,17 +139,6 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     @Override
     public int getLocalPort() {
         return transportAddress.getPort();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public SocketAddress getLocalSocketAddress() {
-        if (session == null) {
-            return transportAddress;
-        }
-        return session.getLocalAddress();
     }
 
     @Override

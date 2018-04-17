@@ -6,8 +6,7 @@ import org.ice4j.*;
 import java.util.*;
 
 /**
- * We FoundationsRegistrys to keep track of and generate new
- * foundations within the lifetime of a single Agent.
+ * We FoundationsRegistrys to keep track of and generate new foundations within the lifetime of a single Agent.
  *
  * @author Emil Ivov
  */
@@ -43,7 +42,6 @@ public class FoundationsRegistry {
         String type = candidateType.toString();
         String base = candidate.getBase().getTransportAddress().getHostAddress();
         String server;
-
         switch (candidateType) {
             case SERVER_REFLEXIVE_CANDIDATE:
                 TransportAddress serverAddress = candidate.getStunServerAddress();
@@ -56,30 +54,23 @@ public class FoundationsRegistry {
                 server = null;
                 break;
         }
-
         String transport = candidate.getTransport().toString();
-
         StringBuilder foundationStringBuff = new StringBuilder(type);
         foundationStringBuff.append(base);
-        if (server != null)
+        if (server != null) {
             foundationStringBuff.append(server);
-
+        }
         foundationStringBuff.append(transport);
-
         String foundationString = foundationStringBuff.toString();
-
         String foundationValue = null;
         synchronized (foundations) {
             foundationValue = foundations.get(foundationString);
-
-            //obtain a new foundation number if we don't have one for this kind
-            //of candidates.
+            //obtain a new foundation number if we don't have one for this kind of candidates.
             if (foundationValue == null) {
                 foundationValue = Integer.toString(++lastAssignedFoundation);
                 foundations.put(foundationString, foundationValue);
             }
         }
-
         candidate.setFoundation(foundationValue);
     }
 

@@ -34,6 +34,23 @@ public class IceTcpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceTcpTransport() {
+        createAcceptor();
+    }
+
+    /**
+     * Returns a static instance of this transport.
+     * 
+     * @return IceTransport
+     */
+    public static IceTcpTransport getInstance() {
+        //logger.trace("Instance: {}", instance);
+        if (instance.getAcceptor() == null) {
+            instance.createAcceptor();
+        }
+        return instance;
+    }
+
+    synchronized void createAcceptor() {
         // create the nio acceptor
         acceptor = new NioSocketAcceptor(ioThreads);
         acceptor.addListener(new IoServiceListener() {
@@ -87,16 +104,6 @@ public class IceTcpTransport extends IceTransport {
         if (logger.isDebugEnabled()) {
             logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
         }
-    }
-
-    /**
-     * Returns a static instance of this transport.
-     * 
-     * @return IceTransport
-     */
-    public static IceTcpTransport getInstance() {
-        //logger.trace("Instance: {}", instance);
-        return instance;
     }
 
     /**

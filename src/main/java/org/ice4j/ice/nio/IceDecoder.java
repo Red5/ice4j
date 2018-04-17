@@ -34,17 +34,28 @@ public class IceDecoder extends CumulativeProtocolDecoder {
     private static final Logger logger = LoggerFactory.getLogger(IceDecoder.class);
 
     /**
+     * Base MTU size for UDP.
+     */
+    private static final int MTU_SIZE = 1500;
+
+    /**
+     * Length of a DTLS record header.
+     */
+    private static final int DTLS_RECORD_HEADER_LENGTH = 13;
+
+    /**
      * Keeps track of the decoding state of a data packet.
      */
     private final class DecoderState {
 
         // payload starting with standard mtu length
-        ByteArrayOutputStream payload = new ByteArrayOutputStream(1500);
+        ByteArrayOutputStream payload = new ByteArrayOutputStream(MTU_SIZE);
 
         @Override
         public String toString() {
             return "DecoderState [payload=" + payload.size() + "]";
         }
+
     }
 
     @Override
@@ -68,17 +79,27 @@ public class IceDecoder extends CumulativeProtocolDecoder {
                 byte[] buf = message.getBytes();
                 // if its a stun message, process it
                 if (isStun(buf)) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Dispatching a STUN message");
+                    }
                     StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
                     try {
                         Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                        logger.trace("Dispatching a STUN message");
                         StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
                         stunStack.handleMessageEvent(stunMessageEvent);
                     } catch (StunException ex) {
                         logger.warn("Failed to decode a stun message!", ex);
                     }
                 } else if (isDtls(buf)) {
-                    logger.trace("Queuing DTLS message: {}", StunStack.toHexString(Arrays.copyOfRange(buf, 0, 16)));
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Queuing DTLS message: {}", StunStack.toHexString(Arrays.copyOfRange(buf, 0, 16)));
+                    }
+                    // get the dtls version if it can be discerned
+                    String dtlsVersion = getDtlsVersion(buf, 0, buf.length);
+                    if (dtlsVersion != null && !session.containsAttribute(Ice.DTLS_VERSION)) {
+                        // store it on the session
+                        session.setAttribute(Ice.DTLS_VERSION, dtlsVersion);
+                    }
                     iceSocket.getRawMessageQueue().offer(message);
                 } else {
                     // write the message
@@ -112,40 +133,17 @@ public class IceDecoder extends CumulativeProtocolDecoder {
         // get the incoming bytes
         byte[] buf = new byte[in.remaining()];
         in.get(buf);
-        
-/*
- * TCP has a 2b prefix containing its size
-     * Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port
-     * and address of this Socket.
-    public void receive(DatagramPacket p) throws IOException {
-        SocketChannel socketChannel = (SocketChannel) channel;
-        while (frameLengthByteBuffer.hasRemaining()) {
-            int read = socketChannel.read(frameLengthByteBuffer);
-            if (read == -1) {
-                throw new SocketException("Failed to receive data from socket.");
-            }
-        }
-        frameLengthByteBuffer.flip();
-        int b0 = frameLengthByteBuffer.get();
-        int b1 = frameLengthByteBuffer.get();
-        int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF);
-        frameLengthByteBuffer.flip();
-        byte[] data = p.getData();
-        if (data == null || data.length < frameLength) {
-            data = new byte[frameLength];
-        }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data, 0, frameLength);
-        while (byteBuffer.hasRemaining()) {
-            int read = socketChannel.read(byteBuffer);
-            if (read == -1) {
-                throw new SocketException("Failed to receive data from socket.");
-            }
-        }
-        p.setAddress(socketChannel.socket().getInetAddress());
-        p.setData(data, 0, frameLength);
-        p.setPort(socketChannel.socket().getPort());
-    }
- */
+
+        /*
+         * TCP has a 2b prefix containing its size Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port and address of this
+         * Socket. public void receive(DatagramPacket p) throws IOException { SocketChannel socketChannel = (SocketChannel) channel; while (frameLengthByteBuffer.hasRemaining()) {
+         * int read = socketChannel.read(frameLengthByteBuffer); if (read == -1) { throw new SocketException("Failed to receive data from socket."); } }
+         * frameLengthByteBuffer.flip(); int b0 = frameLengthByteBuffer.get(); int b1 = frameLengthByteBuffer.get(); int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF);
+         * frameLengthByteBuffer.flip(); byte[] data = p.getData(); if (data == null || data.length < frameLength) { data = new byte[frameLength]; } ByteBuffer byteBuffer =
+         * ByteBuffer.wrap(data, 0, frameLength); while (byteBuffer.hasRemaining()) { int read = socketChannel.read(byteBuffer); if (read == -1) { throw new
+         * SocketException("Failed to receive data from socket."); } } p.setAddress(socketChannel.socket().getInetAddress()); p.setData(data, 0, frameLength);
+         * p.setPort(socketChannel.socket().getPort()); }
+         */
         // SocketAddress from session are InetSocketAddress which fail cast to TransportAddress, so handle there here
         SocketAddress localAddr = session.getLocalAddress();
         if (localAddr instanceof InetSocketAddress) {
@@ -158,7 +156,7 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
         }
         // does it look like we have a whole message or an ending fragment?
-        boolean wholeMessage = (buf.length < 1500);
+        boolean wholeMessage = (buf.length < MTU_SIZE);
         // if there are less than 1500 bytes and decoderState is empty, we can be assured its a whole message
         if (wholeMessage && decoderState.payload.size() == 0) {
             // create a message
@@ -236,6 +234,50 @@ public class IceDecoder extends CumulativeProtocolDecoder {
     }
 
     /**
+     * Returns the DTLS version as a string or null if parsing fails.
+     * 
+     * @param buf the bytes to probe
+     * @param offset data start position
+     * @param length data length
+     * @return DTLS version or null
+     */
+    public static String getDtlsVersion(byte[] buf, int offset, int length) {
+        String version = null;
+        // DTLS record header length is 13b
+        if (length >= DTLS_RECORD_HEADER_LENGTH) {
+            short type = (short) (buf[offset] & 0xff);
+            switch (type) {
+                case DtlsContentType.alert:
+                case DtlsContentType.application_data:
+                case DtlsContentType.change_cipher_spec:
+                case DtlsContentType.handshake:
+                    int major = buf[offset + 1] & 0xff;
+                    int minor = buf[offset + 2] & 0xff;
+                    logger.trace("Version: {}.{}", major, minor);
+                    // DTLS v1.0
+                    if (major == 254 && minor == 255) {
+                        version = "1.0";
+                    }
+                    // DTLS v1.2
+                    if (version == null && major == 254 && minor == 253) {
+                        version = "1.2";
+                    }
+                    if (version != null) {
+                        // XXX if this is the length of the dtls packet, we may want to utilize this to ensure we handle any fragmentation
+                        int dtlsRecordLength = (buf[offset + 11] & 0xff) << 8 | (buf[offset + 12] & 0xff);
+                        logger.debug("DtlsRecord length: {}", dtlsRecordLength); // should be 13b (data.length - dtls header)
+                    }
+                    break;
+                default:
+                    logger.trace("Unhandled content type: {}", type);
+                    break;
+            }
+        }
+        logger.debug("DtlsRecord: {} length: {}", version, length);
+        return version;
+    }
+
+    /**
      * Tries to parse the bytes in buf at offset off (and length len) as a STUN Binding Request message. If successful,
      * looks for a USERNAME attribute and returns the local username fragment part (see RFC5245 Section 7.1.2.3).
      * In case of any failure returns null.
@@ -276,6 +318,22 @@ public class IceDecoder extends CumulativeProtocolDecoder {
             }
         }
         return null;
+    }
+
+    /**
+     * RFC 2246 6.2.1
+     */
+    public class DtlsContentType {
+        
+        public static final short change_cipher_spec = 20; // 14
+
+        public static final short alert = 21; // 15
+
+        public static final short handshake = 22; // 16
+
+        public static final short application_data = 23; // 17
+
+        public static final short heartbeat = 24; // 18
     }
 
 }

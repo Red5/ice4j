@@ -104,6 +104,7 @@ public class ShallowStackTest extends TestCase {
         localSock.close();
         dummyServerSocket.close();
         msgFixture = null;
+        //IceUdpTransport.getInstance().stop();
         super.tearDown();
     }
 
@@ -125,8 +126,8 @@ public class ShallowStackTest extends TestCase {
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
         Request receivedRequest = (Request) Request.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
         assertEquals("The received request did not match the one that was sent", bindingRequest, receivedRequest);
-        logger.info(byteArrayToHexString(bindingRequest.encode(stunStack)));
-        logger.info(byteArrayToHexString(receivedRequest.encode(stunStack)));
+        logger.info("Sent request: {}", byteArrayToHexString(bindingRequest.encode(stunStack)));
+        logger.info("Received request: {}", byteArrayToHexString(receivedRequest.encode(stunStack)));
         // wait for retransmissions
         dgramCollector.startListening(dummyServerSocket);
         dgramCollector.waitForPacket();

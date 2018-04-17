@@ -22,6 +22,8 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
+import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -408,7 +410,11 @@ public class HostCandidateHarvester {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
                 // we successfully bound to the address so create a wrapper
-                IceUdpSocketWrapper sock = new IceUdpSocketWrapper(localAddress);
+                IceSocketWrapper sock = ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+                // create a new socket since there isn't one registered for the local address
+                if (sock == null) {
+                    sock = new IceUdpSocketWrapper(localAddress);
+                }
                 // return the socket
                 return sock;
             } catch (Exception se) {

@@ -130,6 +130,7 @@ public class MessageEventDispatchingTest extends TestCase {
         serverSock2.close();
         requestCollector = null;
         responseCollector = null;
+        //IceUdpTransport.getInstance().stop();
         super.tearDown();
     }
 

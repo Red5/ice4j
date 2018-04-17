@@ -350,10 +350,11 @@ class ConnectivityCheckClient implements ResponseCollector {
             peerReflexiveCandidate.setBase(checkedPair.getLocalCandidate());
             // peer reflexive candidate is then added to the list of local candidates for the media stream, so that it would be available for updated offers.
             checkedPair.getParentComponent().addLocalCandidate(peerReflexiveCandidate);
+            logger.debug("Peer reflexive candiate: {}", peerReflexiveCandidate);
             // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Receive a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
+                logger.info("Received a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
             }
         }
         // check if the resulting valid pair was already in our check lists.

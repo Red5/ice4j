@@ -887,7 +887,7 @@ public abstract class Message {
      */
     public static Message decode(byte[] binMessage, int offset, int arrayLen) throws StunException {
         if (logger.isDebugEnabled()) {
-            logger.debug("decode - offset: {} length: {}\n{}", offset, arrayLen, StunStack.toHexString(binMessage));
+            logger.debug("decode - offset: {} length: {}\n{}", offset, arrayLen, StunStack.toHexString(Arrays.copyOfRange(binMessage, offset, (offset + arrayLen))));
         }
         int originalOffset = offset;
         arrayLen = Math.min(binMessage.length, arrayLen);

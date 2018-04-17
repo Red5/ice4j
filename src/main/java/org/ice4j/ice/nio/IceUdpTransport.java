@@ -33,6 +33,23 @@ public class IceUdpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceUdpTransport() {
+        createAcceptor();
+    }
+
+    /**
+     * Returns a static instance of this transport.
+     * 
+     * @return IceTransport
+     */
+    public static IceUdpTransport getInstance() {
+        //logger.trace("Instance: {}", instance);
+        if (instance.getAcceptor() == null) {
+            instance.createAcceptor();
+        }
+        return instance;
+    }
+
+    synchronized void createAcceptor() {
         // create the nio acceptor
         acceptor = new NioDatagramAcceptor();
         acceptor.addListener(new IoServiceListener() {
@@ -78,23 +95,14 @@ public class IceUdpTransport extends IceTransport {
         sessionConf.setUseReadOperation(false);
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
-        acceptor.setHandler(new IceHandler());
         // get the filter chain and add our codec factory
         acceptor.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+        // add our handler
+        acceptor.setHandler(new IceHandler());
         logger.info("Started socket transport");
         if (logger.isDebugEnabled()) {
             logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
         }
-    }
-
-    /**
-     * Returns a static instance of this transport.
-     * 
-     * @return IceTransport
-     */
-    public static IceUdpTransport getInstance() {
-        //logger.trace("Instance: {}", instance);
-        return instance;
     }
 
     /**
