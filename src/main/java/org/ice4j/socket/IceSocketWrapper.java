@@ -123,6 +123,13 @@ public abstract class IceSocketWrapper {
     public abstract void send(DatagramPacket p) throws IOException;
 
     /**
+     * Receives a DatagramPacket from this instance. Essentially it reads from already queued data, if the queue is empty, the datagram will be empty.
+     * 
+     * @param p DatagramPacket to receive
+     */
+    public abstract void receive(DatagramPacket p) throws IOException;
+
+    /**
      * Returns true if closed or unbound and false otherwise.
      * 
      * @return true = not open, false = not closed

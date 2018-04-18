@@ -23,6 +23,7 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceCodecFactory;
 import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceUdpTransport;
+import org.ice4j.stack.RawMessage;
 
 /**
  * UDP implementation of the IceSocketWrapper.
@@ -148,25 +149,29 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public void send(DatagramPacket p) throws IOException {
         send(IoBuffer.wrap(p.getData()), p.getSocketAddress());
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
+    @Override
+    public void receive(DatagramPacket p) throws IOException {
+        RawMessage message = rawMessageQueue.poll();
+        if (message != null) {
+            p.setData(message.getBytes());
+            p.setSocketAddress(message.getRemoteAddress());
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override
     public InetAddress getLocalAddress() {
         return transportAddress.getAddress();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public int getLocalPort() {
         return transportAddress.getPort();
