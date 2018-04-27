@@ -14,13 +14,12 @@ import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.nio.IceCodecFactory;
 import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.stack.RawMessage;
 
@@ -82,7 +81,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         config.setReuseAddress(true);
                         config.setTcpNoDelay(true);
                         // add the ice protocol encoder/decoder
-                        connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+                        connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                         // re-use the io handler
                         IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
                         // set the handler on the connector

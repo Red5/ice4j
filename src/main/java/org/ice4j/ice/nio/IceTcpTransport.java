@@ -10,7 +10,6 @@ import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.ice4j.TransportAddress;
@@ -99,7 +98,7 @@ public class IceTcpTransport extends IceTransport {
         acceptor.setHandler(new IceHandler());
         // get the filter chain and add our codec factory
         DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
-        chain.addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+        chain.addLast("protocol", protocolCodecFilter);
         logger.info("Started socket transport");
         if (logger.isDebugEnabled()) {
             logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());

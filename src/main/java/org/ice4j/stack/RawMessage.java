@@ -3,7 +3,8 @@ package org.ice4j.stack;
 
 import java.net.SocketAddress;
 
-import org.ice4j.*;
+import org.apache.mina.core.buffer.IoBuffer;
+import org.ice4j.TransportAddress;
 
 /**
  * The class represents a binary STUN message as well as the address and port of the host that sent it and the address 
@@ -16,11 +17,6 @@ public class RawMessage {
      * The message itself.
      */
     private final byte[] messageBytes;
-
-    /**
-     * The length of the message.
-     */
-    private final int messageLength;
 
     /**
      * The address and port where the message was sent from.
@@ -42,12 +38,11 @@ public class RawMessage {
      *
      * @throws NullPointerException if one or more of the parameters were null.
      */
-    public RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
+    private RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
         // Let NullPointerException go out. The length of the array messgeBytes may be enormous while messageLength may
         // be tiny so it does not make sense to clone messageBytes.
         this.messageBytes = new byte[messageLength];
         System.arraycopy(messageBytes, 0, this.messageBytes, 0, messageLength);
-        this.messageLength = messageLength;
         this.localAddress = localAddress;
         this.remoteAddress = remoteAddress;
     }
@@ -67,7 +62,7 @@ public class RawMessage {
      * @return a the length of the message.
      */
     public int getMessageLength() {
-        return messageLength;
+        return messageBytes != null ? messageBytes.length : 0;
     }
 
     /**
@@ -89,16 +84,12 @@ public class RawMessage {
     }
 
     /**
-     * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
-     *
-     * @param messageBytes the message itself
-     * @param messageLength the number of bytes currently stored in the messageBytes array
-     * @param remoteAddress the address where the message came from
-     * @param localAddress the TransportAddress that the message was received on
-     * @return RawMessage instance
+     * Returns an IoBuffer wrapping the message bytes. The message bytes are not copied, so any changes will be reflected in both objects.
+     * 
+     * @return IoBuffer
      */
-    public static RawMessage build(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
-        return new RawMessage(messageBytes, messageLength, remoteAddress, localAddress);
+    public IoBuffer toIoBuffer() {
+        return IoBuffer.wrap(messageBytes, 0, messageBytes.length);
     }
 
     /**

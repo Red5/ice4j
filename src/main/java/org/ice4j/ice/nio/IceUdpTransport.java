@@ -9,7 +9,6 @@ import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.ice4j.TransportAddress;
@@ -96,7 +95,7 @@ public class IceUdpTransport extends IceTransport {
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
         // get the filter chain and add our codec factory
-        acceptor.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+        acceptor.getFilterChain().addLast("protocol", protocolCodecFilter);
         // add our handler
         acceptor.setHandler(new IceHandler());
         logger.info("Started socket transport");

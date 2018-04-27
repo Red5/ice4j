@@ -1,6 +1,5 @@
 package org.ice4j.ice.nio;
 
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolEncoderAdapter;
 import org.apache.mina.filter.codec.ProtocolEncoderOutput;
@@ -9,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class handles the socket encoding.
+ * This class handles the ice encoding.
  * 
  * 
  * @author Paul Gregoire
@@ -23,7 +22,7 @@ public class IceEncoder extends ProtocolEncoderAdapter {
         logger.trace("encode (session: {}) local: {} remote: {}\n{}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), String.valueOf(message));
         if (message instanceof RawMessage) {
             RawMessage packet = (RawMessage) message;
-            session.write(IoBuffer.wrap(packet.getBytes()), packet.getRemoteAddress());
+            session.write(packet.toIoBuffer(), packet.getRemoteAddress());
         } else {
             throw new Exception("Message not RawMessage type");
         }

@@ -14,14 +14,13 @@ import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.nio.IceCodecFactory;
 import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.stack.RawMessage;
 
@@ -90,7 +89,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         config.setReuseAddress(true);
                         config.setCloseOnPortUnreachable(true);
                         // add the ice protocol encoder/decoder
-                        connector.getFilterChain().addLast("protocol", new ProtocolCodecFilter(new IceCodecFactory()));
+                        connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                         // re-use the io handler
                         IoHandler handler = IceUdpTransport.getInstance().getIoHandler();
                         // set the handler on the connector
@@ -152,7 +151,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     /** {@inheritDoc} */
     @Override
     public void send(DatagramPacket p) throws IOException {
-        send(IoBuffer.wrap(p.getData()), p.getSocketAddress());
+        send(IoBuffer.wrap(p.getData(), p.getOffset(), p.getLength()), p.getSocketAddress());
     }
 
     /** {@inheritDoc} */
@@ -160,7 +159,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     public void receive(DatagramPacket p) throws IOException {
         RawMessage message = rawMessageQueue.poll();
         if (message != null) {
-            p.setData(message.getBytes());
+            p.setData(message.getBytes(), 0, message.getMessageLength());
             p.setSocketAddress(message.getRemoteAddress());
         }
     }

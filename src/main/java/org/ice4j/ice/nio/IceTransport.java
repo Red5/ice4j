@@ -4,6 +4,7 @@ import java.net.SocketAddress;
 
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.socket.IceSocketWrapper;
@@ -22,6 +23,8 @@ public abstract class IceTransport {
 
     private final static int BUFFER_SIZE_DEFAULT = 65535;
 
+    protected final static ProtocolCodecFilter protocolCodecFilter = new ProtocolCodecFilter(new IceEncoder(), new IceDecoder());
+
     protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
 
     protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
@@ -32,7 +35,7 @@ public abstract class IceTransport {
 
     // constants for the session map or anything else
     public enum Ice {
-        TRANSPORT, DTLS_VERSION, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
+        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY;
     }
 
     static {
@@ -124,6 +127,15 @@ public abstract class IceTransport {
             logger.info("Disposed socket transport");
             acceptor = null;
         }
+    }
+
+    /**
+     * Returns the static ProtocolCodecFilter.
+     * 
+     * @return protocolCodecFilter
+     */
+    public static ProtocolCodecFilter getProtocolcodecfilter() {
+        return protocolCodecFilter;
     }
 
     /**

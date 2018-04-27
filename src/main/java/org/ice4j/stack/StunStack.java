@@ -879,7 +879,7 @@ public class StunStack implements MessageEventHandler {
             return null;
         } else {
             StringBuilder hexStringBuilder = new StringBuilder(2 * bytes.length);
-            char[] hexes = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+            char[] hexes = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
             for (int i = 0; i < bytes.length; i++) {
                 byte b = bytes[i];
                 hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
