@@ -29,6 +29,8 @@ public abstract class IceTransport {
 
     protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
+    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
+
     protected int ioThreads = 16;
 
     protected IoAcceptor acceptor;
@@ -150,6 +152,24 @@ public abstract class IceTransport {
      */
     public void setReceiveBufferSize(int receiveBufferSize) {
         this.receiveBufferSize = receiveBufferSize;
+    }
+
+    /**
+     * General purpose timeout value; used for connection and idle timeouts.
+     * 
+     * @return timeout
+     */
+    public static int getTimeout() {
+        return timeout;
+    }
+
+    /**
+     * Set a timeout value in seconds.
+     * 
+     * @param timeout seconds to elapse before timing out
+     */
+    public static void setTimeout(int timeout) {
+        IceTransport.timeout = timeout;
     }
 
     /**

@@ -13,6 +13,7 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandler;
+import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
@@ -88,6 +89,12 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         config.setBroadcast(false);
                         config.setReuseAddress(true);
                         config.setCloseOnPortUnreachable(true);
+                        // set an idle time of 30s (default)
+                        config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
+                        // QoS
+                        //config.setTrafficClass(trafficClass);
+                        // set connection timeout of 30s
+                        connector.setConnectTimeoutMillis(IceTransport.getTimeout() * 1000L);
                         // add the ice protocol encoder/decoder
                         connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                         // re-use the io handler
@@ -102,8 +109,6 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         // connect it
                         ConnectFuture future = connector.connect(destAddress, transportAddress);
                         future.addListener(connectListener);
-                        //future.awaitUninterruptibly(500L);
-                        //logger.trace("Future await returned");
                     } catch (Throwable t) {
                         logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
                         // look for an existing acceptor

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -122,6 +123,20 @@ public class IceHandler extends IoHandlerAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
             //logger.trace("Sent: {}", String.valueOf(message));
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
+        }
+        IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
+        if (iceSocket != null) {
+            iceSocket.close();
+        } else {
+            session.closeNow();
         }
     }
 

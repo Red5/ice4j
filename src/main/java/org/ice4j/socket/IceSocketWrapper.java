@@ -159,6 +159,8 @@ public abstract class IceSocketWrapper {
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
             }
+        } else {
+            closed = true;
         }
         // clear out raw messages lingering around at close
         rawMessageQueue.clear();
