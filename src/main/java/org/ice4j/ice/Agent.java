@@ -500,7 +500,6 @@ public class Agent {
      * state) and false otherwise.
      */
     public boolean isStarted() {
-        // state != IceProcessingState.WAITING && state != IceProcessingState.COMPLETED && state != IceProcessingState.TERMINATED;
         return state.get() == IceProcessingState.RUNNING;
     }
 
@@ -556,12 +555,10 @@ public class Agent {
     }
 
     /**
-     * Sets the {@link IceProcessingState} of this Agent to
-     * newState and triggers the corresponding change event.
+     * Sets the {@link IceProcessingState} of this Agent to newState and triggers the corresponding change event.
      *
-     * @param newState the new state of ICE processing for this Agent.
-     * @return true iff the state of this Agent changed as
-     * a result of this call.
+     * @param newState the new state of ICE processing for this Agent
+     * @return true iff the state of this Agent changed as a result of this call
      */
     private boolean setState(IceProcessingState newState) {
         IceProcessingState oldState = state.getAndSet(newState);
@@ -676,7 +673,7 @@ public class Agent {
      * utilize the username LFRAG:RFRAG and a password of LPASS.
      *
      * @param media media name that we want to generate local username for
-     * @return a user name that a peer Agent would use in connectivity check for outgoing Binding Requests.
+     * @return a user name that a peer Agent would use in connectivity check for outgoing Binding Requests
      */
     public String generateRemoteUserName(String media) {
         IceMediaStream stream = getStream(media);

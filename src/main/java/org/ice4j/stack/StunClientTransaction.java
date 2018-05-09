@@ -278,7 +278,7 @@ public class StunClientTransaction implements Runnable {
         if (cancelled) {
             logger.debug("Trying to resend a cancelled transaction.");
         } else {
-            stackCallback.getNetAccessManager().sendMessage(this.request, localAddress, requestDestination);
+            stackCallback.getNetAccessManager().sendMessage(request, localAddress, requestDestination);
         }
     }
 

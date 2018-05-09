@@ -3,7 +3,6 @@ package org.ice4j.ice.nio;
 import java.net.SocketAddress;
 
 import org.apache.mina.core.service.IoAcceptor;
-import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -23,12 +22,15 @@ public abstract class IceTransport {
 
     private final static int BUFFER_SIZE_DEFAULT = 65535;
 
-    protected final static ProtocolCodecFilter protocolCodecFilter = new ProtocolCodecFilter(new IceEncoder(), new IceDecoder());
+    protected final static ProtocolCodecFilter iceCodecFilter = new ProtocolCodecFilter(new IceEncoder(), new IceDecoder());
+
+    protected final static IceHandler iceHandler = new IceHandler();
 
     protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
 
     protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
+    // used for idle timeout checks, connection timeout is currently 3s
     protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
 
     protected int ioThreads = 16;
@@ -134,10 +136,10 @@ public abstract class IceTransport {
     /**
      * Returns the static ProtocolCodecFilter.
      * 
-     * @return protocolCodecFilter
+     * @return iceCodecFilter
      */
     public static ProtocolCodecFilter getProtocolcodecfilter() {
-        return protocolCodecFilter;
+        return iceCodecFilter;
     }
 
     /**
@@ -180,12 +182,12 @@ public abstract class IceTransport {
     }
 
     /**
-     * Set a new IoHandler to replace the existing IceHandler.
+     * Returns the IoHandler for ICE connections.
      * 
-     * @param ioHandler
+     * @return iceHandler
      */
-    public void setIoHandler(IoHandlerAdapter ioHandler) {
-        throw new UnsupportedOperationException("Setting IoHandler on parent not supported");
+    public static IceHandler getIceHandler() {
+        return iceHandler;
     }
 
 }

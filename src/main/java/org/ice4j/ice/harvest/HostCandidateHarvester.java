@@ -22,9 +22,7 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
-import org.ice4j.ice.nio.IceHandler;
-import org.ice4j.ice.nio.IceTcpTransport;
-import org.ice4j.ice.nio.IceUdpTransport;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -355,7 +353,7 @@ public class HostCandidateHarvester {
      * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
      *
-     * @return the newly created DatagramSocket
+     * @return the newly created Socket
      *
      * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt; maxPort
      * @throws IOException if an error occurs while the underlying resolver lib is using sockets
@@ -371,7 +369,7 @@ public class HostCandidateHarvester {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.TCP);
                 // we successfully bound to the address so create a wrapper
                 //IceTcpSocketWrapper sock = new IceTcpSocketWrapper(localAddress);//, component);
-                IceSocketWrapper sock = ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+                IceSocketWrapper sock = IceTransport.getIceHandler().lookupBinding(localAddress);
                 // create a new socket since there isn't one registered for the local address
                 if (sock == null) {
                     sock = new IceTcpSocketWrapper(localAddress);
@@ -416,7 +414,7 @@ public class HostCandidateHarvester {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
                 // we successfully bound to the address so create a wrapper
-                IceSocketWrapper sock = ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+                IceSocketWrapper sock = IceTransport.getIceHandler().lookupBinding(localAddress);
                 // create a new socket since there isn't one registered for the local address
                 if (sock == null) {
                     sock = new IceUdpSocketWrapper(localAddress);

@@ -7,7 +7,6 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolDecoderAdapter;
 import org.apache.mina.filter.codec.ProtocolDecoderOutput;
-import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -74,14 +73,18 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         logger.trace("Dispatching a STUN message");
                     }
                     StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
-                    try {
-                        // create a message
-                        RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
-                        Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                        StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
-                        stunStack.handleMessageEvent(stunMessageEvent);
-                    } catch (StunException ex) {
-                        logger.warn("Failed to decode a stun message!", ex);
+                    if (stunStack != null) {
+                        try {
+                            // create a message
+                            RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
+                            Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
+                            StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
+                            stunStack.handleMessageEvent(stunMessageEvent);
+                        } catch (Exception ex) {
+                            logger.warn("Failed to decode a stun message!", ex);
+                        }
+                    } else {
+                        logger.warn("Stun stack was null for session: {}, cannot decode STUN messages", session.getId());
                     }
                 } else if (isDtls(buf)) {
                     logger.trace("Byte buffer length: {} {}", buf.length, in);

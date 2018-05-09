@@ -30,7 +30,6 @@ import org.ice4j.attribute.ErrorCodeAttribute;
 import org.ice4j.attribute.MessageIntegrityAttribute;
 import org.ice4j.attribute.OptionalAttribute;
 import org.ice4j.attribute.UsernameAttribute;
-import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
@@ -132,7 +131,7 @@ public class StunStack implements MessageEventHandler {
     }
 
     public StunStack() {
-        logger.debug("ctor");
+        logger.debug("ctor: {}", this);
         // create a new network access manager
         netAccessManager = new NetAccessManager(this);
     }
@@ -153,7 +152,7 @@ public class StunStack implements MessageEventHandler {
                 transport.registerStackAndSocket(this, iceSocket);
             } else {
                 // add directly to the ice handler to prevent any unwanted binding
-                ((IceHandler) transport.getIoHandler()).registerStackAndSocket(this, iceSocket);
+                IceTransport.getIceHandler().registerStackAndSocket(this, iceSocket);
             }
         } else {
             IceTcpTransport transport = IceTcpTransport.getInstance();
@@ -161,7 +160,7 @@ public class StunStack implements MessageEventHandler {
                 transport.registerStackAndSocket(this, iceSocket);
             } else {
                 // add directly to the ice handler to prevent any unwanted binding
-                ((IceHandler) transport.getIoHandler()).registerStackAndSocket(this, iceSocket);
+                IceTransport.getIceHandler().registerStackAndSocket(this, iceSocket);
             }
         }
         // add the socket to the net access manager

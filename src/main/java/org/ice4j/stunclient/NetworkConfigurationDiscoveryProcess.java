@@ -11,12 +11,10 @@ import org.ice4j.attribute.AttributeFactory;
 import org.ice4j.attribute.ChangeRequestAttribute;
 import org.ice4j.attribute.ChangedAddressAttribute;
 import org.ice4j.attribute.MappedAddressAttribute;
-import org.ice4j.ice.nio.IceHandler;
-import org.ice4j.ice.nio.IceUdpTransport;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.IceUdpSocketWrapper;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,10 +129,10 @@ public class NetworkConfigurationDiscoveryProcess {
     public void start() throws IOException, StunException {
         logger.debug("start: {}", localAddress);
         // check for existing binding before creating a new one
-        sock = ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+        sock = IceTransport.getIceHandler().lookupBinding(localAddress);
         // create a new socket since there isn't one registered for the local address
         if (sock == null) {
-            sock = new IceUdpSocketWrapper(localAddress);
+            sock = IceSocketWrapper.build(localAddress, sock.getRemoteTransportAddress());
             stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
         }
         requestSender = new BlockingRequestSender(stunStack, localAddress);

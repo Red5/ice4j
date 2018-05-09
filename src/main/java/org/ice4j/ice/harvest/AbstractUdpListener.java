@@ -18,6 +18,7 @@ import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -78,11 +79,11 @@ public abstract class AbstractUdpListener {
         } else {
             this.localAddress = localAddress;
         }
-        IceHandler iceHandler = ((IceHandler) IceUdpTransport.getInstance().getIoHandler());
+        IceHandler iceHandler = IceTransport.getIceHandler();
         // look for existing socket with the local address
         IceSocketWrapper lookedUpSocket = iceHandler.lookupBinding(this.localAddress);
         // create a stun stack and unconnected udp socket wrapper, then add them to the udp transport
-        final IceSocketWrapper iceSocket = (lookedUpSocket != null) ? lookedUpSocket : new IceUdpSocketWrapper(this.localAddress);
+        final IceSocketWrapper iceSocket = (lookedUpSocket != null) ? lookedUpSocket : IceSocketWrapper.build(this.localAddress, null);
         // look for existing stun stack with the local address
         StunStack stunStack = iceHandler.lookupStunStack(this.localAddress);
         if (stunStack == null) {

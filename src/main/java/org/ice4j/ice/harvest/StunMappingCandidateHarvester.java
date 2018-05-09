@@ -2,10 +2,8 @@
 package org.ice4j.ice.harvest;
 
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.nio.IceHandler;
-import org.ice4j.ice.nio.IceUdpTransport;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.IceUdpSocketWrapper;
 import org.ice4j.stunclient.SimpleAddressDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +43,10 @@ public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
             SimpleAddressDetector sad = new SimpleAddressDetector(stunServerAddress);
             sad.start();
             // check for existing binding before creating a new one
-            IceSocketWrapper localSocket = ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).lookupBinding(face);
+            IceSocketWrapper localSocket = IceTransport.getIceHandler().lookupBinding(face);
             // create a new socket since there isn't one registered for the local address
             if (localSocket == null) {
-                localSocket = new IceUdpSocketWrapper(face);
+                localSocket = IceSocketWrapper.build(face, null);
             }
             mask = sad.getMappingFor(localSocket);
             if (mask != null) {

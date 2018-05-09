@@ -34,6 +34,8 @@ public abstract class IceSocketWrapper {
 
     protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
+    public final static IoSession NULL_SESSION = null;
+
     /**
      * Used to control fair write / send order.
      */
@@ -148,14 +150,15 @@ public abstract class IceSocketWrapper {
     public void close() {
         IoSession sess = session.get();
         if (sess != null) {
-            logger.debug("close: {}", sess.getId());
+            logger.debug("close session: {}", sess.getId());
             try {
-                @SuppressWarnings("unused")
                 CloseFuture future = sess.closeNow();
                 // wait until the connection is closed
-                //future.awaitUninterruptibly();
-                // now connection should be closed.
-                //assert future.isClosed();
+                future.awaitUninterruptibly();
+                // now connection should be closed
+                if (future.isClosed()) {
+                    session.set(NULL_SESSION);
+                }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
             }
@@ -200,9 +203,7 @@ public abstract class IceSocketWrapper {
      */
     public void setSession(IoSession newSession) {
         logger.trace("setSession - new: {} old: {}", newSession, session.get());
-        @SuppressWarnings("unused")
-        IoSession oldSession = session.getAndSet(newSession);
-        if (newSession != null) {
+        if (session.compareAndSet(NULL_SESSION, newSession) && newSession != null) {
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
         }
     }
@@ -302,6 +303,28 @@ public abstract class IceSocketWrapper {
             // set remote address (only sticks if its TCP)
             InetSocketAddress inetAddr = (InetSocketAddress) session.getRemoteAddress();
             iceSocket.setRemoteTransportAddress(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
+        }
+        return iceSocket;
+    }
+
+    /**
+     * Builder for immutable IceSocketWrapper instance. If the IoSession is connection-less, an IceUdpSocketWrapper is returned; otherwise
+     * an IceTcpSocketWrapper is returned.
+     * 
+     * @param session IoSession for the socket
+     * @return IceSocketWrapper for the given session type
+     * @throws IOException
+     */
+    public final static IceSocketWrapper build(TransportAddress localAddress, TransportAddress remoteAddress) throws IOException {
+        // TODO remove this sysout
+        System.out.println("build: " + localAddress + " remote: " + remoteAddress);
+        IceSocketWrapper iceSocket = null;
+        if (localAddress.getTransport() == Transport.UDP) {
+            iceSocket = new IceUdpSocketWrapper(localAddress);
+        } else {
+            iceSocket = new IceTcpSocketWrapper(localAddress);
+            // set remote address (only sticks if its TCP)
+            iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
         }
         return iceSocket;
     }

@@ -1,166 +1,220 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
+import java.util.concurrent.LinkedBlockingDeque;
 
+import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.service.IoAcceptor;
+import org.apache.mina.core.service.IoHandlerAdapter;
+import org.apache.mina.core.service.IoService;
+import org.apache.mina.core.service.IoServiceListener;
+import org.apache.mina.core.session.IdleStatus;
+import org.apache.mina.core.session.IoSession;
+import org.apache.mina.transport.socket.DatagramSessionConfig;
+import org.apache.mina.transport.socket.SocketSessionConfig;
+import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DatagramCollector implements Runnable {
+public class DatagramCollector {
 
     private static final Logger logger = LoggerFactory.getLogger(DatagramCollector.class);
 
     Boolean lock = Boolean.TRUE;
 
-    DatagramPacket receivedPacket;
+    IoAcceptor acceptor;
 
-    Object sock;
+    IoServiceListener ioListener = new IoServiceListener() {
 
-    boolean packetReceived;
+        @Override
+        public void serviceActivated(IoService service) throws Exception {
+            logger.debug("serviceActivated: {}", service);
+        }
+
+        @Override
+        public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+            logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+        }
+
+        @Override
+        public void serviceDeactivated(IoService service) throws Exception {
+            logger.debug("serviceDeactivated: {}", service);
+        }
+
+        @Override
+        public void sessionCreated(IoSession session) throws Exception {
+            logger.debug("sessionCreated: {}", session);
+            logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+            setSession(session);
+        }
+
+        @Override
+        public void sessionClosed(IoSession session) throws Exception {
+            logger.debug("sessionClosed: {}", session);
+            setSession(null);
+        }
+
+        @Override
+        public void sessionDestroyed(IoSession session) throws Exception {
+            logger.debug("sessionDestroyed: {}", session);
+        }
+    };
+
+    IoHandlerAdapter ioHandler = new IoHandlerAdapter() {
+
+        @Override
+        public void sessionOpened(IoSession session) throws Exception {
+            super.sessionOpened(session);
+        }
+
+        @Override
+        public void messageReceived(IoSession session, Object message) throws Exception {
+            if (message instanceof DatagramPacket) {
+                deque.offer((DatagramPacket) message);
+            } else if (message instanceof IoBuffer) {
+                IoBuffer in = (IoBuffer) message;
+                // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
+                int frameLength = in.remaining();
+                // if we're TCP (not UDP), grab the size and advance the position
+                if (transportAddr.getTransport() != Transport.UDP) {
+                    frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                }
+                byte[] buf = new byte[frameLength];
+                in.get(buf);
+                DatagramPacket dgram = new DatagramPacket(buf, frameLength, session.getRemoteAddress());
+                deque.offer(dgram);
+            }
+            synchronized (lock) {
+                lock.notify();
+            }
+            super.messageReceived(session, message);
+        }
+
+    };
+
+    LinkedBlockingDeque<DatagramPacket> deque = new LinkedBlockingDeque<>();
 
     TransportAddress transportAddr;
 
-    ServerSocket serverSocket;
-
-    Thread ioThread;
+    IoSession session;
 
     public void startListening(TransportAddress transportAddr) throws Exception {
         this.transportAddr = transportAddr;
         // allow re-use
-        if (ioThread != null) {
-            ioThread.interrupt();
-            ioThread = null;
+        if (acceptor == null) {
+            if (transportAddr.getTransport() == Transport.UDP) {
+                createUDPAcceptor();
+            } else if (transportAddr.getTransport() == Transport.TCP) {
+                createTCPAcceptor();
+            } else {
+                throw new Exception("Transport not enabled: " + transportAddr.getTransport());
+            }
+        } else {
+            logger.debug("Acceptor already instanced");
         }
-        ioThread = new Thread(this);
-        ioThread.start();
     }
 
     public void stopListening() {
-        if (ioThread != null) {
-            ioThread.interrupt();
-            ioThread = null;
+        if (acceptor != null) {
+            acceptor.unbind();
+            //acceptor.dispose();
+            acceptor = null;
         }
-        try {
-            ((Closeable) sock).close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (session != null) {
+            session.closeNow();
         }
-        if (serverSocket != null) {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        sock = null;
-    }
-
-    public void run() {
-        if (sock == null) {
-            try {
-                if (transportAddr.getTransport() == Transport.UDP) {
-                    InetSocketAddress dummyServerAddress = new InetSocketAddress("127.0.0.1", transportAddr.getPort());
-                    sock = new DatagramSocket(dummyServerAddress);
-                    ((DatagramSocket) sock).setReuseAddress(true);
-                    logger.debug("Bound: {} connected: {}", ((DatagramSocket) sock).isBound(), ((DatagramSocket) sock).isConnected());
-                } else {
-                    serverSocket = new ServerSocket(transportAddr.getPort(), 16, transportAddr.getAddress());
-                    serverSocket.setReuseAddress(true);
-                    sock = serverSocket.accept();
-                    logger.debug("Bound: {} connected: {}", ((Socket) sock).isBound(), ((Socket) sock).isConnected());
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }
-        if (sock instanceof DatagramSocket) {
-            logger.debug("Listening on: {}:{}", ((DatagramSocket) sock).getLocalAddress(), ((DatagramSocket) sock).getLocalPort());
-        } else if (sock instanceof Socket) {
-            logger.debug("Listening on: {}:{}", ((Socket) sock).getLocalAddress(), ((Socket) sock).getLocalPort());
-        } else {
-            logger.error("Socket was null");
-            return;
-        }
-        byte[] buf = new byte[4096];
-        try {
-            receivedPacket = new DatagramPacket(buf, 4096);
-            if (sock instanceof DatagramSocket) {
-                ((DatagramSocket) sock).receive(receivedPacket);
-            } else {
-                ByteBuffer dst = ByteBuffer.wrap(buf);
-                if (((Socket) sock).getChannel().read(dst) >= 2) {
-                    // flip to read
-                    dst.flip();
-                    // read the length
-                    int frameLength = ((dst.get() & 0xFF) << 8) | (dst.get() & 0xFF);
-                    logger.debug("Frame length: {}", frameLength);
-                    if (frameLength > 0) {
-                        byte[] frame = new byte[frameLength];
-                        dst.get(frame);
-                        receivedPacket.setData(frame, 0, frameLength);
-                        receivedPacket.setSocketAddress(((Socket) sock).getRemoteSocketAddress());
-                    }
-                    dst.clear();
-                }
-            }
-            synchronized (lock) {
-                packetReceived = true;
-                lock.notify();
-            }
-        } catch (IOException e) {
-            logger.warn("Exception on receive", e);
-            receivedPacket = null;
-        }
+        deque.clear();
+        deque = null;
     }
 
     public void waitForPacket() {
-        if (sock instanceof DatagramSocket) {
-            logger.debug("waitForPacket: {}:{}", ((DatagramSocket) sock).getLocalAddress(), ((DatagramSocket) sock).getLocalPort());
-        } else {
-            logger.debug("waitForPacket: {}:{}", ((Socket) sock).getLocalAddress(), ((Socket) sock).getLocalPort());
-        }
-        synchronized (lock) {
-            if (packetReceived) {
-                return;
-            }
+        logger.debug("waitForPacket: {}", acceptor.getLocalAddress());
+        if (deque.isEmpty()) {
             try {
-                lock.wait(50);
+                synchronized (lock) {
+                    lock.wait(50);
+                }
             } catch (InterruptedException e) {
                 logger.warn("Exception on wait", e);
             }
         }
     }
 
-    public DatagramPacket collectPacket() {
+    public DatagramPacket collectPacket() throws InterruptedException {
         //recycle
-        DatagramPacket returnValue = receivedPacket;
-        receivedPacket = null;
-        sock = null;
-        packetReceived = false;
-        //return
+        DatagramPacket returnValue = deque.take(); // blocks
         return returnValue;
     }
 
-    public void send(byte[] data, SocketAddress addr) throws IOException {
-        if (sock instanceof DatagramSocket) {
-            ((DatagramSocket) sock).send(new DatagramPacket(data, data.length, addr));
+    public void send(byte[] data, SocketAddress destination) throws IOException {
+        if (session != null) {
+            IoBuffer out;
+            if (transportAddr.getTransport() == Transport.UDP) {
+                out = IoBuffer.wrap(data);
+                logger.debug("Sending UDP: {}", out);
+                session.write(out, destination);
+            } else {
+                out = IoBuffer.allocate(data.length + 2);
+                out.put((byte) ((data.length >> 8) & 0xff));
+                out.put((byte) (data.length & 0xff));
+                out.put(data);
+                out.flip();
+                logger.debug("Sending TCP: {}", out);
+                session.write(out);
+            }
         } else {
-            ByteBuffer src = ByteBuffer.allocate(data.length + 2);
-            src.put((byte) ((data.length >> 8) & 0xff));
-            src.put((byte) (data.length & 0xff));
-            src.put(data);
-            src.flip();
-            ((Socket) sock).getChannel().write(src);
+            logger.warn("No connected session, cannot send");
         }
     }
+
+    protected void setSession(IoSession session) {
+        logger.debug("setSession: {}", session);
+        this.session = session;
+    }
+
+    private void createTCPAcceptor() throws IOException {
+        acceptor = new NioSocketAcceptor(1);
+        acceptor.addListener(ioListener);
+        // configure the acceptor
+        SocketSessionConfig sessionConf = ((NioSocketAcceptor) acceptor).getSessionConfig();
+        sessionConf.setReuseAddress(true);
+        sessionConf.setTcpNoDelay(true);
+        // close sessions when the acceptor is stopped
+        acceptor.setCloseOnDeactivation(true);
+        // requested maximum length of the queue of incoming connections
+        ((NioSocketAcceptor) acceptor).setBacklog(4);
+        ((NioSocketAcceptor) acceptor).setReuseAddress(true);
+        // get the filter chain and add our codec factory
+        //acceptor.getFilterChain().addLast("protocol", protocolCodecFilter);
+        // add our handler
+        acceptor.setHandler(ioHandler);
+        // bind
+        acceptor.bind(transportAddr);
+    }
+
+    private void createUDPAcceptor() throws IOException {
+        acceptor = new NioDatagramAcceptor();
+        acceptor.addListener(ioListener);
+        // configure the acceptor
+        DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
+        sessionConf.setReuseAddress(true);
+        sessionConf.setCloseOnPortUnreachable(true);
+        // in server apps this can cause a memory leak so its off
+        sessionConf.setUseReadOperation(false);
+        // close sessions when the acceptor is stopped
+        acceptor.setCloseOnDeactivation(true);
+        // get the filter chain and add our codec factory
+        //acceptor.getFilterChain().addLast("protocol", protocolCodecFilter);
+        // add our handler
+        acceptor.setHandler(ioHandler);
+        // bind
+        acceptor.bind(transportAddr);
+    }
+
 }

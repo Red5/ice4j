@@ -3,8 +3,6 @@ package org.ice4j.ice.nio;
 import java.io.IOException;
 import java.net.SocketAddress;
 
-import org.apache.mina.core.service.IoHandler;
-import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
 import org.apache.mina.core.session.IdleStatus;
@@ -71,7 +69,7 @@ public class IceTcpTransport extends IceTransport {
             @Override
             public void sessionCreated(IoSession session) throws Exception {
                 logger.debug("sessionCreated: {}", session);
-                logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+                logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
             }
 
             @Override
@@ -100,12 +98,12 @@ public class IceTcpTransport extends IceTransport {
         ((NioSocketAcceptor) acceptor).setBacklog(64);
         ((NioSocketAcceptor) acceptor).setReuseAddress(true);
         // get the filter chain and add our codec factory
-        acceptor.getFilterChain().addLast("protocol", protocolCodecFilter);
+        acceptor.getFilterChain().addLast("protocol", iceCodecFilter);
         // add our handler
-        acceptor.setHandler(new IceHandler());
+        acceptor.setHandler(iceHandler);
         logger.info("Started socket transport");
-        if (logger.isDebugEnabled()) {
-            logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
+        if (logger.isTraceEnabled()) {
+            logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
         }
     }
 
@@ -134,30 +132,12 @@ public class IceTcpTransport extends IceTransport {
         boolean result = false;
         // add the stack and wrapper to a map which will hold them until an associated session is opened
         // when opened, the stack and wrapper will be added to the session as attributes
-        ((IceHandler) acceptor.getHandler()).registerStackAndSocket(stunStack, iceSocket);
+        iceHandler.registerStackAndSocket(stunStack, iceSocket);
         // get the local address
         TransportAddress localAddress = iceSocket.getTransportAddress();
         // attempt to add a binding to the server
         result = addBinding(localAddress);
         return result;
-    }
-
-    /**
-     * Set a new IoHandler to replace the existing IceHandler.
-     * 
-     * @param ioHandler
-     */
-    public void setIoHandler(IoHandlerAdapter ioHandler) {
-        acceptor.setHandler(ioHandler);
-    }
-
-    /**
-     * Returns the IoHandler.
-     * 
-     * @return IoHandler
-     */
-    public IoHandler getIoHandler() {
-        return acceptor.getHandler();
     }
 
 }

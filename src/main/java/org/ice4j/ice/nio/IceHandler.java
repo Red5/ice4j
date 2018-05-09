@@ -1,7 +1,7 @@
 package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -26,10 +26,10 @@ public class IceHandler extends IoHandlerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(IceHandler.class);
 
     // temporary holding area for stun stacks awaiting session creation
-    private ConcurrentMap<SocketAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
+    private ConcurrentMap<TransportAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
 
     // temporary holding area for ice sockets awaiting session creation
-    private ConcurrentMap<SocketAddress, IceSocketWrapper> iceSockets = new ConcurrentHashMap<>();
+    private ConcurrentMap<TransportAddress, IceSocketWrapper> iceSockets = new ConcurrentHashMap<>();
 
     /**
      * Registers a StunStack and IceSocketWrapper to the internal maps to wait for their associated IoSession creation.
@@ -38,12 +38,12 @@ public class IceHandler extends IoHandlerAdapter {
      * @param iceSocket
      */
     public void registerStackAndSocket(StunStack stunStack, IceSocketWrapper iceSocket) {
-        logger.debug("registerStackAndSocket - stunStack: {} iceSocket: {}", stunStack, iceSocket);
-        SocketAddress addr = iceSocket.getLocalSocketAddress();
+        logger.debug("registerStackAndSocket on {} - stunStack: {} iceSocket: {}", this, stunStack, iceSocket);
+        TransportAddress addr = iceSocket.getTransportAddress();
         if (stunStack != null) {
             stunStacks.putIfAbsent(addr, stunStack);
         } else {
-            logger.debug("Stun stack exists for address: {}", stunStacks.get(addr));
+            logger.debug("Stun stack for address: {}", stunStacks.get(addr));
         }
         iceSockets.putIfAbsent(addr, iceSocket);
     }
@@ -55,6 +55,7 @@ public class IceHandler extends IoHandlerAdapter {
      * @return IceSocketWrapper
      */
     public IceSocketWrapper lookupBinding(TransportAddress localAddress) {
+        logger.trace("lookupBinding on {} for local address: {} existing bindings: {}", this, localAddress, iceSockets);
         return iceSockets.get(localAddress);
     }
 
@@ -77,7 +78,8 @@ public class IceHandler extends IoHandlerAdapter {
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
         logger.debug("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
         // get the local address
-        SocketAddress addr = session.getLocalAddress();
+        InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
+        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
         IceSocketWrapper iceSocket = iceSockets.get(addr);
         if (iceSocket != null) {
             // set the session
@@ -144,10 +146,11 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void sessionClosed(IoSession session) throws Exception {
-        logger.trace("Session closed");
-        SocketAddress addr = session.getLocalAddress();
+        logger.trace("Session closed: {}", session.getId());
         // determine transport type
         Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
+        InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
+        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
         // remove binding
         IceTransport.getInstance(transport).removeBinding(addr);
         // clean-up
@@ -157,37 +160,45 @@ public class IceHandler extends IoHandlerAdapter {
         }
         if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
             StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
-            if (addr instanceof InetSocketAddress) {
-                InetSocketAddress inetAddr = (InetSocketAddress) addr;
-                addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-            }
             if (iceSocket != null) {
-                stunStack.removeSocket((TransportAddress) addr, iceSocket.getRemoteTransportAddress());
+                stunStack.removeSocket(addr, iceSocket.getRemoteTransportAddress());
             } else {
-                SocketAddress remoteAddr = session.getRemoteAddress();
-                if (remoteAddr instanceof InetSocketAddress) {
-                    InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
-                    remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-                }
-                stunStack.removeSocket((TransportAddress) addr, (TransportAddress) remoteAddr);
+                inetAddr = (InetSocketAddress) session.getRemoteAddress();
+                TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+                stunStack.removeSocket(addr, remoteAddr);
             }
-        }
-        if (iceSocket != null) {
-            iceSocket.setSession(null);
         }
         // remove any map entries
         stunStacks.remove(addr);
+        // determine if our ice socket was removed by the transport address
+        int count = iceSockets.size();
         iceSockets.remove(addr);
+        // clear the socket props
+        if (iceSocket != null) {
+            iceSocket.setSession(IceSocketWrapper.NULL_SESSION);
+            // this is quick and dirty for possibly skipping looping through the collection
+            if (iceSockets.size() >= count) {
+                // removing by key doesnt seem to work correction, probably due to missing transport on SocketAddress instances
+                for (Entry<TransportAddress, IceSocketWrapper> ice : iceSockets.entrySet()) {
+                    if (iceSocket.equals(ice.getValue())) {
+                        logger.trace("Found matching ice socket by value");
+                        iceSockets.remove(ice.getKey());
+                        break;
+                    }
+                }
+            }
+        }
         super.sessionClosed(session);
     }
 
     /** {@inheritDoc} */
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-        SocketAddress addr = session.getLocalAddress();
-        logger.warn("Exception on {}", addr, cause);
         // determine transport type
         Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
+        InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
+        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+        logger.warn("Exception on {}", addr, cause);
         // remove binding
         IceTransport.getInstance(transport).removeBinding(addr);
         // remove any map entries

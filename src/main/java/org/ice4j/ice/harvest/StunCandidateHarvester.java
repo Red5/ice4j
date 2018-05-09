@@ -17,7 +17,7 @@ import org.ice4j.ice.Candidate;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
-import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
@@ -237,7 +237,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         if (hostCand.getTransport() == Transport.TCP) {
             logger.info("Creating a new TCP HostCandidate");
             NioSocketConnector connector = new NioSocketConnector();
-            connector.setHandler(new IceHandler());
+            connector.setHandler(IceTransport.getIceHandler());
             ConnectFuture future = connector.connect(stunServer);
             // wait until a little past a standard time for STUN to complete
             future.awaitUninterruptibly(4000L);
