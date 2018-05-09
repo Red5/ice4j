@@ -235,7 +235,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         HostCandidate cand = null;
         // create a new TCP HostCandidate
         if (hostCand.getTransport() == Transport.TCP) {
-            logger.info("create a new TCP HostCandidate");
+            logger.info("Creating a new TCP HostCandidate");
             NioSocketConnector connector = new NioSocketConnector();
             connector.setHandler(new IceHandler());
             ConnectFuture future = connector.connect(stunServer);
@@ -257,7 +257,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 logger.warn("Connection to {} failed", stunServer);
             }
         } else {
-            logger.info("use existing UDP HostCandidate");
+            logger.info("Using existing UDP HostCandidate");
             cand = hostCand;
         }
         if (cand == null) {

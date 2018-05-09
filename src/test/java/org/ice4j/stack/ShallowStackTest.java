@@ -1,11 +1,7 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
-import java.io.Closeable;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import javax.xml.bind.DatatypeConverter;
@@ -57,10 +53,6 @@ public class ShallowStackTest extends TestCase {
 
     private IceSocketWrapper localSock;
 
-    private Object dummyServerSocket;
-
-    private Thread svrThread;
-
     /**
      * Transport type to be used for the test.
      */
@@ -111,14 +103,10 @@ public class ShallowStackTest extends TestCase {
     @After
     protected void tearDown() throws Exception {
         //logger.info("teardown");
+        dgramCollector.stopListening();
         stunStack.removeSocket(localAddress);
         localSock.close();
-        ((Closeable) dummyServerSocket).close();
         msgFixture = null;
-        //IceUdpTransport.getInstance().stop();
-        if (svrThread != null) {
-            svrThread.interrupt();
-        }
         super.tearDown();
     }
 
@@ -166,16 +154,7 @@ public class ShallowStackTest extends TestCase {
         }
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
-        if (selectedTransport == Transport.UDP) {
-            ((DatagramSocket) dummyServerSocket).send(new DatagramPacket(msgFixture.bindingRequest2, msgFixture.bindingRequest2.length, localAddress));
-        } else {
-            ByteBuffer src = ByteBuffer.allocate(msgFixture.bindingRequest2.length + 2);
-            src.put((byte) ((msgFixture.bindingRequest2.length >> 8) & 0xff));
-            src.put((byte) (msgFixture.bindingRequest2.length & 0xff));
-            src.put(msgFixture.bindingRequest2);
-            src.flip();
-            ((Socket) dummyServerSocket).getChannel().write(src);
-        }
+        dgramCollector.send(msgFixture.bindingRequest2, localAddress);
         // wait for the packet to arrive
         requestCollector.waitForRequest();
         Request collectedRequest = requestCollector.collectedRequest;
@@ -206,16 +185,7 @@ public class ShallowStackTest extends TestCase {
         //---------- send & receive the request --------------------------------
         SimpleRequestCollector requestCollector = new SimpleRequestCollector();
         stunStack.addRequestListener(requestCollector);
-        if (selectedTransport == Transport.UDP) {
-            ((DatagramSocket) dummyServerSocket).send(new DatagramPacket(msgFixture.bindingRequest, msgFixture.bindingRequest.length, localAddress));
-        } else {
-            ByteBuffer src = ByteBuffer.allocate(msgFixture.bindingRequest.length + 2);
-            src.put((byte) ((msgFixture.bindingRequest.length >> 8) & 0xff));
-            src.put((byte) (msgFixture.bindingRequest.length & 0xff));
-            src.put(msgFixture.bindingRequest);
-            src.flip();
-            ((Socket) dummyServerSocket).getChannel().write(src);
-        }
+        dgramCollector.send(msgFixture.bindingRequest, localAddress);
         // wait for the packet to arrive
         requestCollector.waitForRequest();
         Request collectedRequest = requestCollector.collectedRequest;
@@ -256,16 +226,7 @@ public class ShallowStackTest extends TestCase {
         // Set the valid tid.
         System.arraycopy(bindingRequest.getTransactionID(), 0, response, 8, 12);
         // send the response
-        if (selectedTransport == Transport.UDP) {
-            ((DatagramSocket) dummyServerSocket).send(new DatagramPacket(response, response.length, localAddress));
-        } else {
-            ByteBuffer src = ByteBuffer.allocate(response.length + 2);
-            src.put((byte) ((response.length >> 8) & 0xff));
-            src.put((byte) (response.length & 0xff));
-            src.put(response);
-            src.flip();
-            ((Socket) dummyServerSocket).getChannel().write(src);
-        }
+        dgramCollector.send(response, localAddress);
         // wait for the packet to arrive
         collector.waitForResponse();
         Response collectedResponse = collector.collectedResponse;

@@ -1,12 +1,14 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 import org.ice4j.Transport;
@@ -26,28 +28,68 @@ public class DatagramCollector implements Runnable {
 
     boolean packetReceived;
 
+    TransportAddress transportAddr;
+
     ServerSocket serverSocket;
 
+    Thread ioThread;
+
     public void startListening(TransportAddress transportAddr) throws Exception {
-        if (transportAddr.getTransport() == Transport.UDP) {
-            InetSocketAddress dummyServerAddress = new InetSocketAddress("127.0.0.1", transportAddr.getPort());
-            sock = new DatagramSocket(dummyServerAddress);
-            ((DatagramSocket) sock).setReuseAddress(true);
-            logger.debug("Bound: {} connected: {}", ((DatagramSocket) sock).isBound(), ((DatagramSocket) sock).isConnected());
-        } else {
-            serverSocket = new ServerSocket(transportAddr.getPort(), 16, transportAddr.getAddress());
-            serverSocket.setReuseAddress(true);
-            sock = serverSocket.accept();
-            logger.debug("Bound: {} connected: {}", ((Socket) sock).isBound(), ((Socket) sock).isConnected());
+        this.transportAddr = transportAddr;
+        // allow re-use
+        if (ioThread != null) {
+            ioThread.interrupt();
+            ioThread = null;
         }
-        new Thread(this).start();
+        ioThread = new Thread(this);
+        ioThread.start();
+    }
+
+    public void stopListening() {
+        if (ioThread != null) {
+            ioThread.interrupt();
+            ioThread = null;
+        }
+        try {
+            ((Closeable) sock).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        sock = null;
     }
 
     public void run() {
+        if (sock == null) {
+            try {
+                if (transportAddr.getTransport() == Transport.UDP) {
+                    InetSocketAddress dummyServerAddress = new InetSocketAddress("127.0.0.1", transportAddr.getPort());
+                    sock = new DatagramSocket(dummyServerAddress);
+                    ((DatagramSocket) sock).setReuseAddress(true);
+                    logger.debug("Bound: {} connected: {}", ((DatagramSocket) sock).isBound(), ((DatagramSocket) sock).isConnected());
+                } else {
+                    serverSocket = new ServerSocket(transportAddr.getPort(), 16, transportAddr.getAddress());
+                    serverSocket.setReuseAddress(true);
+                    sock = serverSocket.accept();
+                    logger.debug("Bound: {} connected: {}", ((Socket) sock).isBound(), ((Socket) sock).isConnected());
+                }
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
         if (sock instanceof DatagramSocket) {
             logger.debug("Listening on: {}:{}", ((DatagramSocket) sock).getLocalAddress(), ((DatagramSocket) sock).getLocalPort());
-        } else {
+        } else if (sock instanceof Socket) {
             logger.debug("Listening on: {}:{}", ((Socket) sock).getLocalAddress(), ((Socket) sock).getLocalPort());
+        } else {
+            logger.error("Socket was null");
+            return;
         }
         byte[] buf = new byte[4096];
         try {
@@ -79,13 +121,6 @@ public class DatagramCollector implements Runnable {
             logger.warn("Exception on receive", e);
             receivedPacket = null;
         }
-        if (serverSocket != null) {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public void waitForPacket() {
@@ -114,5 +149,18 @@ public class DatagramCollector implements Runnable {
         packetReceived = false;
         //return
         return returnValue;
+    }
+
+    public void send(byte[] data, SocketAddress addr) throws IOException {
+        if (sock instanceof DatagramSocket) {
+            ((DatagramSocket) sock).send(new DatagramPacket(data, data.length, addr));
+        } else {
+            ByteBuffer src = ByteBuffer.allocate(data.length + 2);
+            src.put((byte) ((data.length >> 8) & 0xff));
+            src.put((byte) (data.length & 0xff));
+            src.put(data);
+            src.flip();
+            ((Socket) sock).getChannel().write(src);
+        }
     }
 }

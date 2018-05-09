@@ -233,6 +233,8 @@ public class Agent {
      */
     private Boolean useHostHarvester;
 
+    private Transport requestedTransport = Transport.UDP;
+
     /**
      * Creates an empty Agent with no streams, and no address.
      */
@@ -1683,10 +1685,29 @@ public class Agent {
 
     /**
      * Sets the flag which indicates whether the dynamic host harvester will be used or not by this Agent.
+     * 
      * @param useHostHarvester the value to set.
      */
     public void setUseHostHarvester(boolean useHostHarvester) {
         this.useHostHarvester = useHostHarvester;
+    }
+
+    /**
+     * Returns the requested transport.
+     * 
+     * @return transport
+     */
+    public Transport getRequestedTransport() {
+        return requestedTransport;
+    }
+
+    /**
+     * Sets the requested / preferred transport type to use during negotiation.
+     * 
+     * @param transport
+     */
+    public void setRequestedTransport(Transport transport) {
+        this.requestedTransport = transport;
     }
 
     /**

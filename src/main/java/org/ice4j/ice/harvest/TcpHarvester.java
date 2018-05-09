@@ -33,10 +33,8 @@ import org.ice4j.ice.ServerReflexiveCandidate;
 import org.ice4j.ice.TcpHostCandidate;
 
 /**
- * An implementation of {@link AbstractTcpListener} which acts as a
- * {@link CandidateHarvester}. Sessions are accepted if their ufrag matches
- * a {@link Component} registered with this harvester, and the known addresses
- * of {@link AbstractTcpListener} are added as local host candidates (with type
+ * An implementation of {@link AbstractTcpListener} which acts as a {@link CandidateHarvester}. Sessions are accepted if their ufrag matches
+ * a {@link Component} registered with this harvester, and the known addresses of {@link AbstractTcpListener} are added as local host candidates (with type
  * "tcp" and tcptype "passive") when harvesting.
  *
  * @author Boris Grozev
