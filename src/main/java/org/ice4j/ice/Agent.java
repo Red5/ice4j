@@ -332,27 +332,50 @@ public class Agent {
     /**
      * Creates a new {@link Component} for the specified stream and allocates potentially all local candidates that should belong to it.
      *
-     * @param stream the {@link IceMediaStream} that the new {@link Component} should belong to.
+     * @param stream the {@link IceMediaStream} that the new {@link Component} should belong to
      * @param transport the transport protocol used by the component
-     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component.
+     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component
      * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception.
-     * @param keepAliveStrategy the keep-alive strategy, which dictates which candidates pairs are going to be kept alive.
+     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
+     * @param keepAliveStrategy the keep-alive strategy, which dictates which candidates pairs are going to be kept alive
      *
-     * @return the newly created {@link Component} and with a list containing all and only local candidates.
+     * @return the newly created {@link Component} and with a list containing all and only local candidates
      *
      * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt;
-     * maxPort, or if transport is not currently supported.
-     * @throws IOException if an error occurs while the underlying resolver lib is using sockets.
+     * maxPort, or if transport is not currently supported
+     * @throws IOException if an error occurs while the underlying resolver lib is using sockets
      * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed
-     * number of retries.
+     * number of retries
      */
     public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort, KeepAliveStrategy keepAliveStrategy) throws IllegalArgumentException, IOException, BindException {
-        if (transport != Transport.UDP) {
-            throw new IllegalArgumentException("This implementation does not currently support transport: " + transport);
-        }
+        logger.debug("createComponent: {} preferredPort: {}", transport, preferredPort);
         Component component = stream.createComponent(keepAliveStrategy);
-        gatherCandidates(component, preferredPort, minPort, maxPort);
+        /**
+         * Uses all CandidateHarvesters currently registered with this Agent to obtain whatever addresses they can discover.
+         * <p>
+         * Not that the method would only use existing harvesters so make sure you've registered all harvesters that you would want to use before
+         * calling it.
+         */
+        logger.info("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
+        if (useHostHarvester()) {
+            hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, transport);
+        } else if (hostHarvesters.isEmpty()) {
+            logger.warn("No host harvesters available!");
+        }
+        for (CandidateHarvester harvester : hostHarvesters) {
+            harvester.harvest(component);
+        }
+        if (component.getLocalCandidateCount() == 0) {
+            logger.warn("Failed to gather any host candidates!");
+        }
+        //in case we are not trickling, apply other harvesters here
+        if (!isTrickling()) {
+            harvestingStarted = true; //raise a flag to warn on a second call.
+            harvesters.harvest(component);
+        }
+        logger.debug("Candidate count in first harvest: {}", component.getLocalCandidateCount());
+        //select the candidate to put in the media line.
+        component.selectDefaultCandidate();
         /*
          * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
          * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
@@ -373,43 +396,6 @@ public class Agent {
      */
     protected CandidatePair createCandidatePair(LocalCandidate local, RemoteCandidate remote) {
         return new CandidatePair(local, remote);
-    }
-
-    /**
-     * Uses all CandidateHarvesters currently registered with this Agent to obtain whatever addresses they can discover.
-     * <p>
-     * Not that the method would only use existing harvesters so make sure you've registered all harvesters that you would want to use before
-     * calling it.
-     * <br>
-     * @param component the Component that we'd like to gather candidates for
-     * @param preferredPort the port number that should be tried first when binding local Candidate sockets for this Component
-     * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
-     * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
-     *
-     * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt;  maxPort
-     * @throws IOException if an error occurs while the underlying resolver lib is gathering candidates and we end up without even a single one
-     */
-    private void gatherCandidates(Component component, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException {
-        logger.info("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
-        if (useHostHarvester()) {
-            hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, Transport.UDP);
-        } else if (hostHarvesters.isEmpty()) {
-            logger.warn("No host harvesters available!");
-        }
-        for (CandidateHarvester harvester : hostHarvesters) {
-            harvester.harvest(component);
-        }
-        if (component.getLocalCandidateCount() == 0) {
-            logger.warn("Failed to gather any host candidates!");
-        }
-        //in case we are not trickling, apply other harvesters here
-        if (!isTrickling()) {
-            harvestingStarted = true; //raise a flag to warn on a second call.
-            harvesters.harvest(component);
-        }
-        logger.debug("Candidate count in first harvest: {}", component.getLocalCandidateCount());
-        //select the candidate to put in the media line.
-        component.selectDefaultCandidate();
     }
 
     /**

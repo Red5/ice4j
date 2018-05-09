@@ -132,6 +132,7 @@ public class StunStack implements MessageEventHandler {
     }
 
     public StunStack() {
+        logger.debug("ctor");
         // create a new network access manager
         netAccessManager = new NetAccessManager(this);
     }
@@ -147,18 +148,20 @@ public class StunStack implements MessageEventHandler {
         logger.debug("addSocket: {} remote address: {} bind? {}", iceSocket, remoteAddress, doBind);
         // add the wrapper for binding
         if (iceSocket instanceof IceUdpSocketWrapper) {
+            IceUdpTransport transport = IceUdpTransport.getInstance();
             if (doBind) {
-                IceUdpTransport.getInstance().registerStackAndSocket(this, iceSocket);
+                transport.registerStackAndSocket(this, iceSocket);
             } else {
                 // add directly to the ice handler to prevent any unwanted binding
-                ((IceHandler) IceUdpTransport.getInstance().getIoHandler()).registerStackAndSocket(this, iceSocket);
+                ((IceHandler) transport.getIoHandler()).registerStackAndSocket(this, iceSocket);
             }
         } else {
+            IceTcpTransport transport = IceTcpTransport.getInstance();
             if (doBind) {
-                IceTcpTransport.getInstance().registerStackAndSocket(this, iceSocket);
+                transport.registerStackAndSocket(this, iceSocket);
             } else {
                 // add directly to the ice handler to prevent any unwanted binding
-                ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).registerStackAndSocket(this, iceSocket);
+                ((IceHandler) transport.getIoHandler()).registerStackAndSocket(this, iceSocket);
             }
         }
         // add the socket to the net access manager
@@ -333,20 +336,15 @@ public class StunStack implements MessageEventHandler {
     //    }
 
     /**
-     * Sends a specific STUN Indication to a specific destination
-     * TransportAddress through a socket registered with this
+     * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
      * StunStack using a specific TransportAddress.
      *
-     * @param indication the STUN Indication to be sent to the
-     * specified destination TransportAddress through the socket with
+     * @param indication the STUN Indication to be sent to the specified destination TransportAddress through the socket with
      * the specified TransportAddress
-     * @param sendTo the TransportAddress of the destination to which
-     * the specified indication is to be sent
-     * @param sendThrough the TransportAddress of the socket registered
-     * with this StunStack through which the specified
+     * @param sendTo the TransportAddress of the destination to which the specified indication is to be sent
+     * @param sendThrough the TransportAddress of the socket registered with this StunStack through which the specified
      * indication is to be sent
-     * @throws StunException if anything goes wrong while sending the specified
-     * indication to the destination sendTo through the socket
+     * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
      * identified by sendThrough
      */
     public void sendIndication(Indication indication, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
@@ -363,75 +361,54 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends the specified request through the specified access point, and
-     * registers the specified ResponseCollector for later notification.
+     * Sends the specified request through the specified access point, and registers the specified ResponseCollector for later notification.
      * @param  request     the request to send
-     * @param  sendTo      the destination address of the request.
+     * @param  sendTo      the destination address of the request
      * @param  sendThrough the local address to use when sending the request
-     * @param  collector   the instance to notify when a response arrives or the
-     *                     the transaction timeouts
+     * @param  collector   the instance to notify when a response arrives or the transaction timeouts
      *
-     * @return the TransactionID of the StunClientTransaction
-     * that we used in order to send the request.
-     *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
+     * @return the TransactionID of the StunClientTransaction that we used in order to send the request
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
         return sendRequest(request, sendTo, sendThrough, collector, TransactionID.createNewTransactionID());
     }
 
     /**
-     * Sends the specified request through the specified access point, and
-     * registers the specified ResponseCollector for later notification.
+     * Sends the specified request through the specified access point, and registers the specified ResponseCollector for later notification.
      * @param  request     the request to send
-     * @param  sendTo      the destination address of the request.
+     * @param  sendTo      the destination address of the request
      * @param  sendThrough the local address to use when sending the request
-     * @param  collector   the instance to notify when a response arrives or the
-     * the transaction timeouts
-     * @param transactionID the ID that we'd like the new transaction to use
-     * in case the application created it in order to use it for application
-     * data correlation.
+     * @param  collector   the instance to notify when a response arrives or the transaction timeouts
+     * @param transactionID the ID that we'd like the new transaction to use in case the application created it in order to use it for application
+     * data correlation
      *
-     * @return the TransactionID of the StunClientTransaction
-     * that we used in order to send the request.
-     *
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
+     * @return the TransactionID of the StunClientTransactionthat we used in order to send the request
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID) throws IllegalArgumentException, IOException {
         return sendRequest(request, sendTo, sendThrough, collector, transactionID, -1, -1, -1);
     }
 
     /**
-     * Sends the specified request through the specified access point, and
-     * registers the specified ResponseCollector for later notification.
+     * Sends the specified request through the specified access point, and registers the specified ResponseCollector for later notification.
+     * 
      * @param  request     the request to send
-     * @param  sendTo      the destination address of the request.
+     * @param  sendTo      the destination address of the request
      * @param  sendThrough the local address to use when sending the request
-     * @param  collector   the instance to notify when a response arrives or the
-     * the transaction timeouts
-     * @param transactionID the ID that we'd like the new transaction to use
-     * in case the application created it in order to use it for application
-     * data correlation.
-     * @param originalWaitInterval The number of milliseconds to wait before
-     * the first retransmission of the request.
-     * @param maxWaitInterval The maximum wait interval. Once this interval is
-     * reached we should stop doubling its value.
-     * @param maxRetransmissions Maximum number of retransmissions. Once this
-     * number is reached and if no response is received after maxWaitInterval
-     * milliseconds the request is considered unanswered.
-     * @return the TransactionID of the StunClientTransaction
-     * that we used in order to send the request.
+     * @param  collector   the instance to notify when a response arrives or the transaction timeouts
+     * @param transactionID the ID that we'd like the new transaction to use in case the application created it in order to use it for application
+     * data correlation
+     * @param originalWaitInterval The number of milliseconds to wait before the first retransmission of the request
+     * @param maxWaitInterval The maximum wait interval. Once this interval is reached we should stop doubling its value
+     * @param maxRetransmissions Maximum number of retransmissions. Once this number is reached and if no response is received after maxWaitInterval
+     * milliseconds the request is considered unanswered
+     * @return the TransactionID of the StunClientTransaction that we used in order to send the request
      *
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) throws IllegalArgumentException, IOException {
         StunClientTransaction clientTransaction = new StunClientTransaction(this, request, sendTo, sendThrough, collector, transactionID);
@@ -532,30 +509,26 @@ public class StunStack implements MessageEventHandler {
 
     /**
      * Sets the listener that should be notified when a new Request is received.
-     * @param requestListener the listener interested in incoming requests.
+     * @param requestListener the listener interested in incoming requests
      */
     public void addRequestListener(RequestListener requestListener) {
         eventDispatcher.addRequestListener(requestListener);
     }
 
     /**
-     * Removes an existing MessageEventHandler to no longer be notified
-     * about STUN indications received at a specific local
+     * Removes an existing MessageEventHandler to no longer be notified about STUN indications received at a specific local
      * TransportAddress.
      *
-     * @param localAddr the TransportAddress of the local socket for
-     * which received STUN indications are to no longer be reported to the
+     * @param localAddr the TransportAddress of the local socket for which received STUN indications are to no longer be reported to the
      * specified MessageEventHandler
-     * @param indicationListener the MessageEventHandler which is to be
-     * unregistered for notifications about STUN indications received at the
+     * @param indicationListener the MessageEventHandler which is to be unregistered for notifications about STUN indications received at the
      * specified local TransportAddress
      */
     public void removeIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
     }
 
     /**
-     * Removes the specified listener from the local listener list. (If any
-     * instances of this listener have been registered for a particular
+     * Removes the specified listener from the local listener list. (If any instances of this listener have been registered for a particular
      * access point, they will not be removed).
      * @param listener the RequestListener listener to unregister
      */
@@ -564,12 +537,10 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Add a RequestListener for requests coming from a specific NetAccessPoint.
-     * The listener will be invoked only when a request event is received on
+     * Add a RequestListener for requests coming from a specific NetAccessPoint. The listener will be invoked only when a request event is received on
      * that specific property.
      *
-     * @param localAddress The local TransportAddress that we would
-     * like to listen on.
+     * @param localAddress The local TransportAddress that we would like to listen on
      * @param listener The ConfigurationChangeListener to be added
      */
     public void addRequestListener(TransportAddress localAddress, RequestListener listener) {
@@ -577,21 +548,18 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Removes a client transaction from this providers client transactions
-     * list. The method is used by StunClientTransactions themselves
+     * Removes a client transaction from this providers client transactions list. The method is used by StunClientTransactions themselves
      * when a timeout occurs.
      *
-     * @param tran the transaction to remove.
+     * @param tran the transaction to remove
      */
     void removeClientTransaction(StunClientTransaction tran) {
         clientTransactions.remove(tran.getTransactionID());
     }
 
     /**
-     * Removes a server transaction from this provider's server transactions
-     * list.
-     * Method is used by StunServerTransaction-s themselves when they expire.
-     * @param tran the transaction to remove.
+     * Removes a server transaction from this provider's server transactions list. Method is used by StunServerTransaction-s themselves when they expire.
+     * @param tran the transaction to remove
      */
     void removeServerTransaction(StunServerTransaction tran) {
         serverTransactions.remove(tran.getTransactionID());

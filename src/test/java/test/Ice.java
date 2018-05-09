@@ -47,16 +47,35 @@ public class Ice {
      */
     static long startTime;
 
-    // local coTurn testing
-    //private static final TransportAddress stun4 = new TransportAddress("10.0.0.5", 3478, Transport.UDP);
+    /**
+     * Transport type to be used for the test.
+     */
+    static Transport selectedTransport = Transport.UDP;
 
-    // stun.l.google.com stun1.l.google.com stun2.l.google.com stun3.l.google.com
-    private static final TransportAddress stun4 = new TransportAddress("173.194.196.127", 19302, Transport.UDP);
+    /** 
+     * Google stun server IPs (as of writing) all use port 19302
+     * stun.l.google.com 74.125.200.127
+     * stun1.l.google.com 173.194.196.127
+     * stun2.l.google.com 108.177.98.127
+     * stun3.l.google.com 173.194.207.127
+     * 
+     * Mozilla
+     * stun.services.mozilla.com 52.87.201.4
+     * 
+     * Other
+     * stun.jitsi.net 91.121.47.14
+     * stun6.jitsi.net 
+     * 
+     * Local coTurn 10.0.0.5
+     */
+    private static final TransportAddress stun4;
 
-    // jitsi stun
-    //private static final TransportAddress stun4 = new TransportAddress("stun.jitsi.net", 3478, Transport.UDP);
+    private static final TransportAddress stun6;
 
-    private static final TransportAddress stun6 = new TransportAddress("stun6.jitsi.net", 3478, Transport.UDP);
+    static {
+        stun4 = new TransportAddress("91.121.47.14", 3478, selectedTransport);
+        stun6 = new TransportAddress("stun6.jitsi.net", 3478, selectedTransport);
+    }
 
     /**
      * Runs the test
@@ -267,7 +286,7 @@ public class Ice {
             int port = stun4.getPort();
             LongTermCredential longTermCredential = new LongTermCredential("guest", "anonymouspower!!");
             for (String hostname : hostnames) {
-                agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, Transport.UDP), longTermCredential));
+                agent.addCandidateHarvester(new TurnCandidateHarvester(new TransportAddress(hostname, port, selectedTransport), longTermCredential));
             }
         } else {
             for (CandidateHarvester harvester : harvesters) {
@@ -276,7 +295,7 @@ public class Ice {
         }
         //STREAMS
         createStream(rtpPort, "audio", agent);
-        createStream(rtpPort + 2, "video", agent);
+        //createStream(rtpPort + 2, "video", agent);
         long endTime = System.currentTimeMillis();
         long total = endTime - startTime;
         logger.info("Total harvesting time: {}ms", total);
@@ -302,14 +321,14 @@ public class Ice {
         //created so that we could run the harvesting for everyone of them simultaneously with the others.
 
         //rtp
-        agent.createComponent(stream, Transport.UDP, rtpPort, rtpPort, rtpPort + 100);
+        agent.createComponent(stream, selectedTransport, rtpPort, rtpPort, rtpPort + 100);
         long endTime = System.currentTimeMillis();
         logger.info("RTP Component created in " + (endTime - startTime) + " ms");
         startTime = endTime;
         //rtcpComp
-        agent.createComponent(stream, Transport.UDP, rtpPort + 1, rtpPort + 1, rtpPort + 101);
-        endTime = System.currentTimeMillis();
-        logger.info("RTCP Component created in " + (endTime - startTime) + " ms");
+        //agent.createComponent(stream, selectedTransport, rtpPort + 1, rtpPort + 1, rtpPort + 101);
+        //endTime = System.currentTimeMillis();
+        //logger.info("RTCP Component created in " + (endTime - startTime) + " ms");
         return stream;
     }
 }

@@ -13,12 +13,15 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandler;
+import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.transport.socket.SocketSessionConfig;
+import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.stack.RawMessage;
@@ -33,16 +36,18 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     /**
      * Constructor.
      *
-     * @param delegate delegate Socket
-     *
-     * @throws IOException if something goes wrong during initialization
+     * @param session
      */
-    public IceTcpSocketWrapper(IoSession session) throws IOException {
+    public IceTcpSocketWrapper(IoSession session) {
         super(session);
-        try {
-            transportAddress = new TransportAddress((InetSocketAddress) session.getLocalAddress(), Transport.TCP);
-        } catch (Exception e) {
-            logger.warn("Exception configuring transport address", e);
+        if (session != null) {
+            try {
+                transportAddress = new TransportAddress((InetSocketAddress) session.getLocalAddress(), Transport.TCP);
+            } catch (Exception e) {
+                logger.warn("Exception configuring transport address", e);
+            }
+        } else {
+            logger.debug("Datagram session is not bound");
         }
     }
 
@@ -64,22 +69,32 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             logger.debug("Connection is closed");
             throw new ClosedChannelException();
         } else {
-            //if (logger.isDebugEnabled()) {
-            //    logger.debug("send: {}", buf);
+            //if (logger.isTraceEnabled()) {
+            //    logger.trace("send: {}", buf);
             //}
+            boolean aquired = false;
             try {
-                // enforce fairness lock
-                if (lock.tryAcquire(0, TimeUnit.SECONDS)) {
-                    IoSession sess = session.get();
-                    if (sess != null) {
+                IoSession sess = session.get();
+                if (sess != null) {
+                    // enforce fairness lock
+                    if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
                         WriteFuture writeFuture = sess.write(buf, destAddress);
                         writeFuture.addListener(writeListener);
-                    } else {
-                        logger.debug("No session, attempting connect: {}", transportAddress);
+                    }
+                } else {
+                    logger.debug("No session, attempting connect: {}", transportAddress);
+                    // if we're not bound, attempt to create a client session
+                    try {
                         NioSocketConnector connector = new NioSocketConnector();
                         SocketSessionConfig config = connector.getSessionConfig();
                         config.setReuseAddress(true);
                         config.setTcpNoDelay(true);
+                        // set an idle time of 30s (default)
+                        config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
+                        // QoS
+                        //config.setTrafficClass(trafficClass);
+                        // set connection timeout of 30s
+                        connector.setConnectTimeoutMillis(IceTransport.getTimeout() * 1000L);
                         // add the ice protocol encoder/decoder
                         connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                         // re-use the io handler
@@ -94,21 +109,46 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         // connect it
                         ConnectFuture future = connector.connect(destAddress, transportAddress);
                         future.addListener(connectListener);
-                        future.awaitUninterruptibly(500L);
-                        logger.trace("Future await returned");
+                    } catch (Throwable t) {
+                        logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
+                        // look for an existing acceptor
+                        NioSocketAcceptor acceptor = (NioSocketAcceptor) IceTcpTransport.getInstance().getAcceptor();
+                        if (acceptor != null) {
+                            try {
+                                // attempt to create a server session, if it fails the local address isn't bound
+                                sess = acceptor.newSession(destAddress, transportAddress);
+                                if (sess != null) {
+                                    // set session on this socket wrapper
+                                    setSession(sess);
+                                    // count down since we have a session
+                                    connectLatch.countDown();
+                                }
+                            } catch (Exception e) {
+                                logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
+                            }
+                        }
+                    }
+                    // wait up-to 500 milliseconds for a connection to be established
+                    if (connectLatch.await(500, TimeUnit.MILLISECONDS)) {
                         // attempt to get a newly added session from connect process
                         sess = session.get();
                         if (sess != null) {
-                            WriteFuture writeFuture = sess.write(buf, destAddress);
-                            writeFuture.addListener(writeListener);
+                            // enforce fairness lock
+                            if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
+                                WriteFuture writeFuture = sess.write(buf, destAddress);
+                                writeFuture.addListener(writeListener);
+                            }
                         } else {
                             logger.warn("Send failed on session creation");
                         }
                     }
+                }
+            } catch (Throwable t) {
+                logger.warn("Exception acquiring send lock", t);
+            } finally {
+                if (aquired) {
                     lock.release();
                 }
-            } catch (InterruptedException e) {
-                logger.warn("Exception acquiring send lock", e);
             }
         }
     }
@@ -130,7 +170,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     public void receive(DatagramPacket p) throws IOException {
         RawMessage message = rawMessageQueue.poll();
         if (message != null) {
-            p.setData(message.getBytes());
+            p.setData(message.getBytes(), 0, message.getMessageLength());
             p.setSocketAddress(message.getRemoteAddress());
         }
     }

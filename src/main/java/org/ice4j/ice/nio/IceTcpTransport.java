@@ -3,7 +3,6 @@ package org.ice4j.ice.nio;
 import java.io.IOException;
 import java.net.SocketAddress;
 
-import org.apache.mina.core.filterchain.DefaultIoFilterChainBuilder;
 import org.apache.mina.core.service.IoHandler;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.service.IoService;
@@ -72,6 +71,7 @@ public class IceTcpTransport extends IceTransport {
             @Override
             public void sessionCreated(IoSession session) throws Exception {
                 logger.debug("sessionCreated: {}", session);
+                logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
             }
 
             @Override
@@ -90,15 +90,19 @@ public class IceTcpTransport extends IceTransport {
         sessionConf.setTcpNoDelay(true);
         sessionConf.setSendBufferSize(sendBufferSize);
         sessionConf.setReadBufferSize(receiveBufferSize);
+        // set an idle time of 30s
+        sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
+        // QoS
+        //sessionConf.setTrafficClass(trafficClass);
         // close sessions when the acceptor is stopped
         acceptor.setCloseOnDeactivation(true);
         // requested maximum length of the queue of incoming connections
         ((NioSocketAcceptor) acceptor).setBacklog(64);
         ((NioSocketAcceptor) acceptor).setReuseAddress(true);
-        acceptor.setHandler(new IceHandler());
         // get the filter chain and add our codec factory
-        DefaultIoFilterChainBuilder chain = acceptor.getFilterChain();
-        chain.addLast("protocol", protocolCodecFilter);
+        acceptor.getFilterChain().addLast("protocol", protocolCodecFilter);
+        // add our handler
+        acceptor.setHandler(new IceHandler());
         logger.info("Started socket transport");
         if (logger.isDebugEnabled()) {
             logger.debug("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());

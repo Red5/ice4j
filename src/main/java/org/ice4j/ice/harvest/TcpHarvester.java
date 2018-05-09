@@ -342,18 +342,11 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
             logger.fine("Adding a socket to an Agent in state " + state);
         }
         /*
-        // Socket to add to the candidate
-        IceSocketWrapper candidateSocket = new IceTcpSocketWrapper(socket.getChannel());
-        TcpHostCandidate candidate = findCandidate(component, socket);
-        if (candidate == null) {
-            throw new IOException("Failed to find the local candidate for socket: " + socket);
-        }
-        component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket);
-        candidate.addSocket(candidateSocket);
-        // TODO: Maybe move this code to the candidate.
-        component.getComponentSocket().setSocket(candidateSocket);
-        // the socket is not our responsibility anymore. It is up to the candidate/component to close/free it.
-        
+         * // Socket to add to the candidate IceSocketWrapper candidateSocket = new IceTcpSocketWrapper(socket.getChannel()); TcpHostCandidate candidate = findCandidate(component,
+         * socket); if (candidate == null) { throw new IOException("Failed to find the local candidate for socket: " + socket); }
+         * component.getParentStream().getParentAgent().getStunStack().addSocket(candidateSocket); candidate.addSocket(candidateSocket); // TODO: Maybe move this code to the
+         * candidate. component.getComponentSocket().setSocket(candidateSocket); // the socket is not our responsibility anymore. It is up to the candidate/component to close/free
+         * it.
          */
     }
 

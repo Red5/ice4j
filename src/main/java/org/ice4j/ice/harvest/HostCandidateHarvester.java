@@ -23,6 +23,7 @@ import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
 import org.ice4j.ice.nio.IceHandler;
+import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
@@ -362,14 +363,19 @@ public class HostCandidateHarvester {
      */
     private IceSocketWrapper createServerSocket(InetAddress laddr, int preferredPort, int minPort, int maxPort, Component component) throws IllegalArgumentException, IOException, BindException {
         // make sure port numbers are valid
-        this.checkPorts(preferredPort, minPort, maxPort);
+        checkPorts(preferredPort, minPort, maxPort);
         int bindRetries = StackProperties.getInt(StackProperties.BIND_RETRIES, StackProperties.BIND_RETRIES_DEFAULT_VALUE);
         int port = preferredPort;
         for (int i = 0; i < bindRetries; i++) {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.TCP);
                 // we successfully bound to the address so create a wrapper
-                IceTcpSocketWrapper sock = new IceTcpSocketWrapper(localAddress);//, component);
+                //IceTcpSocketWrapper sock = new IceTcpSocketWrapper(localAddress);//, component);
+                IceSocketWrapper sock = ((IceHandler) IceTcpTransport.getInstance().getIoHandler()).lookupBinding(localAddress);
+                // create a new socket since there isn't one registered for the local address
+                if (sock == null) {
+                    sock = new IceTcpSocketWrapper(localAddress);
+                }
                 // return the socket
                 return sock;
             } catch (Exception se) {
@@ -403,7 +409,7 @@ public class HostCandidateHarvester {
      */
     private IceSocketWrapper createDatagramSocket(InetAddress laddr, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException, BindException {
         // make sure port numbers are valid.
-        this.checkPorts(preferredPort, minPort, maxPort);
+        checkPorts(preferredPort, minPort, maxPort);
         int bindRetries = StackProperties.getInt(StackProperties.BIND_RETRIES, StackProperties.BIND_RETRIES_DEFAULT_VALUE);
         int port = preferredPort;
         for (int i = 0; i < bindRetries; i++) {

@@ -80,6 +80,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      * null if the use of the STUN short-term credential mechanism is not determined at the time of the construction of the new instance
      */
     public StunCandidateHarvester(TransportAddress stunServer, String shortTermCredentialUsername) {
+        logger.debug("StunCandidateHarvester - server: {} user name: {}", stunServer, shortTermCredentialUsername);
         this.stunServer = stunServer;
         this.shortTermCredentialUsername = shortTermCredentialUsername;
         //these should be configurable.
@@ -234,6 +235,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         HostCandidate cand = null;
         // create a new TCP HostCandidate
         if (hostCand.getTransport() == Transport.TCP) {
+            logger.info("create a new TCP HostCandidate");
             NioSocketConnector connector = new NioSocketConnector();
             connector.setHandler(new IceHandler());
             ConnectFuture future = connector.connect(stunServer);
@@ -241,6 +243,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             future.awaitUninterruptibly(4000L);
             if (future.isConnected()) {
                 try {
+                    // the builder will determine tcp or udp based on "connection-less" property
                     IceSocketWrapper sock = IceSocketWrapper.build(future.getSession());
                     Component component = hostCand.getParentComponent();
                     cand = new HostCandidate(sock, component);
@@ -254,6 +257,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 logger.warn("Connection to {} failed", stunServer);
             }
         } else {
+            logger.info("use existing UDP HostCandidate");
             cand = hostCand;
         }
         if (cand == null) {

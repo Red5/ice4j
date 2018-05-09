@@ -292,10 +292,18 @@ public abstract class IceSocketWrapper {
      * @throws IOException
      */
     public final static IceSocketWrapper build(IoSession session) throws IOException {
+        // TODO remove this sysout
+        System.out.println("build: " + session + " connectionless: " + session.getTransportMetadata().isConnectionless());
+        IceSocketWrapper iceSocket = null;
         if (session.getTransportMetadata().isConnectionless()) {
-            return new IceUdpSocketWrapper(session);
+            iceSocket = new IceUdpSocketWrapper(session);
+        } else {
+            iceSocket = new IceTcpSocketWrapper(session);
+            // set remote address (only sticks if its TCP)
+            InetSocketAddress inetAddr = (InetSocketAddress) session.getRemoteAddress();
+            iceSocket.setRemoteTransportAddress(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
         }
-        return new IceTcpSocketWrapper(session);
+        return iceSocket;
     }
 
 }

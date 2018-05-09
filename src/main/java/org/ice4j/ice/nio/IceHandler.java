@@ -75,11 +75,12 @@ public class IceHandler extends IoHandlerAdapter {
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
-        logger.debug("Acceptor sessions: {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
+        logger.debug("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
         // get the local address
         SocketAddress addr = session.getLocalAddress();
         IceSocketWrapper iceSocket = iceSockets.get(addr);
         if (iceSocket != null) {
+            // set the session
             iceSocket.setSession(session);
         } else {
             logger.debug("No ice socket at create for: {}", addr);

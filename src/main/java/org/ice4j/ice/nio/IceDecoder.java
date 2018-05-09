@@ -37,25 +37,33 @@ public class IceDecoder extends ProtocolDecoderAdapter {
 
     @Override
     public void decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
-        //logger.trace("Decode start pos: {} session: {}", in.position(), session.getId());
+        logger.trace("Decode start pos: {} session: {}", in.position(), session.getId());
         IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
+            // determine the transport in-use
+            Transport transport = (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP);
             //logger.trace("Decoding: {}", in);
             // SocketAddress from session are InetSocketAddress which fail cast to TransportAddress, so handle there here
             SocketAddress localAddr = session.getLocalAddress();
             if (localAddr instanceof InetSocketAddress) {
                 InetSocketAddress inetAddr = (InetSocketAddress) localAddr;
-                localAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+                localAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
             }
             SocketAddress remoteAddr = session.getRemoteAddress();
             if (remoteAddr instanceof InetSocketAddress) {
                 InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
-                remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP));
+                remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
             }
-            // there is incoming data from the socket, decode it
+            // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
+            int frameLength = in.remaining();
+            // if we're TCP (not UDP), grab the size and advance the position
+            if (transport != Transport.UDP) {
+                frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+            }
+            logger.trace("Decode frame length: {}", frameLength);
             // get the incoming bytes
-            byte[] buf = new byte[in.remaining()];
+            byte[] buf = new byte[frameLength];
             // get the bytes into our buffer
             in.get(buf);
             // STUN messages are at least 20 bytes and DTLS are 13+
@@ -117,16 +125,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             out.write(resultBuffer);
         }
     }
-
-    /*
-     * TCP has a 2b prefix containing its size Receives an RFC4571-formatted frame from channel into p, and sets p's port and address to the remote port and address of this Socket.
-     * public void receive(DatagramPacket p) throws IOException { SocketChannel socketChannel = (SocketChannel) channel; while (frameLengthByteBuffer.hasRemaining()) { int read =
-     * socketChannel.read(frameLengthByteBuffer); if (read == -1) { throw new SocketException("Failed to receive data from socket."); } } frameLengthByteBuffer.flip(); int b0 =
-     * frameLengthByteBuffer.get(); int b1 = frameLengthByteBuffer.get(); int frameLength = ((b0 & 0xFF) << 8) | (b1 & 0xFF); frameLengthByteBuffer.flip(); byte[] data =
-     * p.getData(); if (data == null || data.length < frameLength) { data = new byte[frameLength]; } ByteBuffer byteBuffer = ByteBuffer.wrap(data, 0, frameLength); while
-     * (byteBuffer.hasRemaining()) { int read = socketChannel.read(byteBuffer); if (read == -1) { throw new SocketException("Failed to receive data from socket."); } }
-     * p.setAddress(socketChannel.socket().getInetAddress()); p.setData(data, 0, frameLength); p.setPort(socketChannel.socket().getPort()); }
-     */
 
     /**
      * Determines whether data in a byte array represents a STUN message.
