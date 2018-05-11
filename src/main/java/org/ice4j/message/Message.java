@@ -774,25 +774,17 @@ public abstract class Message {
      */
     public byte[] encode(StunStack stunStack) throws IllegalStateException {
         prepareForEncoding();
-
         final char dataLength;
-
         dataLength = getDataLength();
-
         byte binMsg[] = new byte[HEADER_LENGTH + dataLength];
         int offset = 0;
-
         // STUN Message Type
         binMsg[offset++] = (byte) (getMessageType() >> 8);
         binMsg[offset++] = (byte) (getMessageType() & 0xFF);
-
         // Message Length
         final int messageLengthOffset = offset;
-
         offset += 2;
-
         byte tranID[] = getTransactionID();
-
         if (tranID.length == TransactionID.RFC5389_TRANSACTION_ID_LENGTH) {
             System.arraycopy(MAGIC_COOKIE, 0, binMsg, offset, 4);
             offset += 4;
@@ -803,41 +795,29 @@ public abstract class Message {
             System.arraycopy(tranID, 0, binMsg, offset, TransactionID.RFC3489_TRANSACTION_ID_LENGTH);
             offset += TransactionID.RFC3489_TRANSACTION_ID_LENGTH;
         }
-
         char dataLengthForContentDependentAttribute = 0;
-
         for (Attribute attribute : attributes) {
             int attributeLength = attribute.getDataLength() + Attribute.HEADER_LENGTH;
-
             //take attribute padding into account:
             attributeLength += (4 - attributeLength % 4) % 4;
             dataLengthForContentDependentAttribute += attributeLength;
-
             //special handling for message integrity and fingerprint values
             byte[] binAtt;
-
             if (attribute instanceof ContentDependentAttribute) {
-                /*
-                 * The "Message Length" seen by a ContentDependentAttribute is up to and including the very Attribute but without any other Attribute instances after it.
-                 */
+                // "Message Length" seen by a ContentDependentAttribute is up to and including the very Attribute but without any other Attribute instances after it.
                 binMsg[messageLengthOffset] = (byte) (dataLengthForContentDependentAttribute >> 8);
                 binMsg[messageLengthOffset + 1] = (byte) (dataLengthForContentDependentAttribute & 0xFF);
                 binAtt = ((ContentDependentAttribute) attribute).encode(stunStack, binMsg, 0, offset);
             } else {
                 binAtt = attribute.encode();
             }
-
             System.arraycopy(binAtt, 0, binMsg, offset, binAtt.length);
-            /*
-             * Offset by attributeLength and not by binAtt.length because attributeLength takes the attribute padding into account and binAtt.length does not.
-             */
+            // Offset by attributeLength and not by binAtt.length because attributeLength takes the attribute padding into account and binAtt.length does not.
             offset += attributeLength;
         }
-
         // Message Length
         binMsg[messageLengthOffset] = (byte) (dataLength >> 8);
         binMsg[messageLengthOffset + 1] = (byte) (dataLength & 0xFF);
-
         return binMsg;
     }
 
@@ -846,30 +826,22 @@ public abstract class Message {
      * Asserts attribute order where necessary.
      */
     private void prepareForEncoding() {
-        //remove MESSAGE-INTEGRITY and FINGERPRINT attributes so that we can
-        //make sure they are added at the end.
+        //remove MESSAGE-INTEGRITY and FINGERPRINT attributes so that we can make sure they are added at the end.
         Attribute msgIntAttr = removeAttribute(Attribute.Type.MESSAGE_INTEGRITY);
         Attribute fingerprint = removeAttribute(Attribute.Type.FINGERPRINT);
-
-        //add a SOFTWARE attribute if the user said so, and unless they did it
-        //themselves.
+        //add a SOFTWARE attribute if the user said so, and unless they did it themselves.
         String software = System.getProperty(StackProperties.SOFTWARE);
-
         if (getAttribute(Attribute.Type.SOFTWARE) == null && software != null && software.length() > 0) {
             putAttribute(AttributeFactory.createSoftwareAttribute(software.getBytes()));
         }
-
         //re-add MESSAGE-INTEGRITY if there was one.
         if (msgIntAttr != null) {
             putAttribute(msgIntAttr);
         }
-
-        //add FINGERPRINT if there was one or if user told us to add it
-        //everywhere.
+        //add FINGERPRINT if there was one or if user told us to add it everywhere.
         if (fingerprint == null && Boolean.getBoolean(StackProperties.ALWAYS_SIGN)) {
             fingerprint = AttributeFactory.createFingerprintAttribute();
         }
-
         if (fingerprint != null) {
             putAttribute(fingerprint);
         }

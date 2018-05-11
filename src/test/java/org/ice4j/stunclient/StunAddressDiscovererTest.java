@@ -29,6 +29,7 @@ import test.PortUtil;
  * @author Emil Ivov
  */
 public class StunAddressDiscovererTest extends TestCase {
+
     private NetworkConfigurationDiscoveryProcess stunAddressDiscoverer = null;
 
     private TransportAddress discovererAddress;
@@ -39,7 +40,7 @@ public class StunAddressDiscovererTest extends TestCase {
 
     private TransportAddress mappedClientAddressPort2;
 
-    private ResponseSequenceServer responseServer = null;
+    private ResponseSequenceServer responseServer;
 
     public StunAddressDiscovererTest(String name) throws StunException {
         super(name);

@@ -133,10 +133,13 @@ public class IceTcpTransport extends IceTransport {
         // add the stack and wrapper to a map which will hold them until an associated session is opened
         // when opened, the stack and wrapper will be added to the session as attributes
         iceHandler.registerStackAndSocket(stunStack, iceSocket);
-        // get the local address
-        TransportAddress localAddress = iceSocket.getTransportAddress();
-        // attempt to add a binding to the server
-        result = addBinding(localAddress);
+        // dont bind if we're already connected
+        if (iceSocket.getSession() == null) {
+            // get the local address
+            TransportAddress localAddress = iceSocket.getTransportAddress();
+            // attempt to add a binding to the server
+            result = addBinding(localAddress);
+        }
         return result;
     }
 

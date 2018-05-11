@@ -34,9 +34,47 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      */
     private static final int DTLS_RECORD_HEADER_LENGTH = 13;
 
+    /**
+     * Thread local for incomplete frame chunks.
+     */
+    private ThreadLocal<FrameChunk> tcpFrameChunk = new ThreadLocal<>();
+
+    /**
+     * Holder of incomplete frames.
+     */
+    private class FrameChunk {
+
+        int totalLength;
+
+        IoBuffer chunk;
+
+        FrameChunk(int frameLength, IoBuffer in) {
+            logger.debug("Frame chunk target size: {}", frameLength);
+            // keep track of the frame length
+            totalLength = frameLength;
+            // does not contain the tcp framing length bytes at the start
+            chunk = IoBuffer.allocate(frameLength);
+            byte[] b = new byte[in.remaining()];
+            in.get(b);
+            chunk.put(b);
+        }
+
+        // we're complete when no room remains
+        boolean isComplete() {
+            logger.debug("Frame chunk has {} remaining", chunk.remaining());
+            return !chunk.hasRemaining();
+        }
+
+        void reset() {
+            totalLength = 0;
+            chunk.clear();
+        }
+
+    }
+
     @Override
     public void decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
-        logger.trace("Decode start pos: {} session: {}", in.position(), session.getId());
+        logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
         IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
@@ -54,17 +92,101 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
                 remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
             }
+            // get the incoming bytes
+            byte[] buf = null;
             // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
             int frameLength = in.remaining();
             // if we're TCP (not UDP), grab the size and advance the position
             if (transport != Transport.UDP) {
-                frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                // check for an existing frame chunk
+                FrameChunk frameChunk = tcpFrameChunk.get();
+                if (frameChunk != null) {
+                    // check for completed frame
+                    if (frameChunk.isComplete()) {
+                        // flip for reading
+                        frameChunk.chunk.flip();
+                        // size buf for reading all the frame chunk data
+                        buf = new byte[frameChunk.totalLength];
+                        // get the frame
+                        frameChunk.chunk.get(buf);
+                        // now clear / reset
+                        frameChunk.reset();
+                        // this would seem indicate an additional frame
+                        int remaining = in.remaining();
+                        // we need at least 2 bytes for the frame length
+                        if (remaining > 2) {
+                            // get the frame length
+                            frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                            // start a new frame chunk if > 0 (null frame)
+                            if (frameLength > 0) {
+                                tcpFrameChunk.set(new FrameChunk(frameLength, in));
+                            } else {
+                                logger.debug("Skipping null frame");
+                                // clear thread local
+                                tcpFrameChunk.set(null);
+                            }
+                        } else {
+                            // clear thread local
+                            tcpFrameChunk.set(null);
+                        }
+                    } else {
+                        // add to the incomplete frame, only taking the smallest of the two
+                        buf = new byte[Math.min(frameLength, frameChunk.chunk.remaining())];
+                        in.get(buf);
+                        frameChunk.chunk.put(buf);
+                        // check to see if the frame is now complete and proceed appropriately
+                        if (frameChunk.isComplete()) {
+                            // flip for reading
+                            frameChunk.chunk.flip();
+                            // size buf for reading all the frame chunk data
+                            buf = new byte[frameChunk.totalLength];
+                            // get the frame
+                            frameChunk.chunk.get(buf);
+                            // now clear / reset
+                            frameChunk.reset();
+                            // this would seem indicate an additional frame
+                            int remaining = in.remaining();
+                            // we need at least 2 bytes for the frame length
+                            if (remaining > 2) {
+                                // get the frame length
+                                frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                                // start a new frame chunk if > 0 (null frame)
+                                if (frameLength > 0) {
+                                    tcpFrameChunk.set(new FrameChunk(frameLength, in));
+                                } else {
+                                    logger.debug("Skipping null frame");
+                                    // clear thread local
+                                    tcpFrameChunk.set(null);
+                                }
+                            } else {
+                                // clear thread local
+                                tcpFrameChunk.set(null);
+                            }
+                        } else {
+                            // frame was not complete so return for more data
+                            return;
+                        }
+                    }
+                } else {
+                    // get the frame length
+                    frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                    // if the frame length is greater than the remaining bytes, we'll have to buffer them until we get the full frame
+                    if (in.remaining() < frameLength) {
+                        tcpFrameChunk.set(new FrameChunk(frameLength, in));
+                        return;
+                    }
+                    // read as much as we have
+                    buf = new byte[frameLength];
+                    // get the bytes into our buffer
+                    in.get(buf);
+                }
+            } else {
+                // udp
+                buf = new byte[frameLength];
+                // get the bytes into our buffer
+                in.get(buf);
             }
-            logger.trace("Decode frame length: {}", frameLength);
-            // get the incoming bytes
-            byte[] buf = new byte[frameLength];
-            // get the bytes into our buffer
-            in.get(buf);
+            logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
             // STUN messages are at least 20 bytes and DTLS are 13+
             if (buf.length > DTLS_RECORD_HEADER_LENGTH) {
                 // if its a stun message, process it
@@ -87,7 +209,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         logger.warn("Stun stack was null for session: {}, cannot decode STUN messages", session.getId());
                     }
                 } else if (isDtls(buf)) {
-                    logger.trace("Byte buffer length: {} {}", buf.length, in);
                     int offset = 0;
                     do {
                         if (logger.isTraceEnabled()) {

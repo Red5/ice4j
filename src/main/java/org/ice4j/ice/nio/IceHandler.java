@@ -95,7 +95,7 @@ public class IceHandler extends IoHandlerAdapter {
         StunStack stunStack = stunStacks.get(addr);
         if (stunStack != null) {
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
-            // XXX create socket registration check to stun stack
+            // XXX create socket registration
             if (transport == Transport.TCP) {
                 // get the remote address
                 inetAddr = (InetSocketAddress) session.getRemoteAddress();
@@ -112,7 +112,7 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
         logger.trace("Message received (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
-        //logger.trace("Received: {}", String.valueOf(message));
+        logger.trace("Received: {}", String.valueOf(message));
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
         if (iceSocket != null) {
             if (message instanceof RawMessage) {
@@ -131,7 +131,7 @@ public class IceHandler extends IoHandlerAdapter {
     public void messageSent(IoSession session, Object message) throws Exception {
         if (logger.isTraceEnabled()) {
             logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
-            //logger.trace("Sent: {}", String.valueOf(message));
+            logger.trace("Sent: {}", String.valueOf(message));
         }
     }
 

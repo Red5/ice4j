@@ -180,6 +180,7 @@ public class NetAccessManager {
                 connector = connectorsForLocalAddress.get(null);
             }
         }
+        logger.debug("Returning connector: {}", connector);
         return connector;
     }
 
@@ -189,10 +190,10 @@ public class NetAccessManager {
      *
      * @param stunMessage the message to send
      * @param srcAddr the access point to use to send the message
-     * @param remoteAddr the destination of the message.
+     * @param remoteAddr the destination of the message
      *
-     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed,
-     * @throws IOException  if an error occurs while sending message bytes through the network socket.
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
     void sendMessage(Message stunMessage, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
         sendMessage(stunMessage.encode(stunStack), srcAddr, remoteAddr);
@@ -203,10 +204,10 @@ public class NetAccessManager {
      *
      * @param channelData the message to send
      * @param srcAddr the access point to use to send the message
-     * @param remoteAddr the destination of the message.
+     * @param remoteAddr the destination of the message
      *
-     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed,
-     * @throws IOException  if an error occurs while sending message bytes through the network socket.
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
      * @throws StunException 
      */
     void sendMessage(ChannelData channelData, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException, StunException {

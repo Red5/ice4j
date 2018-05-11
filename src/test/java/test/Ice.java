@@ -73,7 +73,7 @@ public class Ice {
     private static final TransportAddress stun6;
 
     static {
-        stun4 = new TransportAddress("91.121.47.14", 3478, selectedTransport);
+        stun4 = new TransportAddress("10.0.0.5", 3478, selectedTransport);
         stun6 = new TransportAddress("stun6.jitsi.net", 3478, selectedTransport);
     }
 
