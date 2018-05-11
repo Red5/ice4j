@@ -447,7 +447,7 @@ public class ShallowStackTest extends TestCase {
          */
         public void processResponse(StunResponseEvent response) {
             collectedResponse = (Response) response.getMessage();
-            logger.debug("Received response");
+            logger.debug("Received response: {}", collectedResponse);
         }
 
         /**
@@ -481,7 +481,7 @@ public class ShallowStackTest extends TestCase {
         public void processRequest(StunMessageEvent evt) {
             collectedRequest = (Request) evt.getMessage();
             stunStack.removeRequestListener(this);
-            logger.debug("Received request");
+            logger.debug("Received request: {}", collectedRequest);
         }
 
         /**

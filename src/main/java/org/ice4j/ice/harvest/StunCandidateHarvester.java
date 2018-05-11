@@ -8,16 +8,20 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.mina.core.future.ConnectFuture;
+import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.session.IoSession;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Agent;
 import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidateTcpType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
@@ -228,6 +232,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
     private void startResolvingCandidate(HostCandidate hostCand) {
         // first of all, make sure that the STUN server and the Candidate address are of the same type and that they can communicate.
         if (!hostCand.getTransportAddress().canReach(stunServer)) {
+            logger.info("Transport mismatch, skipping candidate in this harvester");
             return;
         }
         // Sets the host candidate. For UDP it simply returns the candidate passed as a parameter. For TCP, we cannot return the same hostCandidate
@@ -239,58 +244,74 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             NioSocketConnector connector = new NioSocketConnector();
             connector.setHandler(IceTransport.getIceHandler());
             ConnectFuture future = connector.connect(stunServer);
-            // wait until a little past a standard time for STUN to complete
-            future.awaitUninterruptibly(4000L);
-            if (future.isConnected()) {
-                try {
-                    // the builder will determine tcp or udp based on "connection-less" property
-                    IceSocketWrapper sock = IceSocketWrapper.build(future.getSession());
-                    Component component = hostCand.getParentComponent();
-                    cand = new HostCandidate(sock, component);
-                    Agent agent = component.getParentStream().getParentAgent();
-                    agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
-                    component.getComponentSocket().setSocket(sock);
-                } catch (Exception e) {
-                    logger.warn("Exception TCP client connect", e);
+            future.addListener(new IoFutureListener<ConnectFuture>() {
+
+                @Override
+                public void operationComplete(ConnectFuture future) {
+                    IoSession sess = future.getSession();
+                    if (!future.isConnected()) {
+                        logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+                    } else {
+                        try {
+                            Component component = hostCand.getParentComponent();
+                            Agent agent = component.getParentStream().getParentAgent();
+                            // the builder will determine tcp or udp based on "connection-less" property
+                            IceSocketWrapper sock = IceSocketWrapper.build(sess);
+                            // create a new host candidate
+                            HostCandidate hostCandidate = new HostCandidate(sock, component, Transport.TCP);
+                            // set the tcptype
+                            hostCandidate.setTcpType(agent.isControlling() ? CandidateTcpType.ACTIVE : CandidateTcpType.PASSIVE);
+                            // set the candidate on the session so it may be accessed outside the io thread
+                            sess.setAttribute(Ice.CANDIDATE, hostCandidate);
+                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
+                            component.getComponentSocket().setSocket(sock);
+                        } catch (Exception e) {
+                            logger.warn("Exception TCP client connect", e);
+                        }
+                    }
                 }
-            } else {
-                logger.warn("Connection to {} failed", stunServer);
-            }
+
+            });
+            // wait until a little past a standard time for STUN to complete
+            future.awaitUninterruptibly(3000L);
+            // pull-out the host candidate if one exists
+            cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
         } else {
-            logger.info("Using existing UDP HostCandidate");
+            logger.trace("Using existing UDP HostCandidate");
             cand = hostCand;
         }
-        if (cand == null) {
-            logger.info("server/candidate address type mismatch, skipping candidate in this harvester");
-            return;
-        }
-        StunCandidateHarvest harvest = createHarvest(cand);
-        if (harvest == null) {
-            logger.warn("Failed to create harvest");
-            return;
-        }
-        synchronized (startedHarvests) {
-            startedHarvests.add(harvest);
-            boolean started = false;
-            try {
-                started = harvest.startResolvingCandidate();
-            } catch (Exception ex) {
-                started = false;
-                logger.warn("Failed to start resolving host candidate {}", hostCand, ex);
-            } finally {
-                if (!started) {
-                    try {
-                        startedHarvests.remove(harvest);
-                        logger.warn("harvest did not start, removed: {}", harvest);
-                    } finally {
-                        // For the sake of completeness, explicitly close the harvest.
+        if (cand != null) {
+            logger.debug("HostCandidate: {}", cand);
+            StunCandidateHarvest harvest = createHarvest(cand);
+            if (harvest == null) {
+                logger.warn("Failed to create harvest");
+                return;
+            }
+            synchronized (startedHarvests) {
+                startedHarvests.add(harvest);
+                boolean started = false;
+                try {
+                    started = harvest.startResolvingCandidate();
+                } catch (Exception ex) {
+                    started = false;
+                    logger.warn("Failed to start resolving host candidate {}", hostCand, ex);
+                } finally {
+                    if (!started) {
                         try {
-                            harvest.close();
-                        } catch (Exception ex) {
+                            startedHarvests.remove(harvest);
+                            logger.warn("harvest did not start, removed: {}", harvest);
+                        } finally {
+                            // For the sake of completeness, explicitly close the harvest.
+                            try {
+                                harvest.close();
+                            } catch (Exception ex) {
+                            }
                         }
                     }
                 }
             }
+        } else {
+            logger.debug("No usable host candidate available for {}", hostCand);
         }
     }
 
@@ -305,7 +326,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 try {
                     startedHarvests.wait();
                 } catch (InterruptedException iex) {
-                    logger.info("interrupted waiting for harvests to complete, no. startedHarvests = {}", startedHarvests.size());
+                    logger.info("Interrupted waiting for harvests to complete, startedHarvests: {}", startedHarvests.size());
                     interrupted = true;
                 }
             }

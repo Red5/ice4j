@@ -370,18 +370,20 @@ public class Agent {
         if (component.getLocalCandidateCount() == 0) {
             logger.warn("Failed to gather any host candidates!");
         }
-        //in case we are not trickling, apply other harvesters here
+        // in case we are not trickling, apply other harvesters here
         if (!isTrickling()) {
             harvestingStarted = true; //raise a flag to warn on a second call.
             harvesters.harvest(component);
         }
         logger.debug("Candidate count in first harvest: {}", component.getLocalCandidateCount());
-        //select the candidate to put in the media line.
+        // select the candidate to put in the media line
         component.selectDefaultCandidate();
         /*
-         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
-         * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
-         * started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
+         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, 
+         * we have to make sure that the ConnectivityCheckServer is started. If there's been a previous connectivity 
+         * establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer
+         * is not started after we've made the gathered LocalCandidates available to the caller, the caller may send them
+         * and a connectivity check may arrive from the remote Agent.
          */
         connCheckServer.start();
         return component;

@@ -22,10 +22,12 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
+import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -267,12 +269,17 @@ public class HostCandidateHarvester {
                     HostCandidate candidate = new HostCandidate(sock, component, transport);
                     candidate.setVirtual(NetworkUtils.isInterfaceVirtual(iface));
                     component.addLocalCandidate(candidate);
+                    StunStack stunStack = candidate.getStunStack();
                     if (transport == Transport.TCP) {
+                        // bind the socket so it will listen for an 'active' tcp client
+                        stunStack.addSocket(sock, null, true); // do socket binding
+                        component.getComponentSocket().setSocket(sock);
                         // have to wait a client connection to add a STUN socket to the StunStack
                         continue;
                     }
                     // add the socket wrapper to the stack which gets the bind and listening process started
-                    candidate.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
+                    //stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
+                    stunStack.addSocket(sock, null, true); // do socket binding
                     component.getComponentSocket().setSocket(sock);
                 }
             }
@@ -357,7 +364,7 @@ public class HostCandidateHarvester {
      *
      * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number or if minPort &gt; maxPort
      * @throws IOException if an error occurs while the underlying resolver lib is using sockets
-     * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed number of retries.
+     * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed number of retries
      */
     private IceSocketWrapper createServerSocket(InetAddress laddr, int preferredPort, int minPort, int maxPort, Component component) throws IllegalArgumentException, IOException, BindException {
         // make sure port numbers are valid
@@ -445,7 +452,7 @@ public class HostCandidateHarvester {
     private void checkPorts(int preferredPort, int minPort, int maxPort) throws IllegalArgumentException {
         // make sure port numbers are valid
         if (!NetworkUtils.isValidPortNumber(minPort) || !NetworkUtils.isValidPortNumber(maxPort)) {
-            throw new IllegalArgumentException("minPort (" + minPort + ") and maxPort (" + maxPort + ")should be integers between 1024 and 65535.");
+            throw new IllegalArgumentException("minPort (" + minPort + ") and maxPort (" + maxPort + ") should be integers between 1024 and 65535.");
         }
         // make sure minPort comes before maxPort.
         if (minPort > maxPort) {

@@ -308,7 +308,7 @@ public abstract class IceSocketWrapper {
     }
 
     /**
-     * Builder for immutable IceSocketWrapper instance. If the IoSession is connection-less, an IceUdpSocketWrapper is returned; otherwise
+     * Builder for immutable IceSocketWrapper instance. If the localAddress is udp, an IceUdpSocketWrapper is returned; otherwise
      * an IceTcpSocketWrapper is returned.
      * 
      * @param session IoSession for the socket

@@ -439,8 +439,9 @@ public class Component implements PropertyChangeListener {
             localCandidate.free();
         } catch (Throwable t) {
             // Don't let the failing of a single LocalCandidate to free itself to fail the freeing of the other LocalCandidates.
-            if (t instanceof ThreadDeath)
+            if (t instanceof ThreadDeath) {
                 throw (ThreadDeath) t;
+            }
             if (logger.isInfoEnabled()) {
                 logger.info("Failed to free LocalCandidate: {}", localCandidate);
             }
@@ -480,7 +481,7 @@ public class Component implements PropertyChangeListener {
     /**
      * Sets the {@link CandidatePair} selected for use by ICE processing and that the application would use.
      *
-     * @param pair the {@link CandidatePair} selected for use by ICE processing.
+     * @param pair the {@link CandidatePair} selected for use by ICE processing
      */
     protected void setSelectedPair(CandidatePair pair) {
         if (keepAliveStrategy == KeepAliveStrategy.SELECTED_ONLY) {
@@ -494,8 +495,8 @@ public class Component implements PropertyChangeListener {
      * Returns the {@link CandidatePair} selected for use by ICE processing or null if no pair has been selected so far or if ICE processing
      * has failed.
      *
-     * @return the {@link CandidatePair} selected for use by ICE processing or null if no pair has been selected so far or if ICE processing
-     * has failed.
+     * @return CandidatePair selected for use by ICE processing or null if no pair has been selected so far or if ICE processing
+     * has failed
      */
     public CandidatePair getSelectedPair() {
         return selectedPair;

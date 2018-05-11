@@ -294,16 +294,6 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     }
 
     /**
-     * Computes the priority for this Candidate based on the procedures defined in the Google Talk specification.
-     *
-     * @return the priority for this Candidate as per the procedures defined in the ICE specification..
-     */
-    public long computeGTalkPriority() {
-        this.priority = computeGTalkPriorityForType(getType());
-        return this.priority;
-    }
-
-    /**
      * Computes the priority this Candidate would have if it were of the specified candidateType and based on the procedures
      * defined in the ICE specification. The reason we need this method in addition to the {@link #computePriority()} one is the need to be able
      * to compute the priority of a peer reflexive candidate that we might learn during connectivity checks through this Candidate.
@@ -317,45 +307,6 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
         //           (2^8)*(local preference) +
         //           (2^0)*(256 - component ID)
         return (long) (getTypePreference(candidateType) << 24) + (long) (getLocalPreference() << 8) + (long) (256 - getParentComponent().getComponentID());
-    }
-
-    /**
-     * Computes the priority this Candidate would have if it were of
-     * the specified candidateType and based on the procedures
-     * defined in the Google Talk specification.
-     *
-     * @param candidateType the hypothetical type that we'd like to use when
-     * computing the priority for this Candidate.
-     * @return the priority this Candidate would have had if it were
-     * of the specified candidateType.
-     */
-    public long computeGTalkPriorityForType(CandidateType candidateType) {
-        long priority = 0;
-        // Google Talk priority is in range 0 - 1, we multiply this by 1000 to have a long rather than float
-        if (candidateType == CandidateType.HOST_CANDIDATE) {
-            priority += 0.95 * 1000 - (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
-        } else if (candidateType == CandidateType.PEER_REFLEXIVE_CANDIDATE) {
-            priority += (long) (0.9 * 1000) - (this.getBase().getTransport() == Transport.TCP ? 200 : 0);
-        } else if (candidateType == CandidateType.SERVER_REFLEXIVE_CANDIDATE) {
-            priority += (long) (0.9 * 1000);
-        } else //relayed candidates
-        {
-            priority += (long) (0.5 * 1000);
-        }
-
-        priority -= getParentComponent().getComponentID() - 1;
-
-        InetAddress addr = getTransportAddress().getAddress();
-
-        // IPv6 has better priority than IPv4
-        if (addr instanceof Inet6Address) {
-            if (addr.isLinkLocalAddress()) {
-                priority += 40;
-            } else
-                priority += 50;
-        }
-
-        return priority;
     }
 
     /**
@@ -596,6 +547,10 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
         buff.append(" ").append(getTransportAddress().getHostAddress());
         buff.append(" ").append(getTransportAddress().getPort());
         buff.append(" typ ").append(getType());
+        CandidateTcpType tcpType = getTcpType();
+        if (tcpType != null) {
+            buff.append(" tcptype ").append(tcpType);
+        }
         TransportAddress relAddr = getRelatedAddress();
         if (relAddr != null) {
             buff.append(" raddr ").append(relAddr.getHostAddress());

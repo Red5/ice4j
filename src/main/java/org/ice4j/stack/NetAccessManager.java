@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * @author Boris Grozev
  * @author Paul Gregoire
  */
-class NetAccessManager {
+public class NetAccessManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NetAccessManager.class);
 
@@ -77,7 +77,7 @@ class NetAccessManager {
      *
      * @param socket the socket that the access point should use.
      */
-    protected void addSocket(IceSocketWrapper socket) {
+    public void addSocket(IceSocketWrapper socket) {
         logger.debug("addSocket: {}", socket);
         // UDP connections will normally have null remote transport addresses
         addSocket(socket, socket.getRemoteTransportAddress());
@@ -90,7 +90,7 @@ class NetAccessManager {
      * @param remoteAddress the remote address the {@link Connector} if its TCP or null if its UDP
      * @throws IOException 
      */
-    protected void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
+    public void addSocket(IceSocketWrapper socket, TransportAddress remoteAddress) {
         logger.debug("addSocket: {} remote address: {}", socket, remoteAddress);
         TransportAddress localAddress = socket.getTransportAddress();
         // determine if UDP or TCP
@@ -123,7 +123,7 @@ class NetAccessManager {
      * @param localAddress the local address of the connector to remove.
      * @param remoteAddress the remote address of the connector to remote. Use null to match the Connector with no specified remote address.
      */
-    protected void removeSocket(TransportAddress localAddress, TransportAddress remoteAddress) {
+    public void removeSocket(TransportAddress localAddress, TransportAddress remoteAddress) {
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = (localAddress.getTransport() == Transport.UDP) ? udpConnectors : tcpConnectors;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress != null) {

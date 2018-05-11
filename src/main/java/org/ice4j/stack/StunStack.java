@@ -4,7 +4,6 @@ package org.ice4j.stack;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -33,7 +32,6 @@ import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
-import org.ice4j.message.ChannelData;
 import org.ice4j.message.Indication;
 import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
@@ -154,6 +152,8 @@ public class StunStack implements MessageEventHandler {
                 // add directly to the ice handler to prevent any unwanted binding
                 IceTransport.getIceHandler().registerStackAndSocket(this, iceSocket);
             }
+            // add the socket to the net access manager
+            netAccessManager.addSocket(iceSocket, null);
         } else {
             IceTcpTransport transport = IceTcpTransport.getInstance();
             if (doBind) {
@@ -162,9 +162,9 @@ public class StunStack implements MessageEventHandler {
                 // add directly to the ice handler to prevent any unwanted binding
                 IceTransport.getIceHandler().registerStackAndSocket(this, iceSocket);
             }
+            // add the socket to the net access manager
+            netAccessManager.addSocket(iceSocket, remoteAddress);
         }
-        // add the socket to the net access manager
-        netAccessManager.addSocket(iceSocket, remoteAddress);
     }
 
     /**
@@ -265,7 +265,7 @@ public class StunStack implements MessageEventHandler {
      * Returns the currently active instance of NetAccessManager.
      * @return NetAccessManager
      */
-    NetAccessManager getNetAccessManager() {
+    public NetAccessManager getNetAccessManager() {
         return netAccessManager;
     }
 
@@ -281,17 +281,17 @@ public class StunStack implements MessageEventHandler {
      * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
      * identified by sendThrough
      */
-    public void sendChannelData(ChannelData channelData, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
-        try {
-            getNetAccessManager().sendMessage(channelData, sendThrough, sendTo);
-        } catch (StunException stex) {
-            throw stex;
-        } catch (IllegalArgumentException iaex) {
-            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + channelData, iaex);
-        } catch (IOException ioex) {
-            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + channelData, ioex);
-        }
-    }
+    //    public void sendChannelData(ChannelData channelData, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+    //        try {
+    //            getNetAccessManager().sendMessage(channelData, sendThrough, sendTo);
+    //        } catch (StunException stex) {
+    //            throw stex;
+    //        } catch (IllegalArgumentException iaex) {
+    //            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + channelData, iaex);
+    //        } catch (IOException ioex) {
+    //            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + channelData, ioex);
+    //        }
+    //    }
 
     /**
      * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
@@ -305,15 +305,15 @@ public class StunStack implements MessageEventHandler {
      * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
      * identified by sendThrough
      */
-    public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
-        try {
-            getNetAccessManager().sendMessage(udpMessage.getBytes(), sendThrough, sendTo);
-        } catch (IllegalArgumentException iaex) {
-            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + udpMessage, iaex);
-        } catch (IOException ioex) {
-            throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + udpMessage, ioex);
-        }
-    }
+    //public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+    //    try {
+    //        getNetAccessManager().sendMessage(udpMessage.getBytes(), sendThrough, sendTo);
+    //    } catch (IllegalArgumentException iaex) {
+    //        throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + udpMessage, iaex);
+    //    } catch (IOException ioex) {
+    //        throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + udpMessage, ioex);
+    //    }
+    //}
 
     /**
      * Receives a specific STUN Indication on a specific destination TransportAddress from a socket registered with this
@@ -442,10 +442,10 @@ public class StunStack implements MessageEventHandler {
      * @throws IllegalArgumentException if the apDescriptor references an
      * access point that had not been installed,
      */
-    public TransactionID sendRequest(Request request, TransportAddress sendTo, DatagramSocket sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
-        TransportAddress sendThroughAddr = new TransportAddress(sendThrough.getLocalAddress(), sendThrough.getLocalPort(), Transport.UDP);
-        return sendRequest(request, sendTo, sendThroughAddr, collector);
-    }
+    //public TransactionID sendRequest(Request request, TransportAddress sendTo, DatagramSocket sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
+    //    TransportAddress sendThroughAddr = new TransportAddress(sendThrough.getLocalAddress(), sendThrough.getLocalPort(), Transport.UDP);
+    //    return sendRequest(request, sendTo, sendThroughAddr, collector);
+    //}
 
     /**
      * Sends the specified response message through the specified access point.

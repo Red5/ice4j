@@ -94,9 +94,15 @@ public class IceHandler extends IoHandlerAdapter {
         }
         StunStack stunStack = stunStacks.get(addr);
         if (stunStack != null) {
-            // XXX create socket registration check to stun stack
-            //stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
+            // XXX create socket registration check to stun stack
+            if (transport == Transport.TCP) {
+                // get the remote address
+                inetAddr = (InetSocketAddress) session.getRemoteAddress();
+                TransportAddress remoteAddress = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+                iceSocket.setRemoteTransportAddress(remoteAddress);
+                stunStack.getNetAccessManager().addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+            }
         } else {
             logger.debug("No stun stack at create for: {}", addr);
         }

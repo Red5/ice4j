@@ -613,8 +613,7 @@ public abstract class AbstractTcpListener {
 
                         channel.length = (((fb & 0xff) << 8) | (sb & 0xff));
 
-                        // Set to null, so that we re-allocate it for the next
-                        // stage
+                        // Set to null, so that we re-allocate it for the next stage
                         channel.buffer = null;
                     } else {
                         byte[] bytesRead = new byte[channel.length];

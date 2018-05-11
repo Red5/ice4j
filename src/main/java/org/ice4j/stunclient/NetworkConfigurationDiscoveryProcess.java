@@ -132,8 +132,8 @@ public class NetworkConfigurationDiscoveryProcess {
         sock = IceTransport.getIceHandler().lookupBinding(localAddress);
         // create a new socket since there isn't one registered for the local address
         if (sock == null) {
-            sock = IceSocketWrapper.build(localAddress, sock.getRemoteTransportAddress());
-            stunStack.addSocket(sock, sock.getRemoteTransportAddress(), true); // do socket binding
+            sock = IceSocketWrapper.build(localAddress, serverAddress);
+            stunStack.addSocket(sock, serverAddress, true); // do socket binding
         }
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         started = true;

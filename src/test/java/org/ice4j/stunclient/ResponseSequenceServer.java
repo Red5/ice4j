@@ -37,9 +37,9 @@ public class ResponseSequenceServer implements RequestListener {
      */
     private final StunStack stunStack;
 
-    private TransportAddress serverAddress = null;
+    private TransportAddress serverAddress;
 
-    private IceSocketWrapper localSocket = null;
+    private IceSocketWrapper localSocket;
 
     /**
      * Initializes a new ResponseSequenceServer instance with a specific StunStack to be used for the purposes of STUN communication.

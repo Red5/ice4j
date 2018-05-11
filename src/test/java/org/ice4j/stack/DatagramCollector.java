@@ -7,6 +7,8 @@ import java.net.SocketAddress;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.future.ConnectFuture;
+import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.service.IoService;
@@ -16,7 +18,9 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
+import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.slf4j.Logger;
@@ -98,6 +102,23 @@ public class DatagramCollector {
 
     };
 
+    IoFutureListener<ConnectFuture> connectListener = new IoFutureListener<ConnectFuture>() {
+
+        @Override
+        public void operationComplete(ConnectFuture future) {
+            if (!future.isConnected()) {
+                IoSession sess = future.getSession();
+                logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+            } else {
+                setSession(future.getSession());
+            }
+            synchronized (lock) {
+                lock.notify();
+            }
+        }
+
+    };
+
     LinkedBlockingDeque<DatagramPacket> deque = new LinkedBlockingDeque<>();
 
     TransportAddress transportAddr;
@@ -153,6 +174,25 @@ public class DatagramCollector {
     }
 
     public void send(byte[] data, SocketAddress destination) throws IOException {
+        if (session == null && acceptor != null) {
+            // avoid address in-use ex
+            acceptor.unbind();
+            // attempt to connect
+            logger.debug("Not connected, attempting connect");
+            if (transportAddr.getTransport() == Transport.UDP) {
+                createUDPConnector(destination);
+            } else if (transportAddr.getTransport() == Transport.TCP) {
+                createTCPConnector(destination);
+            }
+            // wait for a connection
+            try {
+                synchronized (lock) {
+                    lock.wait(300);
+                }
+            } catch (InterruptedException e) {
+                logger.warn("Exception on wait for connect", e);
+            }
+        }
         if (session != null) {
             IoBuffer out;
             if (transportAddr.getTransport() == Transport.UDP) {
@@ -217,4 +257,32 @@ public class DatagramCollector {
         acceptor.bind(transportAddr);
     }
 
+    private void createTCPConnector(SocketAddress destination) throws IOException {
+        NioSocketConnector connector = new NioSocketConnector();
+        SocketSessionConfig config = connector.getSessionConfig();
+        config.setReuseAddress(true);
+        config.setTcpNoDelay(true);
+        // set connection timeout of x seconds
+        connector.setConnectTimeoutMillis(3000L);
+        // set the handler on the connector
+        connector.setHandler(ioHandler);
+        // connect it
+        ConnectFuture future = connector.connect(destination, transportAddr);
+        future.addListener(connectListener);
+    }
+
+    private void createUDPConnector(SocketAddress destination) throws IOException {
+        NioDatagramConnector connector = new NioDatagramConnector();
+        DatagramSessionConfig config = connector.getSessionConfig();
+        config.setBroadcast(false);
+        config.setReuseAddress(true);
+        config.setCloseOnPortUnreachable(true);
+        // set connection timeout of x seconds
+        connector.setConnectTimeoutMillis(3000L);
+        // set the handler on the connector
+        connector.setHandler(ioHandler);
+        // connect it
+        ConnectFuture future = connector.connect(destination, transportAddr);
+        future.addListener(connectListener);
+    }
 }
