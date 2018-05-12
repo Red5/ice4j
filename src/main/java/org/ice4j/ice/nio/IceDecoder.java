@@ -101,7 +101,9 @@ public class IceDecoder extends ProtocolDecoderAdapter {
 
     @Override
     public void decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
-        logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
+        }
         IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
@@ -123,12 +125,12 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             byte[] buf = null;
             // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
             int frameLength = in.remaining();
-            logger.trace("Remaining at start: {}", frameLength);
+            //logger.trace("Remaining at start: {}", frameLength);
             // if we're TCP (not UDP), grab the size and advance the position
             if (transport != Transport.UDP) {
                 // loop reading input until no usable bytes remain
                 checkFrameComplete: do {
-                    logger.trace("Remaining at loop start: {}", in.remaining());
+                    //logger.trace("Remaining at loop start: {}", in.remaining());
                     // check for an existing frame chunk first
                     FrameChunk frameChunk = tcpFrameChunk.get();
                     if (frameChunk != null) {
@@ -153,7 +155,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             if (frameChunk.chunk == null) {
                                 frameLength = ((frameChunk.temporaryMSB & 0xFF) << 8) | (in.get() & 0xFF);
                                 frameChunk.setFrameLength(frameLength);
-                                logger.trace("Updated frame chunk length: {}", frameLength);
+                                //logger.trace("Updated frame chunk length: {}", frameLength);
                             }
                             // add to an existing incomplete frame
                             int remaining = in.remaining();
@@ -161,7 +163,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             in.get(buf);
                             frameChunk.chunk.put(buf);
                             // restart at the top of the loop checking to see if the frame is now complete and proceed appropriately
-                            logger.debug("Existing frame chunk was appended, complete? {} in remaining: {}", frameChunk.isComplete(), in.remaining());
+                            //logger.debug("Existing frame chunk was appended, complete? {} in remaining: {}", frameChunk.isComplete(), in.remaining());
                             // nothing should remain in the input at this point
                             continue checkFrameComplete;
                         }
@@ -172,23 +174,23 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         if (remaining > 1) {
                             // get the frame length
                             frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
-                            logger.trace("Frame length: {}", frameLength);
+                            //logger.trace("Frame length: {}", frameLength);
                             // update remaining (since we just grabbed 2 bytes)
                             remaining -= 2;
                             // if the frame length is greater than the remaining bytes, we'll have to buffer them until we get the full frame
                             if (remaining < frameLength) {
                                 if (remaining > 0) {
-                                    logger.debug("Creating new frame chunk with data: {}", remaining);
+                                    //logger.debug("Creating new frame chunk with data: {}", remaining);
                                     tcpFrameChunk.set(new FrameChunk(frameLength, in));
-                                    logger.debug("New frame chunk, complete? {} in remaining: {}", tcpFrameChunk.get().isComplete(), in.remaining());
+                                    //logger.debug("New frame chunk, complete? {} in remaining: {}", tcpFrameChunk.get().isComplete(), in.remaining());
                                     // nothing should remain in the input at this point
                                     continue checkFrameComplete;
                                 } else {
-                                    logger.warn("Creating new frame chunk without data: {}", remaining);
+                                    //logger.warn("Creating new frame chunk without data: {}", remaining);
                                     tcpFrameChunk.set(new FrameChunk(frameLength));
                                 }
                             } else {
-                                logger.warn("Creating new frame with data: {}", remaining);
+                                //logger.warn("Creating new frame with data: {}", remaining);
                                 // read as much as we have
                                 buf = new byte[frameLength];
                                 // get the bytes into our buffer
@@ -198,7 +200,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             }
                         } else {
                             // special case were we only have a single byte, so not big enough for a length determination
-                            logger.warn("Creating new frame chunk without sizing or data");
+                            //logger.warn("Creating new frame chunk without sizing or data");
                             tcpFrameChunk.set(new FrameChunk(in.get()));
                         }
                     }
@@ -209,7 +211,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 buf = new byte[frameLength];
                 // get the bytes into our buffer
                 in.get(buf);
-                logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
+                //logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
                 // STUN messages are at least 20 bytes and DTLS are 13+
                 if (buf.length > DTLS_RECORD_HEADER_LENGTH) {
                     // send a buffer of bytes for further processing / handling
