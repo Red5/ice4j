@@ -22,7 +22,6 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.NetworkUtils;
-import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;

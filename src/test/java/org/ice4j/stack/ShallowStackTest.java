@@ -4,8 +4,6 @@ package org.ice4j.stack;
 import java.net.DatagramPacket;
 import java.util.Arrays;
 
-import javax.xml.bind.DatatypeConverter;
-
 import junit.framework.TestCase;
 
 import org.ice4j.AbstractResponseCollector;
@@ -25,6 +23,7 @@ import org.ice4j.message.Response;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.util.Utils;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -136,8 +135,8 @@ public class ShallowStackTest extends TestCase {
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
         Request receivedRequest = (Request) Request.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
         assertEquals("The received request did not match the one that was sent", bindingRequest, receivedRequest);
-        logger.info("Sent request: {}", byteArrayToHexString(bindingRequest.encode(stunStack)));
-        logger.info("Received request: {}", byteArrayToHexString(receivedRequest.encode(stunStack)));
+        logger.info("Sent request: {}", Utils.byteArrayToHexString(bindingRequest.encode(stunStack)));
+        logger.info("Received request: {}", Utils.byteArrayToHexString(receivedRequest.encode(stunStack)));
         // wait for retransmissions
         //dgramCollector.startListening(serverAddress);
         dgramCollector.waitForPacket();
@@ -170,8 +169,8 @@ public class ShallowStackTest extends TestCase {
         byte[] expectedReturn = msgFixture.bindingRequest2;
         byte[] actualReturn = collectedRequest.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
-        logger.info(byteArrayToHexString(expectedReturn));
-        logger.info(byteArrayToHexString(actualReturn));
+        logger.info(Utils.byteArrayToHexString(expectedReturn));
+        logger.info(Utils.byteArrayToHexString(actualReturn));
     }
 
     /**
@@ -385,27 +384,6 @@ public class ShallowStackTest extends TestCase {
     //
     //        assertTrue("Received request was not the same as the one that was sent", Arrays.equals(req1, actualReturn));
     //    }
-
-    /**
-     * Returns a byte array for the given hex encoded string.
-     * 
-     * @param s encoded hex string
-     * @return byte array
-     */
-    public final static byte[] hexStringToByteArray(String s) {
-        // remove all the whitespace first
-        s = s.replaceAll("\\s+", "");
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i + 1), 16));
-        }
-        return data;
-    }
-
-    public final static String byteArrayToHexString(byte[] a) {
-        return DatatypeConverter.printHexBinary(a);
-    }
 
     //--------------------------------------- listener implementations ---------
     /**
