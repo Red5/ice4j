@@ -259,11 +259,13 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                             IceSocketWrapper sock = IceSocketWrapper.build(sess);
                             // create a new host candidate
                             HostCandidate hostCandidate = new HostCandidate(sock, component, Transport.TCP);
-                            // set the tcptype
-                            hostCandidate.setTcpType(agent.isControlling() ? CandidateTcpType.ACTIVE : CandidateTcpType.PASSIVE);
+                            // set the tcptype (we need to know if the other end is active, but for now all the browsers appear to be
+                            //hostCandidate.setTcpType(agent.isControlling() ? CandidateTcpType.ACTIVE : CandidateTcpType.PASSIVE);
+                            hostCandidate.setTcpType(CandidateTcpType.PASSIVE);
                             // set the candidate on the session so it may be accessed outside the io thread
                             sess.setAttribute(Ice.CANDIDATE, hostCandidate);
-                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
+                            //agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
+                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true); // passive == bind, active == no
                             component.getComponentSocket().setSocket(sock);
                         } catch (Exception e) {
                             logger.warn("Exception TCP client connect", e);

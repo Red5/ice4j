@@ -111,8 +111,10 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
-        logger.trace("Message received (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
-        logger.trace("Received: {}", String.valueOf(message));
+        if (logger.isTraceEnabled()) {
+            logger.trace("Message received (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
+            logger.trace("Received: {}", String.valueOf(message));
+        }
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
         if (iceSocket != null) {
             if (message instanceof RawMessage) {
