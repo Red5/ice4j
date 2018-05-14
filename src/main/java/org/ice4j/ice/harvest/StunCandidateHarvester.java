@@ -277,7 +277,11 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             // wait until a little past a standard time for STUN to complete
             future.awaitUninterruptibly(3000L);
             // pull-out the host candidate if one exists
-            cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
+            if (future.getSession() != null) {
+                cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
+            } else {
+                logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
+            }
         } else {
             logger.trace("Using existing UDP HostCandidate");
             cand = hostCand;
