@@ -561,6 +561,11 @@ class ConnectivityCheckClient implements ResponseCollector {
                         pairToCheck = checkList.getNextOrdinaryPairToCheck();
                     }
                     if (pairToCheck != null) {
+                        // check for a TCP candidate with a destination port of 9 (masked) and don't attempt to connect to it!
+                        if (pairToCheck.getRemoteCandidate().getTcpType() == CandidateTcpType.ACTIVE) {
+                            logger.info("TCP remote candidate is active with masked port, skip attempt to connect directly");
+                            continue;
+                        }
                         // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
                         // setStateInProgress, we'll synchronize. The synchronization root is the one of the CandidatePair#setState method.
                         synchronized (pairToCheck) {

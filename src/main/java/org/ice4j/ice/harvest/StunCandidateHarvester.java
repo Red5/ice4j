@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
@@ -64,6 +66,11 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      * The StunStack used by this instance for the purposes of STUN communication.
      */
     private StunStack stunStack;
+
+    /**
+     * Used to control connection flow with TCP.
+     */
+    protected CountDownLatch connectLatch = new CountDownLatch(1);
 
     /**
      * Creates a new STUN harvester that will be running against the specified stunServer using a specific username for the purposes of the
@@ -271,16 +278,23 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                             logger.warn("Exception TCP client connect", e);
                         }
                     }
+                    // count down since connect operation completed
+                    connectLatch.countDown();
                 }
 
             });
             // wait until a little past a standard time for STUN to complete
-            future.awaitUninterruptibly(3000L);
-            // pull-out the host candidate if one exists
-            if (future.getSession() != null) {
-                cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
-            } else {
-                logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
+            try {
+                if (connectLatch.await(3000L, TimeUnit.MILLISECONDS)) {
+                    // pull-out the host candidate if one exists
+                    if (future.getSession() != null) {
+                        cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
+                    } else {
+                        logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
+                    }
+                }
+            } catch (InterruptedException e) {
+                logger.warn("STUN connection wait interrupted", e);
             }
         } else {
             logger.trace("Using existing UDP HostCandidate");

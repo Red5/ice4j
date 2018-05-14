@@ -16,18 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Uses a list of addresses as a predefined static mask in order to generate
- * {@link TransportAddress}es. This harvester is meant for use in situations
+ * Uses a list of addresses as a predefined static mask in order to generate {@link TransportAddress}es. This harvester is meant for use in situations
  * where servers are deployed behind a NAT or in a DMZ with static port mapping.
  * <br>
- * Every time the {@link #harvest(Component)} method is called, the mapping
- * harvester will return a list of candidates that provide masked alternatives
+ * Every time the {@link #harvest(Component)} method is called, the mapping harvester will return a list of candidates that provide masked alternatives
  * for every host candidate in the component. Kind of like a STUN server.
  * <br>
- * Example: You run this on a server with address 192.168.0.1, that is behind
- * a NAT with public IP: 93.184.216.119. You allocate a host candidate
- * 192.168.0.1/UDP/5000. This harvester is going to then generate an address
- * 93.184.216.119/UDP/5000
+ * Example: You run this on a server with address 192.168.0.1, that is behind a NAT with public IP: 93.184.216.119. You allocate a host candidate
+ * 192.168.0.1/UDP/5000. This harvester is going to then generate an address 93.184.216.119/UDP/5000
  * <br>
  * This harvester is instant and does not introduce any harvesting latency.
  *
@@ -50,8 +46,8 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     /**
      * Creates a mapping harvester with the specified mask
      *
-     * @param mask the TransportAddresses that would be used as a mask.
-     * @param face the TransportAddresses that we will be masking.
+     * @param mask the TransportAddresses that would be used as a mask
+     * @param face the TransportAddresses that we will be masking
      */
     public MappingCandidateHarvester(TransportAddress mask, TransportAddress face) {
         this.mask = Objects.requireNonNull(mask);
@@ -59,21 +55,17 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     }
 
     /**
-     * Initializes a {@link MappingCandidateHarvester} instance without
-     * specified addresses (only useful in subclasses which override
+     * Initializes a {@link MappingCandidateHarvester} instance without specified addresses (only useful in subclasses which override
      * {@link #getMask()} and {@link #getFace()}).
      */
     protected MappingCandidateHarvester() {
     }
 
     /**
-     * Maps all candidates to this harvester's mask and adds them to
-     * component.
+     * Maps all candidates to this harvester's mask and adds them to component.
      *
-     * @param component the {@link Component} that we'd like to map candidates
-     * to.
-     * @return  the LocalCandidates gathered by this
-     * CandidateHarvester or null if no mask is specified.
+     * @param component the {@link Component} that we'd like to map candidates to
+     * @return  the LocalCandidates gathered by this CandidateHarvester or null if no mask is specified
      */
     @Override
     public Collection<LocalCandidate> harvest(Component component) {
@@ -83,30 +75,23 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
             logger.info("Harvester not configured: face={}, mask={}", face, mask);
             return null;
         }
-
-        // Report the LocalCandidates gathered by this CandidateHarvester so
-        // that the harvest is sure to be considered successful.
+        // Report the LocalCandidates gathered by this CandidateHarvester so that the harvest is sure to be considered successful.
         Collection<LocalCandidate> candidates = new HashSet<>();
-
         for (Candidate<?> cand : component.getLocalCandidates()) {
             if (!(cand instanceof HostCandidate) || !cand.getTransportAddress().getHostAddress().equals(face.getHostAddress()) || cand.getTransport() != face.getTransport()) {
                 continue;
             }
-
             HostCandidate hostCandidate = (HostCandidate) cand;
             TransportAddress mappedAddress = new TransportAddress(mask.getHostAddress(), hostCandidate.getHostAddress().getPort(), hostCandidate.getHostAddress().getTransport());
-
             ServerReflexiveCandidate mappedCandidate = new ServerReflexiveCandidate(mappedAddress, hostCandidate, hostCandidate.getStunServerAddress(), CandidateExtendedType.STATICALLY_MAPPED_CANDIDATE);
-            if (hostCandidate.isSSL())
+            if (hostCandidate.isSSL()) {
                 mappedCandidate.setSSL(true);
-
-            //try to add the candidate to the component and then
-            //only add it to the harvest not redundant
+            }
+            //try to add the candidate to the component and then only add it to the harvest not redundant
             if (!candidates.contains(mappedCandidate) && component.addLocalCandidate(mappedCandidate)) {
                 candidates.add(mappedCandidate);
             }
         }
-
         return candidates;
     }
 

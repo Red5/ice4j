@@ -122,19 +122,16 @@ public class DefaultNominator implements PropertyChangeListener {
      */
     private void strategyNominateHighestPrio(PropertyChangeEvent ev) {
         String pname = ev.getPropertyName();
-
         if (IceMediaStream.PROPERTY_PAIR_VALIDATED.equals(pname) || (IceMediaStream.PROPERTY_PAIR_STATE_CHANGED.equals(pname) && (ev.getNewValue() == CandidatePairState.FAILED))) {
             CandidatePair validPair = (CandidatePair) ev.getSource();
             Component parentComponent = validPair.getParentComponent();
             IceMediaStream parentStream = parentComponent.getParentStream();
             CheckList parentCheckList = parentStream.getCheckList();
-
-            if (!parentCheckList.allChecksCompleted())
+            if (!parentCheckList.allChecksCompleted()) {
                 return;
-
+            }
             for (Component component : parentStream.getComponents()) {
                 CandidatePair pair = parentStream.getValidPair(component);
-
                 if (pair != null) {
                     logger.info("Nominate (highest priority): " + validPair.toShortString());
                     parentAgent.nominate(pair);

@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -301,6 +302,17 @@ public class IceMediaStream {
                     }
                     break;
             }
+            // if the local candidate is TCP and tcptype is not set, configure it
+            if (localCnd.getTransport() == Transport.TCP && localCnd.getTcpType() == null) {
+                // if the remote is passive, set ours to active and anything else (passive or so) we go passive
+                switch (pair.getRemoteCandidate().getTcpType()) {
+                    case PASSIVE:
+                        localCnd.setTcpType(CandidateTcpType.ACTIVE);
+                        break;
+                    default:
+                        localCnd.setTcpType(CandidateTcpType.PASSIVE);
+                }
+            }
             tmpCheckList.add(pair);
         }
         // clear original
@@ -491,8 +503,7 @@ public class IceMediaStream {
     protected boolean validListContainsAllComponents() {
         for (Component cmp : getComponents()) {
             if (getValidPair(cmp) == null) {
-                //it looks like there's at least one component we don't have a
-                //valid candidate for.
+                //it looks like there's at least one component we don't have a valid candidate for.
                 return false;
             }
         }
