@@ -5,6 +5,9 @@ import java.net.SocketAddress;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.session.IoSession;
@@ -26,6 +29,10 @@ public abstract class IceTransport {
     private static final Logger logger = LoggerFactory.getLogger(IceTransport.class);
 
     private final static int BUFFER_SIZE_DEFAULT = 65535;
+
+    private static DelayQueue<ExpiredPort> removedPortsQueue = new DelayQueue<>();
+
+    private static Thread reaperThread;
 
     protected final static ProtocolCodecFilter iceCodecFilter = new ProtocolCodecFilter(new IceEncoder(), new IceDecoder());
 
@@ -117,6 +124,8 @@ public abstract class IceTransport {
         if (acceptor != null) {
             try {
                 acceptor.unbind(addr);
+                // add to the delay queue
+                removedPortsQueue.offer(new ExpiredPort(((InetSocketAddress) addr).getPort()));
                 //if (logger.isTraceEnabled()) {
                 logger.info("Binding removed: {}", addr);
                 //}
@@ -139,6 +148,10 @@ public abstract class IceTransport {
             logger.info("Disposed socket transport");
             acceptor = null;
         }
+        if (reaperThread != null) {
+            reaperThread.interrupt();
+            reaperThread = null;
+        }
     }
 
     /**
@@ -148,6 +161,31 @@ public abstract class IceTransport {
      * @return true if already bound and false otherwise
      */
     public static boolean isBound(int port) {
+        // ensure there's a reaper for removed ports clearing the delay queue
+        if (reaperThread == null) {
+            reaperThread = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    do {
+                        try {
+                            ExpiredPort expired = removedPortsQueue.take();
+                            if (expired != null) {
+                                logger.info("Port expired: {}", expired.port);
+                            }
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                    } while (true);
+                }}, "Port Reaper");
+            reaperThread.setDaemon(true);
+            reaperThread.start();
+        }
+        // check delay queue first for recently unbound ports
+        if (removedPortsQueue.contains(port)) {
+            logger.info("Port: {} was recently removed, it is not yet available", port);
+            return true;
+        }
         // UDP first
         IceTransport udpTransport = getInstance(Transport.UDP);
         Set<SocketAddress> addresses = udpTransport.acceptor.getLocalAddresses();
@@ -250,6 +288,34 @@ public abstract class IceTransport {
      */
     public static IceHandler getIceHandler() {
         return iceHandler;
+    }
+
+    private class ExpiredPort implements Delayed {
+
+        final long ONE_SECOND_NANOS = TimeUnit.MILLISECONDS.toNanos(1000);
+
+        final long removed = System.currentTimeMillis();
+
+        final int port;
+
+        ExpiredPort(int port) {
+            this.port = port;
+        }
+
+        @Override
+        public int compareTo(Delayed o) {
+            if (o instanceof ExpiredPort) {
+                return ((ExpiredPort) o).port - port;
+            }
+            return 0;
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            // expects nanos
+            return ONE_SECOND_NANOS - TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis() - removed);
+        }
+        
     }
 
 }

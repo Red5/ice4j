@@ -104,7 +104,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
         }
-        IoBuffer resultBuffer;
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {
             // determine the transport in-use
@@ -222,11 +221,10 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 }
             }
         } else {
-            // no connection, pass through
-            logger.warn("No ice socket in session");
-            resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit());
-            in.position(in.limit());
-            out.write(resultBuffer);
+            logger.warn("No ice socket in session, closing: {}", session);
+            session.suspendRead();
+            session.closeNow();
+            // no connection, pass through IoBuffer resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit()); in.position(in.limit()); out.write(resultBuffer);
         }
     }
 

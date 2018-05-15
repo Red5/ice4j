@@ -3,6 +3,7 @@ package org.ice4j.ice;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -184,7 +185,12 @@ public class Component implements PropertyChangeListener {
      */
     public void addRemoteCandidate(RemoteCandidate candidate) {
         logger.info("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());
-        remoteCandidates.add(candidate);
+        // skip private network host candidates
+        if (((InetSocketAddress) candidate.getTransportAddress()).getAddress().isSiteLocalAddress()) {
+            logger.info("Skipping remote candidate with private IP address: {}", candidate);
+        } else {
+            remoteCandidates.add(candidate);
+        }
     }
 
     /**

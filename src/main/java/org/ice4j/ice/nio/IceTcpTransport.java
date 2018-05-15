@@ -113,12 +113,13 @@ public class IceTcpTransport extends IceTransport {
      * @param addr
      * @return true if successful and false otherwise
      */
+    @Override
     public boolean addBinding(SocketAddress addr) {
         try {
             acceptor.bind(addr);
-            if (logger.isTraceEnabled()) {
-                logger.trace("TCP binding added: {}", addr);
-            }
+            //if (logger.isTraceEnabled()) {
+                logger.info("TCP binding added: {}", addr);
+            //}
             return true;
         } catch (IOException e) {
             logger.warn("Add binding failed on {}", addr, e);

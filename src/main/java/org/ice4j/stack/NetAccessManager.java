@@ -99,6 +99,9 @@ public class NetAccessManager {
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
         // keyed by remote address
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Existing connectors (pre-add): {}", connectorsForLocalAddress);
+        }
         if (connectorsForLocalAddress == null) {
             connectorsForLocalAddress = new HashMap<>();
             connectorsMap.put(localAddress, connectorsForLocalAddress);
@@ -107,13 +110,13 @@ public class NetAccessManager {
         } else if (connectorsForLocalAddress.containsKey(remoteAddress)) {
             logger.info("Not creating a new Connector, because we already have one for the given address pair: {} -> {}", localAddress, remoteAddress);
         } else {
-            logger.warn("Figure out if we actually need this section of code");
             Connector connector = new Connector(socket, remoteAddress, this);
-            @SuppressWarnings("unused")
+            logger.warn("New connector: {}", connector);
             Connector prevConnector = connectorsForLocalAddress.put(remoteAddress, connector);
+            logger.warn("Previous connector (replaced): {}", prevConnector);
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Existing connectors (add): {}", connectorsForLocalAddress);
+            logger.debug("Existing connectors (post-add): {}", connectorsForLocalAddress);
         }
     }
 

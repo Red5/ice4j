@@ -112,12 +112,13 @@ public class IceUdpTransport extends IceTransport {
      * @param addr
      * @return true if successful and false otherwise
      */
+    @Override
     public boolean addBinding(SocketAddress addr) {
         try {
             acceptor.bind(addr);
-            if (logger.isTraceEnabled()) {
-                logger.trace("UDP binding added: {}", addr);
-            }
+            //if (logger.isTraceEnabled()) {
+                logger.info("UDP binding added: {}", addr);
+            //}
             return true;
         } catch (IOException e) {
             logger.warn("Add binding failed on {}", addr, e);
