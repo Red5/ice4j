@@ -27,6 +27,7 @@ import org.ice4j.ice.harvest.HostCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.ice4j.ice.harvest.TrickleCallback;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
@@ -351,6 +352,11 @@ public class Agent {
      */
     public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort, KeepAliveStrategy keepAliveStrategy) throws IllegalArgumentException, IOException, BindException {
         logger.debug("createComponent: {} preferredPort: {}", transport, preferredPort);
+        // check the preferred port against any existing bindings first!
+        if (IceTransport.isBound(preferredPort)) {
+            logger.debug("Requested preferred port: {} is already in-use", preferredPort);
+            throw new BindException("Requested preferred port: " + preferredPort + " is already in-use");
+        }
         Component component = stream.createComponent(keepAliveStrategy);
         /**
          * Uses all CandidateHarvesters currently registered with this Agent to obtain whatever addresses they can discover.
@@ -1454,7 +1460,7 @@ public class Agent {
             Thread.currentThread().interrupt();
         }
         getStunStack().shutDown();
-        logger.debug("ICE agent freed");
+        logger.info("ICE agent freed");
     }
 
     /**

@@ -150,7 +150,7 @@ public abstract class IceSocketWrapper {
     public void close() {
         IoSession sess = session.get();
         if (sess != null) {
-            logger.debug("close session: {}", sess.getId());
+            logger.debug("Close session: {}", sess.getId());
             try {
                 CloseFuture future = sess.closeNow();
                 // wait until the connection is closed
@@ -294,7 +294,7 @@ public abstract class IceSocketWrapper {
      */
     public final static IceSocketWrapper build(IoSession session) throws IOException {
         // TODO remove this sysout
-        System.out.println("build: " + session + " connectionless: " + session.getTransportMetadata().isConnectionless());
+        //System.out.println("build: " + session + " connectionless: " + session.getTransportMetadata().isConnectionless());
         IceSocketWrapper iceSocket = null;
         if (session.getTransportMetadata().isConnectionless()) {
             iceSocket = new IceUdpSocketWrapper(session);
@@ -317,7 +317,7 @@ public abstract class IceSocketWrapper {
      */
     public final static IceSocketWrapper build(TransportAddress localAddress, TransportAddress remoteAddress) throws IOException {
         // TODO remove this sysout
-        System.out.println("build: " + localAddress + " remote: " + remoteAddress);
+        //System.out.println("build: " + localAddress + " remote: " + remoteAddress);
         IceSocketWrapper iceSocket = null;
         if (localAddress.getTransport() == Transport.UDP) {
             iceSocket = new IceUdpSocketWrapper(localAddress);

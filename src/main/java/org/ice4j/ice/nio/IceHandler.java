@@ -1,5 +1,6 @@
 package org.ice4j.ice.nio;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,11 +98,16 @@ public class IceHandler extends IoHandlerAdapter {
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
             // XXX create socket registration
             if (transport == Transport.TCP) {
-                // get the remote address
-                inetAddr = (InetSocketAddress) session.getRemoteAddress();
-                TransportAddress remoteAddress = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-                iceSocket.setRemoteTransportAddress(remoteAddress);
-                stunStack.getNetAccessManager().addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+                if (iceSocket != null) {
+                    // get the remote address
+                    inetAddr = (InetSocketAddress) session.getRemoteAddress();
+                    TransportAddress remoteAddress = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+                    iceSocket.setRemoteTransportAddress(remoteAddress);
+                    stunStack.getNetAccessManager().addSocket(iceSocket, iceSocket.getRemoteTransportAddress());
+                } else {
+                    // socket was in most cases recently closed or in-process of being closed / cleaned up, so return and exception
+                    throw new IOException("Connection already closed for: " + session.toString());
+                }
             }
         } else {
             logger.debug("No stun stack at create for: {}", addr);

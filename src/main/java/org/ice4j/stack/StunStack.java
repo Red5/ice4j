@@ -695,18 +695,21 @@ public class StunStack implements MessageEventHandler {
      * Cancels all running transactions and prepares for garbage collection
      */
     public void shutDown() {
+        // remove all listeners
+        eventDispatcher.removeAllListeners();
         // cancel the expire job if one exists
         if (serverTransactionExpireFuture != null) {
             serverTransactionExpireFuture.cancel(true);
         }
         // stop the executor
-        try {
-            executor.shutdown();
-        } catch (Exception e) {
-            logger.warn("Exception during shutdown", e);
+        if (executor != null) {
+            try {
+                executor.shutdown();
+                executor = null;
+            } catch (Exception e) {
+                logger.warn("Exception during shutdown", e);
+            }
         }
-        // remove all listeners
-        eventDispatcher.removeAllListeners();
         // clientTransactions
         for (StunClientTransaction tran : clientTransactions.values()) {
             tran.cancel();
@@ -1001,8 +1004,12 @@ public class StunStack implements MessageEventHandler {
      * @return Future
      */
     public Future<?> submit(Runnable task) {
-        logger.info("Submitting task: {}", task);
-        return executor.submit(task);
+        if (executor != null && !executor.isTerminated()) {
+            logger.debug("Submitting task: {}", task);
+            return executor.submit(task);
+        }
+        logger.info("Submission rejected, executor is terminated");
+        return null;
     }
 
 }

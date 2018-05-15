@@ -1,8 +1,13 @@
 package org.ice4j.ice.nio;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.mina.core.service.IoAcceptor;
+import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -112,6 +117,9 @@ public abstract class IceTransport {
         if (acceptor != null) {
             try {
                 acceptor.unbind(addr);
+                //if (logger.isTraceEnabled()) {
+                logger.info("Binding removed: {}", addr);
+                //}
                 return true;
             } catch (Exception e) {
                 logger.warn("Remove binding failed on {}", addr, e);
@@ -131,6 +139,60 @@ public abstract class IceTransport {
             logger.info("Disposed socket transport");
             acceptor = null;
         }
+    }
+
+    /**
+     * Review all ports in-use for a conflict with the given port.
+     * 
+     * @param port
+     * @return true if already bound and false otherwise
+     */
+    public static boolean isBound(int port) {
+        // UDP first
+        IceTransport udpTransport = getInstance(Transport.UDP);
+        Set<SocketAddress> addresses = udpTransport.acceptor.getLocalAddresses();
+        if (!addresses.isEmpty()) {
+            for (SocketAddress addr : addresses) {
+                if (((InetSocketAddress) addr).getPort() == port) {
+                    // its in-use, skip it!
+                    logger.debug("UDP port: {} is already in-use (acceptor bound)", port);
+                    return true;
+                }
+            }
+        }
+        Map<Long, IoSession> sessions = udpTransport.acceptor.getManagedSessions();
+        if (!sessions.isEmpty()) {
+            for (Entry<Long, IoSession> entry : sessions.entrySet()) {
+                if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
+                    // its in-use, skip it!
+                    logger.debug("UDP port: {} is already in-use (session bound)", port);
+                    return true;
+                }
+            }
+        }
+        // TCP second
+        IceTransport tcpTransport = getInstance(Transport.TCP);
+        addresses = tcpTransport.acceptor.getLocalAddresses();
+        if (!addresses.isEmpty()) {
+            for (SocketAddress addr : addresses) {
+                if (((InetSocketAddress) addr).getPort() == port) {
+                    // its in-use, skip it!
+                    logger.debug("TCP port: {} is already in-use (acceptor bound)", port);
+                    return true;
+                }
+            }
+        }
+        sessions = tcpTransport.acceptor.getManagedSessions();
+        if (!sessions.isEmpty()) {
+            for (Entry<Long, IoSession> entry : sessions.entrySet()) {
+                if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
+                    // its in-use, skip it!
+                    logger.debug("TCP port: {} is already in-use (session bound)", port);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
