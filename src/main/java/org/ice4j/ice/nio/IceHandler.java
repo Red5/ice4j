@@ -72,6 +72,16 @@ public class IceHandler extends IoHandlerAdapter {
 
     /** {@inheritDoc} */
     @Override
+    public void sessionCreated(IoSession session) throws Exception {
+        logger.trace("Created (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
+        if (IceTransport.isRemoved(((InetSocketAddress) session.getLocalAddress()).getPort())) {
+            // socket was in most cases recently closed or in-process of being closed / cleaned up, so return and exception
+            throw new IOException("Connection already closed for: " + session.toString());
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void sessionOpened(IoSession session) throws Exception {
         logger.trace("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
@@ -213,11 +223,14 @@ public class IceHandler extends IoHandlerAdapter {
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
         logger.warn("Exception on {}", addr, cause);
-        // remove binding
-        IceTransport.getInstance(transport).removeBinding(addr);
-        // remove any map entries
-        stunStacks.remove(addr);
-        iceSockets.remove(addr);
+        // if its already been removed, skip removing it again
+        if (!IceTransport.isRemoved(inetAddr.getPort())) {
+            // remove binding
+            IceTransport.getInstance(transport).removeBinding(addr);
+            // remove any map entries
+            stunStacks.remove(addr);
+            iceSockets.remove(addr);
+        }
     }
 
 }

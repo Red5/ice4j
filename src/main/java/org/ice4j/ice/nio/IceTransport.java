@@ -30,6 +30,9 @@ public abstract class IceTransport {
 
     private final static int BUFFER_SIZE_DEFAULT = 65535;
 
+    // Expire ports in three seconds
+    private final static long EXPIRE_TIME_NANOS = TimeUnit.MILLISECONDS.toNanos(3000L);
+
     private static DelayQueue<ExpiredPort> removedPortsQueue = new DelayQueue<>();
 
     private static Thread reaperThread;
@@ -123,9 +126,11 @@ public abstract class IceTransport {
     public boolean removeBinding(SocketAddress addr) {
         if (acceptor != null) {
             try {
-                acceptor.unbind(addr);
+                int port = ((InetSocketAddress) addr).getPort();
+                // unbind
+                acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
                 // add to the delay queue
-                removedPortsQueue.offer(new ExpiredPort(((InetSocketAddress) addr).getPort()));
+                removedPortsQueue.offer(new ExpiredPort(port));
                 //if (logger.isTraceEnabled()) {
                 logger.info("Binding removed: {}", addr);
                 //}
@@ -155,6 +160,16 @@ public abstract class IceTransport {
     }
 
     /**
+     * Returns true if the specified port was recently removed and its delay has not yet expired.
+     * 
+     * @param port
+     * @return true if recently removed and false otherwise
+     */
+    public static boolean isRemoved(int port) {
+        return removedPortsQueue.contains(port);
+    }
+
+    /**
      * Review all ports in-use for a conflict with the given port.
      * 
      * @param port
@@ -162,27 +177,30 @@ public abstract class IceTransport {
      */
     public static boolean isBound(int port) {
         // ensure there's a reaper for removed ports clearing the delay queue
-        if (reaperThread == null) {
-            reaperThread = new Thread(new Runnable() {
+        synchronized (removedPortsQueue) {
+            if (reaperThread == null) {
+                reaperThread = new Thread(new Runnable() {
 
-                @Override
-                public void run() {
-                    do {
-                        try {
-                            ExpiredPort expired = removedPortsQueue.take();
-                            if (expired != null) {
-                                logger.info("Port expired: {}", expired.port);
+                    @Override
+                    public void run() {
+                        do {
+                            try {
+                                ExpiredPort expired = removedPortsQueue.take();
+                                if (expired != null) {
+                                    logger.info("Port expired: {}", expired.port);
+                                }
+                            } catch (InterruptedException e) {
+                                break;
                             }
-                        } catch (InterruptedException e) {
-                            break;
-                        }
-                    } while (true);
-                }}, "Port Reaper");
-            reaperThread.setDaemon(true);
-            reaperThread.start();
+                        } while (true);
+                    }
+                }, "Port Reaper");
+                reaperThread.setDaemon(true);
+                reaperThread.start();
+            }
         }
         // check delay queue first for recently unbound ports
-        if (removedPortsQueue.contains(port)) {
+        if (isRemoved(port)) {
             logger.info("Port: {} was recently removed, it is not yet available", port);
             return true;
         }
@@ -292,8 +310,6 @@ public abstract class IceTransport {
 
     private class ExpiredPort implements Delayed {
 
-        final long ONE_SECOND_NANOS = TimeUnit.MILLISECONDS.toNanos(1000);
-
         final long removed = System.currentTimeMillis();
 
         final int port;
@@ -313,9 +329,28 @@ public abstract class IceTransport {
         @Override
         public long getDelay(TimeUnit unit) {
             // expects nanos
-            return ONE_SECOND_NANOS - TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis() - removed);
+            return EXPIRE_TIME_NANOS - TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis() - removed);
         }
-        
+
+        @Override
+        public int hashCode() {
+            return port;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            ExpiredPort other = (ExpiredPort) obj;
+            if (port != other.port)
+                return false;
+            return true;
+        }
+
     }
 
 }
