@@ -54,7 +54,7 @@ public abstract class IceTransport {
 
     // constants for the session map or anything else
     public enum Ice {
-        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY, CANDIDATE;
+        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY, CANDIDATE, TCP_BUFFER;
     }
 
     static {

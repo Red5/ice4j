@@ -35,11 +35,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
     private static final int DTLS_RECORD_HEADER_LENGTH = 13;
 
     /**
-     * Thread local for incomplete frame chunks.
-     */
-    private ThreadLocal<FrameChunk> tcpFrameChunk = new ThreadLocal<>();
-
-    /**
      * Holder of incomplete frames.
      */
     class FrameChunk {
@@ -131,7 +126,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 checkFrameComplete: do {
                     //logger.trace("Remaining at loop start: {}", in.remaining());
                     // check for an existing frame chunk first
-                    FrameChunk frameChunk = tcpFrameChunk.get();
+                    FrameChunk frameChunk = (FrameChunk) session.getAttribute(Ice.TCP_BUFFER);
                     if (frameChunk != null) {
                         // check for completed
                         if (frameChunk.isComplete()) {
@@ -143,8 +138,8 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             frameChunk.chunk.get(buf);
                             // now clear / reset
                             frameChunk.reset();
-                            // clear thread local
-                            tcpFrameChunk.set(null);
+                            // clear session local
+                            session.removeAttribute(Ice.TCP_BUFFER);
                             // send a buffer of bytes for further processing / handling
                             process(session, iceSocket, localAddr, remoteAddr, buf);
                             // no more frame chunks, so regular processing will proceed
@@ -180,13 +175,13 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             if (remaining < frameLength) {
                                 if (remaining > 0) {
                                     //logger.debug("Creating new frame chunk with data: {}", remaining);
-                                    tcpFrameChunk.set(new FrameChunk(frameLength, in));
+                                    session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength, in));
                                     //logger.debug("New frame chunk, complete? {} in remaining: {}", tcpFrameChunk.get().isComplete(), in.remaining());
                                     // nothing should remain in the input at this point
                                     continue checkFrameComplete;
                                 } else {
                                     //logger.warn("Creating new frame chunk without data: {}", remaining);
-                                    tcpFrameChunk.set(new FrameChunk(frameLength));
+                                    session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength));
                                 }
                             } else {
                                 //logger.warn("Creating new frame with data: {}", remaining);
@@ -200,7 +195,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         } else {
                             // special case were we only have a single byte, so not big enough for a length determination
                             //logger.warn("Creating new frame chunk without sizing or data");
-                            tcpFrameChunk.set(new FrameChunk(in.get()));
+                            session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(in.get()));
                         }
                     }
                 } while (in.hasRemaining());

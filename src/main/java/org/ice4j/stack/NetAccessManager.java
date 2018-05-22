@@ -147,12 +147,14 @@ public class NetAccessManager {
         logger.debug("stop");
         // close all udp
         for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
+            // TODO fix ConcurrentModificationException that may occur here
             for (Connector connector : map.values()) {
                 connector.stop();
             }
         }
         // close all tcp
         for (Map<TransportAddress, Connector> map : tcpConnectors.values()) {
+            // TODO fix ConcurrentModificationException that may occur here
             for (Connector connector : map.values()) {
                 connector.stop();
             }
