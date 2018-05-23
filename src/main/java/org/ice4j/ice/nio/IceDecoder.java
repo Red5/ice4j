@@ -217,7 +217,8 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             }
         } else {
             logger.warn("No ice socket in session, closing: {}", session);
-            session.suspendRead();
+            // XXX check into this later, it seems to block additional reads outside the session on which its called??!?
+            //session.suspendRead();
             session.closeNow();
             // no connection, pass through IoBuffer resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit()); in.position(in.limit()); out.write(resultBuffer);
         }
