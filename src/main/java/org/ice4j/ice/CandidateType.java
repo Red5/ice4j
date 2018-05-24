@@ -70,19 +70,16 @@ public enum CandidateType {
     /**
      * Creates a CandidateType instance with the specified name.
      *
-     * @param typeName the name of the CandidateType instance we'd
-     * like to create.
+     * @param typeName the name of the CandidateType instance we'd like to create.
      */
     private CandidateType(String typeName) {
         this.typeName = typeName;
     }
 
     /**
-     * Returns the name of this CandidateType (e.g. "host", "prflx",
-     * "srflx", or "relay").
+     * Returns the name of this CandidateType (e.g. "host", "prflx", "srflx", or "relay").
      *
-     * @return the name of this CandidateType (e.g. "host", "prflx",
-     * "srflx", or "relay").
+     * @return the name of this CandidateType
      */
     @Override
     public String toString() {

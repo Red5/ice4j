@@ -2,6 +2,8 @@
 package org.ice4j.ice;
 
 import org.ice4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * RemoteCandidates are candidates that an agent received in an offer
@@ -11,6 +13,9 @@ import org.ice4j.*;
  * @author Emil Ivov
  */
 public class RemoteCandidate extends Candidate<RemoteCandidate> {
+
+    private static final Logger logger = LoggerFactory.getLogger(RemoteCandidate.class);
+
     /**
      * Ufrag for the Google Talk candidate.
      */
@@ -62,6 +67,7 @@ public class RemoteCandidate extends Candidate<RemoteCandidate> {
         setFoundation(foundation);
         setPriority(priority);
         this.ufrag = ufrag;
+        logger.debug("ctor - addr: {} comp: {}\n    remote type: {} priority: {} related candidate: {}", transportAddress, parentComponent, type, priority, relatedCandidate);
     }
 
     /**
@@ -78,11 +84,9 @@ public class RemoteCandidate extends Candidate<RemoteCandidate> {
     }
 
     /**
-     * Determines whether this Candidate is the default one for its
-     * parent component.
+     * Determines whether this Candidate is the default one for its parent component.
      *
-     * @return true if this Candidate is the default for its
-     * parent component and false if it isn't or if it has no parent
+     * @return true if this Candidate is the default for its parent component and false if it isn't or if it has no parent
      * Component yet.
      */
     @Override

@@ -185,7 +185,7 @@ public class HostCandidateHarvester {
      */
     public static List<InetAddress> getAllAllowedAddresses() {
         List<InetAddress> addresses = new LinkedList<>();
-        boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, false);
+        boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean isIPv6LinkLocalDisabled = StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
         try {
             for (NetworkInterface iface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
@@ -226,7 +226,7 @@ public class HostCandidateHarvester {
     public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
         harvestStatistics.startHarvestTiming();
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-        boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, false);
+        boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean isIPv6LinkLocalDisabled = StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
         if (transport != Transport.UDP && transport != Transport.TCP) {
             throw new IllegalArgumentException("Transport protocol not supported: " + transport);
@@ -235,7 +235,7 @@ public class HostCandidateHarvester {
         while (interfaces.hasMoreElements()) {
             NetworkInterface iface = interfaces.nextElement();
             if (NetworkUtils.isInterfaceLoopback(iface) || !NetworkUtils.isInterfaceUp(iface) || !isInterfaceAllowed(iface)) {
-                //this one is obviously not going to do
+                // this one is obviously not going to do
                 continue;
             }
             Enumeration<InetAddress> addresses = iface.getInetAddresses();

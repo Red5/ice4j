@@ -212,7 +212,7 @@ public abstract class AbstractTcpListener {
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values.
      */
     protected void addLocalAddresses(List<TransportAddress> transportAddresses) throws IOException {
-        boolean useIPv6 = !StackProperties.getBoolean(StackProperties.DISABLE_IPv6, false);
+        boolean useIPv6 = !StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean useIPv6LinkLocal = !StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
         // White list from the configuration
         String[] allowedAddressesStr = StackProperties.getStringArray(StackProperties.ALLOWED_ADDRESSES, ";");

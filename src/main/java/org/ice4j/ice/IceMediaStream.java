@@ -298,6 +298,7 @@ public class IceMediaStream {
                     pair.setLocalCandidate(localCnd.getBase());
                     // if the new pair corresponds to another one with a higher priority, then remove it.
                     if (tmpCheckList.contains(pair)) {
+                        logger.debug("Removing duplicate pair: {}", pair);
                         continue;
                     }
                     break;

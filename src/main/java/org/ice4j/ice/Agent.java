@@ -452,6 +452,7 @@ public class Agent {
             if (preDiscoveredPairsQueue.size() > 0) {
                 logger.info("Trigger checks for pairs that were received before running state");
                 for (CandidatePair cp : preDiscoveredPairsQueue) {
+                    logger.debug("Triggering check on prediscovered pair: {}", cp);
                     triggerCheck(cp);
                 }
                 preDiscoveredPairsQueue.clear();

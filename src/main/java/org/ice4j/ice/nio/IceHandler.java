@@ -87,7 +87,9 @@ public class IceHandler extends IoHandlerAdapter {
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
-        logger.debug("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
+        if (logger.isTraceEnabled()) {
+            logger.trace("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
+        }
         // get the local address
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
@@ -95,8 +97,12 @@ public class IceHandler extends IoHandlerAdapter {
         if (iceSocket != null) {
             // set the session
             iceSocket.setSession(session);
+            // add the socket to the session if its not there already
+            if (!session.containsAttribute(IceTransport.Ice.CONNECTION)) {
+                session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
+            }
         } else {
-            logger.debug("No ice socket at create for: {}", addr);
+            logger.debug("No ice socket at open for: {}", addr);
             /*
              * iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION); if (iceSocket != null) { iceSocket.setSession(session);
              * logger.debug("Ice socket in session at create for: {} session in socket: {}", addr, iceSocket.getSession()); } else {
@@ -120,7 +126,7 @@ public class IceHandler extends IoHandlerAdapter {
                 }
             }
         } else {
-            logger.debug("No stun stack at create for: {}", addr);
+            logger.debug("No stun stack at open for: {}", addr);
         }
     }
 

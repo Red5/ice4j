@@ -19,6 +19,9 @@ Providing adequate time between NIO selector checks is handled via the `NIO_SELE
 ## Blocking or Non-blocking I/O
 Setting the `IO_BLOCKING` to `true` will configure the internal services to use blocking I/O with TCP, instead of the default non-blocking implementation. This does not affect UDP connections.
 
+## Private network host candidate handling
+To skip the addition of `RemoteCandidate` instances originating on private networks on a `Component`, set `SKIP_REMOTE_PRIVATE_HOSTS` to `true`; otherwise the default value `false` or not-to-skip will be used.
+
 # Server Startup
 To add the options to your Red5 / Red5 Pro server startup, update the `JAVA_OPTS` line like so:
 ```

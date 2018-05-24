@@ -8,6 +8,8 @@ package org.ice4j.ice;
 
 import org.ice4j.*;
 import org.ice4j.socket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Peer Reflexive Candidates are candidates whose IP address and port are a binding explicitly allocated by a NAT for an agent when it sent a STUN
@@ -20,6 +22,9 @@ import org.ice4j.socket.*;
  * @author Emil Ivov
  */
 public class PeerReflexiveCandidate extends LocalCandidate {
+
+    private static final Logger logger = LoggerFactory.getLogger(PeerReflexiveCandidate.class);
+
     /**
      * Creates a PeerReflexiveCandidate instance for the specified transport address and properties.
      *
@@ -32,7 +37,10 @@ public class PeerReflexiveCandidate extends LocalCandidate {
         super(transportAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateExtendedType.STUN_PEER_REFLEXIVE_CANDIDATE, base);
         super.setBase(base);
         super.priority = priority;
-        super.setTcpType(base.getTcpType());
+        if (transportAddress.getTransport() != Transport.UDP) {
+            super.setTcpType(base.getTcpType());
+        }
+        logger.debug("ctor - addr: {} comp: {} related candidate: {}", transportAddress, parentComponent, base);
     }
 
     /**

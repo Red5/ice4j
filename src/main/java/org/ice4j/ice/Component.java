@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
@@ -36,6 +37,11 @@ import org.slf4j.LoggerFactory;
 public class Component implements PropertyChangeListener {
 
     private final static Logger logger = LoggerFactory.getLogger(Component.class);
+
+    /**
+     * Whether or not to skip remote candidates originating from private network hosts.
+     */
+    private static boolean skipPrivateNetworkHostCandidate = StackProperties.getBoolean("SKIP_REMOTE_PRIVATE_HOSTS", false);
 
     /**
      * A component id is a positive integer between 1 and 256 which identifies the specific component of the media stream for which this is a candidate.
@@ -186,7 +192,7 @@ public class Component implements PropertyChangeListener {
     public void addRemoteCandidate(RemoteCandidate candidate) {
         logger.info("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());
         // skip private network host candidates
-        if (((InetSocketAddress) candidate.getTransportAddress()).getAddress().isSiteLocalAddress()) {
+        if (skipPrivateNetworkHostCandidate && ((InetSocketAddress) candidate.getTransportAddress()).getAddress().isSiteLocalAddress()) {
             logger.info("Skipping remote candidate with private IP address: {}", candidate);
         } else {
             remoteCandidates.add(candidate);
