@@ -122,7 +122,7 @@ public class MappingCandidateHarvesters {
             harvesterList.add(new MappingCandidateHarvester(publicAddress, localAddress));
         }
         // AWS harvester
-        boolean disableAwsHarvester = StackProperties.getBoolean(DISABLE_AWS_HARVESTER_PNAME, false);
+        boolean disableAwsHarvester = StackProperties.getBoolean(DISABLE_AWS_HARVESTER_PNAME, true);
         boolean forceAwsHarvester = StackProperties.getBoolean(FORCE_AWS_HARVESTER_PNAME, false);
         if (logger.isDebugEnabled()) {
             logger.debug("AWS configuration: disable=" + disableAwsHarvester + "; force=" + forceAwsHarvester);

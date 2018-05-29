@@ -67,8 +67,9 @@ public class AwsCandidateHarvester extends MappingCandidateHarvester {
      * private (face) and public (mask) addresses of this EC2 instance.
      */
     private static synchronized void obtainEC2Addresses() {
-        if (addressChecked)
+        if (addressChecked) {
             return;
+        }
         addressChecked = true;
 
         String localIPStr = null;
