@@ -385,11 +385,9 @@ public class Agent {
         // select the candidate to put in the media line
         component.selectDefaultCandidate();
         /*
-         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, 
-         * we have to make sure that the ConnectivityCheckServer is started. If there's been a previous connectivity 
-         * establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer
-         * is not started after we've made the gathered LocalCandidates available to the caller, the caller may send them
-         * and a connectivity check may arrive from the remote Agent.
+         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
+         * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
+         * started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
          */
         connCheckServer.start();
         return component;
@@ -1430,35 +1428,38 @@ public class Agent {
     public void free() {
         logger.debug("Free ICE agent");
         shutdown = true;
-        //stop sending keep alives (STUN Binding Indications).
+        // stop sending keep alives (STUN Binding Indications)
         if (stunKeepAlive != null) {
             stunKeepAlive.cancel(true);
+            stunKeepAlive = null;
         }
-        //stop responding to STUN Binding Requests.
+        // stop responding to STUN Binding Requests
         connCheckServer.stop();
-        // Set the IceProcessingState#TERMINATED state on this Agent unless it is in a termination state already.
+        // set the IceProcessingState#TERMINATED state on this Agent unless it is in a termination state already
         IceProcessingState state = getState();
         if (!IceProcessingState.FAILED.equals(state) && !IceProcessingState.TERMINATED.equals(state)) {
             terminate(IceProcessingState.TERMINATED);
         }
         // Free its IceMediaStreams, Components and Candidates.
-        boolean interrupted = false;
-        logger.debug("remove streams");
-        for (IceMediaStream stream : getStreams()) {
-            try {
-                removeStream(stream);
-                logger.debug("Remove stream {}", stream.getName());
-            } catch (Throwable t) {
-                logger.debug("Remove stream {} failed", stream.getName(), t);
-                if (t instanceof InterruptedException) {
-                    interrupted = true;
-                } else if (t instanceof ThreadDeath) {
-                    throw (ThreadDeath) t;
+        if (!mediaStreams.isEmpty()) {
+            boolean interrupted = false;
+            logger.debug("Remove streams");
+            for (IceMediaStream stream : mediaStreams.values()) {
+                try {
+                    removeStream(stream);
+                    logger.debug("Remove stream {}", stream.getName());
+                } catch (Throwable t) {
+                    logger.debug("Remove stream {} failed", stream.getName(), t);
+                    if (t instanceof InterruptedException) {
+                        interrupted = true;
+                    } else if (t instanceof ThreadDeath) {
+                        throw (ThreadDeath) t;
+                    }
                 }
             }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
         getStunStack().shutDown();
         logger.info("ICE agent freed");

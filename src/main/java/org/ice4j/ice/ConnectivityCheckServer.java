@@ -290,7 +290,9 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
      * Stops this ConnectivityCheckServer. A stopped ConnectivityCheckServer can be restarted by calling {@link #start()} on it.
      */
     public void stop() {
-        stunStack.removeRequestListener(this);
-        started = false;
+        if (started) {
+            stunStack.removeRequestListener(this);
+            started = false;
+        }
     }
 }

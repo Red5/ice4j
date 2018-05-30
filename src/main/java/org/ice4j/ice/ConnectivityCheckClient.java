@@ -603,6 +603,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 paceMakerFuture.cancel(true);
             }
         }
+        paceMakerFutures.clear();
     }
 
 }

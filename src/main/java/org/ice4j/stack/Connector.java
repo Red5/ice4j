@@ -58,7 +58,7 @@ class Connector {
      */
     protected void stop() {
         netAccessManager.removeSocket(listenAddress, remoteAddress);
-        if (sock != null) {
+        if (!sock.isClosed()) {
             sock.close();
         }
     }
