@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -77,7 +78,7 @@ public class IceMediaStream {
     /**
      * The id that was last assigned to a component. The next id that we give to a component would be lastComponendID + 1;
      */
-    private int lastComponentID = 0;
+    private AtomicInteger lastComponentID = new AtomicInteger(0);
 
     /**
      * The CHECK-LIST for this agent described in the ICE specification: There is one check list per in-use media stream resulting from the offer/answer
@@ -129,12 +130,14 @@ public class IceMediaStream {
      * Creates and adds a component to this media-stream The component ID is incremented to the next integer value
      * when creating the component so make sure you keep that in mind in case assigning a specific component ID is important to you.
      *
-     * @param keepAliveStrategy the keep-alive strategy, which dictates which candidates pairs are going to be kept alive.
-     * @return the newly created stream Component after adding it to the stream first.
+     * @param keepAliveStrategy the keep-alive strategy, which dictates which candidates pairs are going to be kept alive
+     * @return the newly created stream Component after adding it to the stream first
      */
     protected Component createComponent(KeepAliveStrategy keepAliveStrategy) {
-        Component component = new Component(++lastComponentID, this, keepAliveStrategy);
-        components.add(component);
+        Component component = new Component(lastComponentID.incrementAndGet(), this, keepAliveStrategy);
+        if (!components.add(component)) {
+            logger.debug("New component was not added: {}", component);
+        }
         return component;
     }
 
@@ -208,9 +211,9 @@ public class IceMediaStream {
      * Removes this stream and all Candidates associated with its child Components.
      */
     protected void free() {
-        for (Component component : components) {
+        components.forEach(component -> {
             component.free();
-        }
+        });
         components.clear();
     }
 
@@ -244,8 +247,8 @@ public class IceMediaStream {
      * @param checkList the list that we need to update with the new pairs.
      */
     protected void createCheckList(Queue<CandidatePair> checkList) {
-        for (Component cmp : getComponents()) {
-            createCheckList(cmp, checkList);
+        for (Component component : components) {
+            createCheckList(component, checkList);
         }
     }
 
