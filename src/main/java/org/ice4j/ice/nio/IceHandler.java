@@ -224,11 +224,12 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
+        logger.warn("Exception on session: {}", session.getId(), cause);
         // determine transport type
         Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-        logger.warn("Exception on {}", addr, cause);
+        logger.info("Exception on {}", addr);
         // if its already been removed, skip removing it again
         if (!IceTransport.isRemoved(inetAddr.getPort())) {
             // remove binding

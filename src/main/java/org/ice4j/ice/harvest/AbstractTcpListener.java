@@ -20,13 +20,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceDecoder;
 import org.ice4j.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An abstract class that binds on a set of sockets and accepts sessions that start with a STUN Binding Request (preceded by an optional fake SSL
@@ -41,7 +42,7 @@ import org.ice4j.message.Message;
  */
 public abstract class AbstractTcpListener {
 
-    private static final Logger logger = Logger.getLogger(AbstractTcpListener.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(AbstractTcpListener.class);
 
     /**
      * The maximum number of milliseconds to wait for an accepted {@code SocketChannel} to provide incoming/readable data before it is
@@ -242,7 +243,7 @@ public abstract class AbstractTcpListener {
                 continue;
             }
             if (!useIPv6LinkLocal && (address instanceof Inet6Address) && address.isLinkLocalAddress()) {
-                logger.info("Not using link-local address " + address + " for TCP candidates.");
+                logger.debug("Not using link-local address {} for TCP candidates", address);
                 continue;
             }
             if (allowedAddresses != null) {
@@ -254,7 +255,7 @@ public abstract class AbstractTcpListener {
                     }
                 }
                 if (!found) {
-                    logger.info("Not using " + address + " for TCP candidates, because it is not in the allowed list.");
+                    logger.debug("Not using {} for TCP candidates, because it is not in the allowed list", address);
                     continue;
                 }
             }
@@ -267,7 +268,7 @@ public abstract class AbstractTcpListener {
                     }
                 }
                 if (found) {
-                    logger.info("Not using " + address + " for TCP candidates, because it is in the blocked list.");
+                    logger.debug("Not using {} for TCP candidates, because it is in the blocked list", address);
                     continue;
                 }
             }
@@ -311,13 +312,10 @@ public abstract class AbstractTcpListener {
         ServerSocketChannel channel = ServerSocketChannel.open();
         channel.bind(address, 0);
         // XXX if we need to add a datagram filter
-        /* new DatagramPacketFilter() {
-            @Override
-            public boolean accept(DatagramPacket p) {
-                return isFirstDatagramPacket(p);
-            }
-        };
-        */
+        /*
+         * new DatagramPacketFilter() {
+         * @Override public boolean accept(DatagramPacket p) { return isFirstDatagramPacket(p); } };
+         */
         serverSocketChannels.add(channel);
     }
 
@@ -404,14 +402,14 @@ public abstract class AbstractTcpListener {
                     notifyReadThread();
                 }
                 if (exception != null) {
-                    logger.info("Failed to accept a socket, which should have been ready to accept: " + exception);
+                    logger.warn("Failed to accept a socket, which should have been ready to accept", exception);
                     break;
                 }
                 try {
                     // Allow to go on, so we can quit if closed.
                     selector.select(selectTimeout);
                 } catch (IOException ioe) {
-                    logger.info("Failed to select an accept-ready socket: " + ioe);
+                    logger.warn("Failed to select an accept-ready socket", ioe);
                     break;
                 }
             } while (true);
@@ -492,7 +490,7 @@ public abstract class AbstractTcpListener {
                         channel.configureBlocking(false);
                         channel.register(readSelector, SelectionKey.OP_READ, new ChannelDesc(channel));
                     } catch (IOException ioe) {
-                        logger.info("Failed to register channel: " + ioe);
+                        logger.warn("Failed to register channel", ioe);
                         closeNoExceptions(channel);
                     }
                 }
@@ -507,30 +505,24 @@ public abstract class AbstractTcpListener {
          */
         private void cleanup() {
             long now = System.currentTimeMillis();
-
             for (SelectionKey key : readSelector.keys()) {
                 // An invalid key specifies that either the channel was closed
                 // (in which case we do not have to do anything else to it) or
                 // that we no longer control the channel (i.e. we do not want to
                 // do anything else to it). 
-                if (!key.isValid())
+                if (!key.isValid()) {
                     continue;
-
+                }
                 ChannelDesc channelDesc = (ChannelDesc) key.attachment();
-
-                if (channelDesc == null)
+                if (channelDesc == null) {
                     continue;
-
+                }
                 long lastActive = channelDesc.lastActive;
-
                 if (lastActive != -1 && now - lastActive > SOCKET_CHANNEL_READ_TIMEOUT) {
                     // De-register from the Selector.
                     key.cancel();
-
                     SocketChannel channel = channelDesc.channel;
-
-                    logger.info("Read timeout for socket: " + channel.socket());
-
+                    logger.debug("Read timeout for socket {}", channel.socket());
                     closeNoExceptions(channel);
                 }
             }
@@ -640,7 +632,7 @@ public abstract class AbstractTcpListener {
                     }
                 }
             } catch (IOException | IllegalStateException e) {
-                logger.info("Failed to handle TCP socket " + channel.channel.socket() + ": " + e.getMessage());
+                logger.warn("Failed to handle TCP socket {}", channel.channel.socket(), e);
                 key.cancel();
                 closeNoExceptions(channel.channel);
             }
@@ -704,7 +696,7 @@ public abstract class AbstractTcpListener {
                 try {
                     readSelector.select(SOCKET_CHANNEL_READ_TIMEOUT / 2);
                 } catch (IOException ioe) {
-                    logger.info("Failed to select a read-ready channel.");
+                    logger.warn("Failed to select a read-ready channel", ioe);
                 }
             } while (true);
             //we are all done, clean up.

@@ -2,15 +2,12 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.service.IoAcceptor;
-import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -51,6 +48,8 @@ public abstract class IceTransport {
     protected int ioThreads = 16;
 
     protected IoAcceptor acceptor;
+
+    protected static AtomicBoolean reaperStarted = new AtomicBoolean(false);
 
     // constants for the session map or anything else
     public enum Ice {
@@ -132,7 +131,7 @@ public abstract class IceTransport {
                 // add to the delay queue
                 removedPortsQueue.offer(new ExpiredPort(port));
                 //if (logger.isTraceEnabled()) {
-                logger.info("Binding removed: {}", addr);
+                logger.debug("Binding removed: {}", addr);
                 //}
                 return true;
             } catch (Exception e) {
@@ -147,7 +146,7 @@ public abstract class IceTransport {
      */
     public void stop() throws Exception {
         if (acceptor != null) {
-            logger.info("Stopped socket transport");
+            logger.debug("Stopped socket transport");
             acceptor.unbind();
             acceptor.dispose(true);
             logger.info("Disposed socket transport");
@@ -176,8 +175,14 @@ public abstract class IceTransport {
      * @return true if already bound and false otherwise
      */
     public static boolean isBound(int port) {
+        //logger.info("isBound: {}", port);
         // ensure there's a reaper for removed ports clearing the delay queue
-        synchronized (removedPortsQueue) {
+        if (reaperStarted.compareAndSet(false, true)) {
+            logger.info("inside atomic bool isBound: {}", port);
+            if (reaperThread != null) {
+                reaperThread.interrupt();
+                reaperThread = null;
+            }
             if (reaperThread == null) {
                 reaperThread = new Thread(new Runnable() {
 
@@ -187,9 +192,11 @@ public abstract class IceTransport {
                             try {
                                 ExpiredPort expired = removedPortsQueue.take();
                                 if (expired != null) {
-                                    logger.info("Port expired: {}", expired.port);
+                                    logger.debug("Port expired: {}", expired.port);
                                 }
-                            } catch (InterruptedException e) {
+                            } catch (Throwable e) {
+                                logger.warn("Interrupted reaper", e);
+                                reaperStarted.compareAndSet(true, false);
                                 break;
                             }
                         } while (true);
@@ -199,55 +206,77 @@ public abstract class IceTransport {
                 reaperThread.start();
             }
         }
+        //logger.info("after atomic bool block isBound: {}", port);
         // check delay queue first for recently unbound ports
         if (isRemoved(port)) {
             logger.info("Port: {} was recently removed, it is not yet available", port);
             return true;
         }
+        /** the port checks below can cause an app to become unresponsive
         // UDP first
         IceTransport udpTransport = getInstance(Transport.UDP);
-        Set<SocketAddress> addresses = udpTransport.acceptor.getLocalAddresses();
-        if (!addresses.isEmpty()) {
-            for (SocketAddress addr : addresses) {
-                if (((InetSocketAddress) addr).getPort() == port) {
-                    // its in-use, skip it!
-                    logger.debug("UDP port: {} is already in-use (acceptor bound)", port);
-                    return true;
+        logger.info("udpTransport check: {}", udpTransport);
+        if (udpTransport != null) {
+            Set<SocketAddress> addresses = udpTransport.acceptor.getLocalAddresses();
+            if (addresses != null && !addresses.isEmpty()) {
+                for (SocketAddress addr : addresses) {
+                    if (((InetSocketAddress) addr).getPort() == port) {
+                        // its in-use, skip it!
+                        logger.debug("UDP port: {} is already in-use (acceptor bound)", port);
+                        return true;
+                    }
                 }
+            } else {
+                logger.info("addresses was null");
             }
-        }
-        Map<Long, IoSession> sessions = udpTransport.acceptor.getManagedSessions();
-        if (!sessions.isEmpty()) {
-            for (Entry<Long, IoSession> entry : sessions.entrySet()) {
-                if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
-                    // its in-use, skip it!
-                    logger.debug("UDP port: {} is already in-use (session bound)", port);
-                    return true;
+            Map<Long, IoSession> sessions = udpTransport.acceptor.getManagedSessions();
+            if (sessions != null && !sessions.isEmpty()) {
+                for (Entry<Long, IoSession> entry : sessions.entrySet()) {
+                    if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
+                        // its in-use, skip it!
+                        logger.debug("UDP port: {} is already in-use (session bound)", port);
+                        return true;
+                    }
                 }
+            } else {
+                logger.info("sessions was null");
             }
+        } else {
+            logger.info("udpTransport was null");
         }
         // TCP second
         IceTransport tcpTransport = getInstance(Transport.TCP);
-        addresses = tcpTransport.acceptor.getLocalAddresses();
-        if (!addresses.isEmpty()) {
-            for (SocketAddress addr : addresses) {
-                if (((InetSocketAddress) addr).getPort() == port) {
-                    // its in-use, skip it!
-                    logger.debug("TCP port: {} is already in-use (acceptor bound)", port);
-                    return true;
+        logger.info("tcpTransport check: {}", tcpTransport);
+        if (tcpTransport != null) {
+            Set<SocketAddress> addresses = tcpTransport.acceptor.getLocalAddresses();
+            if (addresses != null && !addresses.isEmpty()) {
+                for (SocketAddress addr : addresses) {
+                    if (((InetSocketAddress) addr).getPort() == port) {
+                        // its in-use, skip it!
+                        logger.debug("TCP port: {} is already in-use (acceptor bound)", port);
+                        return true;
+                    }
                 }
+            } else {
+                logger.info("addresses was null");
             }
-        }
-        sessions = tcpTransport.acceptor.getManagedSessions();
-        if (!sessions.isEmpty()) {
-            for (Entry<Long, IoSession> entry : sessions.entrySet()) {
-                if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
-                    // its in-use, skip it!
-                    logger.debug("TCP port: {} is already in-use (session bound)", port);
-                    return true;
+            Map<Long, IoSession> sessions = tcpTransport.acceptor.getManagedSessions();
+            if (sessions != null && !sessions.isEmpty()) {
+                for (Entry<Long, IoSession> entry : sessions.entrySet()) {
+                    if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
+                        // its in-use, skip it!
+                        logger.debug("TCP port: {} is already in-use (session bound)", port);
+                        return true;
+                    }
                 }
+            } else {
+                logger.info("sessions was null");
             }
+        } else {
+            logger.info("tcpTransport was null");
         }
+        */
+        //logger.info("exit isBound: {}", port);
         return false;
     }
 

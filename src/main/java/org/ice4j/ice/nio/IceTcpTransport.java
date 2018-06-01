@@ -69,7 +69,7 @@ public class IceTcpTransport extends IceTransport {
             @Override
             public void sessionCreated(IoSession session) throws Exception {
                 logger.debug("sessionCreated: {}", session);
-                logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
+                //logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
             }
 
             @Override
@@ -118,7 +118,7 @@ public class IceTcpTransport extends IceTransport {
         try {
             acceptor.bind(addr);
             //if (logger.isTraceEnabled()) {
-                logger.info("TCP binding added: {}", addr);
+                logger.debug("TCP binding added: {}", addr);
             //}
             return true;
         } catch (IOException e) {

@@ -357,14 +357,16 @@ public class Agent {
             logger.debug("Requested preferred port: {} is already in-use", preferredPort);
             throw new BindException("Requested preferred port: " + preferredPort + " is already in-use");
         }
+        //logger.info("createComponent stream: {}", stream);
         Component component = stream.createComponent(keepAliveStrategy);
+        //logger.info("createComponent stream: {} component: {}", stream, component);
         /**
          * Uses all CandidateHarvesters currently registered with this Agent to obtain whatever addresses they can discover.
          * <p>
          * Not that the method would only use existing harvesters so make sure you've registered all harvesters that you would want to use before
          * calling it.
          */
-        logger.info("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
+        logger.debug("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
         if (useHostHarvester()) {
             hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, transport);
         } else if (hostHarvesters.isEmpty()) {
@@ -448,7 +450,7 @@ public class Agent {
             setState(IceProcessingState.RUNNING);
             //if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
             if (preDiscoveredPairsQueue.size() > 0) {
-                logger.info("Trigger checks for pairs that were received before running state");
+                logger.debug("Trigger checks for pairs that were received before running state");
                 for (CandidatePair cp : preDiscoveredPairsQueue) {
                     logger.debug("Triggering check on prediscovered pair: {}", cp);
                     triggerCheck(cp);
@@ -588,7 +590,7 @@ public class Agent {
         int maxCheckListSize = Integer.getInteger(StackProperties.MAX_CHECK_LIST_SIZE, DEFAULT_MAX_CHECK_LIST_SIZE);
         int maxPerStreamSize = streamCount == 0 ? 0 : maxCheckListSize / streamCount;
         for (IceMediaStream stream : streams) {
-            logger.info("Init checklist for stream {}", stream.getName());
+            logger.debug("Init checklist for stream {}", stream.getName());
             stream.setMaxCheckListSize(maxPerStreamSize);
             stream.initCheckList();
         }
@@ -1074,7 +1076,7 @@ public class Agent {
             // RFC 5245: If the pair is not already on the check list: The pair is inserted into the check list based on its priority
             // Its state is set to Waiting [and it] is enqueued into the triggered check queue.
             if (triggerPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
+                logger.debug("Add peer CandidatePair with new reflexive address to checkList: {}", triggerPair);
             }
             parentStream.addToCheckList(triggerPair);
         }
@@ -1123,7 +1125,7 @@ public class Agent {
         IceMediaStream parentStream = parentComponent.getParentStream();
         //If the pair is not already nominated and if its parent component does not already contain a nominated pair - nominate it.
         if (!pair.isNominated() && !parentStream.validListContainsNomineeForComponent(parentComponent)) {
-            logger.info("Verify if nominated pair answer again");
+            logger.debug("Verify if nominated pair answer again");
             pair.nominate();
             parentStream.getCheckList().scheduleTriggeredCheck(pair);
         }
@@ -1178,7 +1180,7 @@ public class Agent {
                 allListsEnded = false;
                 break;
             } else if (checkListState == CheckListState.COMPLETED) {
-                logger.info("CheckList of stream {} is COMPLETED", stream.getName());
+                logger.debug("CheckList of stream {} is COMPLETED", stream.getName());
                 atLeastOneListSucceeded = true;
             }
         }
@@ -1212,8 +1214,10 @@ public class Agent {
             scheduleStunKeepAlive();
         }
         scheduleTermination();
-        //print logs for the types of addresses we chose.
-        logCandTypes();
+        //print logs for the types of addresses we chose
+        if (logger.isDebugEnabled()) {
+            logCandTypes();
+        }
     }
 
     /**
@@ -1231,7 +1235,7 @@ public class Agent {
                 buf.append("): ");
                 if (selectedPair == null) {
                     buf.append("none (conn checks failed)");
-                    logger.info(buf.toString());
+                    logger.debug(buf.toString());
                     continue;
                 }
                 Candidate<?> localCnd = selectedPair.getLocalCandidate();
@@ -1249,7 +1253,7 @@ public class Agent {
                         buf.append(")");
                     }
                 }
-                logger.info(buf.toString());
+                logger.debug(buf.toString());
             }
         }
     }
@@ -1518,7 +1522,7 @@ public class Agent {
             } catch (InterruptedException e) {
             }
         }
-        logger.info("{} ends", Thread.currentThread().getName());
+        logger.debug("{} ends", Thread.currentThread().getName());
     }
 
     /**

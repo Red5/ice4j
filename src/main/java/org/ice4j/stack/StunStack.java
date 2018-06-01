@@ -1008,7 +1008,7 @@ public class StunStack implements MessageEventHandler {
             logger.debug("Submitting task: {}", task);
             return executor.submit(task);
         }
-        logger.info("Submission rejected, executor is terminated");
+        logger.warn("Submission rejected, executor is terminated");
         return null;
     }
 

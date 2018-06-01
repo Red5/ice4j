@@ -107,7 +107,7 @@ public class DefaultNominator implements PropertyChangeListener {
     private void strategyNominateFirstValid(PropertyChangeEvent evt) {
         if (IceMediaStream.PROPERTY_PAIR_VALIDATED.equals(evt.getPropertyName())) {
             CandidatePair validPair = (CandidatePair) evt.getSource();
-            logger.info("Nominate (first valid): " + validPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
+            logger.debug("Nominate (first valid): " + validPair.toShortString() + ". Local ufrag " + parentAgent.getLocalUfrag());
             parentAgent.nominate(validPair);
         }
     }
@@ -133,7 +133,7 @@ public class DefaultNominator implements PropertyChangeListener {
             for (Component component : parentStream.getComponents()) {
                 CandidatePair pair = parentStream.getValidPair(component);
                 if (pair != null) {
-                    logger.info("Nominate (highest priority): " + validPair.toShortString());
+                    logger.debug("Nominate (highest priority): " + validPair.toShortString());
                     parentAgent.nominate(pair);
                 }
             }
@@ -173,16 +173,16 @@ public class DefaultNominator implements PropertyChangeListener {
                     // armed a timer and see if a host or server reflexive pair gets nominated. Otherwise nominate the relayed candidate pair
                     Timer timer = new Timer();
                     task = new RelayedCandidateTask(validPair);
-                    logger.info("Wait timeout to nominate relayed candidate");
+                    logger.debug("Wait timeout to nominate relayed candidate");
                     timer.schedule(task, 0);
                     validatedCandidates.put(component.toShortString(), task);
                 } else if (!isRelayed) {
                     // host or server reflexive candidate pair
                     if (task != null) {
                         task.cancel();
-                        logger.info("Found a better candidate pair to nominate for " + component.toShortString());
+                        logger.debug("Found a better candidate pair to nominate for {}", component.toShortString());
                     }
-                    logger.info("Nominate (first highest valid): " + validPair.toShortString());
+                    logger.debug("Nominate (first highest valid): {}", validPair.toShortString());
                     nominate = true;
                 }
             }
@@ -246,7 +246,7 @@ public class DefaultNominator implements PropertyChangeListener {
             if (allFailed && !pair.isNominated()) {
                 // all other pairs are failed to do not waste time, cancel timer and nominate ourself (the relayed candidate).
                 this.cancel();
-                logger.info("Nominate (first highest valid): {}", pair.toShortString());
+                logger.debug("Nominate (first highest valid): {}", pair.toShortString());
                 parentAgent.nominate(pair);
             }
         }
@@ -275,7 +275,7 @@ public class DefaultNominator implements PropertyChangeListener {
             if (cancelled) {
                 return;
             }
-            logger.info("Nominate (first highest valid): {}", pair.toShortString());
+            logger.debug("Nominate (first highest valid): {}", pair.toShortString());
             // task has not been cancelled after WAIT_TIME milliseconds so nominate the pair
             parentAgent.nominate(pair);
         }

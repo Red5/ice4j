@@ -205,7 +205,7 @@ public class HostCandidateHarvester {
                 }
             }
         } catch (SocketException se) {
-            logger.info("Failed to get network interfaces: " + se);
+            logger.info("Failed to get network interfaces: {}", se);
         }
         return addresses;
     }

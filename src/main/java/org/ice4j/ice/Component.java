@@ -190,10 +190,10 @@ public class Component implements PropertyChangeListener {
      * @param candidate the Candidate instance to add.
      */
     public void addRemoteCandidate(RemoteCandidate candidate) {
-        logger.info("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());
+        logger.debug("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());
         // skip private network host candidates
         if (skipPrivateNetworkHostCandidate && ((InetSocketAddress) candidate.getTransportAddress()).getAddress().isSiteLocalAddress()) {
-            logger.info("Skipping remote candidate with private IP address: {}", candidate);
+            logger.debug("Skipping remote candidate with private IP address: {}", candidate);
         } else {
             remoteCandidates.add(candidate);
         }
@@ -205,7 +205,7 @@ public class Component implements PropertyChangeListener {
      * @param candidate new Candidate to add.
      */
     public void addUpdateRemoteCandidates(RemoteCandidate candidate) {
-        logger.info("Update remote candidate for {}: {}", toShortString(), candidate.getTransportAddress());
+        logger.debug("Update remote candidate for {}: {}", toShortString(), candidate.getTransportAddress());
         List<RemoteCandidate> existingCandidates = new LinkedList<>();
         existingCandidates.addAll(remoteCandidates);
         existingCandidates.addAll(remoteUpdateCandidates);
@@ -214,7 +214,7 @@ public class Component implements PropertyChangeListener {
         CandidateType type = candidate.getType();
         for (RemoteCandidate existingCandidate : existingCandidates) {
             if (transportAddress.equals(existingCandidate.getTransportAddress()) && type == existingCandidate.getType()) {
-                logger.info("Not adding duplicate remote candidate: {}", candidate.getTransportAddress());
+                logger.debug("Not adding duplicate remote candidate: {}", candidate.getTransportAddress());
                 return;
             }
         }
@@ -239,7 +239,7 @@ public class Component implements PropertyChangeListener {
                     // A single LocalCandidate might be/become connected to more than one remote address, and that's ok
                     // (that is, we need to form pairs with them all).
                     CandidatePair pair = getParentStream().getParentAgent().createCandidatePair(localCnd, remoteCnd);
-                    logger.info("new Pair added: {}. Local ufrag {}", pair.toShortString(), parentStream.getParentAgent().getLocalUfrag());
+                    logger.debug("new Pair added: {}. Local ufrag {}", pair.toShortString(), parentStream.getParentAgent().getLocalUfrag());
                     checkList.add(pair);
                 }
             }
@@ -454,9 +454,7 @@ public class Component implements PropertyChangeListener {
             if (t instanceof ThreadDeath) {
                 throw (ThreadDeath) t;
             }
-            if (logger.isInfoEnabled()) {
-                logger.info("Failed to free LocalCandidate: {}", localCandidate);
-            }
+            logger.warn("Failed to free LocalCandidate: {}", localCandidate, t);
         }
     }
 

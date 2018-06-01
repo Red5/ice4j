@@ -68,7 +68,7 @@ public class ComponentSocket implements PropertyChangeListener {
      */
     private void addAuthorizedAddress(SocketAddress address) {
         if (!authorizedAddresses.contains(address)) {
-            logger.info("Adding allowed address: {}", address);
+            logger.debug("Adding allowed address: {}", address);
             authorizedAddresses.add(address);
         }
     }

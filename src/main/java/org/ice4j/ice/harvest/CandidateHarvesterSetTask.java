@@ -1,26 +1,16 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.ice.*;
+import java.util.Collection;
 
-import java.util.*;
-import java.util.logging.*;
+import org.ice4j.ice.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a task to be executed by the specified executorService and
@@ -30,15 +20,12 @@ import java.util.logging.*;
  * @author Lyubomir Marinov
  * @author  Emil Ivov
  */
-class CandidateHarvesterSetTask
-    implements Runnable
-{
+class CandidateHarvesterSetTask implements Runnable {
     /**
      * The Logger used by the CandidateHarvesterSetTask
      * class and its instances for logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(CandidateHarvesterSetTask.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(CandidateHarvesterSetTask.class);
 
     /**
      * The CandidateHarvester on which
@@ -69,11 +56,7 @@ class CandidateHarvesterSetTask
      * gathering.
      * CandidateHarvester#harvest(Component) first
      */
-    public CandidateHarvesterSetTask(
-            CandidateHarvesterSetElement harvester,
-            Collection<Component>        components,
-            TrickleCallback              trickleCallback)
-    {
+    public CandidateHarvesterSetTask(CandidateHarvesterSetElement harvester, Collection<Component> components, TrickleCallback trickleCallback) {
         this.harvester = harvester;
         this.components = components;
         this.trickleCallback = trickleCallback;
@@ -87,42 +70,32 @@ class CandidateHarvesterSetTask
      * @return the CandidateHarvester on which
      * CandidateHarvester#harvest(Component) is being called
      */
-    public CandidateHarvesterSetElement getHarvester()
-    {
+    public CandidateHarvesterSetElement getHarvester() {
         return harvester;
     }
 
     /**
      * Runs the actual harvesting for this component
      */
-    public void run()
-    {
-        if (harvester == null || !harvester.isEnabled())
+    public void run() {
+        if (harvester == null || !harvester.isEnabled()) {
             return;
-
-        for (Component component : components)
-        {
-            try
-            {
+        }
+        for (Component component : components) {
+            try {
                 harvester.harvest(component, trickleCallback);
-            }
-            catch (Throwable t)
-            {
-                logger.info(
-                    "disabling harvester due to exception: " +
-                        t.getLocalizedMessage());
+            } catch (Throwable t) {
+                logger.warn("Disabling harvester due to exception: {}", t);
                 harvester.setEnabled(false);
-
-                if (t instanceof ThreadDeath)
+                if (t instanceof ThreadDeath) {
                     throw (ThreadDeath) t;
+                }
             }
         }
 
         /*
-         * CandidateHarvester#harvest(Component) has been called on
-         * the harvester and its success or failure has been noted.
-         * Now forget the harvester because any failure to continue
-         * execution is surely not its fault.
+         * CandidateHarvester#harvest(Component) has been called on the harvester and its success or failure has been noted. Now forget the harvester because any failure to
+         * continue execution is surely not its fault.
          */
         harvester = null;
     }

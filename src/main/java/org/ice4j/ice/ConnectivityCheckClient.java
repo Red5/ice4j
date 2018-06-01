@@ -105,7 +105,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             logger.info("Start connectivity checks. Local ufrag {}", parentAgent.getLocalUfrag());
             startChecks(streamsWithPendingConnectivityEstablishment.get(0).getCheckList());
         } else {
-            logger.info("Not starting any checks, because there are no pending streams.");
+            logger.info("Not starting any checks, because there are no pending streams");
         }
     }
 
@@ -248,7 +248,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             if (messageType == Response.BINDING_ERROR_RESPONSE) {
                 // handle error responses
                 if (response.getAttribute(Attribute.Type.ERROR_CODE) == null) {
-                    logger.debug("Received a malformed error response");
+                    logger.warn("Received a malformed error response");
                     return; // malformed error response
                 }
                 processErrorResponse(ev);
@@ -280,13 +280,13 @@ class ConnectivityCheckClient implements ResponseCollector {
                 final String streamName = stream.getName();
                 Future<?> future = timerFutures.get(streamName);
                 if (future == null) {
-                    logger.info("CheckList will failed in a few seconds if no succeeded checks come");
+                    logger.debug("CheckList will failed in a few seconds if no succeeded checks come");
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run() {
                             try {
                                 Thread.sleep(5000L);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
-                                    logger.info("CheckList for stream {} FAILED", streamName);
+                                    logger.warn("CheckList for stream {} FAILED", streamName);
                                     checkList.setState(CheckListState.FAILED);
                                     parentAgent.checkListStatesUpdated();
                                 }
@@ -324,7 +324,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         TransportAddress mappedAddress = null;
         XorMappedAddressAttribute mappedAddressAttr = (XorMappedAddressAttribute) response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
         if (mappedAddressAttr == null) {
-            logger.info("Pair failed (no XOR-MAPPED-ADDRESS): {}. Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
+            logger.warn("Pair failed (no XOR-MAPPED-ADDRESS): {}. Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
             checkedPair.setStateFailed();
             return; //malformed error response
         }
@@ -407,7 +407,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 checkList.computeInitialCheckListPairStates();
             }
             if (wasFrozen) {
-                logger.info("Start checks for checkList of stream {} that was frozen", stream.getName());
+                logger.debug("Start checks for checkList of stream {} that was frozen", stream.getName());
                 startChecks(checkList);
             }
         }
@@ -502,7 +502,7 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     public void processTimeout(StunTimeoutEvent ev) {
         CandidatePair pair = (CandidatePair) ev.getTransactionID().getApplicationData();
-        logger.info("Timeout for pair: {}, failing", pair.toShortString());
+        logger.debug("Timeout for pair: {}, failing", pair.toShortString());
         pair.setStateFailed();
         updateCheckListAndTimerStates(pair);
     }
@@ -563,7 +563,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     if (pairToCheck != null) {
                         // check for a TCP candidate with a destination port of 9 (masked) and don't attempt to connect to it!
                         if (pairToCheck.getRemoteCandidate().getTcpType() == CandidateTcpType.ACTIVE) {
-                            logger.info("TCP remote candidate is active with masked port, skip attempt to connect directly");
+                            logger.debug("TCP remote candidate is active with masked port, skip attempt to connect directly");
                             continue;
                         }
                         // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
@@ -571,7 +571,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                         synchronized (pairToCheck) {
                             TransactionID transactionID = startCheckForPair(pairToCheck);
                             if (transactionID == null) {
-                                logger.info("Pair failed: {}", pairToCheck.toShortString());
+                                logger.warn("Pair failed: {}", pairToCheck.toShortString());
                                 pairToCheck.setStateFailed();
                             } else {
                                 pairToCheck.setStateInProgress(transactionID);

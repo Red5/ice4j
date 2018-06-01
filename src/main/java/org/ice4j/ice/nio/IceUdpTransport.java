@@ -53,33 +53,33 @@ public class IceUdpTransport extends IceTransport {
 
             @Override
             public void serviceActivated(IoService service) throws Exception {
-                logger.debug("serviceActivated: {}", service);
+                logger.info("serviceActivated: {}", service);
             }
 
             @Override
             public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
-                logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+                logger.info("serviceIdle: {} status: {}", service, idleStatus);
             }
 
             @Override
             public void serviceDeactivated(IoService service) throws Exception {
-                logger.debug("serviceDeactivated: {}", service);
+                logger.info("serviceDeactivated: {}", service);
             }
 
             @Override
             public void sessionCreated(IoSession session) throws Exception {
-                logger.debug("sessionCreated: {}", session);
-                logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+                logger.info("sessionCreated: {}", session);
+                //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
             }
 
             @Override
             public void sessionClosed(IoSession session) throws Exception {
-                logger.debug("sessionClosed: {}", session);
+                logger.info("sessionClosed: {}", session);
             }
 
             @Override
             public void sessionDestroyed(IoSession session) throws Exception {
-                logger.debug("sessionDestroyed: {}", session);
+                logger.info("sessionDestroyed: {}", session);
             }
         });
         // configure the acceptor
@@ -117,7 +117,7 @@ public class IceUdpTransport extends IceTransport {
         try {
             acceptor.bind(addr);
             //if (logger.isTraceEnabled()) {
-                logger.info("UDP binding added: {}", addr);
+                logger.debug("UDP binding added: {}", addr);
             //}
             return true;
         } catch (IOException e) {

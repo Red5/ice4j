@@ -134,6 +134,7 @@ public class IceMediaStream {
      * @return the newly created stream Component after adding it to the stream first
      */
     protected Component createComponent(KeepAliveStrategy keepAliveStrategy) {
+        logger.info("createComponent: {}", keepAliveStrategy);
         Component component = new Component(lastComponentID.incrementAndGet(), this, keepAliveStrategy);
         if (!components.add(component)) {
             logger.debug("New component was not added: {}", component);
