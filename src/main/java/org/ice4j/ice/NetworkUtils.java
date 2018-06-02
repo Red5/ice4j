@@ -1,26 +1,18 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
 import java.lang.reflect.*;
 import java.net.*;
-import java.util.*;
-import java.util.logging.*;
+import java.util.Enumeration;
+import java.util.Random;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility methods and fields to use when working with network addresses.
@@ -30,13 +22,9 @@ import java.util.logging.*;
  * @author Vincent Lucas
  * @author Alan Kelly
  */
-public class NetworkUtils
-{
-    /**
-     * Our class logger
-     */
-    private static final Logger logger
-        = Logger.getLogger(NetworkUtils.class.getName());
+public class NetworkUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(NetworkUtils.class.getName());
 
     /**
      * A string containing the "any" local address for IPv6.
@@ -73,13 +61,13 @@ public class NetworkUtils
     /**
      * The maximum int value that could correspond to a port number.
      */
-    public static final int    MAX_PORT_NUMBER = 65535;
+    public static final int MAX_PORT_NUMBER = 65535;
 
     /**
      * The minimum int value that could correspond to a port number bindable
      * by ice4j.
      */
-    public static final int    MIN_PORT_NUMBER = 1024;
+    public static final int MIN_PORT_NUMBER = 1024;
 
     /**
      * The random port number generator that we use in getRandomPortNumer()
@@ -92,10 +80,8 @@ public class NetworkUtils
      * @param add the address to inspect
      * @return true if the address is autoconfigured by windows, false otherwise.
      */
-    public static boolean isWindowsAutoConfiguredIPv4Address(InetAddress add)
-    {
-        return (add.getAddress()[0] & 0xFF) == 169
-            && (add.getAddress()[1] & 0xFF) == 254;
+    public static boolean isWindowsAutoConfiguredIPv4Address(InetAddress add) {
+        return (add.getAddress()[0] & 0xFF) == 169 && (add.getAddress()[1] & 0xFF) == 254;
     }
 
     /**
@@ -103,8 +89,7 @@ public class NetworkUtils
      * (i.e. above 1024).
      * @return a random int located between 1024 and 65 535.
      */
-    public static int getRandomPortNumber()
-    {
+    public static int getRandomPortNumber() {
         return getRandomPortNumber(MIN_PORT_NUMBER, MAX_PORT_NUMBER);
     }
 
@@ -116,8 +101,7 @@ public class NetworkUtils
      *
      * @return a random int in the interval [min, max].
      */
-    public static int getRandomPortNumber(int min, int max)
-    {
+    public static int getRandomPortNumber(int min, int max) {
         return portNumberGenerator.nextInt(max - min) + min;
     }
 
@@ -129,8 +113,7 @@ public class NetworkUtils
      * @return true if the address contained by address is an IPv4
      * address and false otherwise.
      */
-    public static boolean isIPv4Address(String address)
-    {
+    public static boolean isIPv4Address(String address) {
         return strToIPv4(address) != null;
     }
 
@@ -142,8 +125,7 @@ public class NetworkUtils
      * @return true if the address contained by address is an IPv6
      * address and false otherwise.
      */
-    public static boolean isIPv6Address(String address)
-    {
+    public static boolean isIPv6Address(String address) {
         return strToIPv6(address) != null;
     }
 
@@ -153,54 +135,42 @@ public class NetworkUtils
      * @param address the address that we'd like to check
      * @return true if address is an IPv4 or IPv6 address and false otherwise.
      */
-    public static boolean isValidIPAddress(String address)
-    {
+    public static boolean isValidIPAddress(String address) {
         // empty string
-        if (address == null || address.length() == 0)
-        {
+        if (address == null || address.length() == 0) {
             return false;
         }
 
         // look for IPv6 brackets and remove brackets for parsing
         boolean ipv6Expected = false;
-        if (address.charAt(0) == '[')
-        {
+        if (address.charAt(0) == '[') {
             // This is supposed to be an IPv6 literal
-            if (address.length() > 2
-                            && address.charAt(address.length() - 1) == ']')
-            {
+            if (address.length() > 2 && address.charAt(address.length() - 1) == ']') {
                 // remove brackets from IPv6
                 address = address.substring(1, address.length() - 1);
                 ipv6Expected = true;
-            }
-            else
-            {
+            } else {
                 return false;
             }
         }
 
         // look for IP addresses
-        if (Character.digit(address.charAt(0), 16) != -1
-                        || (address.charAt(0) == ':'))
-        {
+        if (Character.digit(address.charAt(0), 16) != -1 || (address.charAt(0) == ':')) {
             byte[] addr = null;
 
             // see if it is IPv4 address
             addr = strToIPv4(address);
             // if not, see if it is IPv6 address
-            if (addr == null)
-            {
+            if (addr == null) {
                 addr = strToIPv6(address);
             }
             // if IPv4 is found when IPv6 is expected
-            else if (ipv6Expected)
-            {
+            else if (ipv6Expected) {
                 // invalid address: IPv4 address surrounded with brackets!
                 return false;
             }
             // if an IPv4 or IPv6 address is found
-            if (addr != null)
-            {
+            if (addr != null) {
                 // is an IP address
                 return true;
             }
@@ -218,29 +188,26 @@ public class NetworkUtils
      * by ipv4AddrStr or null if ipv4AddrStr does not contain
      * a valid IPv4 address string.
      */
-    public static byte[] strToIPv4(String ipv4AddrStr)
-    {
+    public static byte[] strToIPv4(String ipv4AddrStr) {
         if (ipv4AddrStr.length() == 0)
             return null;
 
         byte[] address = new byte[IN4_ADDR_SIZE];
         String[] tokens = ipv4AddrStr.split("\\.", -1);
         long currentTkn;
-        try
-        {
-            switch(tokens.length)
-            {
+        try {
+            switch (tokens.length) {
                 case 1:
                     //If the address was specified as a single String we can
                     //directly copy it into the byte array.
-                   currentTkn = Long.parseLong(tokens[0]);
-                   if (currentTkn < 0 || currentTkn > 0xffffffffL)
-                       return null;
-                   address[0] = (byte) ((currentTkn >> 24) & 0xff);
-                   address[1] = (byte) (((currentTkn & 0xffffff) >> 16) & 0xff);
-                   address[2] = (byte) (((currentTkn & 0xffff) >> 8) & 0xff);
-                   address[3] = (byte) (currentTkn & 0xff);
-                   break;
+                    currentTkn = Long.parseLong(tokens[0]);
+                    if (currentTkn < 0 || currentTkn > 0xffffffffL)
+                        return null;
+                    address[0] = (byte) ((currentTkn >> 24) & 0xff);
+                    address[1] = (byte) (((currentTkn & 0xffffff) >> 16) & 0xff);
+                    address[2] = (byte) (((currentTkn & 0xffff) >> 8) & 0xff);
+                    address[3] = (byte) (currentTkn & 0xff);
+                    break;
                 case 2:
                     // If the address was passed in two parts (e.g. when dealing
                     // with a Class A address representation), we place the
@@ -258,7 +225,7 @@ public class NetworkUtils
                         return null;
 
                     address[1] = (byte) ((currentTkn >> 16) & 0xff);
-                    address[2] = (byte) (((currentTkn & 0xffff) >> 8) &0xff);
+                    address[2] = (byte) (((currentTkn & 0xffff) >> 8) & 0xff);
                     address[3] = (byte) (currentTkn & 0xff);
                     break;
                 case 3:
@@ -266,8 +233,7 @@ public class NetworkUtils
                     // dealing with a Class B address representation), we place
                     // the first two parts in the two leftmost bytes and the
                     // rest in the two remaining bytes of the address array.
-                    for (int i = 0; i < 2; i++)
-                    {
+                    for (int i = 0; i < 2; i++) {
                         currentTkn = Integer.parseInt(tokens[i]);
 
                         if (currentTkn < 0 || currentTkn > 0xff)
@@ -287,8 +253,7 @@ public class NetworkUtils
                 case 4:
                     // And now for the most common - four part case. This time
                     // there's a byte for every part :). Yuppiee! :)
-                    for (int i = 0; i < 4; i++)
-                    {
+                    for (int i = 0; i < 4; i++) {
                         currentTkn = Integer.parseInt(tokens[i]);
 
                         if (currentTkn < 0 || currentTkn > 0xff)
@@ -300,9 +265,7 @@ public class NetworkUtils
                 default:
                     return null;
             }
-        }
-        catch(NumberFormatException e)
-        {
+        } catch (NumberFormatException e) {
             return null;
         }
 
@@ -318,8 +281,7 @@ public class NetworkUtils
      * by ipv6AddrStr or null if ipv6AddrStr does
      * not contain a valid IPv6 address string.
      */
-    public static byte[] strToIPv6(String ipv6AddrStr)
-    {
+    public static byte[] strToIPv6(String ipv6AddrStr) {
         // Bail out if the string is shorter than "::"
         if (ipv6AddrStr.length() < 2)
             return null;
@@ -332,9 +294,9 @@ public class NetworkUtils
         byte[] dst = new byte[IN6_ADDR_SIZE];
 
         int srcb_length = addrBuff.length;
-        int scopeID = ipv6AddrStr.indexOf ("%");
+        int scopeID = ipv6AddrStr.indexOf("%");
 
-        if (scopeID == srcb_length -1)
+        if (scopeID == srcb_length - 1)
             return null;
 
         if (scopeID != -1)
@@ -344,8 +306,7 @@ public class NetworkUtils
         int i = 0, j = 0;
 
         // Can be wrapped in []
-        if (addrBuff[i] == '[')
-        {
+        if (addrBuff[i] == '[') {
             ++i;
             if (scopeID == -1)
                 --srcb_length;
@@ -359,12 +320,10 @@ public class NetworkUtils
         int curtok = i;
         sawtDigit = false;
         currentTkn = 0;
-        while (i < srcb_length)
-        {
+        while (i < srcb_length) {
             currentChar = addrBuff[i++];
             int chval = Character.digit(currentChar, 16);
-            if (chval != -1)
-            {
+            if (chval != -1) {
                 currentTkn <<= 4;
                 currentTkn |= chval;
                 if (currentTkn > 0xffff)
@@ -373,19 +332,15 @@ public class NetworkUtils
                 continue;
             }
 
-            if (currentChar == ':')
-            {
+            if (currentChar == ':') {
                 curtok = i;
 
-                if (!sawtDigit)
-                {
+                if (!sawtDigit) {
                     if (colonIndex != -1)
                         return null;
                     colonIndex = j;
                     continue;
-                }
-                else if (i == srcb_length)
-                {
+                } else if (i == srcb_length) {
                     return null;
                 }
 
@@ -399,15 +354,13 @@ public class NetworkUtils
                 continue;
             }
 
-            if (currentChar == '.' && ((j + IN4_ADDR_SIZE) <= IN6_ADDR_SIZE))
-            {
+            if (currentChar == '.' && ((j + IN4_ADDR_SIZE) <= IN6_ADDR_SIZE)) {
                 String ia4 = ipv6AddrStr.substring(curtok, srcb_length);
                 // check this IPv4 address has 3 dots, ie. A.B.C.D
-                int dot_count = 0, index=0;
-                while ((index = ia4.indexOf ('.', index)) != -1)
-                {
-                    dot_count ++;
-                    index ++;
+                int dot_count = 0, index = 0;
+                while ((index = ia4.indexOf('.', index)) != -1) {
+                    dot_count++;
+                    index++;
                 }
 
                 if (dot_count != 3)
@@ -417,19 +370,17 @@ public class NetworkUtils
                 if (v4addr == null)
                     return null;
 
-                for (int k = 0; k < IN4_ADDR_SIZE; k++)
-                {
+                for (int k = 0; k < IN4_ADDR_SIZE; k++) {
                     dst[j++] = v4addr[k];
                 }
 
                 sawtDigit = false;
-                break;  /* '\0' was seen by inet_pton4(). */
+                break; /* '\0' was seen by inet_pton4(). */
             }
             return null;
         }
 
-        if (sawtDigit)
-        {
+        if (sawtDigit) {
             if (j + IN6_ADDR_TOKEN_SIZE > IN6_ADDR_SIZE)
                 return null;
 
@@ -437,15 +388,13 @@ public class NetworkUtils
             dst[j++] = (byte) (currentTkn & 0xff);
         }
 
-        if (colonIndex != -1)
-        {
+        if (colonIndex != -1) {
             int n = j - colonIndex;
 
             if (j == IN6_ADDR_SIZE)
                 return null;
 
-            for (i = 1; i <= n; i++)
-            {
+            for (i = 1; i <= n; i++) {
                 dst[IN6_ADDR_SIZE - i] = dst[colonIndex + n - i];
                 dst[colonIndex + n - i] = 0;
             }
@@ -458,12 +407,9 @@ public class NetworkUtils
 
         byte[] newdst = mappedIPv4ToRealIPv4(dst);
 
-        if (newdst != null)
-        {
+        if (newdst != null) {
             return newdst;
-        }
-        else
-        {
+        } else {
             return dst;
         }
     }
@@ -477,10 +423,8 @@ public class NetworkUtils
      *
      * @return a byte array numerically representing the IPv4 address
      */
-    public static byte[] mappedIPv4ToRealIPv4(byte[] addr)
-    {
-        if (isMappedIPv4Addr(addr))
-        {
+    public static byte[] mappedIPv4ToRealIPv4(byte[] addr) {
+        if (isMappedIPv4Addr(addr)) {
             byte[] newAddr = new byte[IN4_ADDR_SIZE];
             System.arraycopy(addr, 12, newAddr, 0, IN4_ADDR_SIZE);
             return newAddr;
@@ -499,21 +443,12 @@ public class NetworkUtils
      * @return true if address is an IPv4 mapped IPv6 address and
      * false otherwise.
      */
-    private static boolean isMappedIPv4Addr(byte[] address)
-    {
-        if (address.length < IN6_ADDR_SIZE)
-        {
+    private static boolean isMappedIPv4Addr(byte[] address) {
+        if (address.length < IN6_ADDR_SIZE) {
             return false;
         }
 
-        if ((address[0] == 0x00) && (address[1] == 0x00)
-            && (address[2] == 0x00) && (address[3] == 0x00)
-            && (address[4] == 0x00) && (address[5] == 0x00)
-            && (address[6] == 0x00) && (address[7] == 0x00)
-            && (address[8] == 0x00) && (address[9] == 0x00)
-            && (address[10] == (byte)0xff)
-            && (address[11] == (byte)0xff))
-        {
+        if ((address[0] == 0x00) && (address[1] == 0x00) && (address[2] == 0x00) && (address[3] == 0x00) && (address[4] == 0x00) && (address[5] == 0x00) && (address[6] == 0x00) && (address[7] == 0x00) && (address[8] == 0x00) && (address[9] == 0x00) && (address[10] == (byte) 0xff) && (address[11] == (byte) 0xff)) {
             return true;
         }
 
@@ -540,49 +475,35 @@ public class NetworkUtils
      * @throws UnknownHostException if any of the InetAddress methods
      * we are using throw an exception.
      */
-    public static InetAddress getInetAddress(String hostAddress)
-        throws UnknownHostException
-    {
+    public static InetAddress getInetAddress(String hostAddress) throws UnknownHostException {
         //is null
-        if (hostAddress == null || hostAddress.length() == 0)
-        {
-            throw new UnknownHostException(
-                            hostAddress + " is not a valid host address");
+        if (hostAddress == null || hostAddress.length() == 0) {
+            throw new UnknownHostException(hostAddress + " is not a valid host address");
         }
 
         //transform IPv6 literals into normal addresses
-        if (hostAddress.charAt(0) == '[')
-        {
+        if (hostAddress.charAt(0) == '[') {
             // This is supposed to be an IPv6 literal
-            if (hostAddress.length() > 2
-                && hostAddress.charAt(hostAddress.length()-1) == ']')
-            {
-                hostAddress = hostAddress.substring(1, hostAddress.length() -1);
-            }
-            else
-            {
+            if (hostAddress.length() > 2 && hostAddress.charAt(hostAddress.length() - 1) == ']') {
+                hostAddress = hostAddress.substring(1, hostAddress.length() - 1);
+            } else {
                 // This was supposed to be a IPv6 address, but it's not!
                 throw new UnknownHostException(hostAddress);
             }
         }
 
-
-        if (NetworkUtils.isValidIPAddress(hostAddress))
-        {
+        if (NetworkUtils.isValidIPAddress(hostAddress)) {
             byte[] addr = null;
 
             // attempt parse as IPv4 address
             addr = strToIPv4(hostAddress);
 
             // if not IPv4, parse as IPv6 address
-            if (addr == null)
-            {
+            if (addr == null) {
                 addr = strToIPv6(hostAddress);
             }
             return InetAddress.getByAddress(hostAddress, addr);
-        }
-        else
-        {
+        } else {
             return InetAddress.getByName(hostAddress);
         }
     }
@@ -601,30 +522,21 @@ public class NetworkUtils
      *
      * @return IN6_ADDR_ANY or IN4_ADDR_ANY if this host supports or not IPv6.
      */
-    private static String determineAnyAddress()
-    {
+    private static String determineAnyAddress() {
         Enumeration<NetworkInterface> ifaces;
-        try
-        {
+        try {
             ifaces = NetworkInterface.getNetworkInterfaces();
-        }
-        catch (SocketException e)
-        {
-            logger.log(Level.FINE, "Couldn't retrieve local interfaces.", e);
+        } catch (SocketException e) {
+            logger.warn("Couldn't retrieve local interfaces", e);
             return IN4_ADDR_ANY;
         }
-
-        while(ifaces.hasMoreElements())
-        {
-            Enumeration<InetAddress> addrs
-                                = ifaces.nextElement().getInetAddresses();
-            while (addrs.hasMoreElements())
-            {
-                if(addrs.nextElement() instanceof Inet6Address)
-                    return IN6_ADDR_ANY;
+        while (ifaces.hasMoreElements()) {
+            Enumeration<InetAddress> addrs = ifaces.nextElement().getInetAddresses();
+            while (addrs.hasMoreElements()) {
+                if (addrs.nextElement() instanceof Inet6Address){
+                    return IN6_ADDR_ANY;}
             }
         }
-
         return IN4_ADDR_ANY;
     }
 
@@ -634,11 +546,9 @@ public class NetworkUtils
      *
      * @param port the port number that we'd like verified.
      *
-     * @return true if port is a valid and bindable port number and
-     * alse otherwise.
+     * @return true if port is a valid and bindable port number and alse otherwise.
      */
-    public static boolean isValidPortNumber(int port)
-    {
+    public static boolean isValidPortNumber(int port) {
         return MIN_PORT_NUMBER < port && port < MAX_PORT_NUMBER;
     }
 
@@ -650,26 +560,18 @@ public class NetworkUtils
      *
      * @param iface the inteface that we'd like to determine as loopback or not.
      *
-     * @return true if iface contains at least one loopback address
-     * and false otherwise.
+     * @return true if iface contains at least one loopback address and false otherwise.
      */
-    public static boolean isInterfaceLoopback(NetworkInterface iface)
-    {
-        try
-        {
+    public static boolean isInterfaceLoopback(NetworkInterface iface) {
+        try {
             Method method = iface.getClass().getMethod("isLoopback");
-
             return (Boolean) method.invoke(iface);
-        }
-        catch(Throwable t)
-        {
+        } catch (Throwable t) {
             //apparently we are not running in a JVM that supports the
             //is Loopback method. we'll try another approach.
         }
         Enumeration<InetAddress> addresses = iface.getInetAddresses();
-
-        return addresses.hasMoreElements()
-            && addresses.nextElement().isLoopbackAddress();
+        return addresses.hasMoreElements() && addresses.nextElement().isLoopbackAddress();
     }
 
     /**
@@ -680,24 +582,17 @@ public class NetworkUtils
      *
      * @param iface the interface that we'd like to determine as Up or Down.
      *
-     * @return false if iface is known to be down and
-     * true if the iface is Up or in case we couldn't
+     * @return false if iface is known to be down and true if the iface is Up or in case we couldn't
      * determine.
      */
-    public static boolean isInterfaceUp(NetworkInterface iface)
-    {
-        try
-        {
+    public static boolean isInterfaceUp(NetworkInterface iface) {
+        try {
             Method method = iface.getClass().getMethod("isUp");
-
             return (Boolean) method.invoke(iface);
+        } catch (Throwable t) {
+            // apparently we are not running in a JVM that supports the isUp method. returning default value
+            logger.warn("isInterfaceUp", t);
         }
-        catch(Throwable t)
-        {
-            //apparently we are not running in a JVM that supports the
-            //isUp method. returning default value.
-        }
-
         return true;
     }
 
@@ -714,20 +609,14 @@ public class NetworkUtils
      * interface and false if the iface is not virtual or in
      * case we couldn't determine.
      */
-    public static boolean isInterfaceVirtual(NetworkInterface iface)
-    {
-        try
-        {
+    public static boolean isInterfaceVirtual(NetworkInterface iface) {
+        try {
             Method method = iface.getClass().getMethod("isVirtual");
-
             return (Boolean) method.invoke(iface);
+        } catch (Throwable t) {
+            // apparently we are not running in a JVM that supports the isVirtual method. returning default value.
+            logger.warn("isInterfaceVirtual", t);
         }
-        catch(Throwable t)
-        {
-            //apparently we are not running in a JVM that supports the
-            //isVirtual method. returning default value.
-        }
-
         return false;
     }
 
@@ -741,23 +630,16 @@ public class NetworkUtils
      *
      * @return the newly form address containing no scope ID.
      */
-    public static String stripScopeID(String ipv6Address)
-    {
+    public static String stripScopeID(String ipv6Address) {
         int scopeStart = ipv6Address.indexOf('%');
-
-        if (scopeStart == -1)
+        if (scopeStart == -1){
             return ipv6Address;
-
+        }
         ipv6Address = ipv6Address.substring(0, scopeStart);
-
-        //in case this was an IPv6 literal and we remove the closing bracket,
-        //put it back in now.
-        if(ipv6Address.charAt(0) == '['
-            && ipv6Address.charAt(ipv6Address.length()-1) != ']')
-        {
+        // in case this was an IPv6 literal and we remove the closing bracket, put it back in now.
+        if (ipv6Address.charAt(0) == '[' && ipv6Address.charAt(ipv6Address.length() - 1) != ']') {
             ipv6Address += ']';
         }
-
         return ipv6Address;
     }
 }

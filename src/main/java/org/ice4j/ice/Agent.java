@@ -368,13 +368,17 @@ public class Agent {
          */
         logger.debug("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
         if (useHostHarvester()) {
+            logger.debug("Using host harvester");
             hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, transport);
+            logger.debug("Host harvester done");
         } else if (hostHarvesters.isEmpty()) {
             logger.warn("No host harvesters available!");
         }
+        logger.debug("hostHarvesters: {}", hostHarvesters);
         for (CandidateHarvester harvester : hostHarvesters) {
             harvester.harvest(component);
         }
+        logger.debug("Host harvester for-loop done");
         if (component.getLocalCandidateCount() == 0) {
             logger.warn("Failed to gather any host candidates!");
         }

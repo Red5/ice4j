@@ -49,39 +49,41 @@ public class IceTcpTransport extends IceTransport {
     synchronized void createAcceptor() {
         // create the nio acceptor
         acceptor = new NioSocketAcceptor(ioThreads);
-        acceptor.addListener(new IoServiceListener() {
+        if (logger.isDebugEnabled()) {
+            acceptor.addListener(new IoServiceListener() {
 
-            @Override
-            public void serviceActivated(IoService service) throws Exception {
-                logger.debug("serviceActivated: {}", service);
-            }
+                @Override
+                public void serviceActivated(IoService service) throws Exception {
+                    logger.debug("serviceActivated: {}", service);
+                }
 
-            @Override
-            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
-                logger.debug("serviceIdle: {} status: {}", service, idleStatus);
-            }
+                @Override
+                public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                    logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+                }
 
-            @Override
-            public void serviceDeactivated(IoService service) throws Exception {
-                logger.debug("serviceDeactivated: {}", service);
-            }
+                @Override
+                public void serviceDeactivated(IoService service) throws Exception {
+                    logger.debug("serviceDeactivated: {}", service);
+                }
 
-            @Override
-            public void sessionCreated(IoSession session) throws Exception {
-                logger.debug("sessionCreated: {}", session);
-                //logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
-            }
+                @Override
+                public void sessionCreated(IoSession session) throws Exception {
+                    logger.debug("sessionCreated: {}", session);
+                    //logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
+                }
 
-            @Override
-            public void sessionClosed(IoSession session) throws Exception {
-                logger.debug("sessionClosed: {}", session);
-            }
+                @Override
+                public void sessionClosed(IoSession session) throws Exception {
+                    logger.debug("sessionClosed: {}", session);
+                }
 
-            @Override
-            public void sessionDestroyed(IoSession session) throws Exception {
-                logger.debug("sessionDestroyed: {}", session);
-            }
-        });
+                @Override
+                public void sessionDestroyed(IoSession session) throws Exception {
+                    logger.debug("sessionDestroyed: {}", session);
+                }
+            });
+        }
         // configure the acceptor
         SocketSessionConfig sessionConf = ((NioSocketAcceptor) acceptor).getSessionConfig();
         sessionConf.setReuseAddress(true);
@@ -118,7 +120,7 @@ public class IceTcpTransport extends IceTransport {
         try {
             acceptor.bind(addr);
             //if (logger.isTraceEnabled()) {
-                logger.debug("TCP binding added: {}", addr);
+            logger.debug("TCP binding added: {}", addr);
             //}
             return true;
         } catch (IOException e) {

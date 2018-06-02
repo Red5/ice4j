@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice.harvest;
 
@@ -27,8 +16,7 @@ import java.util.*;
  * @author Vincent Lucas
  * @author Emil Ivov
  */
-public class HarvestStatistics
-{
+public class HarvestStatistics {
     /**
      * The number of harvesting for this harvester.
      */
@@ -60,8 +48,7 @@ public class HarvestStatistics
     /**
      * Starts the harvesting timer. Called when the harvest begins.
      */
-    protected void startHarvestTiming()
-    {
+    protected void startHarvestTiming() {
         harvestCount++;
         // Remember the start date of this harvester.
         this.lastStartHarvestingTime = System.currentTimeMillis();
@@ -72,10 +59,9 @@ public class HarvestStatistics
      *
      * @param harvest the harvest that we just concluded.
      */
-    protected void stopHarvestTiming(Collection<LocalCandidate> harvest)
-    {
+    protected void stopHarvestTiming(Collection<LocalCandidate> harvest) {
         //count total candidates
-        if(harvest != null)
+        if (harvest != null)
             stopHarvestTiming(harvest.size());
         else
             stopHarvestTiming(0);
@@ -87,8 +73,7 @@ public class HarvestStatistics
      *
      * @param candidateCount the number of candidates we harvested.
      */
-    protected void stopHarvestTiming(int candidateCount)
-    {
+    protected void stopHarvestTiming(int candidateCount) {
         // Remember the last harvesting time.
         this.lastHarvestingTime = this.getHarvestDuration();
         // Stops the current timer (must be done after setting the
@@ -106,16 +91,12 @@ public class HarvestStatistics
      *
      * @return The current harvesting time in ms.
      */
-    public long getHarvestDuration()
-    {
-        if(this.lastStartHarvestingTime != -1)
-        {
-            long currentHarvestingTime
-                = System.currentTimeMillis() - lastStartHarvestingTime;
+    public long getHarvestDuration() {
+        if (this.lastStartHarvestingTime != -1) {
+            long currentHarvestingTime = System.currentTimeMillis() - lastStartHarvestingTime;
             // Retest here, while the harvesting may be end while computing the
             // harvesting time.
-            if(this.lastStartHarvestingTime != -1)
-            {
+            if (this.lastStartHarvestingTime != -1) {
                 return this.lastHarvestingTime + currentHarvestingTime;
             }
         }
@@ -129,8 +110,7 @@ public class HarvestStatistics
      *
      * @return the total number of candidates gatherer by this harvester.
      */
-    public int getTotalCandidateCount()
-    {
+    public int getTotalCandidateCount() {
         return totalCandidateCount;
     }
 
@@ -141,8 +121,7 @@ public class HarvestStatistics
      * @return the number of harvests that the associated harvester has engaged
      * in.
      */
-    public int getHarvestCount()
-    {
+    public int getHarvestCount() {
         return this.harvestCount;
     }
 
@@ -151,8 +130,7 @@ public class HarvestStatistics
      *
      * @param harvesterName the name of the associated harvester.
      */
-    protected void setName(String harvesterName)
-    {
+    protected void setName(String harvesterName) {
         this.harvesterName = harvesterName;
     }
 
@@ -161,8 +139,7 @@ public class HarvestStatistics
      *
      * @return the name of the associated harvester.
      */
-    public String getName()
-    {
+    public String getName() {
         return harvesterName;
     }
 
@@ -172,11 +149,7 @@ public class HarvestStatistics
      * @return a string representation of these stats.
      */
     @Override
-    public String toString()
-    {
-        return harvesterName
-            + ": time="+getHarvestDuration()
-            + "ms harvests="+getHarvestCount()
-            +" candidates=" + getTotalCandidateCount() ;
+    public String toString() {
+        return harvesterName + ": time=" + getHarvestDuration() + "ms harvests=" + getHarvestCount() + " candidates=" + getTotalCandidateCount();
     }
 }

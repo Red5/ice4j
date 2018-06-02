@@ -218,9 +218,9 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         } else {
             logger.warn("No ice socket in session, closing: {}", session);
             // XXX check into this later, it seems to block additional reads outside the session on which its called??!?
+            // Fix in Mina to allow suspendRead with UDP is in 2.0.18, so comment out for now
             //session.suspendRead();
             session.closeNow();
-            // no connection, pass through IoBuffer resultBuffer = IoBuffer.wrap(in.array(), 0, in.limit()); in.position(in.limit()); out.write(resultBuffer);
         }
     }
 

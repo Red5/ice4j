@@ -15,7 +15,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
@@ -60,7 +59,7 @@ public class Component implements PropertyChangeListener {
     /**
      * The list locally gathered candidates for this media stream.
      */
-    private final Queue<LocalCandidate> localCandidates = new PriorityBlockingQueue<>();
+    private final Queue<LocalCandidate> localCandidates = new PriorityQueue<>();
 
     /**
      * The list of candidates that the peer agent sent for this stream.

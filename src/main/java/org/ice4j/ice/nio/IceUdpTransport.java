@@ -1,6 +1,5 @@
 package org.ice4j.ice.nio;
 
-import java.io.IOException;
 import java.net.SocketAddress;
 
 import org.apache.mina.core.service.IoService;
@@ -49,39 +48,41 @@ public class IceUdpTransport extends IceTransport {
     synchronized void createAcceptor() {
         // create the nio acceptor
         acceptor = new NioDatagramAcceptor();
-        acceptor.addListener(new IoServiceListener() {
+        if (logger.isDebugEnabled()) {
+            acceptor.addListener(new IoServiceListener() {
 
-            @Override
-            public void serviceActivated(IoService service) throws Exception {
-                logger.info("serviceActivated: {}", service);
-            }
+                @Override
+                public void serviceActivated(IoService service) throws Exception {
+                    logger.debug("serviceActivated: {}", service);
+                }
 
-            @Override
-            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
-                logger.info("serviceIdle: {} status: {}", service, idleStatus);
-            }
+                @Override
+                public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                    logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+                }
 
-            @Override
-            public void serviceDeactivated(IoService service) throws Exception {
-                logger.info("serviceDeactivated: {}", service);
-            }
+                @Override
+                public void serviceDeactivated(IoService service) throws Exception {
+                    logger.debug("serviceDeactivated: {}", service);
+                }
 
-            @Override
-            public void sessionCreated(IoSession session) throws Exception {
-                logger.info("sessionCreated: {}", session);
-                //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
-            }
+                @Override
+                public void sessionCreated(IoSession session) throws Exception {
+                    logger.debug("sessionCreated: {}", session);
+                    //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+                }
 
-            @Override
-            public void sessionClosed(IoSession session) throws Exception {
-                logger.info("sessionClosed: {}", session);
-            }
+                @Override
+                public void sessionClosed(IoSession session) throws Exception {
+                    logger.debug("sessionClosed: {}", session);
+                }
 
-            @Override
-            public void sessionDestroyed(IoSession session) throws Exception {
-                logger.info("sessionDestroyed: {}", session);
-            }
-        });
+                @Override
+                public void sessionDestroyed(IoSession session) throws Exception {
+                    logger.debug("sessionDestroyed: {}", session);
+                }
+            });
+        }
         // configure the acceptor
         DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
         sessionConf.setReuseAddress(true);
@@ -115,13 +116,12 @@ public class IceUdpTransport extends IceTransport {
     @Override
     public boolean addBinding(SocketAddress addr) {
         try {
+            logger.debug("Adding UDP binding: {}", addr);
             acceptor.bind(addr);
-            //if (logger.isTraceEnabled()) {
-                logger.debug("UDP binding added: {}", addr);
-            //}
+            logger.debug("UDP binding added: {}", addr);
             return true;
-        } catch (IOException e) {
-            logger.warn("Add binding failed on {}", addr, e);
+        } catch (Throwable t) {
+            logger.warn("Add binding failed on {}", addr, t);
         }
         return false;
     }

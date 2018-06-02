@@ -4,6 +4,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,6 +52,9 @@ public abstract class IceTransport {
     protected IoAcceptor acceptor;
 
     protected static AtomicBoolean reaperStarted = new AtomicBoolean(false);
+
+    // uses 1 thread, but has an unbounded queue
+    protected static ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // constants for the session map or anything else
     public enum Ice {
@@ -126,16 +131,29 @@ public abstract class IceTransport {
         if (acceptor != null) {
             try {
                 int port = ((InetSocketAddress) addr).getPort();
-                // unbind
-                acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
-                // add to the delay queue
-                removedPortsQueue.offer(new ExpiredPort(port));
-                //if (logger.isTraceEnabled()) {
-                logger.debug("Binding removed: {}", addr);
-                //}
-                return true;
-            } catch (Exception e) {
-                logger.warn("Remove binding failed on {}", addr, e);
+                ExpiredPort exp = new ExpiredPort(port);
+                // check that its not already added 
+                if (removedPortsQueue.contains(exp)) {
+                    logger.debug("Port already requested for removal: {}", port);
+                } else {
+                    // add to the delay queue
+                    removedPortsQueue.offer(exp);
+                    // unbind
+                    executor.execute(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            logger.debug("Removing binding: {}", addr);
+                            acceptor.unbind(addr);
+                            logger.debug("Binding removed: {}", addr);
+                        }
+
+                    });
+                    //acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
+                    return true;
+                }
+            } catch (Throwable t) {
+                logger.warn("Remove binding failed on {}", addr, t);
             }
         }
         return false;
@@ -145,6 +163,9 @@ public abstract class IceTransport {
      * Ports and addresses are unbound (stop listening).
      */
     public void stop() throws Exception {
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
+        }
         if (acceptor != null) {
             logger.debug("Stopped socket transport");
             acceptor.unbind();

@@ -43,10 +43,12 @@ public class IceHandler extends IoHandlerAdapter {
         TransportAddress addr = iceSocket.getTransportAddress();
         if (stunStack != null) {
             stunStacks.putIfAbsent(addr, stunStack);
+            //logger.debug("after stunStacks");
         } else {
             logger.debug("Stun stack for address: {}", stunStacks.get(addr));
         }
         iceSockets.putIfAbsent(addr, iceSocket);
+        //logger.debug("exit registerStackAndSocket");
     }
 
     /**
@@ -83,7 +85,7 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void sessionOpened(IoSession session) throws Exception {
-        logger.trace("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
+        logger.debug("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
@@ -176,7 +178,7 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void sessionClosed(IoSession session) throws Exception {
-        logger.trace("Session closed: {}", session.getId());
+        logger.debug("Session closed: {}", session.getId());
         // determine transport type
         Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
