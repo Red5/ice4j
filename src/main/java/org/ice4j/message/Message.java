@@ -689,7 +689,7 @@ public abstract class Message {
      * not really matter from the protocol point of view. They are only used
      * for debugging and readability.
      *
-     * @return this message's name.
+     * @return this message's name
      */
     public String getName() {
         switch (messageType) {
@@ -733,12 +733,11 @@ public abstract class Message {
     }
 
     /**
-     * Compares two STUN Messages. Messages are considered equal when their
-     * type, length, and all their attributes are equal.
+     * Compares two STUN Messages. Messages are considered equal when their type, length, and all their attributes are equal.
      *
-     * @param obj the object to compare this message with.
+     * @param obj the object to compare this message with
      *
-     * @return true if the messages are equal and false otherwise.
+     * @return true if the messages are equal and false otherwise
      */
     @Override
     public boolean equals(Object obj) {
@@ -849,13 +848,13 @@ public abstract class Message {
 
     /**
      * Constructs a message from its binary representation.
+     * 
      * @param binMessage the binary array that contains the encoded message
-     * @param offset the index where the message starts.
+     * @param offset the index where the message starts
      * @param arrayLen the length of the message
      * @return a Message object constructed from the binMessage array
      *
-     * @throws StunException ILLEGAL_ARGUMENT if one or more of the
-     * arguments have invalid values.
+     * @throws StunException ILLEGAL_ARGUMENT if one or more of the arguments have invalid values
      */
     public static Message decode(byte[] binMessage, int offset, int arrayLen) throws StunException {
         if (logger.isDebugEnabled()) {
@@ -885,7 +884,7 @@ public abstract class Message {
         boolean rfc3489Compat = !Arrays.equals(MAGIC_COOKIE, cookie);
         int transactionIdLength = rfc3489Compat ? TransactionID.RFC3489_TRANSACTION_ID_LENGTH : TransactionID.RFC5389_TRANSACTION_ID_LENGTH;
         if (arrayLen - offset - transactionIdLength < length) {
-            throw new StunException(StunException.ILLEGAL_ARGUMENT, "The given binary array does not seem to contain" + " a whole StunMessage: given " + arrayLen + " bytes of " + message.getName() + " but expecting " + (offset + transactionIdLength + length));
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "The given binary array does not seem to contain a whole StunMessage: given " + arrayLen + " bytes of " + message.getName() + " but expecting " + (offset + transactionIdLength + length));
         }
         try {
             byte[] tranID = new byte[transactionIdLength];
@@ -914,13 +913,12 @@ public abstract class Message {
     }
 
     /**
-     * Executes actions related specific attributes like asserting proper
-     * fingerprint checksum.
+     * Executes actions related specific attributes like asserting proper fingerprint checksum.
      *
-     * @param attribute the Attribute we'd like to process.
-     * @param binMessage the byte array that the message arrived with.
-     * @param offset the index where data starts in binMessage.
-     * @param msgLen the number of message bytes in binMessage.
+     * @param attribute the Attribute we'd like to process
+     * @param binMessage the byte array that the message arrived with
+     * @param offset the index where data starts in binMessage
+     * @param msgLen the number of message bytes in binMessage
      *
      * @throws StunException if there's something in the attribute that
      * caused us to discard the whole message (e.g. an invalid checksum or
@@ -930,8 +928,7 @@ public abstract class Message {
         //check finger print CRC
         if (attribute instanceof FingerprintAttribute) {
             if (!validateFingerprint((FingerprintAttribute) attribute, binMessage, offset, msgLen)) {
-                //RFC 5389 says that we should ignore bad CRCs rather than
-                //reply with an error response.
+                //RFC 5389 says that we should ignore bad CRCs rather than reply with an error response.
                 throw new StunException("Wrong value in FINGERPRINT");
             }
         }
@@ -952,22 +949,17 @@ public abstract class Message {
      * value and false otherwise.
      */
     private static boolean validateFingerprint(FingerprintAttribute fingerprint, byte[] message, int offset, int length) {
-
         byte[] incomingCrcBytes = fingerprint.getChecksum();
-
         //now check whether the CRC really is what it's supposed to be.
         //re calculate the check sum
         byte[] realCrcBytes = FingerprintAttribute.calculateXorCRC32(message, offset, length);
-
         //CRC validation.
         if (!Arrays.equals(incomingCrcBytes, realCrcBytes)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("An incoming message arrived with a wrong FINGERPRINTattribute value.CRC Was:" + Arrays.toString(incomingCrcBytes) + ". Should have been:" + Arrays.toString(realCrcBytes) + ". Will ignore.");
             }
-
             return false;
         }
-
         return true;
     }
 

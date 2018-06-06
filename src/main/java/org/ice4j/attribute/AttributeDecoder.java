@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.attribute;
 
@@ -27,8 +16,7 @@ import org.ice4j.*;
  * @author Sebastien Vincent
  * @author Aakash Garg
  */
-public class AttributeDecoder
-{
+public class AttributeDecoder {
 
     /**
      * Decodes the specified binary array and returns the corresponding
@@ -43,30 +31,22 @@ public class AttributeDecoder
      *
      * @throws StunException if bytes is not a valid STUN attribute.
      */
-    public static Attribute decode(byte[] bytes, int offset, int length)
-        throws StunException
-    {
-        if(bytes == null || bytes.length < Attribute.HEADER_LENGTH)
-        {
-            throw new StunException( StunException.ILLEGAL_ARGUMENT,
-                         "Could not decode the specified binary array.");
+    public static Attribute decode(byte[] bytes, int offset, int length) throws StunException {
+        if (bytes == null || bytes.length < Attribute.HEADER_LENGTH) {
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Could not decode the specified binary array.");
         }
 
         //Discover attribute type
-        Attribute.Type attributeType = Attribute.Type.valueOf(
-            (((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF)));
-        int attributeLength =
-            (((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF));
+        Attribute.Type attributeType = Attribute.Type.valueOf((((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF)));
+        int attributeLength = (((bytes[offset + 2] & 0xFF) << 8) | (bytes[offset + 3] & 0xFF));
 
-        if(attributeLength > bytes.length - offset )
-            throw new StunException( StunException.ILLEGAL_ARGUMENT,
-                            "Could not decode the specified binary array.");
+        if (attributeLength > bytes.length - offset)
+            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Could not decode the specified binary array.");
 
         Attribute decodedAttribute = null;
 
-        switch(attributeType)
-        {
-            /* STUN attributes */
+        switch (attributeType) {
+        /* STUN attributes */
             case CHANGE_REQUEST:
                 decodedAttribute = new ChangeRequestAttribute();
                 break;
@@ -173,8 +153,7 @@ public class AttributeDecoder
         decodedAttribute.setAttributeType(attributeType);
         decodedAttribute.setLocationInMessage(offset);
 
-        decodedAttribute.decodeAttributeBody(bytes,
-                (Attribute.HEADER_LENGTH + offset), attributeLength);
+        decodedAttribute.decodeAttributeBody(bytes, (Attribute.HEADER_LENGTH + offset), attributeLength);
 
         return decodedAttribute;
     }

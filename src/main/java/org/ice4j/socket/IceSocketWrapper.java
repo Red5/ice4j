@@ -272,6 +272,20 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Accepts or rejects an offered message based on our closed state.
+     * 
+     * @param message
+     * @return true if accepted and false otherwise
+     */
+    public boolean offerMessage(RawMessage message) {
+        if (!closed) {
+            return rawMessageQueue.offer(message);
+        }
+        logger.debug("Message rejected, socket is closed");
+        return false;
+    }
+
+    /**
      * Returns whether or not this is a TCP wrapper, based on the instance type.
      * 
      * @return true if TCP and false otherwise

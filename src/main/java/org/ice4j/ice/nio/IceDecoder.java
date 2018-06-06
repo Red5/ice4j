@@ -273,14 +273,14 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                     logger.trace("Queuing DTLS {} length: {} message: {}", dtlsVersion, dtlsRecordLength, StunStack.toHexString(record));
                 }
                 // create a message
-                iceSocket.getRawMessageQueue().offer(RawMessage.build(record, remoteAddr, localAddr));
+                iceSocket.offerMessage(RawMessage.build(record, remoteAddr, localAddr));
                 // increment the offset
                 offset += record.length;
                 logger.trace("Offset: {}", offset);
             } while (offset < (buf.length - DTLS_RECORD_HEADER_LENGTH));
         } else {
             // this should catch anything else not identified as stun or dtls
-            iceSocket.getRawMessageQueue().offer(RawMessage.build(buf, remoteAddr, localAddr));
+            iceSocket.offerMessage(RawMessage.build(buf, remoteAddr, localAddr));
         }
     }
 

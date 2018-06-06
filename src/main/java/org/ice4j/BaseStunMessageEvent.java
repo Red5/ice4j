@@ -54,7 +54,6 @@ public class BaseStunMessageEvent extends EventObject {
      */
     public BaseStunMessageEvent(StunStack stunStack, TransportAddress sourceAddress, Message message) {
         super(sourceAddress);
-
         this.stunStack = stunStack;
         this.message = message;
     }

@@ -144,7 +144,7 @@ public class IceHandler extends IoHandlerAdapter {
         if (iceSocket != null) {
             if (message instanceof RawMessage) {
                 // non-stun message
-                iceSocket.getRawMessageQueue().offer((RawMessage) message);
+                iceSocket.offerMessage((RawMessage) message);
             } else {
                 logger.debug("Message type: {}", message.getClass().getName());
             }

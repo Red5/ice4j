@@ -35,7 +35,6 @@ public class StunMessageEvent extends BaseStunMessageEvent {
      */
     public StunMessageEvent(StunStack stunStack, RawMessage rawMessage, Message parsedMessage) {
         super(stunStack, rawMessage.getLocalAddress(), parsedMessage);
-
         this.rawMessage = rawMessage;
     }
 
