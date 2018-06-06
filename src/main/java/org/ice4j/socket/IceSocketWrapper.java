@@ -153,6 +153,7 @@ public abstract class IceSocketWrapper {
      * Closes the channel.
      */
     public void close() {
+        //logger.debug("Close: {}", this);
         IoSession sess = session.get();
         if (sess != null) {
             logger.debug("Close session: {}", sess.getId());
@@ -160,18 +161,25 @@ public abstract class IceSocketWrapper {
                 CloseFuture future = sess.closeNow();
                 // wait until the connection is closed
                 future.awaitUninterruptibly();
+                //logger.debug("CloseFuture done: {}", sess.getId());
                 // now connection should be closed
                 if (future.isClosed()) {
+                    //logger.debug("CloseFuture closed: {}", sess.getId());
                     session.set(NULL_SESSION);
+                    closed = true;
+                } else {
+                    //logger.debug("CloseFuture not closed: {}", sess.getId());
                 }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
             }
         } else {
+            //logger.debug("Session null, closed: {}", closed);
             closed = true;
         }
         // clear out raw messages lingering around at close
         rawMessageQueue.clear();
+        //logger.debug("Exit close: {} closed: {}", this, closed);
     }
 
     /**
