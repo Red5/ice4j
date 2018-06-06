@@ -303,6 +303,20 @@ public abstract class IceSocketWrapper {
         return (this instanceof IceUdpSocketWrapper);
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (rawMessageQueue != null) {
+                rawMessageQueue.clear();
+                rawMessageQueue = null;
+            }
+        } catch (Throwable t) {
+            throw t;
+        } finally {
+            super.finalize();
+        }
+    }
+
     /**
      * Builder for immutable IceSocketWrapper instance. If the IoSession is connection-less, an IceUdpSocketWrapper is returned; otherwise
      * an IceTcpSocketWrapper is returned.
