@@ -420,20 +420,16 @@ public class Component implements PropertyChangeListener {
     protected void free() {
         // Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have 
         // been harvested, order the freeing.
-        CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE };
-        for (CandidateType candidateType : candidateTypes) {
-            for (LocalCandidate localCandidate : localCandidates) {
-                if (candidateType.equals(localCandidate.getType())) {
-                    free(localCandidate);
-                    localCandidates.remove(localCandidate);
-                }
-            }
-        }
+        /*
+         * CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE
+         * }; for (CandidateType candidateType : candidateTypes) { for (LocalCandidate localCandidate : localCandidates) { if (candidateType.equals(localCandidate.getType())) {
+         * free(localCandidate); localCandidates.remove(localCandidate); } } }
+         */
         // Free whatever's left.
         for (LocalCandidate localCandidate : localCandidates) {
             free(localCandidate);
-            localCandidates.remove(localCandidate);
         }
+        localCandidates.clear();
         getParentStream().removePairStateChangeListener(this);
         keepAlivePairs.clear();
         getComponentSocket().close();

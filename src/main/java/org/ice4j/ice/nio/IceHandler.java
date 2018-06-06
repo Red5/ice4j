@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
@@ -89,9 +90,9 @@ public class IceHandler extends IoHandlerAdapter {
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
-        if (logger.isTraceEnabled()) {
-            logger.trace("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
-        }
+        //if (logger.isTraceEnabled()) {
+        //    logger.trace("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
+        //}
         // get the local address
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
@@ -157,7 +158,13 @@ public class IceHandler extends IoHandlerAdapter {
     public void messageSent(IoSession session, Object message) throws Exception {
         if (logger.isTraceEnabled()) {
             logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
-            logger.trace("Sent: {}", String.valueOf(message));
+            //logger.trace("Sent: {}", String.valueOf(message));
+        }
+        if (logger.isDebugEnabled()) {
+            byte[] output = ((IoBuffer) message).array();
+            if (IceDecoder.isDtls(output)) {
+                logger.debug("Sent - DTLS sequence number: {}", readUint48(output, 5));
+            }
         }
     }
 
@@ -240,6 +247,21 @@ public class IceHandler extends IoHandlerAdapter {
             stunStacks.remove(addr);
             iceSockets.remove(addr);
         }
+    }
+
+    /* From BC TlsUtils for debugging */
+
+    public static int readUint24(byte[] buf, int offset) {
+        int n = (buf[offset] & 0xff) << 16;
+        n |= (buf[++offset] & 0xff) << 8;
+        n |= (buf[++offset] & 0xff);
+        return n;
+    }
+
+    public static long readUint48(byte[] buf, int offset) {
+        int hi = readUint24(buf, offset);
+        int lo = readUint24(buf, offset + 3);
+        return ((long) (hi & 0xffffffffL) << 24) | (long) (lo & 0xffffffffL);
     }
 
 }

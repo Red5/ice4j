@@ -2,10 +2,12 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.concurrent.Callable;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -139,18 +141,20 @@ public abstract class IceTransport {
                     // add to the delay queue
                     removedPortsQueue.offer(exp);
                     // unbind
-                    executor.execute(new Runnable() {
+                    Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
 
                         @Override
-                        public void run() {
+                        public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
                             acceptor.unbind(addr);
+                            //acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
                             logger.debug("Binding removed: {}", addr);
+                            return Boolean.TRUE;
                         }
 
                     });
-                    //acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
-                    return true;
+                    // wait a maximum of one second for this to complete the binding
+                    return unbindFuture.get(1000L, TimeUnit.MILLISECONDS);
                 }
             } catch (Throwable t) {
                 logger.warn("Remove binding failed on {}", addr, t);

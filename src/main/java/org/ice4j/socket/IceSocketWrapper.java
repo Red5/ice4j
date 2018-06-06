@@ -74,13 +74,14 @@ public abstract class IceSocketWrapper {
 
         @Override
         public void operationComplete(ConnectFuture future) {
-            if (!future.isConnected()) {
-                IoSession sess = future.getSession();
-                logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
-            } else {
+            if (future.isConnected()) {
                 setSession(future.getSession());
                 // count down since we have a session
                 connectLatch.countDown();
+            } else {
+                //IoSession sess = future.getSession();
+                //logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+                logger.warn("Connect failed from: {} to: {}", transportAddress, remoteTransportAddress);
             }
         }
 
@@ -96,7 +97,11 @@ public abstract class IceSocketWrapper {
             if (!future.isWritten()) {
                 if (logger.isDebugEnabled()) {
                     IoSession sess = future.getSession();
-                    logger.debug("Write failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+                    if (sess != null) {
+                        logger.debug("Write failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
+                    } else {
+                        logger.debug("Write failed from: {} to: {}", transportAddress, remoteTransportAddress);
+                    }
                 }
             }
         }

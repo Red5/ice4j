@@ -290,7 +290,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      * @param buf the bytes to check
      * @return true if the bytes look like STUN, otherwise false
      */
-    public boolean isStun(byte[] buf) {
+    public static boolean isStun(byte[] buf) {
         // If this is a STUN packet
         boolean isStunPacket = false;
         // All STUN messages MUST start with a 20-byte header followed by zero or more Attributes
@@ -332,7 +332,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      * @param buf the bytes to check
      * @return true if the bytes look like DTLS, otherwise false
      */
-    public boolean isDtls(byte[] buf) {
+    public static boolean isDtls(byte[] buf) {
         if (buf.length > 0) {
             int fb = buf[0] & 0xff;
             return 19 < fb && fb < 64;

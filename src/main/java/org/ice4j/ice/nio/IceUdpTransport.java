@@ -1,6 +1,9 @@
 package org.ice4j.ice.nio;
 
 import java.net.SocketAddress;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
@@ -116,10 +119,19 @@ public class IceUdpTransport extends IceTransport {
     @Override
     public boolean addBinding(SocketAddress addr) {
         try {
-            logger.debug("Adding UDP binding: {}", addr);
-            acceptor.bind(addr);
-            logger.debug("UDP binding added: {}", addr);
-            return true;
+            Future<Boolean> bindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
+
+                @Override
+                public Boolean call() throws Exception {
+                    logger.debug("Adding UDP binding: {}", addr);
+                    acceptor.bind(addr);
+                    logger.debug("UDP binding added: {}", addr);
+                    return Boolean.TRUE;
+                }
+
+            });
+            // wait a maximum of one second for this to complete the binding
+            return bindFuture.get(1000L, TimeUnit.MILLISECONDS);
         } catch (Throwable t) {
             logger.warn("Add binding failed on {}", addr, t);
         }
