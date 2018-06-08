@@ -10,6 +10,9 @@ Configuration of the send buffer is handled via the `SO_SNDBUF` property. The de
 ## Receive buffer
 Configuration of the receive buffer is handled via the `SO_RCVBUF` property. The default is 1500 and any target amount should take MTU size ~1500 into account.
 
+## Send and Receive idle timeout
+Send or receive may be detected as idle if they exceed the configured (in seconds) `SO_TIMEOUT` property which is defaulted to 30 seconds.
+
 ## I/O thread priority
 Setting the I/O thread priority is handled via the `IO_THREAD_PRIORITY` property. The default priority is 6 and the maximum available in Java is 10.
 

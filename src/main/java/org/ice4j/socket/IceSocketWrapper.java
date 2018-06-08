@@ -218,6 +218,8 @@ public abstract class IceSocketWrapper {
         logger.trace("setSession - new: {} old: {}", newSession, session.get());
         if (session.compareAndSet(NULL_SESSION, newSession) && newSession != null) {
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
+        } else {
+            session.set(newSession);
         }
     }
 
