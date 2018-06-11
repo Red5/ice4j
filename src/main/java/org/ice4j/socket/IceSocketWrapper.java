@@ -168,7 +168,7 @@ public abstract class IceSocketWrapper {
                     session.set(NULL_SESSION);
                     closed = true;
                 } else {
-                    //logger.debug("CloseFuture not closed: {}", sess.getId());
+                    logger.info("CloseFuture not closed: {}", sess.getId());
                 }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);

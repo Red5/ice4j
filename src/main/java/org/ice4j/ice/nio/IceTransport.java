@@ -49,6 +49,9 @@ public abstract class IceTransport {
     // used for idle timeout checks, connection timeout is currently 3s
     protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
 
+    // whether or not to handle a hung acceptor aggressively
+    protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", true);
+
     protected int ioThreads = 16;
 
     protected IoAcceptor acceptor;
@@ -157,7 +160,14 @@ public abstract class IceTransport {
                     return unbindFuture.get(1000L, TimeUnit.MILLISECONDS);
                 }
             } catch (Throwable t) {
-                logger.warn("Remove binding failed on {}", addr, t);
+                // if aggressive acceptor handling is enabled, reset the acceptor
+                if (aggressiveAcceptorReset) {
+                    logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
+                    acceptor.dispose(false);
+                    acceptor = null;
+                } else {
+                    logger.warn("Remove binding failed on {}", addr, t);
+                }
             }
         }
         return false;
