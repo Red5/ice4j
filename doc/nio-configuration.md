@@ -13,6 +13,9 @@ Configuration of the receive buffer is handled via the `SO_RCVBUF` property. The
 ## Send and Receive idle timeout
 Send or receive may be detected as idle if they exceed the configured (in seconds) `SO_TIMEOUT` property which is defaulted to 30 seconds.
 
+## Acceptor timeout
+Timeout in seconds to wait for a bind or unbind operation to complete, the `ACCEPTOR_TIMEOUT` property is modifiable from the default of 2 seconds.
+
 ## Aggressive Acceptor reset
 To prevent a possible deadlock caused by a failed bind or unbind event making the acceptor unresponsive, the `ACCEPTOR_RESET` option allows the acceptor to be reset on-the-fly.
 

@@ -42,12 +42,18 @@ public abstract class IceTransport {
 
     protected final static IceHandler iceHandler = new IceHandler();
 
+    // used for setup/tear-down of the acceptor
+    protected final static Boolean acceptorLock = Boolean.TRUE;
+
     protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
 
     protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
     // used for idle timeout checks, connection timeout is currently 3s
     protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
+
+    // used for binding and unbinding timeout, default 2s
+    protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
 
     // whether or not to handle a hung acceptor aggressively
     protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", true);
@@ -149,22 +155,25 @@ public abstract class IceTransport {
                         @Override
                         public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
-                            acceptor.unbind(addr);
-                            //acceptor.unbind(addr, InetSocketAddress.createUnresolved("0.0.0.0", port));
+                            synchronized (acceptorLock) {
+                                acceptor.unbind(addr);
+                            }
                             logger.debug("Binding removed: {}", addr);
                             return Boolean.TRUE;
                         }
 
                     });
-                    // wait a maximum of one second for this to complete the binding
-                    return unbindFuture.get(1000L, TimeUnit.MILLISECONDS);
+                    // wait a maximum of x seconds for this to complete the binding
+                    return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
                 }
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
-                if (aggressiveAcceptorReset) {
-                    logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
-                    acceptor.dispose(false);
-                    acceptor = null;
+                if (aggressiveAcceptorReset && acceptor != null) {
+                    synchronized (acceptorLock) {
+                        logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
+                        acceptor.dispose(false);
+                        acceptor = null;
+                    }
                 } else {
                     logger.warn("Remove binding failed on {}", addr, t);
                 }
@@ -180,16 +189,18 @@ public abstract class IceTransport {
         if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
         }
-        if (acceptor != null) {
-            logger.debug("Stopped socket transport");
-            acceptor.unbind();
-            acceptor.dispose(true);
-            logger.info("Disposed socket transport");
-            acceptor = null;
-        }
         if (reaperThread != null) {
             reaperThread.interrupt();
             reaperThread = null;
+        }
+        synchronized (acceptorLock) {
+            if (acceptor != null) {
+                logger.debug("Stopped socket transport");
+                acceptor.unbind();
+                acceptor.dispose(true);
+                logger.info("Disposed socket transport");
+                acceptor = null;
+            }
         }
     }
 

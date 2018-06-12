@@ -42,13 +42,15 @@ public class IceTcpTransport extends IceTransport {
      */
     public static IceTcpTransport getInstance() {
         //logger.trace("Instance: {}", instance);
-        if (instance.getAcceptor() == null) {
-            instance.createAcceptor();
+        synchronized (acceptorLock) {
+            if (instance.getAcceptor() == null) {
+                instance.createAcceptor();
+            }
         }
         return instance;
     }
 
-    synchronized void createAcceptor() {
+    void createAcceptor() {
         // create the nio acceptor
         acceptor = new NioSocketAcceptor(ioThreads);
         if (logger.isDebugEnabled()) {
@@ -125,14 +127,16 @@ public class IceTcpTransport extends IceTransport {
                 @Override
                 public Boolean call() throws Exception {
                     logger.debug("Adding TCP binding: {}", addr);
-                    acceptor.bind(addr);
+                    synchronized (acceptorLock) {
+                        acceptor.bind(addr);
+                    }
                     logger.debug("TCP binding added: {}", addr);
                     return Boolean.TRUE;
                 }
 
             });
-            // wait a maximum of one second for this to complete the binding
-            return bindFuture.get(1000L, TimeUnit.MILLISECONDS);
+            // wait a maximum of x seconds for this to complete the binding
+            return bindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
         } catch (Throwable t) {
             logger.warn("Add binding failed on {}", addr, t);
         }
