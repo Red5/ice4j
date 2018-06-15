@@ -30,8 +30,7 @@ import org.ice4j.stack.RawMessage;
  * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
-
-    /**
+	/**
      * Constructor.
      *
      * @param session
@@ -111,7 +110,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     } catch (Throwable t) {
                         logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
                         // look for an existing acceptor
-                        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) IceUdpTransport.getInstance().getAcceptor();
+                        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) IceUdpTransport.getInstance(cookie).getAcceptor();
                         if (acceptor != null) {
                             try {
                                 // attempt to create a server session, if it fails the local address isn't bound

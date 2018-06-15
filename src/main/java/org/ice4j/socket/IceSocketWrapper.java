@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.Semaphore;
@@ -61,6 +62,10 @@ public abstract class IceSocketWrapper {
      * Socket timeout.
      */
     protected int soTimeout;
+    /**
+     * Per instance attributes.
+     */
+	protected Map<String, Object> cookie;
 
     /**
      * The message queue is where incoming messages are added that were not otherwise processed (ie. DTLS etc..).
@@ -75,8 +80,8 @@ public abstract class IceSocketWrapper {
         @Override
         public void operationComplete(ConnectFuture future) {
             if (future.isConnected()) {
-                setSession(future.getSession());
-                // count down since we have a session
+                setSession(future.getSession());                // count down since we have a session
+               
                 connectLatch.countDown();
             } else {
                 //IoSession sess = future.getSession();
@@ -180,6 +185,7 @@ public abstract class IceSocketWrapper {
         // clear out raw messages lingering around at close
         rawMessageQueue.clear();
         //logger.debug("Exit close: {} closed: {}", this, closed);
+        
     }
 
     /**
@@ -313,6 +319,12 @@ public abstract class IceSocketWrapper {
         return (this instanceof IceUdpSocketWrapper);
     }
 
+    private void setCookie(Map<String, Object> context) {
+		this.cookie=context;		 
+	}
+    public Map<String, Object> getCookie(){
+    	return cookie;
+    }
     @Override
     protected void finalize() throws Throwable {
         try {
@@ -335,14 +347,17 @@ public abstract class IceSocketWrapper {
      * @return IceSocketWrapper for the given session type
      * @throws IOException
      */
-    public final static IceSocketWrapper build(IoSession session) throws IOException {
+    public final static IceSocketWrapper build(IoSession session,Map<String,Object> context) throws IOException {
         // TODO remove this sysout
         //System.out.println("build: " + session + " connectionless: " + session.getTransportMetadata().isConnectionless());
+    	session.setAttribute("acceptor", context);
         IceSocketWrapper iceSocket = null;
         if (session.getTransportMetadata().isConnectionless()) {
             iceSocket = new IceUdpSocketWrapper(session);
+            iceSocket.setCookie(context);
         } else {
             iceSocket = new IceTcpSocketWrapper(session);
+            iceSocket.setCookie(context);
             // set remote address (only sticks if its TCP)
             InetSocketAddress inetAddr = (InetSocketAddress) session.getRemoteAddress();
             iceSocket.setRemoteTransportAddress(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
@@ -350,7 +365,8 @@ public abstract class IceSocketWrapper {
         return iceSocket;
     }
 
-    /**
+
+	/**
      * Builder for immutable IceSocketWrapper instance. If the localAddress is udp, an IceUdpSocketWrapper is returned; otherwise
      * an IceTcpSocketWrapper is returned.
      * 
@@ -358,7 +374,7 @@ public abstract class IceSocketWrapper {
      * @return IceSocketWrapper for the given session type
      * @throws IOException
      */
-    public final static IceSocketWrapper build(TransportAddress localAddress, TransportAddress remoteAddress) throws IOException {
+    public final static IceSocketWrapper build(TransportAddress localAddress, TransportAddress remoteAddress,Map<String,Object> context) throws IOException {
         // TODO remove this sysout
         //System.out.println("build: " + localAddress + " remote: " + remoteAddress);
         IceSocketWrapper iceSocket = null;
@@ -369,6 +385,7 @@ public abstract class IceSocketWrapper {
             // set remote address (only sticks if its TCP)
             iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
         }
+        iceSocket.setCookie(context);
         return iceSocket;
     }
 

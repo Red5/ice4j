@@ -3,6 +3,7 @@ package org.ice4j.stunclient;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.util.Map;
 
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
@@ -84,14 +85,15 @@ public class SimpleAddressDetector {
      * Creates a listening point for the specified socket and attempts to discover how its local address is NAT mapped.
      * 
      * @param socket the socket whose address needs to be resolved
+     * @param context 
      * @return a StunAddress object containing the mapped address or null if discovery failed
      * @throws IOException if something fails along the way
      * @throws BindException if we cannot bind the socket
      */
-    public TransportAddress getMappingFor(IceSocketWrapper socket) throws IOException, BindException {
+    public TransportAddress getMappingFor(IceSocketWrapper socket, Map<String, Object> context) throws IOException, BindException {
         TransportAddress localAddress = socket.getTransportAddress();
         // this should work for both udp and tcp
-        stunStack.addSocket(socket, socket.getRemoteTransportAddress(), true); // do socket binding
+        stunStack.addSocket(socket, socket.getRemoteTransportAddress(), true, context); // do socket binding
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         StunMessageEvent evt = null;
         try {
@@ -117,7 +119,7 @@ public class SimpleAddressDetector {
             // handle exception they are not responsible for.
             logger.error("Internal Error. We apparently constructed a faulty request", exc);
         } finally {
-            stunStack.removeSocket(localAddress);
+            stunStack.removeSocket(localAddress,context);
         }
         return null;
     }

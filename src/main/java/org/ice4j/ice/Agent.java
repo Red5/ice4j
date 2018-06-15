@@ -12,12 +12,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -239,16 +241,17 @@ public class Agent {
     /**
      * Creates an empty Agent with no streams, and no address.
      */
-    public Agent() {
-        this(null);
+    public Agent( Map<String, Object> context) {
+        this(null,context);
     }
 
     /**
      * Creates an empty Agent with no streams, and no address.
      * 
      * @param ufragPrefix an optional prefix to the generated local ICE username fragment.
+     * @param context 
      */
-    public Agent(String ufragPrefix) {
+    public Agent(String ufragPrefix, Map<String, Object> context) {
         connCheckServer = new ConnectivityCheckServer(this);
         connCheckClient = new ConnectivityCheckClient(this);
         //add the FINGERPRINT attribute to all messages.
@@ -269,7 +272,7 @@ public class Agent {
         password = ensureIceAttributeLength(new BigInteger(128, random).toString(32), 22, 256);
         tieBreaker = random.nextLong() & 0x7FFFFFFFFFFFFFFFL;
         nominator = new DefaultNominator(this);
-        for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters()) {
+        for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters(context)) {
             addCandidateHarvester(harvester);
         }
         logger.debug("Created a new Agent, ufrag={}", ufrag);
@@ -328,8 +331,8 @@ public class Agent {
      * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed
      * number of retries.
      */
-    public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException, BindException {
-        return createComponent(stream, transport, preferredPort, minPort, maxPort, KeepAliveStrategy.SELECTED_ONLY);
+    public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort,Map<String,Object> context) throws IllegalArgumentException, IOException, BindException {
+        return createComponent(stream, transport, preferredPort, minPort, maxPort, KeepAliveStrategy.SELECTED_ONLY, context);
     }
 
     /**
@@ -350,7 +353,7 @@ public class Agent {
      * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed
      * number of retries
      */
-    public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort, KeepAliveStrategy keepAliveStrategy) throws IllegalArgumentException, IOException, BindException {
+    public Component createComponent(IceMediaStream stream, Transport transport, int preferredPort, int minPort, int maxPort, KeepAliveStrategy keepAliveStrategy,Map<String,Object> context) throws IllegalArgumentException, IOException, BindException {
         logger.debug("createComponent: {} preferredPort: {}", transport, preferredPort);
         // check the preferred port against any existing bindings first!
         if (IceTransport.isBound(preferredPort)) {
@@ -369,7 +372,7 @@ public class Agent {
         logger.debug("Gathering candidates for component {}. Local ufrag {}", component.toShortString(), getLocalUfrag());
         if (useHostHarvester()) {
             logger.debug("Using host harvester");
-            hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, transport);
+            hostCandidateHarvester.harvest(component, preferredPort, minPort, maxPort, transport,context);
             logger.debug("Host harvester done");
         } else if (hostHarvesters.isEmpty()) {
             logger.warn("No host harvesters available!");
@@ -1425,7 +1428,7 @@ public class Agent {
      */
     @Override
     protected void finalize() throws Throwable {
-        free();
+        //free();
         super.finalize();
     }
 
@@ -1433,9 +1436,15 @@ public class Agent {
      * Prepares this Agent for garbage collection by ending all related processes and freeing its IceMediaStreams, Components
      * and Candidates. This method will also place the agent in the terminated state in case it wasn't already there.
      */
-    public void free() {
+    public void free(Map<String,Object> context) {
         logger.debug("Free ICE agent");
         shutdown = true;
+        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) context.get("acceptor");
+        if(acceptor!=null){
+        	acceptor.unbind();
+        	acceptor.dispose();
+        	logger.info("acceptor freed");
+        }
         // stop sending keep alives (STUN Binding Indications)
         if (stunKeepAlive != null) {
             stunKeepAlive.cancel(true);

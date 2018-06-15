@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ice4j.StackProperties;
@@ -260,10 +261,11 @@ public class HostCandidateHarvester {
      * @param minPort the port number where we should first try to bind before moving to the next one (i.e. minPort + 1)
      * @param maxPort the maximum port number where we should try binding before giving up and throwing an exception
      * @param transport transport protocol used
+     * @param context 
      * @throws IllegalArgumentException if either minPort or maxPort is not a valid port number, minPort &gt; maxPort or if transport is not supported
      * @throws IOException if an error occurs
      */
-    public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
+    public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport, Map<String, Object> context) throws IllegalArgumentException, IOException {
         logger.debug("harvest port: {}", preferredPort);
         if (transport != Transport.UDP && transport != Transport.TCP) {
             throw new IllegalArgumentException("Transport protocol not supported: " + transport);
@@ -284,7 +286,7 @@ public class HostCandidateHarvester {
                 component.addLocalCandidate(candidate);
                 StunStack stunStack = candidate.getStunStack();
                 // add the socket wrapper to the stack which gets the bind and listening process started
-                stunStack.addSocket(sock, null, true); // do socket binding
+                stunStack.addSocket(sock, null, true, context); // do socket binding
                 component.getComponentSocket().setSocket(sock);
             } catch (Throwable t) {
                 // There seems to be a problem with this particular address let's just move on for now and hope we will find better
