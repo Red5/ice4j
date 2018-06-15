@@ -2,6 +2,7 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
@@ -43,7 +44,7 @@ public abstract class IceTransport {
     protected final static IceHandler iceHandler = new IceHandler();
 
     // used for setup/tear-down of the acceptor
-    protected final static Boolean acceptorLock = Boolean.TRUE;
+    //protected final static Boolean acceptorLock = Boolean.TRUE;
 
     protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
 
@@ -59,13 +60,15 @@ public abstract class IceTransport {
     protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", true);
 
     protected int ioThreads = 16;
-
+    
+    protected AtomicBoolean acceptorStarted = new AtomicBoolean(false);
+    
     protected IoAcceptor acceptor;
 
     protected static AtomicBoolean reaperStarted = new AtomicBoolean(false);
 
     // uses 1 thread, but has an unbounded queue
-    protected static ExecutorService executor = Executors.newSingleThreadExecutor();
+    protected ExecutorService executor = Executors.newCachedThreadPool();
 
     // constants for the session map or anything else
     public enum Ice {
@@ -95,11 +98,11 @@ public abstract class IceTransport {
      * @param type the transport type requested, either UDP or TCP
      * @return IceTransport
      */
-    public static IceTransport getInstance(Transport type) {
+    public static IceTransport getInstance(Transport type,Map<String,Object> context) {
         if (type == Transport.TCP) {
             return IceTcpTransport.getInstance();
         }
-        return IceUdpTransport.getInstance();
+        return IceUdpTransport.getInstance(context);
     }
 
     /**
@@ -155,9 +158,10 @@ public abstract class IceTransport {
                         @Override
                         public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
-                            synchronized (acceptorLock) {
-                                acceptor.unbind(addr);
-                            }
+                            
+                            acceptor.unbind(addr);
+                            acceptor.dispose(false);
+                            acceptor = null;  
                             logger.debug("Binding removed: {}", addr);
                             return Boolean.TRUE;
                         }
@@ -168,17 +172,17 @@ public abstract class IceTransport {
                 }
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
-                if (aggressiveAcceptorReset && acceptor != null) {
-                    synchronized (acceptorLock) {
-                        logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
-                        acceptor.dispose(false);
-                        acceptor = null;
-                    }
+            	// this seems to kill all even with 'false' :(
+                if (aggressiveAcceptorReset && acceptor != null) {                  
+                    logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
+                    acceptor.dispose(false);
+                    acceptor = null;                   
                 } else {
                     logger.warn("Remove binding failed on {}", addr, t);
                 }
             }
         }
+        
         return false;
     }
 
@@ -186,21 +190,22 @@ public abstract class IceTransport {
      * Ports and addresses are unbound (stop listening).
      */
     public void stop() throws Exception {
-        if (executor != null && !executor.isShutdown()) {
-            executor.shutdown();
-        }
-        if (reaperThread != null) {
-            reaperThread.interrupt();
-            reaperThread = null;
-        }
-        synchronized (acceptorLock) {
+        logger.info("stopping transport"); 
+        //if (reaperThread != null) {
+         //   reaperThread.interrupt();
+        //    reaperThread = null;
+        //}
+        if (acceptorStarted.compareAndSet(true, false)) {
             if (acceptor != null) {
                 logger.debug("Stopped socket transport");
                 acceptor.unbind();
-                acceptor.dispose(true);
+                acceptor.dispose(false);
                 logger.info("Disposed socket transport");
                 acceptor = null;
             }
+        }
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
         }
     }
 

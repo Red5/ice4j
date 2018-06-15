@@ -2,6 +2,7 @@
 package org.ice4j.stunclient;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
@@ -85,7 +86,8 @@ public class NetworkConfigurationDiscoveryProcess {
      * The DatagramSocket that we are going to be running the discovery process through.
      */
     private IceSocketWrapper sock;
-
+    
+   // private Map<String,Object> context = new ConcurrentHashMap<>();
     /**
      * The StunStack used by this instance for the purposes of STUN communication.
      */
@@ -111,8 +113,8 @@ public class NetworkConfigurationDiscoveryProcess {
     /**
      * Shuts down the underlying stack and prepares the object for garbage collection.
      */
-    public void shutDown() {
-        stunStack.removeSocket(localAddress);
+    public void shutDown(Map<String,Object> context) {
+        stunStack.removeSocket(localAddress,context);
         sock.close();
         sock = null;
         localAddress = null;
@@ -126,14 +128,14 @@ public class NetworkConfigurationDiscoveryProcess {
      * @throws IOException if we fail to bind
      * @throws StunException if the stun4j stack fails start for some reason
      */
-    public void start() throws IOException, StunException {
+    public void start(Map<String,Object> context) throws IOException, StunException {
         logger.debug("start: {}", localAddress);
         // check for existing binding before creating a new one
         sock = IceTransport.getIceHandler().lookupBinding(localAddress);
         // create a new socket since there isn't one registered for the local address
         if (sock == null) {
-            sock = IceSocketWrapper.build(localAddress, serverAddress);
-            stunStack.addSocket(sock, serverAddress, true); // do socket binding
+            sock = IceSocketWrapper.build(localAddress, serverAddress,context);
+            stunStack.addSocket(sock, serverAddress, true,context); // do socket binding
         }
         requestSender = new BlockingRequestSender(stunStack, localAddress);
         started = true;

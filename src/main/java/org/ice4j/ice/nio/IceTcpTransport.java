@@ -42,11 +42,11 @@ public class IceTcpTransport extends IceTransport {
      */
     public static IceTcpTransport getInstance() {
         //logger.trace("Instance: {}", instance);
-        synchronized (acceptorLock) {
-            if (instance.getAcceptor() == null) {
-                instance.createAcceptor();
-            }
+        
+        if (instance.getAcceptor() == null) {
+            instance.createAcceptor();
         }
+        
         return instance;
     }
 
@@ -127,9 +127,9 @@ public class IceTcpTransport extends IceTransport {
                 @Override
                 public Boolean call() throws Exception {
                     logger.debug("Adding TCP binding: {}", addr);
-                    synchronized (acceptorLock) {
-                        acceptor.bind(addr);
-                    }
+                    
+                    acceptor.bind(addr);
+                    
                     logger.debug("TCP binding added: {}", addr);
                     return Boolean.TRUE;
                 }

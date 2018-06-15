@@ -58,7 +58,7 @@ public class TcpHostCandidate extends HostCandidate {
         TransportAddress localAddr = getTransportAddress();
         for (IceSocketWrapper socket : sockets) {
             // remove our sockets from the stack
-            stunStack.removeSocket(localAddr, socket.getRemoteTransportAddress());
+            stunStack.removeSocket(localAddr, socket.getRemoteTransportAddress(),socket.getCookie());
             socket.close();
         }
         super.free();

@@ -1,6 +1,8 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
+import java.util.Map;
+
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
@@ -37,8 +39,9 @@ public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
     /**
      * Attempts to discover the the public address (mask) via the STUN server.
      * Note that this will block until we either receive a response from the STUN server, or a timeout occurs.
+     * @param context 
      */
-    public void discover() {
+    public void discover(Map<String, Object> context) {
         try {
             SimpleAddressDetector sad = new SimpleAddressDetector(stunServerAddress);
             sad.start();
@@ -46,9 +49,9 @@ public class StunMappingCandidateHarvester extends MappingCandidateHarvester {
             IceSocketWrapper localSocket = IceTransport.getIceHandler().lookupBinding(face);
             // create a new socket since there isn't one registered for the local address
             if (localSocket == null) {
-                localSocket = IceSocketWrapper.build(face, null);
+                localSocket = IceSocketWrapper.build(face, null,context);
             }
-            mask = sad.getMappingFor(localSocket);
+            mask = sad.getMappingFor(localSocket, context);
             if (mask != null) {
                 logger.info("Discovered public address {} from STUN server {} using local address {}", mask, stunServerAddress, face);
             }

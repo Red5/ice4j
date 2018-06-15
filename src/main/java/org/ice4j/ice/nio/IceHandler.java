@@ -2,6 +2,7 @@ package org.ice4j.ice.nio;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -200,20 +201,36 @@ public class IceHandler extends IoHandlerAdapter {
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
         // remove binding
-        IceTransport.getInstance(transport).removeBinding(addr);
+        Map<String, Object> context = (Map<String, Object>) session.getAttribute("acceptor");
+
+        if(context==null){
+        	return;
+        }
+        
+        //IceTransport.getInstance(transport,context).removeBinding(addr);
+        IceTransport tra = IceTransport.getInstance(transport,context);
+        if(tra!=null){
+        	tra.removeBinding(addr);
+        }
+        IceUdpTransport instance = (IceUdpTransport) context.get(IceUdpTransport.class.getName());
+        if(instance!=null){
+            instance.stop();
+        } 
+        
         // clean-up
         IceSocketWrapper iceSocket = null;
         if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
             iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+            iceSocket.close();
         }
         if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
             StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
             if (iceSocket != null) {
-                stunStack.removeSocket(addr, iceSocket.getRemoteTransportAddress());
+                stunStack.removeSocket(addr, iceSocket.getRemoteTransportAddress(),iceSocket.getCookie());
             } else {
                 inetAddr = (InetSocketAddress) session.getRemoteAddress();
                 TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-                stunStack.removeSocket(addr, remoteAddr);
+                stunStack.removeSocket(addr, remoteAddr,context);
             }
         }
         // remove any map entries
@@ -244,18 +261,36 @@ public class IceHandler extends IoHandlerAdapter {
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
         logger.warn("Exception on session: {}", session.getId(), cause);
         // determine transport type
+        Map<String, Object> context = (Map<String, Object>) session.getAttribute("acceptor");
+        IceUdpTransport instance = (IceUdpTransport) context.get(IceUdpTransport.class.getName());
+
         Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-        logger.info("Exception on {}", addr);
+        final IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
+        iceSocket.close();
         // if its already been removed, skip removing it again
-        if (!IceTransport.isRemoved(inetAddr.getPort())) {
+        //if (!IceTransport.isRemoved(inetAddr.getPort())) {
+        	logger.info("Exception on {}", addr);
             // remove binding
-            IceTransport.getInstance(transport).removeBinding(addr);
+        	
+            //IceTransport.getInstance(transport,context).removeBinding(addr);
+            IceTransport tra = IceTransport.getInstance(transport,context);
+            if(tra!=null){
+            	tra.removeBinding(addr);
+            }
+            tra.stop();
+            if(instance!=null){
+            	instance.stop();
+            }
             // remove any map entries
             stunStacks.remove(addr);
             iceSockets.remove(addr);
+        //}
+        if(iceSocket!=null){
+        	iceSocket.close();
         }
+
     }
 
     /* From BC TlsUtils for debugging */

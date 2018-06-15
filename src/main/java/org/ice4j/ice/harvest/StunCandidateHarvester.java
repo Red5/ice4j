@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -196,7 +198,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         stunStack = component.getParentStream().getParentAgent().getStunStack();
         for (Candidate<?> cand : component.getLocalCandidates()) {
             if ((cand instanceof HostCandidate) && (cand.getTransport() == stunServer.getTransport())) {
-                startResolvingCandidate((HostCandidate) cand);
+                startResolvingCandidate((HostCandidate) cand,null);
             }
         }
         waitForResolutionEnd();
@@ -236,7 +238,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      *
      * @param hostCand the HostCandidate that we'd like to resolve.
      */
-    private void startResolvingCandidate(HostCandidate hostCand) {
+    private void startResolvingCandidate(HostCandidate hostCand,Map<String,Object> context) {
         // first of all, make sure that the STUN server and the Candidate address are of the same type and that they can communicate.
         if (!hostCand.getTransportAddress().canReach(stunServer)) {
             logger.info("Transport mismatch, skipping candidate in this harvester");
@@ -260,19 +262,21 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                         logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
                     } else {
                         try {
+                        	//Map<String,Object> conectext = new ConcurrentHashMap<>();
                             Component component = hostCand.getParentComponent();
                             Agent agent = component.getParentStream().getParentAgent();
                             // the builder will determine tcp or udp based on "connection-less" property
-                            IceSocketWrapper sock = IceSocketWrapper.build(sess);
+                            IceSocketWrapper sock = IceSocketWrapper.build(sess,context);
                             // create a new host candidate
                             HostCandidate hostCandidate = new HostCandidate(sock, component, Transport.TCP);
                             // set the tcptype (we need to know if the other end is active, but for now all the browsers appear to be
                             //hostCandidate.setTcpType(agent.isControlling() ? CandidateTcpType.ACTIVE : CandidateTcpType.PASSIVE);
                             hostCandidate.setTcpType(CandidateTcpType.PASSIVE);
                             // set the candidate on the session so it may be accessed outside the io thread
-                            sess.setAttribute(Ice.CANDIDATE, hostCandidate);
+                            sess.setAttribute(Ice.CANDIDATE, hostCandidate);                            
+                            
                             //agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
-                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true); // passive == bind, active == no
+                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true,context); // passive == bind, active == no
                             component.getComponentSocket().setSocket(sock);
                         } catch (Exception e) {
                             logger.warn("Exception TCP client connect", e);

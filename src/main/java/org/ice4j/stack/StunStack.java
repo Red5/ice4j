@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -141,11 +142,11 @@ public class StunStack implements MessageEventHandler {
      * @param remoteAddress of the Connector to be created if it is a TCP socket or null if it is UDP
      * @param doBind perform bind on the wrappers local address if true and not if false
      */
-    public void addSocket(IceSocketWrapper iceSocket, TransportAddress remoteAddress, boolean doBind) {
-        logger.debug("addSocket: {} remote address: {} bind? {}", iceSocket, remoteAddress, doBind);
+    public void addSocket(IceSocketWrapper iceSocket, TransportAddress remoteAddress, boolean doBind,Map<String,Object> context) {
+        logger.debug("addSocket: {} remote address: {} bind? {}  {}", iceSocket, remoteAddress, doBind);
         // add the wrapper for binding
         if (iceSocket instanceof IceUdpSocketWrapper) {
-            IceUdpTransport transport = IceUdpTransport.getInstance();
+            IceUdpTransport transport = IceUdpTransport.getInstance(context);
             if (doBind) {
                 transport.registerStackAndSocket(this, iceSocket);
             } else {
@@ -174,9 +175,9 @@ public class StunStack implements MessageEventHandler {
      *
      * @param localAddr the local address of the socket to remove.
      */
-    public void removeSocket(TransportAddress localAddr) {
+    public void removeSocket(TransportAddress localAddr,Map<String,Object> context) {
         logger.debug("removeSocket: {}", localAddr);
-        removeSocket(localAddr, null);
+        removeSocket(localAddr, null,context);
     }
 
     /**
@@ -185,10 +186,13 @@ public class StunStack implements MessageEventHandler {
      * @param localAddr the local address of the socket to remove.
      * @param remoteAddr the remote address of the socket to remove. Use null for UDP.
      */
-    public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr) {
+    public void removeSocket(TransportAddress localAddr, TransportAddress remoteAddr,Map<String,Object> context) {
         logger.debug("removeSocket: {} remote address: {}", localAddr, remoteAddr);
         // clean up server bindings and listener
-        IceTransport.getInstance(remoteAddr == null ? Transport.UDP : Transport.TCP).removeBinding(localAddr);
+        IceTransport tra = IceTransport.getInstance(remoteAddr == null ? Transport.UDP : Transport.TCP,context);
+        if(tra!=null){
+        	tra.removeBinding(localAddr);
+        }
         // first cancel all transactions using this address
         cancelTransactionsForAddress(localAddr, remoteAddr);
         netAccessManager.removeSocket(localAddr, remoteAddr);

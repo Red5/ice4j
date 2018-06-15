@@ -1,10 +1,12 @@
 package org.ice4j.ice.nio;
 
 import java.net.SocketAddress;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
 import org.apache.mina.core.session.IdleStatus;
@@ -26,13 +28,13 @@ public class IceUdpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceUdpTransport.class);
 
-    private static final IceUdpTransport instance = new IceUdpTransport();
+    //private static final IceUdpTransport instance = new IceUdpTransport();
 
     /**
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceUdpTransport() {
-        createAcceptor();
+        //createAcceptor();
     }
 
     /**
@@ -40,19 +42,29 @@ public class IceUdpTransport extends IceTransport {
      * 
      * @return IceTransport
      */
-    public static IceUdpTransport getInstance() {
+    public static IceUdpTransport getInstance(Map<String,Object> context) {
         //logger.trace("Instance: {}", instance);
-        synchronized (acceptorLock) {
-            if (instance.getAcceptor() == null) {
-                instance.createAcceptor();
-            }
-        }
+    	if(context!=null){
+    	IceUdpTransport instance = (IceUdpTransport) context.get(IceUdpTransport.class.getName());
+    	if(instance==null){
+    		instance= new IceUdpTransport(); 
+            instance.createAcceptor(context);
+            context.put(IceUdpTransport.class.getName(), instance);
+        }        
         return instance;
+    	}else{
+    		logger.debug("udp cookie was null");
+    	}
+    	return null;
     }
 
-    void createAcceptor() {
+    void createAcceptor(Map<String,Object> context) {
+    	acceptor = (IoAcceptor) context.get("acceptor");
+    	if( acceptor==null && acceptorStarted.compareAndSet(false, true)){
         // create the nio acceptor
         acceptor = new NioDatagramAcceptor();
+        logger.info("open acceptor"); 
+        context.put("acceptor", acceptor);
         if (logger.isDebugEnabled()) {
             acceptor.addListener(new IoServiceListener() {
 
@@ -110,6 +122,9 @@ public class IceUdpTransport extends IceTransport {
         if (logger.isTraceEnabled()) {
             logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
         }
+    	}else{
+    		logger.debug("acceptor already in the making.");
+    	}
     }
 
     /**
@@ -126,9 +141,9 @@ public class IceUdpTransport extends IceTransport {
                 @Override
                 public Boolean call() throws Exception {
                     logger.debug("Adding UDP binding: {}", addr);
-                    synchronized (acceptorLock) {
-                        acceptor.bind(addr);
-                    }
+                    
+                    acceptor.bind(addr);
+                    
                     logger.debug("UDP binding added: {}", addr);
                     return Boolean.TRUE;
                 }
@@ -138,6 +153,7 @@ public class IceUdpTransport extends IceTransport {
             return bindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
         } catch (Throwable t) {
             logger.warn("Add binding failed on {}", addr, t);
+            acceptor.dispose(false); 
         }
         return false;
     }

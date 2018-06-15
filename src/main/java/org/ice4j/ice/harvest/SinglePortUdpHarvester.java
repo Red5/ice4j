@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,11 +50,11 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
      * @param port the UDP port number to use.
      * @return the list of created SinglePortUdpHarvesters.
      */
-    public static List<SinglePortUdpHarvester> createHarvesters(int port) {
+    public static List<SinglePortUdpHarvester> createHarvesters(int port,Map<String,Object> context) {
         List<SinglePortUdpHarvester> harvesters = new LinkedList<>();
         for (TransportAddress address : AbstractUdpListener.getAllowedAddresses(port)) {
             try {
-                harvesters.add(new SinglePortUdpHarvester(address));
+                harvesters.add(new SinglePortUdpHarvester(address,context));
             } catch (IOException ioe) {
                 logger.warn("Failed to create SinglePortUdpHarvester foraddress {}", address, ioe);
             }
@@ -77,8 +78,8 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
      */
-    public SinglePortUdpHarvester(TransportAddress localAddress) throws IOException {
-        super(localAddress);
+    public SinglePortUdpHarvester(TransportAddress localAddress,Map<String,Object> context) throws IOException {
+        super(localAddress,context);
         logger.info("Initialized SinglePortUdpHarvester with address {}", localAddress);
     }
 
@@ -96,7 +97,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
         if (candidate != null) {
             try {
                 // Let the candidate and its STUN stack know about the new channel
-                candidate.addSocket(iceSocket, remoteAddress);
+                candidate.addSocket(iceSocket, remoteAddress, iceSocket.getCookie());
             } catch (IOException ioe) {
                 logger.warn("Failed to handle new socket", ioe);
             }
@@ -150,6 +151,8 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
          */
         private final ConcurrentMap<SocketAddress, IceSocketWrapper> candidateSockets = new ConcurrentHashMap<>();
 
+		//private Map<String, Object> context = new ConcurrentHashMap<>();
+
         /**
          * Initializes a new MyCandidate instance with the given Component and the given local username fragment.
          *
@@ -166,8 +169,9 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
          *
          * @param candidateSocket the IceSocketWrapper to add
          * @param remoteAddress the remote address for the socket
+         * @param context 
          */
-        private void addSocket(IceSocketWrapper candidateSocket, InetSocketAddress remoteAddress) throws IOException {
+        private void addSocket(IceSocketWrapper candidateSocket, InetSocketAddress remoteAddress, Map<String, Object> context) throws IOException {
             logger.debug("addSocket: {} remote: {}", candidateSocket, remoteAddress);
             if (freed.get()) {
                 throw new IOException("Candidate freed");
@@ -186,7 +190,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             // Socket to add to the candidate
             StunStack stunStack = agent.getStunStack();
             // if agent is not controlling, we're considered a server so add a binding
-            stunStack.addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP), !agent.isControlling()); // do socket binding
+            stunStack.addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP), !agent.isControlling(), context ); // do socket binding
             // TODO: maybe move this code to the candidates
             component.getComponentSocket().setSocket(candidateSocket);
             // if a socket already exists, it will be returned and closed after being replaced in the map

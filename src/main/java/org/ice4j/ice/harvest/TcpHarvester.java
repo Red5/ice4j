@@ -88,10 +88,10 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(int port) throws IOException {
+    public TcpHarvester(int port, Map<String, Object> context) throws IOException {
         super(port);
         this.ssltcp = false;
-        addMappedAddresses();
+        addMappedAddresses(context);
     }
 
     /**
@@ -102,10 +102,10 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(int port, boolean ssltcp) throws IOException {
+    public TcpHarvester(int port, boolean ssltcp, Map<String, Object> context) throws IOException {
         super(port, Collections.list(NetworkInterface.getNetworkInterfaces()));
         this.ssltcp = ssltcp;
-        addMappedAddresses();
+        addMappedAddresses(context);
     }
 
     /**
@@ -117,10 +117,10 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(int port, List<NetworkInterface> interfaces, boolean ssltcp) throws IOException {
+    public TcpHarvester(int port, List<NetworkInterface> interfaces, boolean ssltcp, Map<String, Object> context) throws IOException {
         super(port, interfaces);
         this.ssltcp = ssltcp;
-        addMappedAddresses();
+        addMappedAddresses(context);
     }
 
     /**
@@ -130,10 +130,10 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(List<TransportAddress> transportAddresses) throws IOException {
+    public TcpHarvester(List<TransportAddress> transportAddresses, Map<String, Object> context) throws IOException {
         super(transportAddresses);
         this.ssltcp = false;
-        addMappedAddresses();
+        addMappedAddresses(context);
     }
 
     /**
@@ -144,17 +144,18 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @throws IOException when {@link StackProperties#ALLOWED_ADDRESSES} or {@link StackProperties#BLOCKED_ADDRESSES} contains invalid values, or
      * if an I/O error occurs.
      */
-    public TcpHarvester(List<TransportAddress> transportAddresses, boolean ssltcp) throws IOException {
+    public TcpHarvester(List<TransportAddress> transportAddresses, boolean ssltcp, Map<String, Object> context) throws IOException {
         super(transportAddresses);
         this.ssltcp = ssltcp;
-        addMappedAddresses();
+        addMappedAddresses(context);
     }
 
     /**
      * Adds the mapped addresses known from {@link MappingCandidateHarvesters}.
+     * @param context 
      */
-    private void addMappedAddresses() {
-        for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters()) {
+    private void addMappedAddresses(Map<String, Object> context) {
+        for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters(context)) {
             addMappedAddress(harvester.getMask().getAddress(), harvester.getFace().getAddress());
         }
     }

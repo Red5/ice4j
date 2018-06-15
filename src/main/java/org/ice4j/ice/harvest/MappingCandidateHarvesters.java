@@ -10,6 +10,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -91,8 +92,8 @@ public class MappingCandidateHarvesters {
     /**
      * @return the list of configured harvesters.
      */
-    public static MappingCandidateHarvester[] getHarvesters() {
-        initialize();
+    public static MappingCandidateHarvester[] getHarvesters(Map<String,Object> context) {
+        initialize(context);
         return harvesters;
     }
 
@@ -104,8 +105,9 @@ public class MappingCandidateHarvesters {
      * initialize properly and remove any harvesters with duplicate addresses.
      *
      * Three types of mapping harvesters are supported: NAT (with pre-configured addresses), AWS and STUN.
+     * @param context 
      */
-    public static synchronized void initialize() {
+    public static synchronized void initialize(Map<String, Object> context) {
         if (initialized) {
             return;
         }
@@ -134,7 +136,7 @@ public class MappingCandidateHarvesters {
         String stunServers = StackProperties.getString(STUN_MAPPING_HARVESTER_ADDRESSES_PNAME);
         if (stunServers != null && !stunServers.isEmpty()) {
             // Create STUN harvesters (and wait for all of their discovery to finish).
-            List<StunMappingCandidateHarvester> stunHarvesters = createStunHarvesters(stunServers.split(","));
+            List<StunMappingCandidateHarvester> stunHarvesters = createStunHarvesters(stunServers.split(","),context);
             // We have STUN servers configured, so flag the failure if none of them were able to discover an address.
             stunDiscoveryFailed = stunHarvesters.isEmpty();
             harvesterList.addAll(stunHarvesters);
@@ -184,6 +186,8 @@ public class MappingCandidateHarvesters {
         harvesters.add(harvester);
     }
 
+	//protected static Map<String, Object> context = new ConcurrentHashMap<>();
+
     /**
      * Creates STUN mapping harvesters for each of the given STUN servers, and
      * waits for address discovery to finish for all of them.
@@ -191,7 +195,7 @@ public class MappingCandidateHarvesters {
      * pairs).
      * @return  the list of those who were successful in discovering an address.
      */
-    private static List<StunMappingCandidateHarvester> createStunHarvesters(String[] stunServers) {
+    private static List<StunMappingCandidateHarvester> createStunHarvesters(String[] stunServers, Map<String,Object>context) {
         List<StunMappingCandidateHarvester> stunHarvesters = new LinkedList<>();
         if (stunServers == null || stunServers.length == 0) {
             logger.warn("No STUN servers configured");
@@ -225,7 +229,7 @@ public class MappingCandidateHarvesters {
                 Callable<StunMappingCandidateHarvester> task = new Callable<StunMappingCandidateHarvester>() {
                     @Override
                     public StunMappingCandidateHarvester call() throws Exception {
-                        stunHarvester.discover();
+                        stunHarvester.discover(context );
                         return stunHarvester;
                     }
                 };

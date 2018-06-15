@@ -96,7 +96,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
             LocalCandidate base = getBase();
             if (base == null || base == this || base.getCandidateIceSocketWrapper() != socket) {
                 //remove our socket from the stack.
-                getStunStack().removeSocket(getTransportAddress());
+                getStunStack().removeSocket(getTransportAddress(),socket.getCookie());
                 // Allow this LocalCandidate implementation to not create a socket if it still hasn't created one.
                 socket.close();
             }

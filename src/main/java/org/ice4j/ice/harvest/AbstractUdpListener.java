@@ -72,7 +72,7 @@ public abstract class AbstractUdpListener {
      * @param localAddress the address to bind to.
      * @throws IOException if initialization fails.
      */
-    protected AbstractUdpListener(TransportAddress localAddress) throws IOException {
+    protected AbstractUdpListener(TransportAddress localAddress, Map<String,Object> context) throws IOException {
         boolean bindWildcard = !StackProperties.getBoolean(StackProperties.BIND_WILDCARD, false);
         if (bindWildcard) {
             this.localAddress = new TransportAddress((InetAddress) null, localAddress.getPort(), localAddress.getTransport());
@@ -83,7 +83,7 @@ public abstract class AbstractUdpListener {
         // look for existing socket with the local address
         IceSocketWrapper lookedUpSocket = iceHandler.lookupBinding(this.localAddress);
         // create a stun stack and unconnected udp socket wrapper, then add them to the udp transport
-        final IceSocketWrapper iceSocket = (lookedUpSocket != null) ? lookedUpSocket : IceSocketWrapper.build(this.localAddress, null);
+        final IceSocketWrapper iceSocket = (lookedUpSocket != null) ? lookedUpSocket : IceSocketWrapper.build(this.localAddress, null,context);
         // look for existing stun stack with the local address
         StunStack stunStack = iceHandler.lookupStunStack(this.localAddress);
         if (stunStack == null) {
@@ -104,7 +104,7 @@ public abstract class AbstractUdpListener {
             }
 
         });
-        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, iceSocket);
+        IceUdpTransport.getInstance(context).registerStackAndSocket(stunStack, iceSocket);
     }
 
     /**
