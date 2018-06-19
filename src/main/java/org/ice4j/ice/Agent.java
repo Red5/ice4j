@@ -1425,7 +1425,7 @@ public class Agent {
      */
     @Override
     protected void finalize() throws Throwable {
-        free();
+        //free();
         super.finalize();
     }
 
@@ -1450,7 +1450,6 @@ public class Agent {
         }
         // Free its IceMediaStreams, Components and Candidates.
         if (!mediaStreams.isEmpty()) {
-            boolean interrupted = false;
             logger.debug("Remove streams");
             for (IceMediaStream stream : mediaStreams.values()) {
                 try {
@@ -1459,14 +1458,11 @@ public class Agent {
                 } catch (Throwable t) {
                     logger.debug("Remove stream {} failed", stream.getName(), t);
                     if (t instanceof InterruptedException) {
-                        interrupted = true;
+                        Thread.currentThread().interrupt();
                     } else if (t instanceof ThreadDeath) {
                         throw (ThreadDeath) t;
                     }
                 }
-            }
-            if (interrupted) {
-                Thread.currentThread().interrupt();
             }
         }
         getStunStack().shutDown();

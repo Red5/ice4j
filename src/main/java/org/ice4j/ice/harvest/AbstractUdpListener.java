@@ -69,8 +69,8 @@ public abstract class AbstractUdpListener {
     /**
      * Initializes a new SinglePortUdpHarvester instance which is to bind on the specified local address.
      * 
-     * @param localAddress the address to bind to.
-     * @throws IOException if initialization fails.
+     * @param localAddress the address to bind to
+     * @throws IOException if initialization fails
      */
     protected AbstractUdpListener(TransportAddress localAddress) throws IOException {
         boolean bindWildcard = !StackProperties.getBoolean(StackProperties.BIND_WILDCARD, false);
@@ -104,7 +104,7 @@ public abstract class AbstractUdpListener {
             }
 
         });
-        IceUdpTransport.getInstance().registerStackAndSocket(stunStack, iceSocket);
+        IceUdpTransport.getInstance(iceSocket.getId()).registerStackAndSocket(stunStack, iceSocket);
     }
 
     /**

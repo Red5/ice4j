@@ -15,6 +15,7 @@ import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.SocketClosedException;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -218,9 +219,10 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         } else {
             logger.warn("No ice socket in session, closing: {}", session);
             // XXX check into this later, it seems to block additional reads outside the session on which its called??!?
-            // Fix in Mina to allow suspendRead with UDP is in 2.0.18, so comment out for now
+            // Fix in Mina to allow suspendRead with UDP is in 2.0.18+, so comment out for now
             //session.suspendRead();
-            session.closeNow();
+            //session.closeNow();
+            throw new SocketClosedException();
         }
     }
 

@@ -110,7 +110,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                     } catch (Throwable t) {
                         logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
                         // look for an existing acceptor
-                        NioSocketAcceptor acceptor = (NioSocketAcceptor) IceTcpTransport.getInstance().getAcceptor();
+                        NioSocketAcceptor acceptor = (NioSocketAcceptor) IceTcpTransport.getInstance(getId()).getAcceptor();
                         if (acceptor != null) {
                             try {
                                 acceptor.bind(transportAddress);

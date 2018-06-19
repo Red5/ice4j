@@ -2,9 +2,11 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Map;
+import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -13,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
+import org.apache.mina.util.CopyOnWriteMap;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.socket.IceSocketWrapper;
@@ -31,23 +34,9 @@ public abstract class IceTransport {
 
     private final static int BUFFER_SIZE_DEFAULT = 65535;
 
-    // Expire ports in three seconds
-    private final static long EXPIRE_TIME_NANOS = TimeUnit.MILLISECONDS.toNanos(3000L);
-
-    private static DelayQueue<ExpiredPort> removedPortsQueue = new DelayQueue<>();
-
-    private static Thread reaperThread;
-
     protected final static ProtocolCodecFilter iceCodecFilter = new ProtocolCodecFilter(new IceEncoder(), new IceDecoder());
 
     protected final static IceHandler iceHandler = new IceHandler();
-
-    // used for setup/tear-down of the acceptor
-    protected final static Boolean acceptorLock = Boolean.TRUE;
-
-    protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
-
-    protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
     // used for idle timeout checks, connection timeout is currently 3s
     protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
@@ -55,21 +44,43 @@ public abstract class IceTransport {
     // used for binding and unbinding timeout, default 2s
     protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
 
+    // whether or not to use a shared acceptor
+    protected static boolean sharedAcceptor = StackProperties.getBoolean("NIO_SHARED_MODE", false);
+
     // whether or not to handle a hung acceptor aggressively
     protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", true);
 
-    protected int ioThreads = 16;
+    // thread-safe map containing ice transport instances
+    protected static Map<String, IceTransport> transports = new CopyOnWriteMap<>(1);
 
-    protected IoAcceptor acceptor;
+    // holder of bound ports; used to prevent blocking issues querying acceptors
+    protected static CopyOnWriteArraySet<Integer> boundPorts = new CopyOnWriteArraySet<>();
 
     protected static AtomicBoolean reaperStarted = new AtomicBoolean(false);
 
-    // uses 1 thread, but has an unbounded queue
-    protected static ExecutorService executor = Executors.newSingleThreadExecutor();
+    protected static ExecutorService executor = Executors.newCachedThreadPool();
+
+    /**
+     * Unique identifier.
+     */
+    protected final String id = UUID.randomUUID().toString();
+
+    protected int receiveBufferSize = StackProperties.getInt("SO_RCVBUF", BUFFER_SIZE_DEFAULT);
+
+    protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
+
+    protected int ioThreads = StackProperties.getInt("NIO_WORKERS", 16);
+
+    protected AtomicBoolean acceptorStarted = new AtomicBoolean(false);
+
+    /**
+     * Local / instance socket acceptor; depending upon the transport, this will be NioDatagramAcceptor for UDP or NioSocketAcceptor for TCP.
+     */
+    protected IoAcceptor acceptor;
 
     // constants for the session map or anything else
     public enum Ice {
-        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY, CANDIDATE, TCP_BUFFER;
+        TRANSPORT, CONNECTION, STUN_STACK, DECODER, ENCODER, DECODER_STATE_KEY, CANDIDATE, TCP_BUFFER, UUID;
     }
 
     static {
@@ -93,13 +104,14 @@ public abstract class IceTransport {
      * Returns a static instance of this transport.
      * 
      * @param type the transport type requested, either UDP or TCP
+     * @param id transport / acceptor identifier
      * @return IceTransport
      */
-    public static IceTransport getInstance(Transport type) {
+    public static IceTransport getInstance(Transport type, String id) {
         if (type == Transport.TCP) {
-            return IceTcpTransport.getInstance();
+            return IceTcpTransport.getInstance(id);
         }
-        return IceUdpTransport.getInstance();
+        return IceUdpTransport.getInstance(id);
     }
 
     /**
@@ -142,22 +154,18 @@ public abstract class IceTransport {
         if (acceptor != null) {
             try {
                 int port = ((InetSocketAddress) addr).getPort();
-                ExpiredPort exp = new ExpiredPort(port);
-                // check that its not already added 
-                if (removedPortsQueue.contains(exp)) {
-                    logger.debug("Port already requested for removal: {}", port);
-                } else {
-                    // add to the delay queue
-                    removedPortsQueue.offer(exp);
+                if (isBound(port)) {
                     // unbind
                     Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
 
                         @Override
                         public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
-                            synchronized (acceptorLock) {
+                            synchronized (acceptor) {
                                 acceptor.unbind(addr);
                             }
+                            // remove the port from the list
+                            boundPorts.remove(port);
                             logger.debug("Binding removed: {}", addr);
                             return Boolean.TRUE;
                         }
@@ -169,7 +177,7 @@ public abstract class IceTransport {
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
                 if (aggressiveAcceptorReset && acceptor != null) {
-                    synchronized (acceptorLock) {
+                    synchronized (acceptor) {
                         logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
                         acceptor.dispose(false);
                         acceptor = null;
@@ -189,29 +197,18 @@ public abstract class IceTransport {
         if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
         }
-        if (reaperThread != null) {
-            reaperThread.interrupt();
-            reaperThread = null;
-        }
-        synchronized (acceptorLock) {
+        for (Entry<String, IceTransport> entry : transports.entrySet()) {
+            logger.debug("Stopping acceptor: {}", entry.getKey());
+            IoAcceptor acceptor = entry.getValue().getAcceptor();
             if (acceptor != null) {
-                logger.debug("Stopped socket transport");
-                acceptor.unbind();
-                acceptor.dispose(true);
-                logger.info("Disposed socket transport");
-                acceptor = null;
+                synchronized (acceptor) {
+                    acceptor.unbind();
+                    acceptor.dispose(true);
+                    logger.info("Disposed acceptor");
+                }
             }
         }
-    }
-
-    /**
-     * Returns true if the specified port was recently removed and its delay has not yet expired.
-     * 
-     * @param port
-     * @return true if recently removed and false otherwise
-     */
-    public static boolean isRemoved(int port) {
-        return removedPortsQueue.contains(port);
+        transports.clear();
     }
 
     /**
@@ -222,108 +219,7 @@ public abstract class IceTransport {
      */
     public static boolean isBound(int port) {
         //logger.info("isBound: {}", port);
-        // ensure there's a reaper for removed ports clearing the delay queue
-        if (reaperStarted.compareAndSet(false, true)) {
-            logger.info("inside atomic bool isBound: {}", port);
-            if (reaperThread != null) {
-                reaperThread.interrupt();
-                reaperThread = null;
-            }
-            if (reaperThread == null) {
-                reaperThread = new Thread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        do {
-                            try {
-                                ExpiredPort expired = removedPortsQueue.take();
-                                if (expired != null) {
-                                    logger.debug("Port expired: {}", expired.port);
-                                }
-                            } catch (Throwable e) {
-                                logger.warn("Interrupted reaper", e);
-                                reaperStarted.compareAndSet(true, false);
-                                break;
-                            }
-                        } while (true);
-                    }
-                }, "Port Reaper");
-                reaperThread.setDaemon(true);
-                reaperThread.start();
-            }
-        }
-        //logger.info("after atomic bool block isBound: {}", port);
-        // check delay queue first for recently unbound ports
-        if (isRemoved(port)) {
-            logger.info("Port: {} was recently removed, it is not yet available", port);
-            return true;
-        }
-        /** the port checks below can cause an app to become unresponsive
-        // UDP first
-        IceTransport udpTransport = getInstance(Transport.UDP);
-        logger.info("udpTransport check: {}", udpTransport);
-        if (udpTransport != null) {
-            Set<SocketAddress> addresses = udpTransport.acceptor.getLocalAddresses();
-            if (addresses != null && !addresses.isEmpty()) {
-                for (SocketAddress addr : addresses) {
-                    if (((InetSocketAddress) addr).getPort() == port) {
-                        // its in-use, skip it!
-                        logger.debug("UDP port: {} is already in-use (acceptor bound)", port);
-                        return true;
-                    }
-                }
-            } else {
-                logger.info("addresses was null");
-            }
-            Map<Long, IoSession> sessions = udpTransport.acceptor.getManagedSessions();
-            if (sessions != null && !sessions.isEmpty()) {
-                for (Entry<Long, IoSession> entry : sessions.entrySet()) {
-                    if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
-                        // its in-use, skip it!
-                        logger.debug("UDP port: {} is already in-use (session bound)", port);
-                        return true;
-                    }
-                }
-            } else {
-                logger.info("sessions was null");
-            }
-        } else {
-            logger.info("udpTransport was null");
-        }
-        // TCP second
-        IceTransport tcpTransport = getInstance(Transport.TCP);
-        logger.info("tcpTransport check: {}", tcpTransport);
-        if (tcpTransport != null) {
-            Set<SocketAddress> addresses = tcpTransport.acceptor.getLocalAddresses();
-            if (addresses != null && !addresses.isEmpty()) {
-                for (SocketAddress addr : addresses) {
-                    if (((InetSocketAddress) addr).getPort() == port) {
-                        // its in-use, skip it!
-                        logger.debug("TCP port: {} is already in-use (acceptor bound)", port);
-                        return true;
-                    }
-                }
-            } else {
-                logger.info("addresses was null");
-            }
-            Map<Long, IoSession> sessions = tcpTransport.acceptor.getManagedSessions();
-            if (sessions != null && !sessions.isEmpty()) {
-                for (Entry<Long, IoSession> entry : sessions.entrySet()) {
-                    if (((InetSocketAddress) entry.getValue().getLocalAddress()).getPort() == port) {
-                        // its in-use, skip it!
-                        logger.debug("TCP port: {} is already in-use (session bound)", port);
-                        return true;
-                    }
-                }
-            } else {
-                logger.info("sessions was null");
-            }
-        } else {
-            logger.info("tcpTransport was null");
-        }
-        */
-        //logger.info("exit isBound: {}", port);
-        return false;
+        return boundPorts.contains(port);
     }
 
     /**
@@ -383,49 +279,13 @@ public abstract class IceTransport {
         return iceHandler;
     }
 
-    private class ExpiredPort implements Delayed {
-
-        final long removed = System.currentTimeMillis();
-
-        final int port;
-
-        ExpiredPort(int port) {
-            this.port = port;
-        }
-
-        @Override
-        public int compareTo(Delayed o) {
-            if (o instanceof ExpiredPort) {
-                return ((ExpiredPort) o).port - port;
-            }
-            return 0;
-        }
-
-        @Override
-        public long getDelay(TimeUnit unit) {
-            // expects nanos
-            return EXPIRE_TIME_NANOS - TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis() - removed);
-        }
-
-        @Override
-        public int hashCode() {
-            return port;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            ExpiredPort other = (ExpiredPort) obj;
-            if (port != other.port)
-                return false;
-            return true;
-        }
-
+    /**
+     * Returns whether or not a shared acceptor is in-use.
+     * 
+     * @return true if shared and false otherwise
+     */
+    public static boolean isSharedAcceptor() {
+        return sharedAcceptor;
     }
 
 }

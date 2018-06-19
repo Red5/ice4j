@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
 
@@ -57,8 +58,10 @@ public class TcpHostCandidate extends HostCandidate {
         StunStack stunStack = getStunStack();
         TransportAddress localAddr = getTransportAddress();
         for (IceSocketWrapper socket : sockets) {
+            // get the transport / acceptor id
+            String id = (String) socket.getSession().getAttribute(IceTransport.Ice.UUID);
             // remove our sockets from the stack
-            stunStack.removeSocket(localAddr, socket.getRemoteTransportAddress());
+            stunStack.removeSocket(id, localAddr, socket.getRemoteTransportAddress());
             socket.close();
         }
         super.free();

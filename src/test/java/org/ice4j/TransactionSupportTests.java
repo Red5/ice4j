@@ -117,8 +117,8 @@ public class TransactionSupportTests extends TestCase {
      * @throws Exception if something does not go as planned.
      */
     protected void tearDown() throws Exception {
-        stunStack.removeSocket(clientAddress);
-        stunStack.removeSocket(serverAddress);
+        stunStack.removeSocket(clientSock.getId(), clientAddress);
+        stunStack.removeSocket(serverSock.getId(), serverAddress);
 
         clientSock.close();
         serverSock.close();

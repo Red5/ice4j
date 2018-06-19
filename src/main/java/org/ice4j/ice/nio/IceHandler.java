@@ -7,8 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.CloseFuture;
-import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
@@ -79,10 +77,6 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionCreated(IoSession session) throws Exception {
         logger.trace("Created (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
-        if (IceTransport.isRemoved(((InetSocketAddress) session.getLocalAddress()).getPort())) {
-            // socket was in most cases recently closed or in-process of being closed / cleaned up, so return and exception
-            throw new IOException("Connection already closed for: " + session.toString());
-        }
     }
 
     /** {@inheritDoc} */
@@ -161,11 +155,9 @@ public class IceHandler extends IoHandlerAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
             //logger.trace("Sent: {}", String.valueOf(message));
-        }
-        if (logger.isDebugEnabled()) {
             byte[] output = ((IoBuffer) message).array();
             if (IceDecoder.isDtls(output)) {
-                logger.debug("Sent - DTLS sequence number: {}", readUint48(output, 5));
+                logger.trace("Sent - DTLS sequence number: {}", readUint48(output, 5));
             }
         }
     }
@@ -178,17 +170,10 @@ public class IceHandler extends IoHandlerAdapter {
         }
         // get the existing reference to an ice socket
         final IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
-        // close the idle session
-        CloseFuture future = session.closeNow();
-        future.addListener(new IoFutureListener<CloseFuture>() {
-            @Override
-            public void operationComplete(CloseFuture future) {
-                logger.info("Idle session: {} closed", session.getId());
-                if (iceSocket != null) {
-                    iceSocket.close();
-                }
-            }
-        });
+        // close the idle socket
+        if (iceSocket != null) {
+            iceSocket.close();
+        }
     }
 
     /** {@inheritDoc} */
@@ -196,24 +181,25 @@ public class IceHandler extends IoHandlerAdapter {
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
         // determine transport type
-        Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
+        Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
-        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-        // remove binding
-        IceTransport.getInstance(transport).removeBinding(addr);
+        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
         // clean-up
         IceSocketWrapper iceSocket = null;
         if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
             iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
         }
         if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
+            // get the transport / acceptor id
+            String id = (String) session.getAttribute(IceTransport.Ice.UUID);
+            // get the stun stack
             StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
             if (iceSocket != null) {
-                stunStack.removeSocket(addr, iceSocket.getRemoteTransportAddress());
+                stunStack.removeSocket(id, addr, iceSocket.getRemoteTransportAddress());
             } else {
                 inetAddr = (InetSocketAddress) session.getRemoteAddress();
-                TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-                stunStack.removeSocket(addr, remoteAddr);
+                TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
+                stunStack.removeSocket(id, addr, remoteAddr);
             }
         }
         // remove any map entries
@@ -236,6 +222,19 @@ public class IceHandler extends IoHandlerAdapter {
                 }
             }
         }
+        // get the transport / acceptor identifier
+        String id = (String) session.getAttribute(IceTransport.Ice.UUID);
+        // get transport by type
+        IceTransport transport = IceTransport.getInstance(transportType, id);
+        if (IceTransport.isSharedAcceptor()) {
+            // shared, so don't kill it, just remove binding
+            transport.removeBinding(addr);
+        } else {
+            // remove binding
+            transport.removeBinding(addr);
+            // not-shared, kill it
+            transport.stop();
+        }
         super.sessionClosed(session);
     }
 
@@ -244,17 +243,31 @@ public class IceHandler extends IoHandlerAdapter {
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
         logger.warn("Exception on session: {}", session.getId(), cause);
         // determine transport type
-        Transport transport = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
+        Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
-        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
         logger.info("Exception on {}", addr);
-        // if its already been removed, skip removing it again
-        if (!IceTransport.isRemoved(inetAddr.getPort())) {
+        // get the transport / acceptor identifier
+        String id = (String) session.getAttribute(IceTransport.Ice.UUID);
+        // get transport by type
+        IceTransport transport = IceTransport.getInstance(transportType, id);
+        if (IceTransport.isSharedAcceptor()) {
+            // shared, so don't kill it, just remove binding
+            transport.removeBinding(addr);
+        } else {
             // remove binding
-            IceTransport.getInstance(transport).removeBinding(addr);
-            // remove any map entries
-            stunStacks.remove(addr);
-            iceSockets.remove(addr);
+            transport.removeBinding(addr);
+            // not-shared, kill it
+            transport.stop();
+        }
+        // remove any map entries
+        stunStacks.remove(addr);
+        IceSocketWrapper iceSocket = iceSockets.remove(addr);
+        if (iceSocket == null && session.containsAttribute(IceTransport.Ice.CONNECTION)) {
+            iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+        }
+        if (iceSocket != null) {
+            iceSocket.close();
         }
     }
 

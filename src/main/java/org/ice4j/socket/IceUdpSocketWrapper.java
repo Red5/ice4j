@@ -111,7 +111,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     } catch (Throwable t) {
                         logger.warn("Exception creating new session using connector for {}, an attempt on the acceptor will be made if it exists", transportAddress, t);
                         // look for an existing acceptor
-                        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) IceUdpTransport.getInstance().getAcceptor();
+                        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) IceUdpTransport.getInstance(getId()).getAcceptor();
                         if (acceptor != null) {
                             try {
                                 // attempt to create a server session, if it fails the local address isn't bound

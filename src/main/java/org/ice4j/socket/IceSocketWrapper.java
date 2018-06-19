@@ -17,6 +17,7 @@ import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
+import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -36,6 +37,8 @@ public abstract class IceSocketWrapper {
 
     public final static IoSession NULL_SESSION = null;
 
+    public final static String DISCONNECTED = "disconnected";
+
     /**
      * Used to control fair write / send order.
      */
@@ -50,6 +53,7 @@ public abstract class IceSocketWrapper {
 
     protected TransportAddress remoteTransportAddress;
 
+    // whether or not we've been closed
     public boolean closed;
 
     /**
@@ -79,8 +83,6 @@ public abstract class IceSocketWrapper {
                 // count down since we have a session
                 connectLatch.countDown();
             } else {
-                //IoSession sess = future.getSession();
-                //logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
                 logger.warn("Connect failed from: {} to: {}", transportAddress, remoteTransportAddress);
             }
         }
@@ -150,7 +152,7 @@ public abstract class IceSocketWrapper {
     }
 
     /**
-     * Closes the channel.
+     * Closes the connected session as well as the acceptor, if its non-shared.
      */
     public void close() {
         //logger.debug("Close: {}", this);
@@ -172,6 +174,16 @@ public abstract class IceSocketWrapper {
                 }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
+            } finally {
+                // if a non-shared acceptor is used, dispose of it here
+                if (!IceTransport.isSharedAcceptor()) {
+                    IoAcceptor acceptor = (IoAcceptor) sess.getService();
+                    if (acceptor != null) {
+                        acceptor.unbind();
+                        acceptor.dispose();
+                        logger.info("Acceptor freed");
+                    }
+                }
             }
         } else {
             //logger.debug("Session null, closed: {}", closed);
@@ -180,6 +192,20 @@ public abstract class IceSocketWrapper {
         // clear out raw messages lingering around at close
         rawMessageQueue.clear();
         //logger.debug("Exit close: {} closed: {}", this, closed);
+    }
+
+    /**
+     * Returns the unique identifier for the associated acceptor.
+     * 
+     * @return UUID string for this instance or "disconnected" if not set on the session or not connected
+     */
+    public String getId() {
+        String id = DISCONNECTED;
+        IoSession sess = session.get();
+        if (sess != null && sess.containsAttribute(IceTransport.Ice.UUID)) {
+            id = (String) sess.getAttribute(IceTransport.Ice.UUID);
+        }
+        return id;
     }
 
     /**

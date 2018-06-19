@@ -122,9 +122,9 @@ public class MessageEventDispatchingTest extends TestCase {
      */
     @After
     protected void tearDown() throws Exception {
-        stunStack.removeSocket(clientAddress);
-        stunStack.removeSocket(serverAddress);
-        stunStack.removeSocket(serverAddress2);
+        stunStack.removeSocket(clientSock.getId(), clientAddress);
+        stunStack.removeSocket(serverSock.getId(), serverAddress);
+        stunStack.removeSocket(serverSock2.getId(), serverAddress2);
         clientSock.close();
         serverSock.close();
         serverSock2.close();

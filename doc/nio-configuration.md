@@ -19,11 +19,8 @@ Timeout in seconds to wait for a bind or unbind operation to complete, the `ACCE
 ## Aggressive Acceptor reset
 To prevent a possible deadlock caused by a failed bind or unbind event making the acceptor unresponsive, the `ACCEPTOR_RESET` option allows the acceptor to be reset on-the-fly.
 
-## I/O thread priority
-Setting the I/O thread priority is handled via the `IO_THREAD_PRIORITY` property. The default priority is 6 and the maximum available in Java is 10.
-
-## NIO selector sleep milliseconds
-Providing adequate time between NIO selector checks is handled via the `NIO_SELECTOR_SLEEP_MS` property. The default sleep time between checks is 10 milliseconds.
+## I/O thread count
+Setting the I/O thread count is handled via the `NIO_WORKERS` property. The default priority is 16 and should not exceed the CPU core count; lastly, this is only used for TCP.
 
 ## Blocking or Non-blocking I/O
 Setting the `IO_BLOCKING` to `true` will configure the internal services to use blocking I/O with TCP, instead of the default non-blocking implementation. This does not affect UDP connections.
