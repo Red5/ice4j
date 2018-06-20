@@ -32,6 +32,7 @@ public class IceUdpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceUdpTransport() {
+        logger.debug("id: {} shared: {}", id, sharedAcceptor);
         createAcceptor();
     }
 

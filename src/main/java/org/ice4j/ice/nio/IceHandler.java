@@ -226,14 +226,18 @@ public class IceHandler extends IoHandlerAdapter {
         String id = (String) session.getAttribute(IceTransport.Ice.UUID);
         // get transport by type
         IceTransport transport = IceTransport.getInstance(transportType, id);
-        if (IceTransport.isSharedAcceptor()) {
-            // shared, so don't kill it, just remove binding
-            transport.removeBinding(addr);
+        if (transport != null) {
+            if (IceTransport.isSharedAcceptor()) {
+                // shared, so don't kill it, just remove binding
+                transport.removeBinding(addr);
+            } else {
+                // remove binding
+                transport.removeBinding(addr);
+                // not-shared, kill it
+                transport.stop();
+            }
         } else {
-            // remove binding
-            transport.removeBinding(addr);
-            // not-shared, kill it
-            transport.stop();
+            logger.debug("Transport for id: {} was not found", id);
         }
         super.sessionClosed(session);
     }

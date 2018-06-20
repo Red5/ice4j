@@ -4,14 +4,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
@@ -45,20 +44,16 @@ public abstract class IceTransport {
     protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
 
     // whether or not to use a shared acceptor
-    protected static boolean sharedAcceptor = StackProperties.getBoolean("NIO_SHARED_MODE", false);
+    protected static boolean sharedAcceptor = StackProperties.getBoolean("NIO_SHARED_MODE", true);
 
     // whether or not to handle a hung acceptor aggressively
-    protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", true);
+    protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", false);
 
     // thread-safe map containing ice transport instances
     protected static Map<String, IceTransport> transports = new CopyOnWriteMap<>(1);
 
     // holder of bound ports; used to prevent blocking issues querying acceptors
     protected static CopyOnWriteArraySet<Integer> boundPorts = new CopyOnWriteArraySet<>();
-
-    protected static AtomicBoolean reaperStarted = new AtomicBoolean(false);
-
-    protected static ExecutorService executor = Executors.newCachedThreadPool();
 
     /**
      * Unique identifier.
@@ -71,12 +66,12 @@ public abstract class IceTransport {
 
     protected int ioThreads = StackProperties.getInt("NIO_WORKERS", 16);
 
-    protected AtomicBoolean acceptorStarted = new AtomicBoolean(false);
-
     /**
      * Local / instance socket acceptor; depending upon the transport, this will be NioDatagramAcceptor for UDP or NioSocketAcceptor for TCP.
      */
     protected IoAcceptor acceptor;
+
+    protected ExecutorService executor = Executors.newCachedThreadPool();
 
     // constants for the session map or anything else
     public enum Ice {
@@ -108,6 +103,7 @@ public abstract class IceTransport {
      * @return IceTransport
      */
     public static IceTransport getInstance(Transport type, String id) {
+        logger.trace("getInstance - type: {} id: {}", type, id);
         if (type == Transport.TCP) {
             return IceTcpTransport.getInstance(id);
         }
@@ -161,11 +157,12 @@ public abstract class IceTransport {
                         @Override
                         public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
+                            // remove the port from the list
+                            boundPorts.remove(port);
+                            // perform the unbinding
                             synchronized (acceptor) {
                                 acceptor.unbind(addr);
                             }
-                            // remove the port from the list
-                            boundPorts.remove(port);
                             logger.debug("Binding removed: {}", addr);
                             return Boolean.TRUE;
                         }
@@ -174,6 +171,8 @@ public abstract class IceTransport {
                     // wait a maximum of x seconds for this to complete the binding
                     return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
                 }
+            } catch (TimeoutException tex) {
+                logger.warn("Binding removal timed-out on {}", addr, tex);
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
                 if (aggressiveAcceptorReset && acceptor != null) {
@@ -197,18 +196,18 @@ public abstract class IceTransport {
         if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
         }
-        for (Entry<String, IceTransport> entry : transports.entrySet()) {
-            logger.debug("Stopping acceptor: {}", entry.getKey());
-            IoAcceptor acceptor = entry.getValue().getAcceptor();
-            if (acceptor != null) {
-                synchronized (acceptor) {
-                    acceptor.unbind();
-                    acceptor.dispose(true);
-                    logger.info("Disposed acceptor");
-                }
+        if (acceptor != null) {
+            synchronized (acceptor) {
+                acceptor.unbind();
+                acceptor.dispose(true);
+                logger.info("Disposed acceptor: {}", id);
             }
         }
-        transports.clear();
+        /*
+         * for (Entry<String, IceTransport> entry : transports.entrySet()) { logger.debug("Stopping acceptor: {}", entry.getKey()); IoAcceptor acceptor =
+         * entry.getValue().getAcceptor(); if (acceptor != null) { synchronized (acceptor) { acceptor.unbind(); acceptor.dispose(true); logger.info("Disposed acceptor"); } } }
+         * transports.clear();
+         */
     }
 
     /**

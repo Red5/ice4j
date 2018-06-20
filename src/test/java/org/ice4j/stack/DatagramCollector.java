@@ -4,6 +4,7 @@ package org.ice4j.stack;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketAddress;
+import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.mina.core.buffer.IoBuffer;
@@ -23,12 +24,15 @@ import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DatagramCollector {
 
     private static final Logger logger = LoggerFactory.getLogger(DatagramCollector.class);
+
+    private final String id = UUID.randomUUID().toString();
 
     Boolean lock = Boolean.TRUE;
 
@@ -55,6 +59,7 @@ public class DatagramCollector {
         public void sessionCreated(IoSession session) throws Exception {
             logger.debug("sessionCreated: {}", session);
             logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+            session.setAttribute(IceTransport.Ice.UUID, id);
             setSession(session);
         }
 

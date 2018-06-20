@@ -1,8 +1,8 @@
 # NIO Configuration
 The following ice4j adjustments are available in the NIO version via environmental / system properties.
 
-## Shared NIO server or per-instance
-To utilize a single instance of `NioServer` for each `StunStack`, the `NIO_SHARED_MODE` property must be configured as `false`, to spawn a single static `NioServer` for all `StunStack` instances, use the default value of `true`.
+## Shared NIO acceptor or per-instance acceptor
+To utilize an instance of `IoAcceptor` for each `StunStack`, the `NIO_SHARED_MODE` property must be configured as `false`, to spawn a single static `IoAcceptor` for all `StunStack` instances, use the default value of `true`.
 
 ## Send buffer
 Configuration of the send buffer is handled via the `SO_SNDBUF` property. The default is 1500 and any target amount should take MTU size ~1500 into account.

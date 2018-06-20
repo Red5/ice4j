@@ -17,7 +17,6 @@ import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
-import org.apache.mina.core.service.IoAcceptor;
 import org.apache.mina.core.session.IoSession;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -174,16 +173,6 @@ public abstract class IceSocketWrapper {
                 }
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
-            } finally {
-                // if a non-shared acceptor is used, dispose of it here
-                if (!IceTransport.isSharedAcceptor()) {
-                    IoAcceptor acceptor = (IoAcceptor) sess.getService();
-                    if (acceptor != null) {
-                        acceptor.unbind();
-                        acceptor.dispose();
-                        logger.info("Acceptor freed");
-                    }
-                }
             }
         } else {
             //logger.debug("Session null, closed: {}", closed);
@@ -242,7 +231,7 @@ public abstract class IceSocketWrapper {
      */
     public void setSession(IoSession newSession) {
         logger.trace("setSession - new: {} old: {}", newSession, session.get());
-        if (session.compareAndSet(NULL_SESSION, newSession) && newSession != null) {
+        if (newSession != null && session.compareAndSet(NULL_SESSION, newSession)) {
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
         } else {
             session.set(newSession);
