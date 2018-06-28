@@ -7,7 +7,6 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -15,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
 
@@ -702,6 +702,14 @@ public class StunStack implements MessageEventHandler {
     public void shutDown() {
         // remove all listeners
         eventDispatcher.removeAllListeners();
+        // clientTransactions
+        for (StunClientTransaction tran : clientTransactions.values()) {
+            tran.cancel();
+        }
+        // serverTransactions
+        for (StunServerTransaction tran : serverTransactions.values()) {
+            tran.expire();
+        }
         // cancel the expire job if one exists
         if (serverTransactionExpireFuture != null) {
             serverTransactionExpireFuture.cancel(true);
@@ -710,20 +718,14 @@ public class StunStack implements MessageEventHandler {
         if (executor != null) {
             try {
                 executor.shutdown();
-                executor = null;
             } catch (Exception e) {
                 logger.warn("Exception during shutdown", e);
+            } finally {
+                executor = null;
             }
         }
-        // clientTransactions
-        for (StunClientTransaction tran : clientTransactions.values()) {
-            tran.cancel();
-        }
+        // clear the collections
         clientTransactions.clear();
-        // serverTransactions
-        for (StunServerTransaction tran : serverTransactions.values()) {
-            tran.expire();
-        }
         serverTransactions.clear();
         netAccessManager.stop();
     }
@@ -910,56 +912,52 @@ public class StunStack implements MessageEventHandler {
      * Initializes and starts {@link #serverTransactionExpireThread} if necessary.
      */
     private void maybeStartServerTransactionExpireThread() {
-        if (!serverTransactions.isEmpty() && serverTransactionExpireFuture == null) {
+        if (executor != null && !serverTransactions.isEmpty() && serverTransactionExpireFuture == null) {
             serverTransactionExpireFuture = submit(new Runnable() {
+
+                // Expires the StunServerTransactions of this StunStack and removes them from {@link #serverTransactions}.
                 @Override
                 public void run() {
                     Thread.currentThread().setName("StunStack.serverTransactionExpireThread");
-                    runInServerTransactionExpireThread();
-                }
-            });
-        }
-    }
-
-    /**
-     * Runs in {@link #serverTransactionExpireThread} and expires the StunServerTransactions of this StunStack and removes
-     * them from {@link #serverTransactions}.
-     */
-    private void runInServerTransactionExpireThread() {
-        try {
-            long idleStartTime = -1;
-            do {
-                try {
-                    Thread.sleep(StunServerTransaction.LIFETIME);
-                } catch (InterruptedException ie) {
-                }
-                long now = System.currentTimeMillis();
-                // Has the current Thread been idle long enough to merit disposing of it?
-                if (serverTransactions.isEmpty()) {
-                    if (idleStartTime == -1) {
-                        idleStartTime = now;
-                    } else if (now - idleStartTime > 60 * 1000) {
-                        break;
-                    }
-                } else {
-                    // Expire the StunServerTransactions of this StunStack.
-                    idleStartTime = -1;
-                    for (Iterator<StunServerTransaction> i = serverTransactions.values().iterator(); i.hasNext();) {
-                        StunServerTransaction serverTransaction = i.next();
-                        if (serverTransaction == null) {
-                            i.remove();
-                        } else if (serverTransaction.isExpired(now)) {
-                            i.remove();
-                            serverTransaction.expire();
+                    try {
+                        long idleStartTime = -1;
+                        do {
+                            try {
+                                Thread.sleep(StunServerTransaction.LIFETIME);
+                            } catch (InterruptedException ie) {
+                            }
+                            long now = System.currentTimeMillis();
+                            // Has the current Thread been idle long enough to merit disposing of it?
+                            if (serverTransactions.isEmpty()) {
+                                if (idleStartTime == -1) {
+                                    idleStartTime = now;
+                                } else if (now - idleStartTime > 60 * 1000) {
+                                    break;
+                                }
+                            } else {
+                                // Expire the StunServerTransactions of this StunStack.
+                                idleStartTime = -1;
+                                serverTransactions.values().forEach(serverTransaction -> {
+                                    if (serverTransaction == null || serverTransaction.isExpired()) {
+                                        serverTransactions.remove(serverTransaction.getTransactionID());
+                                    }
+                                });
+                            }
+                        } while (executor != null); // if the executor goes null, the stack has been shutdown
+                    } finally {
+                        // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
+                        serverTransactionExpireFuture.cancel(true);
+                        try {
+                            serverTransactionExpireFuture.get(1L, TimeUnit.SECONDS);
+                        } catch (Exception e) {
+                            // wait for the future to finish its work
+                        } finally {
+                            serverTransactionExpireFuture = null;
+                            maybeStartServerTransactionExpireThread();
                         }
                     }
                 }
-            } while (true);
-        } finally {
-            // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
-            serverTransactionExpireFuture.cancel(true);
-            serverTransactionExpireFuture = null;
-            maybeStartServerTransactionExpireThread();
+            });
         }
     }
 

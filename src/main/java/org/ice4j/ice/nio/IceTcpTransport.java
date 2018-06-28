@@ -32,8 +32,8 @@ public class IceTcpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceTcpTransport() {
-        logger.debug("id: {} shared: {}", id, sharedAcceptor);
-        createAcceptor();
+        logger.info("id: {} shared: {}", id, sharedAcceptor);
+        //createAcceptor();
     }
 
     /**
@@ -72,67 +72,69 @@ public class IceTcpTransport extends IceTransport {
     }
 
     void createAcceptor() {
-        // create the nio acceptor
-        acceptor = new NioSocketAcceptor(ioThreads);
-        acceptor.addListener(new IoServiceListener() {
+        if (acceptor == null) {
+            // create the nio acceptor
+            acceptor = new NioSocketAcceptor(ioThreads);
+            acceptor.addListener(new IoServiceListener() {
 
-            @Override
-            public void serviceActivated(IoService service) throws Exception {
-                //logger.debug("serviceActivated: {}", service);
-            }
+                @Override
+                public void serviceActivated(IoService service) throws Exception {
+                    //logger.debug("serviceActivated: {}", service);
+                }
 
-            @Override
-            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
-                //logger.debug("serviceIdle: {} status: {}", service, idleStatus);
-            }
+                @Override
+                public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                    //logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+                }
 
-            @Override
-            public void serviceDeactivated(IoService service) throws Exception {
-                //logger.debug("serviceDeactivated: {}", service);
-            }
+                @Override
+                public void serviceDeactivated(IoService service) throws Exception {
+                    //logger.debug("serviceDeactivated: {}", service);
+                }
 
-            @Override
-            public void sessionCreated(IoSession session) throws Exception {
-                //logger.debug("sessionCreated: {}", session);
-                //logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
-                session.setAttribute(IceTransport.Ice.UUID, id);
-            }
+                @Override
+                public void sessionCreated(IoSession session) throws Exception {
+                    //logger.debug("sessionCreated: {}", session);
+                    //logger.trace("Acceptor sessions: {}", acceptor.getManagedSessions());
+                    session.setAttribute(IceTransport.Ice.UUID, id);
+                }
 
-            @Override
-            public void sessionClosed(IoSession session) throws Exception {
-                //logger.debug("sessionClosed: {}", session);
-            }
+                @Override
+                public void sessionClosed(IoSession session) throws Exception {
+                    //logger.debug("sessionClosed: {}", session);
+                }
 
-            @Override
-            public void sessionDestroyed(IoSession session) throws Exception {
-                //logger.debug("sessionDestroyed: {}", session);
+                @Override
+                public void sessionDestroyed(IoSession session) throws Exception {
+                    //logger.debug("sessionDestroyed: {}", session);
+                }
+            });
+            // configure the acceptor
+            SocketSessionConfig sessionConf = ((NioSocketAcceptor) acceptor).getSessionConfig();
+            sessionConf.setReuseAddress(true);
+            sessionConf.setTcpNoDelay(true);
+            sessionConf.setSendBufferSize(sendBufferSize);
+            sessionConf.setReadBufferSize(receiveBufferSize);
+            // set an idle time of 30s
+            sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
+            // QoS
+            //sessionConf.setTrafficClass(trafficClass);
+            // close sessions when the acceptor is stopped
+            acceptor.setCloseOnDeactivation(true);
+            // requested maximum length of the queue of incoming connections
+            ((NioSocketAcceptor) acceptor).setBacklog(64);
+            ((NioSocketAcceptor) acceptor).setReuseAddress(true);
+            // get the filter chain and add our codec factory
+            acceptor.getFilterChain().addLast("protocol", iceCodecFilter);
+            // add our handler
+            acceptor.setHandler(iceHandler);
+            logger.info("Started socket transport");
+            if (logger.isTraceEnabled()) {
+                logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
             }
-        });
-        // configure the acceptor
-        SocketSessionConfig sessionConf = ((NioSocketAcceptor) acceptor).getSessionConfig();
-        sessionConf.setReuseAddress(true);
-        sessionConf.setTcpNoDelay(true);
-        sessionConf.setSendBufferSize(sendBufferSize);
-        sessionConf.setReadBufferSize(receiveBufferSize);
-        // set an idle time of 30s
-        sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
-        // QoS
-        //sessionConf.setTrafficClass(trafficClass);
-        // close sessions when the acceptor is stopped
-        acceptor.setCloseOnDeactivation(true);
-        // requested maximum length of the queue of incoming connections
-        ((NioSocketAcceptor) acceptor).setBacklog(64);
-        ((NioSocketAcceptor) acceptor).setReuseAddress(true);
-        // get the filter chain and add our codec factory
-        acceptor.getFilterChain().addLast("protocol", iceCodecFilter);
-        // add our handler
-        acceptor.setHandler(iceHandler);
-        logger.info("Started socket transport");
-        if (logger.isTraceEnabled()) {
-            logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
+            // add ourself to the transports map
+            transports.put(id, this);
         }
-        // add ourself to the transports map
-        transports.put(id, this);
     }
 
     /**

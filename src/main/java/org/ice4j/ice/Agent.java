@@ -517,6 +517,15 @@ public class Agent {
     }
 
     /**
+     * Returns true if this agent has not been freed.
+     * 
+     * @return true if actively running and false otherwise
+     */
+    public boolean isActive() {
+        return !shutdown;
+    }
+
+    /**
      * Indicates whether this {@link Agent} has finished ICE processing.
      *
      * @return true if ICE processing is in the {@link IceProcessingState#FAILED}, {@link IceProcessingState#COMPLETED} or
@@ -1747,4 +1756,5 @@ public class Agent {
             terminate(IceProcessingState.TERMINATED);
         }
     }
+
 }

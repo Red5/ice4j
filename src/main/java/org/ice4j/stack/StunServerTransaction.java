@@ -193,11 +193,10 @@ public class StunServerTransaction {
      * expired at the specified point in time; otherwise, false
      */
     public boolean isExpired(long now) {
-        if (expirationTime.get() < now) {
-            return true;
-        } else {
-            return expired.get();
+        if (expirationTime.get() < now && expired.compareAndSet(false, true)) {
+            // we've expired and expired is set as such
         }
+        return expired.get();
     }
 
     /**

@@ -32,8 +32,8 @@ public class IceUdpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceUdpTransport() {
-        logger.debug("id: {} shared: {}", id, sharedAcceptor);
-        createAcceptor();
+        logger.info("id: {} shared: {}", id, sharedAcceptor);
+        //createAcceptor();
     }
 
     /**
@@ -72,66 +72,68 @@ public class IceUdpTransport extends IceTransport {
     }
 
     void createAcceptor() {
-        // create the nio acceptor
-        acceptor = new NioDatagramAcceptor();
-        acceptor.addListener(new IoServiceListener() {
+        if (acceptor == null) {
+            // create the nio acceptor
+            acceptor = new NioDatagramAcceptor();
+            acceptor.addListener(new IoServiceListener() {
 
-            @Override
-            public void serviceActivated(IoService service) throws Exception {
-                //logger.debug("serviceActivated: {}", service);
-            }
+                @Override
+                public void serviceActivated(IoService service) throws Exception {
+                    //logger.debug("serviceActivated: {}", service);
+                }
 
-            @Override
-            public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
-                //logger.debug("serviceIdle: {} status: {}", service, idleStatus);
-            }
+                @Override
+                public void serviceIdle(IoService service, IdleStatus idleStatus) throws Exception {
+                    //logger.debug("serviceIdle: {} status: {}", service, idleStatus);
+                }
 
-            @Override
-            public void serviceDeactivated(IoService service) throws Exception {
-                //logger.debug("serviceDeactivated: {}", service);
-            }
+                @Override
+                public void serviceDeactivated(IoService service) throws Exception {
+                    //logger.debug("serviceDeactivated: {}", service);
+                }
 
-            @Override
-            public void sessionCreated(IoSession session) throws Exception {
-                //logger.debug("sessionCreated: {}", session);
-                //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
-                session.setAttribute(IceTransport.Ice.UUID, id);
-            }
+                @Override
+                public void sessionCreated(IoSession session) throws Exception {
+                    //logger.debug("sessionCreated: {}", session);
+                    //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+                    session.setAttribute(IceTransport.Ice.UUID, id);
+                }
 
-            @Override
-            public void sessionClosed(IoSession session) throws Exception {
-                //logger.debug("sessionClosed: {}", session);
-            }
+                @Override
+                public void sessionClosed(IoSession session) throws Exception {
+                    //logger.debug("sessionClosed: {}", session);
+                }
 
-            @Override
-            public void sessionDestroyed(IoSession session) throws Exception {
-                //logger.debug("sessionDestroyed: {}", session);
+                @Override
+                public void sessionDestroyed(IoSession session) throws Exception {
+                    //logger.debug("sessionDestroyed: {}", session);
+                }
+            });
+            // configure the acceptor
+            DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
+            sessionConf.setReuseAddress(true);
+            sessionConf.setSendBufferSize(sendBufferSize);
+            sessionConf.setReadBufferSize(receiveBufferSize);
+            sessionConf.setCloseOnPortUnreachable(true);
+            // set an idle time of 30s
+            sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
+            // QoS
+            //sessionConf.setTrafficClass(trafficClass);
+            // in server apps this can cause a memory leak so its off
+            sessionConf.setUseReadOperation(false);
+            // close sessions when the acceptor is stopped
+            acceptor.setCloseOnDeactivation(true);
+            // get the filter chain and add our codec factory
+            acceptor.getFilterChain().addLast("protocol", iceCodecFilter);
+            // add our handler
+            acceptor.setHandler(iceHandler);
+            logger.info("Started socket transport");
+            if (logger.isTraceEnabled()) {
+                logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
             }
-        });
-        // configure the acceptor
-        DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
-        sessionConf.setReuseAddress(true);
-        sessionConf.setSendBufferSize(sendBufferSize);
-        sessionConf.setReadBufferSize(receiveBufferSize);
-        sessionConf.setCloseOnPortUnreachable(true);
-        // set an idle time of 30s
-        sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
-        // QoS
-        //sessionConf.setTrafficClass(trafficClass);
-        // in server apps this can cause a memory leak so its off
-        sessionConf.setUseReadOperation(false);
-        // close sessions when the acceptor is stopped
-        acceptor.setCloseOnDeactivation(true);
-        // get the filter chain and add our codec factory
-        acceptor.getFilterChain().addLast("protocol", iceCodecFilter);
-        // add our handler
-        acceptor.setHandler(iceHandler);
-        logger.info("Started socket transport");
-        if (logger.isTraceEnabled()) {
-            logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
+            // add ourself to the transports map
+            transports.put(id, this);
         }
-        // add ourself to the transports map
-        transports.put(id, this);
     }
 
     /**

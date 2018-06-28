@@ -138,6 +138,13 @@ public abstract class IceSocketWrapper {
     public abstract void receive(DatagramPacket p) throws IOException;
 
     /**
+     * Reads one message from the head of the queue or null if the queue is empty.
+     * 
+     * @return RawMessage
+     */
+    public abstract RawMessage read();
+
+    /**
      * Returns true if closed or unbound and false otherwise.
      * 
      * @return true = not open, false = not closed

@@ -172,6 +172,12 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
 
     /** {@inheritDoc} */
     @Override
+    public RawMessage read() {
+        return rawMessageQueue.poll();
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public InetAddress getLocalAddress() {
         return transportAddress.getAddress();
     }

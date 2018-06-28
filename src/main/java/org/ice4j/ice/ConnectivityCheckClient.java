@@ -548,7 +548,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             Thread.currentThread().setName("ICE PaceMaker: " + parentAgent.getLocalUfrag());
             try {
                 // loop until interrupted or finished
-                while (true) {
+                do {
                     long waitFor = getNextWaitInterval();
                     if (waitFor > 0) {
                         //logger.trace(">>>> Going to sleep for {}", waitFor);
@@ -583,7 +583,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                         //logger.trace("will skip a check beat");
                         checkList.fireEndOfOrdinaryChecks();
                     }
-                }
+                } while (parentAgent.isActive()); // exit when the agent is no longer active
             } catch (InterruptedException e) {
                 // message isn't all that important generally
                 if (logger.isDebugEnabled()) {
