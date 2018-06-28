@@ -43,9 +43,9 @@ public class IceUdpTransport extends IceTransport {
      * @return IceTransport
      */
     public static IceUdpTransport getInstance(String id) {
-        IceUdpTransport instance = null;
+        IceUdpTransport instance = (IceUdpTransport) transports.get(id);
         // an id of "disconnected" is a special case where the socket is not associated with an IoSession
-        if (IceSocketWrapper.DISCONNECTED.equals(id)) {
+        if (instance == null || IceSocketWrapper.DISCONNECTED.equals(id)) {
             if (IceTransport.isSharedAcceptor()) {
                 // loop through transport and if none are found for UDP, create a new one
                 for (Entry<String, IceTransport> entry : transports.entrySet()) {
@@ -60,8 +60,6 @@ public class IceUdpTransport extends IceTransport {
             } else {
                 instance = new IceUdpTransport();
             }
-        } else {
-            instance = (IceUdpTransport) transports.get(id);
         }
         // create an acceptor if none exists for the instance
         if (instance != null && instance.getAcceptor() == null) {

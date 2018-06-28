@@ -87,6 +87,7 @@ public abstract class IceTransport {
         } else {
             logger.debug("DNS cache ttl: {}", ttl);
         }
+        logger.info("Using shared acceptors: {}", sharedAcceptor);
     }
 
     /**

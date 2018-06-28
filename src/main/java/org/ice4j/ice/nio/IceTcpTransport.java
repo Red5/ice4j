@@ -43,9 +43,9 @@ public class IceTcpTransport extends IceTransport {
      * @return IceTransport
      */
     public static IceTcpTransport getInstance(String id) {
-        IceTcpTransport instance = null;
+        IceTcpTransport instance = (IceTcpTransport) transports.get(id);
         // an id of "disconnected" is a special case where the socket is not associated with an IoSession
-        if (IceSocketWrapper.DISCONNECTED.equals(id)) {
+        if (instance == null || IceSocketWrapper.DISCONNECTED.equals(id)) {
             if (IceTransport.isSharedAcceptor()) {
                 // loop through transport and if none are found for TCP, create a new one
                 for (Entry<String, IceTransport> entry : transports.entrySet()) {
@@ -60,8 +60,6 @@ public class IceTcpTransport extends IceTransport {
             } else {
                 instance = new IceTcpTransport();
             }
-        } else {
-            instance = (IceTcpTransport) transports.get(id);
         }
         // create an acceptor if none exists for the instance
         if (instance != null && instance.getAcceptor() == null) {
