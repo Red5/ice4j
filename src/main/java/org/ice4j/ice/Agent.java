@@ -1743,7 +1743,7 @@ public class Agent {
          * into the terminated state and frees all non-nominated candidates.
          */
         public void run() {
-            Thread.currentThread().setName("Terminator");
+            Thread.currentThread().setName("Terminator: " + getLocalUfrag());
             long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
             logger.trace("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {

@@ -129,8 +129,8 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                             logger.debug("No existing UDP acceptor available");
                         }
                     }
-                    // wait up-to x seconds for a connection to be established, with a max wait of 7s
-                    if (connectLatch.await(Math.max((IceTransport.getTimeout() / 10), 7), TimeUnit.SECONDS)) {
+                    // wait up-to x milliseconds for a connection to be established
+                    if (connectLatch.await(500L, TimeUnit.MILLISECONDS)) {
                         // attempt to get a newly added session from connect process
                         sess = session.get();
                         if (sess != null) {
