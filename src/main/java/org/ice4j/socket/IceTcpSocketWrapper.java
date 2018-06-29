@@ -91,7 +91,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
                         // QoS
                         //config.setTrafficClass(trafficClass);
-                        // set connection timeout of x seconds
+                        // set connection timeout of x milliseconds
                         connector.setConnectTimeoutMillis(3000L);
                         // add the ice protocol encoder/decoder
                         connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
@@ -121,8 +121,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                             logger.debug("No existing TCP acceptor available");
                         }
                     }
-                    // wait up-to 500 milliseconds for a connection to be established
-                    if (connectLatch.await(500, TimeUnit.MILLISECONDS)) {
+                    // wait up-to x seconds for a connection to be established, with a max wait of 7s
+                    if (connectLatch.await(Math.max((IceTransport.getTimeout() / 10), 7), TimeUnit.SECONDS)) {
                         // attempt to get a newly added session from connect process
                         sess = session.get();
                         if (sess != null) {
