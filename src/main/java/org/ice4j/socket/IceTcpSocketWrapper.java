@@ -70,15 +70,12 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             if (logger.isTraceEnabled()) {
                 logger.trace("send: {} to: {}", buf, destAddress);
             }
-            boolean aquired = false;
+            WriteFuture writeFuture = null;
             try {
                 IoSession sess = session.get();
                 if (sess != null) {
-                    // enforce fairness lock
-                    if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
-                        WriteFuture writeFuture = sess.write(buf);
-                        writeFuture.addListener(writeListener);
-                    }
+                    writeFuture = sess.write(buf);
+                    writeFuture.addListener(writeListener);
                 } else {
                     logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
                     // if we're not bound, attempt to create a client session
@@ -126,11 +123,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         // attempt to get a newly added session from connect process
                         sess = session.get();
                         if (sess != null) {
-                            // enforce fairness lock
-                            if (aquired = lock.tryAcquire(0, TimeUnit.SECONDS)) {
-                                WriteFuture writeFuture = sess.write(buf);
-                                writeFuture.addListener(writeListener);
-                            }
+                            writeFuture = sess.write(buf);
+                            writeFuture.addListener(writeListener);
                         } else {
                             logger.warn("Send failed on session creation");
                         }
@@ -139,8 +133,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             } catch (Throwable t) {
                 logger.warn("Exception acquiring send lock", t);
             } finally {
-                if (aquired) {
-                    lock.release();
+                if (writeFuture != null) {
+                    writeFuture.removeListener(writeListener);
                 }
             }
         }

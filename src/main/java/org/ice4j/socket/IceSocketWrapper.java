@@ -9,7 +9,6 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.mina.core.buffer.IoBuffer;
@@ -37,11 +36,6 @@ public abstract class IceSocketWrapper {
     public final static IoSession NULL_SESSION = null;
 
     public final static String DISCONNECTED = "disconnected";
-
-    /**
-     * Used to control fair write / send order.
-     */
-    protected Semaphore lock = new Semaphore(1, true);
 
     /**
      * Used to control connection flow.
