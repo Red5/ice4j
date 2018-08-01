@@ -1,18 +1,22 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
-import org.ice4j.*;
-import org.ice4j.ice.*;
-import org.ice4j.security.*;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.HostCandidate;
+import org.ice4j.security.LongTermCredential;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Implements a CandidateHarvester which gathers TURN
- * Candidates for a specified {@link Component}.
+ * Implements a CandidateHarvester which gathers TURN Candidates for a specified {@link Component}.
  *
  * @author Emil Ivov
  * @author Lubomir Marinov
  */
 public class TurnCandidateHarvester extends StunCandidateHarvester {
+
+    private static final Logger logger = LoggerFactory.getLogger(TurnCandidateHarvester.class);
 
     /**
      * Data for the SSL message sent by the server.
@@ -27,66 +31,51 @@ public class TurnCandidateHarvester extends StunCandidateHarvester {
             0x62, 0x00, 0x00, 0x03, 0x00, 0x00, 0x06, 0x1f, 0x17, 0x0c, (byte) 0xa6, 0x2f, 0x00, 0x78, (byte) 0xfc, 0x46, 0x55, 0x2e, (byte) 0xb1, (byte) 0x83, 0x39, (byte) 0xf1, (byte) 0xea };
 
     /**
-     * The LongTermCredential to be used with the TURN server with
-     * which this instance works.
+     * The LongTermCredential to be used with the TURN server with which this instance works.
      */
     private final LongTermCredential longTermCredential;
 
     /**
-     * Initializes a new TurnCandidateHarvester instance which is to
-     * work with a specific TURN server.
+     * Initializes a new TurnCandidateHarvester instance which is to work with a specific TURN server.
      *
-     * @param turnServer the TransportAddress of the TURN server the
-     * new instance is to work with
+     * @param turnServer the TransportAddress of the TURN server the new instance is to work with
      */
     public TurnCandidateHarvester(TransportAddress turnServer) {
         this(turnServer, (LongTermCredential) null);
     }
 
     /**
-     * Initializes a new TurnCandidateHarvester instance which is to
-     * work with a specific TURN server using a specific
+     * Initializes a new TurnCandidateHarvester instance which is to work with a specific TURN server using a specific
      * LongTermCredential.
      *
-     * @param turnServer the TransportAddress of the TURN server the
-     * new instance is to work with
-     * @param longTermCredential the LongTermCredential to use with the
-     * specified turnServer or null if the use of the
-     * long-term credential mechanism is not determined at the time of the
-     * initialization of the new TurnCandidateHarvester instance
+     * @param turnServer the TransportAddress of the TURN server the new instance is to work with
+     * @param longTermCredential the LongTermCredential to use with the specified turnServer or null if the use of the
+     * long-term credential mechanism is not determined at the time of the initialization of the new TurnCandidateHarvester instance
      */
     public TurnCandidateHarvester(TransportAddress turnServer, LongTermCredential longTermCredential) {
         super(turnServer);
-
         this.longTermCredential = longTermCredential;
+        logger.debug("ctor - turnServer: {} longTermCredential: {}", turnServer, longTermCredential);
     }
 
     /**
-     * Initializes a new TurnCandidateHarvester instance which is to
-     * work with a specific TURN server using a specific username for the
+     * Initializes a new TurnCandidateHarvester instance which is to work with a specific TURN server using a specific username for the
      * purposes of the STUN short-term credential mechanism.
      *
-     * @param turnServer the TransportAddress of the TURN server the
-     * new instance is to work with
-     * @param shortTermCredentialUsername the username to be used by the new
-     * instance for the purposes of the STUN short-term credential mechanism or
-     * null if the use of the STUN short-term credential mechanism is
-     * not determined at the time of the construction of the new instance
+     * @param turnServer the TransportAddress of the TURN server the new instance is to work with
+     * @param shortTermCredentialUsername the username to be used by the new instance for the purposes of the STUN short-term credential mechanism or
+     * null if the use of the STUN short-term credential mechanism is not determined at the time of the construction of the new instance
      */
     public TurnCandidateHarvester(TransportAddress turnServer, String shortTermCredentialUsername) {
         super(turnServer, shortTermCredentialUsername);
-
         this.longTermCredential = null;
     }
 
     /**
-     * Creates a new TurnCandidateHarvest instance which is to perform
-     * TURN harvesting of a specific HostCandidate.
+     * Creates a new TurnCandidateHarvest instance which is to perform TURN harvesting of a specific HostCandidate.
      *
-     * @param hostCandidate the HostCandidate for which harvesting is
-     * to be performed by the new TurnCandidateHarvest instance
-     * @return a new TurnCandidateHarvest instance which is to perform
-     * TURN harvesting of the specified hostCandidate
+     * @param hostCandidate the HostCandidate for which harvesting is to be performed by the new TurnCandidateHarvest instance
+     * @return a new TurnCandidateHarvest instance which is to perform TURN harvesting of the specified hostCandidate
      * @see StunCandidateHarvester#createHarvest(HostCandidate)
      */
     @Override
@@ -95,27 +84,20 @@ public class TurnCandidateHarvester extends StunCandidateHarvester {
     }
 
     /**
-     * Creates a LongTermCredential to be used by a specific
-     * StunCandidateHarvest for the purposes of the long-term
-     * credential mechanism in a specific realm of the TURN server
-     * associated with this TurnCandidateHarvester. The default
-     * implementation returns null and allows extenders to override in
-     * order to support the long-term credential mechanism.
+     * Creates a LongTermCredential to be used by a specific StunCandidateHarvest for the purposes of the long-term
+     * credential mechanism in a specific realm of the TURN server associated with this TurnCandidateHarvester. The default
+     * implementation returns null and allows an extender to override in order to support the long-term credential mechanism.
      *
-     * @param harvest the StunCandidateHarvest which asks for the
-     * LongTermCredential
-     * @param realm the realm of the TURN server associated with this
-     * TurnCandidateHarvester in which harvest will use the
+     * @param harvest the StunCandidateHarvest which asks for the LongTermCredential
+     * @param realm the realm of the TURN server associated with this TurnCandidateHarvester in which harvest will use the
      * returned LongTermCredential
-     * @return a LongTermCredential to be used by harvest for
-     * the purposes of the long-term credential mechanism in the specified
-     * realm of the TURN server associated with this
-     * TurnsCandidateHarvester
-     * @see StunCandidateHarvester#createLongTermCredential(
-     * StunCandidateHarvest,byte[])
+     * @return a LongTermCredential to be used by harvest for the purposes of the long-term credential mechanism in the specified
+     * realm of the TURN server associated with this TurnsCandidateHarvester
+     * @see StunCandidateHarvester#createLongTermCredential(StunCandidateHarvest,byte[])
      */
     @Override
     protected LongTermCredential createLongTermCredential(StunCandidateHarvest harvest, byte[] realm) {
         return longTermCredential;
     }
+
 }

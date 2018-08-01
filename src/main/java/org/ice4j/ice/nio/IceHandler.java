@@ -55,22 +55,27 @@ public class IceHandler extends IoHandlerAdapter {
     /**
      * Returns an IceSocketWrapper for a given address if it exists and null if it doesn't.
      * 
-     * @param localAddress
+     * @param address
      * @return IceSocketWrapper
      */
-    public IceSocketWrapper lookupBinding(TransportAddress localAddress) {
-        logger.trace("lookupBinding on {} for local address: {} existing bindings: {}", this, localAddress, iceSockets);
-        return iceSockets.get(localAddress);
+    public IceSocketWrapper lookupBinding(TransportAddress address) {
+        logger.trace("lookupBinding on {} for address: {} existing bindings: {}", this, address, iceSockets);
+        //        final String addrString = address.toString();
+        //        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().peek(entry -> System.out.printf("Equals - %b %b%n", entry.getKey().equals(address), entry.getKey().toString().equals(address.toString()))).filter(entry -> entry.getKey().toString().equals(addrString)).findFirst();
+        //        if (result.isPresent()) {
+        //            return result.get().getValue();
+        //        }
+        return iceSockets.get(address);
     }
 
     /**
      * Returns an StunStack for a given address if it exists and null if it doesn't.
      * 
-     * @param localAddress
+     * @param address
      * @return StunStack
      */
-    public StunStack lookupStunStack(TransportAddress localAddress) {
-        return stunStacks.get(localAddress);
+    public StunStack lookupStunStack(TransportAddress address) {
+        return stunStacks.get(address);
     }
 
     /** {@inheritDoc} */
@@ -181,7 +186,11 @@ public class IceHandler extends IoHandlerAdapter {
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
         // determine transport type
-        Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.UDP) ? Transport.UDP : Transport.TCP;
+        Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
+        // ensure transport is correct using metadata if its set to TCP
+        if (transportType == Transport.TCP && session.getTransportMetadata().isConnectionless()) {
+            transportType = Transport.UDP;
+        }
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
         // clean-up

@@ -5,8 +5,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 /**
- * This class encapsulates a STUN transaction ID. It is useful for storing
- * transaction IDs in collection objects as it implements the equals method.
+ * This class encapsulates a STUN transaction ID. It is useful for storing transaction IDs in collection objects as it implements the equals method.
  * It also provides a utility for creating unique transaction IDs.
  *
  * @author Emil Ivov
@@ -61,14 +60,12 @@ public class TransactionID {
     }
 
     /**
-     * Creates a transaction id object.The transaction id itself is generated
-     * using the following algorithm:
+     * Creates a transaction id object.The transaction id itself is generated using the following algorithm:
      *
-     * The first 6 bytes of the id are given the value of
-     * System.currentTimeMillis(). Putting the right most bits first
+     * The first 6 bytes of the id are given the value of System.currentTimeMillis(). Putting the right most bits first
      * so that we get a more optimized equals() method.
      *
-     * @return A TransactionID object with a unique transaction id.
+     * @return A TransactionID object with a unique transaction id
      */
     public static TransactionID createNewTransactionID() {
         TransactionID tid = new TransactionID();
@@ -77,14 +74,12 @@ public class TransactionID {
     }
 
     /**
-     * Creates a RFC3489 transaction id object.The transaction id itself is
-     * generated using the following algorithm:
+     * Creates a RFC3489 transaction id object.The transaction id itself is generated using the following algorithm:
      *
-     * The first 8 bytes of the id are given the value of
-     * System.currentTimeMillis(). Putting the right most bits first
+     * The first 8 bytes of the id are given the value of System.currentTimeMillis(). Putting the right most bits first
      * so that we get a more optimized equals() method.
      *
-     * @return A TransactionID object with a unique transaction id.
+     * @return A TransactionID object with a unique transaction id
      */
     public static TransactionID createNewRFC3489TransactionID() {
         TransactionID tid = new TransactionID(true);
@@ -98,8 +93,7 @@ public class TransactionID {
      * application data.
      *
      * @param stunStack the StunStack in the context of which the request to create a TransactionID is being made
-     * @param transactionID the value of the ID.
-     *
+     * @param transactionID the value of the ID
      * @return a reference to the (possibly already existing) TransactionID corresponding to the value of transactionID
      */
     public static TransactionID createTransactionID(StunStack stunStack, byte[] transactionID) {
@@ -131,8 +125,7 @@ public class TransactionID {
     }
 
     /**
-     * Returns the transaction id byte array (length 12 or 16 if RFC3489
-     * compatible).
+     * Returns the transaction id byte array (length 12 or 16 if RFC3489 compatible).
      *
      * @return the transaction ID byte array.
      */
@@ -151,8 +144,9 @@ public class TransactionID {
 
     /**
      * Compares two TransactionID objects.
-     * @param obj the object to compare with.
-     * @return true if the objects are equal and false otherwise.
+     * 
+     * @param obj the object to compare with
+     * @return true if the objects are equal and false otherwise
      */
     public boolean equals(Object obj) {
         if (this == obj)
@@ -165,8 +159,9 @@ public class TransactionID {
 
     /**
      * Compares the specified byte array with this transaction id.
-     * @param targetID the id to compare with ours.
-     * @return true if targetID matches this transaction id.
+     * 
+     * @param targetID the id to compare with ours
+     * @return true if targetID matches this transaction id
      */
     public boolean equals(byte[] targetID) {
         return Arrays.equals(transactionID, targetID);
@@ -175,8 +170,8 @@ public class TransactionID {
     /**
      * Returns the first four bytes of the transactionID to ensure proper
      * retrieval from hashtables.
-     * @return the hashcode of this object - as advised by the Java Platform
-     * Specification
+     * 
+     * @return the hashcode of this object
      */
     public int hashCode() {
         if (hashCode == 0) {
@@ -198,8 +193,7 @@ public class TransactionID {
     /**
      * Returns a string representation of the ID
      *
-     * @param transactionID the transaction ID to convert into String.
-     *
+     * @param transactionID the transaction ID to convert into String
      * @return a hex string representing the id
      */
     public static String toString(byte[] transactionID) {
@@ -213,24 +207,19 @@ public class TransactionID {
     }
 
     /**
-     * Stores applicationData in this ID so that we can refer back to
-     * it if we ever need to at a later stage (e.g. when receiving a response
+     * Stores applicationData in this ID so that we can refer back to it if we ever need to at a later stage (e.g. when receiving a response
      * to a {@link StunClientTransaction}).
      *
-     * @param applicationData a reference to the {@link Object} that the
-     * application would like to correlate to the transaction represented by
-     * this ID.
+     * @param applicationData a reference to the Object that the application would like to correlate to the transaction represented by this ID
      */
     public void setApplicationData(Object applicationData) {
         this.applicationData = applicationData;
     }
 
     /**
-     * Returns whatever applicationData was previously stored in this
-     * ID.
+     * Returns whatever applicationData was previously stored in this ID.
      *
-     * @return a reference to the {@link Object} that the application may have
-     * stored in this ID's application data field.
+     * @return a reference to the {@link Object} that the application may have stored in this ID's application data field.
      */
     public Object getApplicationData() {
         return applicationData;

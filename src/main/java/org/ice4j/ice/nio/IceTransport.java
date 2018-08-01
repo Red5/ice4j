@@ -49,6 +49,9 @@ public abstract class IceTransport {
     // whether or not to handle a hung acceptor aggressively
     protected static boolean aggressiveAcceptorReset = StackProperties.getBoolean("ACCEPTOR_RESET", false);
 
+    // used to set QoS / traffic class option on the sockets
+    public static int trafficClass = StackProperties.getInt("TRAFFIC_CLASS", 0);
+    
     // thread-safe map containing ice transport instances
     protected static Map<String, IceTransport> transports = new CopyOnWriteMap<>(1);
 

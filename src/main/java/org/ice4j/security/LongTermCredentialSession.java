@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.security;
 
@@ -25,14 +14,11 @@ import org.ice4j.*;
 import org.ice4j.message.*;
 
 /**
- * Represents a use of a LongTermCredential and implements
- * CredentialsAuthority for it.
+ * Represents a use of a LongTermCredential and implements CredentialsAuthority for it.
  *
  * @author Lubomir Marinov
  */
-public class LongTermCredentialSession
-    implements CredentialsAuthority
-{
+public class LongTermCredentialSession implements CredentialsAuthority {
 
     /**
      * The LongTermCredential a use of which is represented by this
@@ -62,10 +48,7 @@ public class LongTermCredentialSession
      * @param realm the realm in which the specified
      * LongTermCredential is to be used
      */
-    public LongTermCredentialSession(
-            LongTermCredential longTermCredential,
-            byte[] realm)
-    {
+    public LongTermCredentialSession(LongTermCredential longTermCredential, byte[] realm) {
         this.longTermCredential = longTermCredential;
         this.realm = (realm == null) ? null : realm.clone();
     }
@@ -81,12 +64,8 @@ public class LongTermCredentialSession
      * Attributes to request which support the STUN long-term
      * credential mechanism
      */
-    public void addAttributes(Request request)
-        throws StunException
-    {
-        MessageFactory.addLongTermCredentialAttributes(
-                request,
-                getUsername(), getRealm(), getNonce());
+    public void addAttributes(Request request) throws StunException {
+        MessageFactory.addLongTermCredentialAttributes(request, getUsername(), getRealm(), getNonce());
     }
 
     /**
@@ -97,12 +76,10 @@ public class LongTermCredentialSession
      * CredentialsAuthority; false, otherwise
      * @see CredentialsAuthority#checkLocalUserName(String)
      */
-    public boolean checkLocalUserName(String username)
-    {
+    public boolean checkLocalUserName(String username) {
         /*
-         * The value of USERNAME is a variable-length value. It MUST contain
-         * a UTF-8 [RFC3629] encoded sequence of less than 513 bytes, and
-         * MUST have been processed using SASLprep [RFC4013].
+         * The value of USERNAME is a variable-length value. It MUST contain a UTF-8 [RFC3629] encoded sequence of less than 513 bytes, and MUST have been processed using SASLprep
+         * [RFC4013].
          */
         return usernameEquals(LongTermCredential.getBytes(username));
     }
@@ -121,8 +98,7 @@ public class LongTermCredentialSession
      * name recognized by this CredentialsAuthority
      * @see CredentialsAuthority#getLocalKey(String)
      */
-    public byte[] getLocalKey(String username)
-    {
+    public byte[] getLocalKey(String username) {
         if (!checkLocalUserName(username))
             return null;
 
@@ -141,24 +117,19 @@ public class LongTermCredentialSession
 
         String password = LongTermCredential.toString(getPassword());
 
-        if (password != null)
-        {
+        if (password != null) {
             // TODO SASLprep
             localKeyBuilder.append(password);
         }
 
         MessageDigest md5;
 
-        try
-        {
+        try {
             md5 = MessageDigest.getInstance("MD5");
-        }
-        catch (NoSuchAlgorithmException nsaex)
-        {
+        } catch (NoSuchAlgorithmException nsaex) {
             throw new UndeclaredThrowableException(nsaex);
         }
-        return
-            md5.digest(LongTermCredential.getBytes(localKeyBuilder.toString()));
+        return md5.digest(LongTermCredential.getBytes(localKeyBuilder.toString()));
     }
 
     /**
@@ -168,8 +139,7 @@ public class LongTermCredentialSession
      * @return the value of the NONCE attribute currently associated with the
      * use of the LongTermCredential represented by this instance
      */
-    public byte[] getNonce()
-    {
+    public byte[] getNonce() {
         return (nonce == null) ? null : nonce.clone();
     }
 
@@ -180,8 +150,7 @@ public class LongTermCredentialSession
      * @return the password of the LongTermCredential used by this
      * instance
      */
-    public byte[] getPassword()
-    {
+    public byte[] getPassword() {
         return longTermCredential.getPassword();
     }
 
@@ -192,8 +161,7 @@ public class LongTermCredentialSession
      * @return the realm (i.e. the value of the REALM attribute) in which this
      * instance uses the LongTermCredential associated with it
      */
-    public byte[] getRealm()
-    {
+    public byte[] getRealm() {
         return (realm == null) ? null : realm.clone();
     }
 
@@ -212,8 +180,7 @@ public class LongTermCredentialSession
      * name recognized by this CredentialsAuthority
      * @see CredentialsAuthority#getRemoteKey(String, String)
      */
-    public byte[] getRemoteKey(String username, String media)
-    {
+    public byte[] getRemoteKey(String username, String media) {
         // The password is the same on the local and the remote sides.
         return getLocalKey(username);
     }
@@ -225,8 +192,7 @@ public class LongTermCredentialSession
      * @return the username of the LongTermCredential used by this
      * instance
      */
-    public byte[] getUsername()
-    {
+    public byte[] getUsername() {
         return longTermCredential.getUsername();
     }
 
@@ -240,12 +206,8 @@ public class LongTermCredentialSession
      * realm of this LongTermCredentialSession; otherwise,
      * false
      */
-    public boolean realmEquals(byte[] realm)
-    {
-        return
-            (realm == null)
-                ? (this.realm == null)
-                : Arrays.equals(realm, this.realm);
+    public boolean realmEquals(byte[] realm) {
+        return (realm == null) ? (this.realm == null) : Arrays.equals(realm, this.realm);
     }
 
     /**
@@ -255,8 +217,7 @@ public class LongTermCredentialSession
      * @param nonce the value of the NONCE attribute to be associated with the
      * use of the LongTermCredential represented by this instance
      */
-    public void setNonce(byte[] nonce)
-    {
+    public void setNonce(byte[] nonce) {
         this.nonce = (nonce == null) ? null : nonce.clone();
     }
 
@@ -270,13 +231,9 @@ public class LongTermCredentialSession
      * username of the LongTermCredential used by this instance;
      * otherwise, false
      */
-    public boolean usernameEquals(byte[] username)
-    {
+    public boolean usernameEquals(byte[] username) {
         byte[] thisUsername = getUsername();
 
-        return
-            (username == null)
-                ? (thisUsername == null)
-                : Arrays.equals(username, thisUsername);
+        return (username == null) ? (thisUsername == null) : Arrays.equals(username, thisUsername);
     }
 }

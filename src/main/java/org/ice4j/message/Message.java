@@ -11,10 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class represents a STUN message. Messages are TLV (type-length-value)
- * encoded using big endian (network ordered) binary.  All STUN messages start
- * with a STUN header, followed by a STUN payload.  The payload is a series of
- * STUN attributes, the set of which depends on the message type.  The STUN
+ * This class represents a STUN message. Messages are TLV (type-length-value) encoded using big endian (network ordered) binary.  All STUN messages start
+ * with a STUN header, followed by a STUN payload.  The payload is a series of STUN attributes, the set of which depends on the message type.  The STUN
  * header contains a STUN message type, transaction ID, and length.
  *
  * @author Emil Ivov
@@ -257,8 +255,7 @@ public abstract class Message {
 
     //Message fields
     /**
-     * The length of Stun Message Headers in bytes
-     * = len(Type) + len(DataLength) + len(Transaction ID).
+     * The length of Stun Message Headers in bytes = len(Type) + len(DataLength) + len(Transaction ID).
      */
     public static final byte HEADER_LENGTH = 20;
 
@@ -331,8 +328,7 @@ public abstract class Message {
     public static final byte O = 2;
 
     /**
-     * M indicates that inclusion of the attribute in the message is
-     * mandatory.
+     * M indicates that inclusion of the attribute in the message is mandatory.
      *
      * @see Message#N_A
      */
@@ -489,14 +485,11 @@ public abstract class Message {
      */
     public char getDataLength() {
         char length = 0;
-
         List<Attribute> attrs = getAttributes();
         for (Attribute att : attrs) {
             int attLen = att.getDataLength() + Attribute.HEADER_LENGTH;
-
             //take attribute padding into account:
             attLen += (4 - (attLen % 4)) % 4;
-
             length += attLen;
         }
         return length;
@@ -510,9 +503,7 @@ public abstract class Message {
      */
     public char getDataLengthWithoutPadding() {
         char length = 0;
-
         List<Attribute> attrs = getAttributes();
-
         for (Attribute att : attrs) {
             int attLen = att.getDataLength() + Attribute.HEADER_LENGTH;
             length += attLen;
@@ -521,25 +512,20 @@ public abstract class Message {
     }
 
     /**
-     * Puts the specified attribute into this message. If an attribute with that
-     * name was already added, it would be replaced.
+     * Puts the specified attribute into this message. If an attribute with that name was already added, it would be replaced.
      *
-     * @param attribute the attribute to put into this message.
-     *
-     * @throws IllegalArgumentException if the message cannot contain
-     * such an attribute.
+     * @param attribute the attribute to put into this message
+     * @throws IllegalArgumentException if the message cannot contain such an attribute
      */
     public void putAttribute(Attribute attribute) throws IllegalArgumentException {
         attributes.add(attribute);
     }
 
     /**
-     * Returns the attribute with the specified type or null if no such
-     * attribute exists.
+     * Returns the attribute with the specified type or null if no such attribute exists.
      *
      * @param attributeType the type of the attribute
-     * @return the attribute with the specified type or null if no such
-     * attribute exists
+     * @return the attribute with the specified type or null if no such attribute exists
      */
     public Attribute getAttribute(Attribute.Type attributeType) {
         for (Attribute attr : attributes) {
@@ -562,9 +548,8 @@ public abstract class Message {
     /**
      * Removes the specified attribute.
      *
-     * @param attributeType the attribute to remove.
-     *
-     * @return the Attribute we've just removed.
+     * @param attributeType the attribute to remove
+     * @return the Attribute we've just removed
      */
     public Attribute removeAttribute(Attribute.Type attributeType) {
         for (Attribute attr : attributes) {
@@ -637,10 +622,8 @@ public abstract class Message {
     }
 
     /**
-     * Sets this message's type to be messageType. Method is package access
-     * as it should not permit changing the type of message once it has been
-     * initialized (could provoke attribute discrepancies). Called by
-     * messageFactory.
+     * Sets this message's type to be messageType. Method is package access as it should not permit changing the type of message once it has been
+     * initialized (could provoke attribute discrepancies). Called by messageFactory.
      *
      * @param messageType the message type.
      */
@@ -660,17 +643,14 @@ public abstract class Message {
     /**
      * Copies the specified tranID and sets it as this message's transactionID.
      *
-     * @param tranID the transaction id to set in this message.
-     *
-     * @throws StunException ILLEGAL_ARGUMENT if the transaction id is not
-     * valid.
+     * @param tranID the transaction id to set in this message
+     * @throws StunException ILLEGAL_ARGUMENT if the transaction id is not valid
      */
     public void setTransactionID(byte[] tranID) throws StunException {
-        if (tranID == null || (tranID.length != TransactionID.RFC5389_TRANSACTION_ID_LENGTH && tranID.length != TransactionID.RFC3489_TRANSACTION_ID_LENGTH))
+        if (tranID == null || (tranID.length != TransactionID.RFC5389_TRANSACTION_ID_LENGTH && tranID.length != TransactionID.RFC3489_TRANSACTION_ID_LENGTH)) {
             throw new StunException(StunException.ILLEGAL_ARGUMENT, "Invalid transaction id length");
-
+        }
         int tranIDLength = tranID.length;
-
         transactionID = new byte[tranIDLength];
         System.arraycopy(tranID, 0, transactionID, 0, tranIDLength);
     }
@@ -956,7 +936,7 @@ public abstract class Message {
         //CRC validation.
         if (!Arrays.equals(incomingCrcBytes, realCrcBytes)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("An incoming message arrived with a wrong FINGERPRINTattribute value.CRC Was:" + Arrays.toString(incomingCrcBytes) + ". Should have been:" + Arrays.toString(realCrcBytes) + ". Will ignore.");
+                logger.debug("An incoming message arrived with a wrong FINGERPRINT attribute value. CRC Was:" + Arrays.toString(incomingCrcBytes) + ". Should have been:" + Arrays.toString(realCrcBytes) + ". Will ignore.");
             }
             return false;
         }
@@ -988,7 +968,6 @@ public abstract class Message {
      * @return true if type is a valid response type.
      */
     public static boolean isResponseType(char type) {
-        /* return (((type >> 8) & 1) != 0); */
         return (isSuccessResponseType(type) || isErrorResponseType(type));
     }
 
@@ -1008,7 +987,6 @@ public abstract class Message {
      * @return true if type is a valid request type.
      */
     public static boolean isRequestType(char type) {
-        /* return !isResponseType(type); */
         return ((type & 0x0110) == STUN_REQUEST);
     }
 

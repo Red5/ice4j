@@ -4,7 +4,6 @@ package org.ice4j.socket;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +16,6 @@ import org.apache.mina.core.session.IoSession;
 import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
-import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceTcpTransport;
@@ -33,20 +31,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
 
     /**
      * Constructor.
-     *
-     * @param session
      */
-    public IceTcpSocketWrapper(IoSession session) {
-        super(session);
-        if (session != null) {
-            try {
-                transportAddress = new TransportAddress((InetSocketAddress) session.getLocalAddress(), Transport.TCP);
-            } catch (Exception e) {
-                logger.warn("Exception configuring transport address", e);
-            }
-        } else {
-            logger.debug("Datagram session is not bound");
-        }
+    public IceTcpSocketWrapper() {
     }
 
     /**
@@ -56,7 +42,6 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      * @throws IOException 
      */
     public IceTcpSocketWrapper(TransportAddress address) throws IOException {
-        super((IoSession) null);
         transportAddress = address;
     }
 
@@ -72,7 +57,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             }
             WriteFuture writeFuture = null;
             try {
-                IoSession sess = session.get();
+                IoSession sess = getSession();
                 if (sess != null) {
                     writeFuture = sess.write(buf);
                     writeFuture.addListener(writeListener);
@@ -87,7 +72,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         // set an idle time of 30s (default)
                         config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
                         // QoS
-                        //config.setTrafficClass(trafficClass);
+                        config.setTrafficClass(IceTransport.trafficClass);
                         // set connection timeout of x milliseconds
                         connector.setConnectTimeoutMillis(3000L);
                         // add the ice protocol encoder/decoder
@@ -121,7 +106,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                     // wait up-to x milliseconds for a connection to be established
                     if (connectLatch.await(500L, TimeUnit.MILLISECONDS)) {
                         // attempt to get a newly added session from connect process
-                        sess = session.get();
+                        sess = getSession();
                         if (sess != null) {
                             writeFuture = sess.write(buf);
                             writeFuture.addListener(writeListener);
@@ -131,7 +116,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                     }
                 }
             } catch (Throwable t) {
-                logger.warn("Exception acquiring send lock", t);
+                logger.warn("Exception attempting to send", t);
             } finally {
                 if (writeFuture != null) {
                     writeFuture.removeListener(writeListener);
@@ -186,7 +171,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
 
     @Override
     public String toString() {
-        return "IceTcpSocketWrapper [transportAddress=" + transportAddress + ", session=" + session + "]";
+        return "IceTcpSocketWrapper [transportAddress=" + transportAddress + ", session=" + getSession() + "]";
     }
 
 }

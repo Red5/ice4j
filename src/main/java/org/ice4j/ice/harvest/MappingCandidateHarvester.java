@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class MappingCandidateHarvester extends AbstractCandidateHarvester {
 
-    private static final Logger logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
+    private static final Logger logger = LoggerFactory.getLogger(MappingCandidateHarvester.class);
 
     /**
      * The addresses that we will use as a mask

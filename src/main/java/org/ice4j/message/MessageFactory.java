@@ -4,6 +4,7 @@ package org.ice4j.message;
 import java.io.UnsupportedEncodingException;
 
 import org.ice4j.StunException;
+import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.AttributeFactory;
@@ -273,8 +274,7 @@ public class MessageFactory {
         Request allocateRequest = new Request();
         try {
             allocateRequest.setMessageType(Message.ALLOCATE_REQUEST);
-            /* XXX add enum somewhere for transport number */
-            if (protocol != 6 && protocol != 17){
+            if (protocol != Transport.TCP.getProtocolNumber() && protocol != Transport.UDP.getProtocolNumber()){
                 throw new StunException("Protocol not valid!");
             }
             // REQUESTED-TRANSPORT
@@ -284,7 +284,7 @@ public class MessageFactory {
                 allocateRequest.putAttribute(AttributeFactory.createEvenPortAttribute(rFlag));
             }
         } catch (StunException ex) {
-            logger.warn("Failed to set message type.", ex);
+            logger.warn("Failed to set message type", ex);
         }
         return allocateRequest;
     }
@@ -638,7 +638,7 @@ public class MessageFactory {
                 sendIndication.putAttribute(dataAttribute);
             }
         } catch (IllegalArgumentException ex) {
-            logger.warn("Failed to set message type.", ex);
+            logger.warn("Failed to set message type", ex);
         }
         return sendIndication;
     }
@@ -664,7 +664,7 @@ public class MessageFactory {
                 dataIndication.putAttribute(dataAttribute);
             }
         } catch (IllegalArgumentException ex) {
-            logger.warn("Failed to set message type.", ex);
+            logger.warn("Failed to set message type", ex);
         }
         return dataIndication;
     }
@@ -694,7 +694,7 @@ public class MessageFactory {
                 sendRequest.putAttribute(dataAttribute);
             }
         } catch (IllegalArgumentException ex) {
-            logger.warn("Failed to set message type.", ex);
+            logger.warn("Failed to set message type", ex);
         }
         return sendRequest;
     }
@@ -731,75 +731,52 @@ public class MessageFactory {
     }
 
     /**
-     * Creates a ConnectRequest in a 6062 compliant manner containing only
-     *<br>XOR-PEER-ADDRESS attribute
+     * Creates a ConnectRequest in a 6062 compliant manner containing only XOR-PEER-ADDRESS attribute.
      *
-     * @param request the request that created the transaction that this
-     * response will belong to.
+     * @param request the request that created the transaction that this response will belong to
      * @param peerAddress the address to assign the xorPeerAddressAttribute
-     * @return a ConnectRequest assigning the specified values to mandatory
-     * headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the response.
+     * @return a ConnectRequest assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the response
      */
     public static Request createConnectRequest(TransportAddress peerAddress, Request request) throws IllegalArgumentException {
         Request connectRequest = new Request();
-
         connectRequest.setMessageType(Message.CONNECT_REQUEST);
-
         //xor peer address
         XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, request.getTransactionID());
-
         connectRequest.putAttribute(xorPeerAddressAttribute);
-
         return connectRequest;
     }
 
     /**
-     * Creates a ConnectRequest in a 6062 compliant manner containing only
-     * XOR-PEER-ADDRESS attribute. This method is used by turnserver.
+     * Creates a ConnectRequest in a 6062 compliant manner containing only XOR-PEER-ADDRESS attribute. This method is used by turnserver.
      *
      * @param peerAddress the address to assign the xorPeerAddressAttribute
-     * @param transactionId the transaction id that this response will belong
-     * to.
-     * @return a ConnectRequest assigning the specified values to mandatory
-     * headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the response.
+     * @param transactionId the transaction id that this response will belong to
+     * @return a ConnectRequest assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the response
      */
     public static Request createConnectRequest(TransportAddress peerAddress, byte[] transactionId) throws IllegalArgumentException {
         Request connectRequest = new Request();
-
         connectRequest.setMessageType(Message.CONNECT_REQUEST);
-
         // xor peer address
         XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, transactionId);
-
         connectRequest.putAttribute(xorPeerAddressAttribute);
-
         return connectRequest;
     }
 
     /**
-     * Creates a Connect Response in a 6062 compliant manner containing a single
-     * CONNECTION-ID-ATTRIBUTE attribute
+     * Creates a Connect Response in a 6062 compliant manner containing a single CONNECTION-ID-ATTRIBUTE attribute.
+     * 
      * @param connectionIdValue the address to assign the connectionIdAttribute
-     * @return a ConnectResponse assigning the specified values to mandatory
-     * headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the response.
+     * @return a ConnectResponse assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the response
      */
-
     public static Response createConnectResponse(int connectionIdValue) throws IllegalArgumentException {
         Response connectSuccessResponse = new Response();
-
         connectSuccessResponse.setMessageType(Message.CONNECT_RESPONSE);
-
         //connection id
         ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
-
         connectSuccessResponse.putAttribute(connectionIdAttribute);
-
         return connectSuccessResponse;
     }
 
@@ -807,11 +784,9 @@ public class MessageFactory {
      * Creates a Connect error response according to the specified error code.
      *
      * @param errorCode the error code to encapsulate in this message
-     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the
-     * given parameters had an invalid value.
-     * @return a Connect error response message containing an error code.
+     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the given parameters had an invalid value
+     * @return a Connect error response message containing an error code
      */
-
     public static Response createConnectErrorResponse(char errorCode) throws IllegalArgumentException {
         return createConnectErrorResponse(errorCode, null);
     }
@@ -821,161 +796,116 @@ public class MessageFactory {
      *
      * @param errorCode the error code to encapsulate in this message
      * @param reasonPhrase a human readable description of the error
-     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the
-     * given parameters had an invalid value.
-     * @return a Connect error response message containing an error code.
+     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the given parameters had an invalid value
+     * @return a Connect error response message containing an error code
      */
     public static Response createConnectErrorResponse(char errorCode, String reasonPhrase) throws IllegalArgumentException {
         Response connectionErrorResponse = new Response();
-
         connectionErrorResponse.setMessageType(Message.CONNECT_ERROR_RESPONSE);
-
         //error code attribute
         ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
-
         connectionErrorResponse.putAttribute(errorCodeAttribute);
-
         return connectionErrorResponse;
     }
 
     /**
-     * Creates a ConnectionBindRequest in a 6062 compliant manner containing
-     * only CONECTION-ID-ATTRIBUTE attribute.
+     * Creates a ConnectionBindRequest in a 6062 compliant manner containing only CONECTION-ID-ATTRIBUTE attribute.
      *
      * @param connectionIdValue the value to assign the connectionIdAtribute
-     * @return a ConnectionBind Request assigning the specified values
-     *         to mandatory headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     *         way we are trying to create the Request.
+     * @return a ConnectionBind Request assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the Request
      */
     public static Request createConnectionBindRequest(int connectionIdValue) throws IllegalArgumentException {
         Request connectionBindRequest = new Request();
-
         connectionBindRequest.setMessageType(Message.CONNECTION_BIND_REQUEST);
-
         //connection id
         ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
-
         connectionBindRequest.putAttribute(connectionIdAttribute);
-
         return connectionBindRequest;
     }
 
     /**
      * Creates a ConnectionBind Response in a 6062 compliant manner.
      *
-     * @return a ConnectionBind Response assigning the specified values to
-     *         mandatory headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the response.
+     * @return a ConnectionBind Response assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the response
      */
     public static Response createConnectionBindResponse() throws IllegalArgumentException {
         Response connectSuccessResponse = new Response();
-
         connectSuccessResponse.setMessageType(Message.CONNECTION_BIND_SUCCESS_RESPONSE);
-
         return connectSuccessResponse;
     }
 
     /**
-     * Creates a ConnectionBind error response according to the specified error
-     * code.
+     * Creates a ConnectionBind error response according to the specified error code.
      *
      * @param errorCode the error code to encapsulate in this message
-     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the
-     * given parameters had an invalid value.
-     * @return a ConnectionBind error response message containing an error code.
+     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the given parameters had an invalid value
+     * @return a ConnectionBind error response message containing an error code
      */
-
     public static Response createConnectionBindErrorResponse(char errorCode) throws IllegalArgumentException {
         return createConnectionBindErrorResponse(errorCode, null);
     }
 
     /**
-     * Creates a ConnectionBind error response according to the specified error
-     * code.
+     * Creates a ConnectionBind error response according to the specified error code.
      *
      * @param errorCode the error code to encapsulate in this message
      * @param reasonPhrase a human readable description of the error
-     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the
-     * given parameters had an invalid value.
-     * @return a ConnectionBind error response message containing an error code.
+     * @throws IllegalArgumentException INVALID_ARGUMENTS if one or more of the given parameters had an invalid value
+     * @return a ConnectionBind error response message containing an error code
      */
     public static Response createConnectionBindErrorResponse(char errorCode, String reasonPhrase) throws IllegalArgumentException {
         Response connectionBindErrorResponse = new Response();
-
         connectionBindErrorResponse.setMessageType(Message.CONNECTION_BIND_ERROR_RESPONSE);
-
         //error code attribute
         ErrorCodeAttribute errorCodeAttribute = AttributeFactory.createErrorCodeAttribute(errorCode, reasonPhrase);
-
         connectionBindErrorResponse.putAttribute(errorCodeAttribute);
-
         return connectionBindErrorResponse;
     }
 
     /**
-     * Creates a ConnectionAttempt Indication in a 6062 compliant manner
-     * containing only CONECTION-ID-ATTRIBUTE attribute and
+     * Creates a ConnectionAttempt Indication in a 6062 compliant manner containing only CONECTION-ID-ATTRIBUTE attribute and
      * XOR-PPER-ADDRESS attribute.
      *
      * @param connectionIdValue the value to assign the connectionidAtribute
      * @param peerAddress the value to assign the xorPeerAddress
-     * @return a ConnectionAttempt Indication assigning the specified values to
-     *         mandatory headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the Request.
+     * @return a ConnectionAttempt Indication assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the Request
      */
     public static Indication createConnectionAttemptIndication(int connectionIdValue, TransportAddress peerAddress) throws IllegalArgumentException {
         Indication connectionAttemptIndication = new Indication();
-
         connectionAttemptIndication.setMessageType(Message.CONNECTION_ATTEMPT_INDICATION);
-
         //connection id attribute
         ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
-
         connectionAttemptIndication.putAttribute(connectionIdAttribute);
-
         //xor peer address attribute
         XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, connectionAttemptIndication.getTransactionID());
-
         connectionAttemptIndication.putAttribute(xorPeerAddressAttribute);
-
         return connectionAttemptIndication;
     }
 
     /**
-     * Creates a ConnectionAttempt Indication in a 6062 compliant manner
-     * containing only CONECTION-ID-ATTRIBUTE attribute and
-     * XOR-PPER-ADDRESS attribute.
+     * Creates a ConnectionAttempt Indication in a 6062 compliant manner containing only CONECTION-ID-ATTRIBUTE attribute and XOR-PPER-ADDRESS attribute.
      *
      * @param connectionIdValue the value to assign the connectionidAtribute
      * @param peerAddress the value to assign the xorPeerAddress
-     * @param transactionId the transaction id that the response belongs to.
-     * @return a ConnectionAttempt Indication assigning the specified values to
-     * mandatory headers.
-     * @throws IllegalArgumentException if there was something wrong with the
-     * way we are trying to create the Request.
-     * @throws StunException when the transaction id is not valid.
+     * @param transactionId the transaction id that the response belongs to
+     * @return a ConnectionAttempt Indication assigning the specified values to mandatory headers
+     * @throws IllegalArgumentException if there was something wrong with the way we are trying to create the Request
+     * @throws StunException when the transaction id is not valid
      */
     public static Indication createConnectionAttemptIndication(int connectionIdValue, TransportAddress peerAddress, byte[] transactionId) throws IllegalArgumentException, StunException {
         Indication connectionAttemptIndication = new Indication();
-
         // set the attempt transaction id
         connectionAttemptIndication.setTransactionID(transactionId);
-
         connectionAttemptIndication.setMessageType(Message.CONNECTION_ATTEMPT_INDICATION);
-
         // connection id attribute
         ConnectionIdAttribute connectionIdAttribute = AttributeFactory.createConnectionIdAttribute(connectionIdValue);
-
         connectionAttemptIndication.putAttribute(connectionIdAttribute);
-
         // xor peer address attribute
         XorPeerAddressAttribute xorPeerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, connectionAttemptIndication.getTransactionID());
-
         connectionAttemptIndication.putAttribute(xorPeerAddressAttribute);
-
         return connectionAttemptIndication;
     }
 

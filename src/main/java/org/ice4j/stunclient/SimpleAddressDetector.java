@@ -115,7 +115,7 @@ public class SimpleAddressDetector {
         } catch (StunException exc) {
             // this shouldn't be happening since we are the one that constructed the request, so let's catch it here and not oblige users to
             // handle exception they are not responsible for.
-            logger.error("Internal Error. We apparently constructed a faulty request", exc);
+            logger.warn("Internal Error. We apparently constructed a faulty request", exc);
         } finally {
             stunStack.removeSocket(socket.getId(), localAddress);
         }

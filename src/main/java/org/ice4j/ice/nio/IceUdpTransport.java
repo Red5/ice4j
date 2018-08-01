@@ -33,7 +33,6 @@ public class IceUdpTransport extends IceTransport {
      */
     private IceUdpTransport() {
         logger.info("id: {} shared: {}", id, sharedAcceptor);
-        //createAcceptor();
     }
 
     /**
@@ -116,7 +115,7 @@ public class IceUdpTransport extends IceTransport {
             // set an idle time of 30s
             sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
             // QoS
-            //sessionConf.setTrafficClass(trafficClass);
+            sessionConf.setTrafficClass(trafficClass);
             // in server apps this can cause a memory leak so its off
             sessionConf.setUseReadOperation(false);
             // close sessions when the acceptor is stopped

@@ -10,6 +10,15 @@ Configuration of the send buffer is handled via the `SO_SNDBUF` property. The de
 ## Receive buffer
 Configuration of the receive buffer is handled via the `SO_RCVBUF` property. The default is 1500 and any target amount should take MTU size ~1500 into account.
 
+## QoS / Traffic class
+The traffic class setting for the internal sockets is handled via the `TRAFFIC_CLASS` property. The default is 0, which mean no configuration. RFC 1349 defines the values as follows:
+ * IPTOS_LOWCOST (0x02)
+ * IPTOS_RELIABILITY (0x04)
+ * IPTOS_THROUGHPUT (0x08)
+ * IPTOS_LOWDELAY (0x10)
+
+[Click here for additional details](https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html#setTrafficClass-int-)
+
 ## Send and Receive idle timeout
 Send or receive may be detected as idle if they exceed the configured (in seconds) `SO_TIMEOUT` property which is defaulted to 30 seconds.
 

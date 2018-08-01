@@ -16,7 +16,11 @@ import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.future.WriteFuture;
+import org.apache.mina.core.session.DummySession;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.core.session.IoSessionConfig;
+import org.apache.mina.transport.socket.DatagramSessionConfig;
+import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
@@ -33,9 +37,12 @@ public abstract class IceSocketWrapper {
 
     protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
-    public final static IoSession NULL_SESSION = null;
+    public final static IoSession NULL_SESSION = new DummySession();
 
     public final static String DISCONNECTED = "disconnected";
+    
+    // whether or not we've been closed
+    public boolean closed;
 
     /**
      * Used to control connection flow.
@@ -46,13 +53,13 @@ public abstract class IceSocketWrapper {
 
     protected TransportAddress remoteTransportAddress;
 
-    // whether or not we've been closed
-    public boolean closed;
+    // whether or not we're a relay
+    protected RelayedCandidateConnection relayedCandidateConnection;
 
     /**
      * IoSession for this socket / connection; will be one of type NioDatagramSession for UDP or NioSocketSession for TCP.
      */
-    protected AtomicReference<IoSession> session = new AtomicReference<>();
+    protected AtomicReference<IoSession> session = new AtomicReference<>(NULL_SESSION);
 
     /**
      * Socket timeout.
@@ -73,11 +80,15 @@ public abstract class IceSocketWrapper {
         public void operationComplete(ConnectFuture future) {
             if (future.isConnected()) {
                 setSession(future.getSession());
-                // count down since we have a session
-                connectLatch.countDown();
             } else {
-                logger.warn("Connect failed from: {} to: {}", transportAddress, remoteTransportAddress);
+                if (remoteTransportAddress == null) {
+                    logger.warn("Connect failed from: {}", transportAddress);
+                } else {
+                    logger.warn("Connect failed from: {} to: {}", transportAddress, remoteTransportAddress);
+                }
             }
+            // count down since connect is complete
+            connectLatch.countDown();
         }
 
     };
@@ -103,10 +114,15 @@ public abstract class IceSocketWrapper {
 
     };
 
-    IceSocketWrapper(IoSession session) {
-        setSession(session);
+    /**
+     * Creates a new session with the given remote destination address.
+     * 
+     * @param destAddress remote address
+     */
+    public void newSession(SocketAddress destAddress) {
+        // this primarily for UDP see IceUdpSocketWrapper
     }
-
+    
     /**
      * Sends an IoBuffer from this socket. It is a utility method to provide a common way to send for both UDP and TCP socket.
      *
@@ -145,7 +161,7 @@ public abstract class IceSocketWrapper {
      */
     public boolean isClosed() {
         IoSession sess = session.get();
-        if (sess != null) {
+        if (!sess.equals(NULL_SESSION)) {
             closed = sess.isClosing(); // covers closing and / or closed
         }
         return closed;
@@ -156,7 +172,7 @@ public abstract class IceSocketWrapper {
      */
     public void close() {
         //logger.debug("Close: {}", this);
-        IoSession sess = session.get();
+        IoSession sess = getSession();
         if (sess != null) {
             logger.debug("Close session: {}", sess.getId());
             try {
@@ -192,7 +208,7 @@ public abstract class IceSocketWrapper {
     public String getId() {
         String id = DISCONNECTED;
         IoSession sess = session.get();
-        if (sess != null && sess.containsAttribute(IceTransport.Ice.UUID)) {
+        if (!sess.equals(NULL_SESSION) && sess.containsAttribute(IceTransport.Ice.UUID)) {
             id = (String) sess.getAttribute(IceTransport.Ice.UUID);
         }
         return id;
@@ -219,7 +235,7 @@ public abstract class IceSocketWrapper {
      */
     public SocketAddress getLocalSocketAddress() {
         IoSession sess = session.get();
-        if (sess == null) {
+        if (sess.equals(NULL_SESSION)) {
             return transportAddress;
         }
         return sess.getLocalAddress();
@@ -232,10 +248,10 @@ public abstract class IceSocketWrapper {
      */
     public void setSession(IoSession newSession) {
         logger.trace("setSession - new: {} old: {}", newSession, session.get());
-        if (newSession != null && session.compareAndSet(NULL_SESSION, newSession)) {
+        if (newSession == null || newSession.equals(NULL_SESSION)) {
+            session.set(NULL_SESSION);
+        } else if (session.compareAndSet(NULL_SESSION, newSession)) {
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-        } else {
-            session.set(newSession);
         }
     }
 
@@ -245,17 +261,17 @@ public abstract class IceSocketWrapper {
      * @return IoSession if one exists or null otherwise
      */
     public IoSession getSession() {
-        return session.get();
-    }
-
+        return !session.get().equals(NULL_SESSION) ? session.get() : null;
+    }    
+    
     /**
      * Returns TransportAddress for the wrapped socket implementation.
      * 
      * @return transport address
      */
     public TransportAddress getTransportAddress() {
-        logger.debug("getTransportAddress: {} session: {}", transportAddress, session);
-        if (transportAddress == null && session != null) {
+        logger.debug("getTransportAddress: {} session: {}", transportAddress, getSession());
+        if (transportAddress == null && !session.get().equals(NULL_SESSION)) {
             if (this instanceof IceUdpSocketWrapper) {
                 transportAddress = new TransportAddress((InetSocketAddress) session.get().getLocalAddress(), Transport.UDP);
             } else {
@@ -282,10 +298,58 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Sets the relay connection used for channel data in TURN.
+     * 
+     * @param relayedCandidateConnection
+     */
+    public void setRelayedConnection(RelayedCandidateConnection relayedCandidateConnection) {
+        this.relayedCandidateConnection = relayedCandidateConnection;
+    }
+
+    public RelayedCandidateConnection getRelayedCandidateConnection() {
+        return relayedCandidateConnection;
+    }
+
+    /**
      * Sets the socket timeout.
+     * 
+     * @param timeout
      */
     public void setSoTimeout(int timeout) throws SocketException {
         soTimeout = timeout;
+    }
+
+    /**
+     * Sets the traffic class.
+     * 
+     * @param trafficClass
+     */
+    public void setTrafficClass(int trafficClass) {
+        IoSession sess = session.get();
+        if (!sess.equals(NULL_SESSION)) {
+            IoSessionConfig config = sess.getConfig();
+            if (config != null) {
+                if (sess instanceof DatagramSessionConfig) {
+                    DatagramSessionConfig dsConfig = (DatagramSessionConfig) config;
+                    int currentTrafficClass = dsConfig.getTrafficClass();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Datagram trafficClass: {} incoming: {}", currentTrafficClass, trafficClass);
+                    }
+                    if (currentTrafficClass != trafficClass) {
+                        dsConfig.setTrafficClass(trafficClass);
+                    }
+                } else if (sess instanceof SocketSessionConfig) {
+                    SocketSessionConfig ssConfig = (SocketSessionConfig) config;
+                    int currentTrafficClass = ssConfig.getTrafficClass();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Socket trafficClass: {} incoming: {}", currentTrafficClass, trafficClass);
+                    }
+                    if (currentTrafficClass != trafficClass) {
+                        ssConfig.setTrafficClass(trafficClass);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -352,13 +416,13 @@ public abstract class IceSocketWrapper {
      * @throws IOException
      */
     public final static IceSocketWrapper build(IoSession session) throws IOException {
-        // TODO remove this sysout
-        //System.out.println("build: " + session + " connectionless: " + session.getTransportMetadata().isConnectionless());
         IceSocketWrapper iceSocket = null;
         if (session.getTransportMetadata().isConnectionless()) {
-            iceSocket = new IceUdpSocketWrapper(session);
+            iceSocket = new IceUdpSocketWrapper();
+            iceSocket.setSession(session);
         } else {
-            iceSocket = new IceTcpSocketWrapper(session);
+            iceSocket = new IceTcpSocketWrapper();
+            iceSocket.setSession(session);
             // set remote address (only sticks if its TCP)
             InetSocketAddress inetAddr = (InetSocketAddress) session.getRemoteAddress();
             iceSocket.setRemoteTransportAddress(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
@@ -370,13 +434,12 @@ public abstract class IceSocketWrapper {
      * Builder for immutable IceSocketWrapper instance. If the localAddress is udp, an IceUdpSocketWrapper is returned; otherwise
      * an IceTcpSocketWrapper is returned.
      * 
-     * @param session IoSession for the socket
-     * @return IceSocketWrapper for the given session type
+     * @param localAddress local address
+     * @param remoteAddress destination address
+     * @return IceSocketWrapper for the given address type
      * @throws IOException
      */
     public final static IceSocketWrapper build(TransportAddress localAddress, TransportAddress remoteAddress) throws IOException {
-        // TODO remove this sysout
-        //System.out.println("build: " + localAddress + " remote: " + remoteAddress);
         IceSocketWrapper iceSocket = null;
         if (localAddress.getTransport() == Transport.UDP) {
             iceSocket = new IceUdpSocketWrapper(localAddress);
@@ -385,6 +448,29 @@ public abstract class IceSocketWrapper {
             // set remote address (only sticks if its TCP)
             iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
         }
+        return iceSocket;
+    }
+
+    /**
+     * Builder for immutable IceSocketWrapper instance. If the localAddress is udp, an IceUdpSocketWrapper is returned; otherwise
+     * an IceTcpSocketWrapper is returned.
+     * 
+     * @param relayedCandidateConnection relay connection (TURN channel)
+     * @return IceSocketWrapper for the address session type
+     * @throws IOException
+     */
+    public final static IceSocketWrapper build(RelayedCandidateConnection relayedCandidateConnection) throws IOException {
+        TransportAddress localAddress = (TransportAddress) relayedCandidateConnection.getLocalSocketAddress();
+        TransportAddress remoteAddress = relayedCandidateConnection.getTurnCandidateHarvest().harvester.stunServer;
+        IceSocketWrapper iceSocket = null;
+        if (localAddress.getTransport() == Transport.UDP) {
+            iceSocket = new IceUdpSocketWrapper(localAddress);
+        } else {
+            iceSocket = new IceTcpSocketWrapper(localAddress);
+            // set remote address (only sticks if its TCP)
+            iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
+        }
+        iceSocket.setRelayedConnection(relayedCandidateConnection);
         return iceSocket;
     }
 

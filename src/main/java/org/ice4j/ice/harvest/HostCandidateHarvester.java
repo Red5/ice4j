@@ -383,7 +383,6 @@ public class HostCandidateHarvester {
             try {
                 TransportAddress localAddress = new TransportAddress(laddr, port, Transport.TCP);
                 // we successfully bound to the address so create a wrapper
-                //IceTcpSocketWrapper sock = new IceTcpSocketWrapper(localAddress);//, component);
                 IceSocketWrapper sock = IceTransport.getIceHandler().lookupBinding(localAddress);
                 // create a new socket since there isn't one registered for the local address
                 if (sock == null) {

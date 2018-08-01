@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NetworkUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(NetworkUtils.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(NetworkUtils.class);
 
     /**
      * A string containing the "any" local address for IPv6.

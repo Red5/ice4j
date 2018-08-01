@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.message;
 
 import org.ice4j.*;
@@ -11,7 +6,7 @@ import org.ice4j.*;
 /**
  * The ChannelData message are used in TURN protocol after a client has bound a channel to a peer.
  *
- *    0                   1                   2                   3
+ *   0                   1                   2                   3
  *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *  |         Channel Number        |            Length             |
@@ -28,6 +23,7 @@ import org.ice4j.*;
  * @author Aakash Garg
  */
 public class ChannelData {
+
     /**
      * The channel number.
      */
@@ -50,7 +46,8 @@ public class ChannelData {
     }
 
     /**
-     * Set the channel number
+     * Set the channel number.
+     * 
      * @param channelNumber the channel number
      */
     public void setChannelNumber(char channelNumber) {
@@ -59,6 +56,7 @@ public class ChannelData {
 
     /**
      * Get the channel number.
+     * 
      * @return channel number
      */
     public char getChannelNumber() {
@@ -67,6 +65,7 @@ public class ChannelData {
 
     /**
      * Set the data.
+     * 
      * @param data the data
      */
     public void setData(byte data[]) {
@@ -75,6 +74,7 @@ public class ChannelData {
 
     /**
      * Get the data.
+     * 
      * @return data
      */
     public byte[] getData() {
@@ -101,13 +101,10 @@ public class ChannelData {
     }
 
     /**
-     * Determines whether a specific channel number is in the valid channel
-     * number range defined by the TURN RFC.
+     * Determines whether a specific channel number is in the valid channel number range defined by the TURN RFC.
      *
-     * @param channelNumber the channel number to be checked for being in the
-     * valid channel number range defined by the TURN RFC
-     * @return true if the specified channelNumber is in the
-     * valid channel number range defined by the TURN RFC
+     * @param channelNumber the channel number to be checked for being in the valid channel number range defined by the TURN RFC
+     * @return true if the specified channelNumber is in the valid channel number range defined by the TURN RFC
      */
     private static boolean validateChannelNumber(char channelNumber) {
         return (channelNumber > 0x3FFF);
@@ -115,7 +112,8 @@ public class ChannelData {
 
     /**
      * Returns a non padded binary representation of this message.
-     * @return a non padded binary representation of this message.
+     * 
+     * @return a non padded binary representation of this message
      * @throws StunException if the channel number is invalid
      * @deprecated
      */
@@ -125,8 +123,9 @@ public class ChannelData {
 
     /**
      * Returns a binary representation of this message.
+     * 
      * @param pad determine if we pad this message
-     * @return a binary representation of this message.
+     * @return a binary representation of this message
      * @throws StunException if the channel number is invalid
      */
     public byte[] encode(boolean pad) throws StunException {
@@ -152,12 +151,12 @@ public class ChannelData {
 
     /**
      * Constructs a message from its binary representation.
+     * 
      * @param binMessage the binary array that contains the encoded message
-     * @param offset the index where the message starts.
+     * @param offset the index where the message starts
      * @param arrayLen the length of the message
      * @return a Message object constructed from the binMessage array
-     * @throws StunException ILLEGAL_ARGUMENT if one or more of the arguments
-     * have invalid values.
+     * @throws StunException ILLEGAL_ARGUMENT if one or more of the arguments have invalid values
      * @deprecated
      */
     public static ChannelData decode(byte[] binMessage, char offset, char arrayLen) throws StunException {
@@ -166,11 +165,11 @@ public class ChannelData {
 
     /**
      * Constructs a message from its binary representation.
+     * 
      * @param binMessage the binary array that contains the encoded message
-     * @param offset the index where the message starts.
+     * @param offset the index where the message starts
      * @return a Message object constructed from the binMessage array
-     * @throws StunException ILLEGAL_ARGUMENT if one or more of the arguments
-     * have invalid values.
+     * @throws StunException ILLEGAL_ARGUMENT if one or more of the arguments have invalid values
      */
     public static ChannelData decode(byte[] binMessage, char offset) throws StunException {
         char msgLen = 0;
@@ -197,11 +196,10 @@ public class ChannelData {
     }
 
     /**
-     * Checks if the given binary message is a ChannelData Message. Every
-     * ChannelData message has first two bits as 01.
+     * Checks if the given binary message is a ChannelData Message. Every ChannelData message has first two bits as 01.
      * 
-     * @param binMessage binary message to check.
-     * @return true is given binary message is a ChannelData Message.
+     * @param binMessage binary message to check
+     * @return true is given binary message is a ChannelData Message
      */
     public static boolean isChannelDataMessage(byte[] binMessage) {
         return (binMessage[0] >> 6 == 0x1);

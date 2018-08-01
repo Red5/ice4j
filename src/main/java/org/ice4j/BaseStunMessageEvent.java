@@ -13,8 +13,7 @@ import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 
 /**
- * Represents an EventObject which notifies of an event associated with
- * a specific STUN Message.
+ * Represents an EventObject which notifies of an event associated with a specific STUN Message.
  *
  * @author Lyubomir Marinov
  */

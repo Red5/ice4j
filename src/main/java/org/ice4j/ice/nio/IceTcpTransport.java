@@ -33,7 +33,6 @@ public class IceTcpTransport extends IceTransport {
      */
     private IceTcpTransport() {
         logger.info("id: {} shared: {}", id, sharedAcceptor);
-        //createAcceptor();
     }
 
     /**
@@ -116,7 +115,7 @@ public class IceTcpTransport extends IceTransport {
             // set an idle time of 30s
             sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
             // QoS
-            //sessionConf.setTrafficClass(trafficClass);
+            sessionConf.setTrafficClass(trafficClass);
             // close sessions when the acceptor is stopped
             acceptor.setCloseOnDeactivation(true);
             // requested maximum length of the queue of incoming connections

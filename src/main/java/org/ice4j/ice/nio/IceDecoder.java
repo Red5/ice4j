@@ -15,6 +15,7 @@ import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.socket.SocketClosedException;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
@@ -218,10 +219,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             }
         } else {
             logger.warn("No ice socket in session, closing: {}", session);
-            // XXX check into this later, it seems to block additional reads outside the session on which its called??!?
-            // Fix in Mina to allow suspendRead with UDP is in 2.0.18+, so comment out for now
-            //session.suspendRead();
-            //session.closeNow();
             throw new SocketClosedException();
         }
     }
@@ -237,8 +234,29 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      * @param buf
      */
     void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, byte[] buf) {
-        // if its a stun message, process it
-        if (isStun(buf)) {
+        // check for turn first, since turn is an extension of stun
+        if (isTurn(buf) && isTurnMethod(buf)) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Dispatching a TURN message");
+            }
+            // get the relay connection to process the message
+            RelayedCandidateConnection relayedCandidateConnection = iceSocket.getRelayedCandidateConnection();
+            if (relayedCandidateConnection != null) {
+                try {
+                    // gets the stun stack if there is one, but its only used here to create the stun message event
+                    StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
+                    // create a message
+                    RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
+                    Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
+                    StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
+                    relayedCandidateConnection.handleMessageEvent(stunMessageEvent);
+                } catch (Exception ex) {
+                    logger.warn("Failed to decode a stun/turn message!", ex);
+                }
+            } else {
+                logger.warn("Relayed connection was null for session: {}, cannot decode TURN messages", session.getId());
+            }
+        } else if (isStun(buf) && isStunMethod(buf)) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Dispatching a STUN message");
             }
@@ -313,17 +331,62 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 isStunPacket = areFirstTwoBitsValid && isHeaderLengthValid;
             }
         }
-        if (isStunPacket) {
-            byte b0 = buf[0];
-            byte b1 = buf[1];
-            // we only accept the method Binding and the reserved methods 0x000 and 0x002/SharedSecret
-            int method = (b0 & 0xFE) | (b1 & 0xEF);
-            switch (method) {
-                case Message.STUN_METHOD_BINDING:
-                case Message.STUN_REQUEST:
-                case Message.SHARED_SECRET_REQUEST:
-                    return true;
+        return isStunPacket;
+    }
+
+    /**
+     * Ensures that a STUN message is something we'd be interested in.
+     */
+    public static boolean isStunMethod(byte[] buf) {
+        byte b0 = buf[0];
+        byte b1 = buf[1];
+        // we only accept the method Binding and the reserved methods 0x000 and 0x002/SharedSecret
+        int method = (b0 & 0xFE) | (b1 & 0xEF);
+        switch (method) {
+            case Message.STUN_METHOD_BINDING:
+            case Message.STUN_REQUEST:
+            case Message.SHARED_SECRET_REQUEST:
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Determines whether data in a byte array represents a TURN message.
+     *
+     * @param buf the bytes to check
+     * @return true if the bytes look like TURN, otherwise false
+     */
+    public static boolean isTurn(byte[] buf) {
+        // If this is a STUN packet
+        boolean isStunPacket = false;
+        // All STUN messages MUST start with a 20-byte header followed by zero or more Attributes
+        if (buf.length >= 20) {
+            // If the MAGIC COOKIE is present this is a STUN packet (RFC5389 compliant).
+            if (buf[4] == Message.MAGIC_COOKIE[0] && buf[5] == Message.MAGIC_COOKIE[1] && buf[6] == Message.MAGIC_COOKIE[2] && buf[7] == Message.MAGIC_COOKIE[3]) {
+                isStunPacket = true;
             }
+        }
+        return isStunPacket;
+    }
+
+
+    /**
+     * Ensures that a TURN message is something we'd be interested in.
+     */
+    public static boolean isTurnMethod(byte[] buf) {
+        byte b0 = buf[0];
+        byte b1 = buf[1];
+        int method = (b0 & 0xFE) | (b1 & 0xEF);
+        switch (method) {
+            case Message.TURN_METHOD_ALLOCATE:
+            case Message.TURN_METHOD_CHANNELBIND:
+            case Message.TURN_METHOD_CREATEPERMISSION:
+            case Message.TURN_METHOD_DATA:
+            case Message.TURN_METHOD_REFRESH:
+            case Message.TURN_METHOD_SEND:
+            case 0x0005: /* old TURN DATA indication */
+                return true;
         }
         return false;
     }
