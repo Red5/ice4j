@@ -346,7 +346,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
             }
             // Well, if the currentThread is finishing and this instance is still to send keep-alive messages, we'd better
             // start another Thread for the purpose to continue the work that the currentThread was supposed to carry out.
-            if ((sendKeepAliveMessageThread == null) && (sendKeepAliveMessageInterval != SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED)) {
+            if (sendKeepAliveMessageThread == null && sendKeepAliveMessageInterval != SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED) {
                 createSendKeepAliveMessageThread();
             }
         }
@@ -401,13 +401,12 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * @param realm the realm in which the specified STUN Request has been challenged for a long-term credential
      * @param nonce the nonce with which the specified STUN Request has been challenged for a long-term credential
      * @param request the STUN Request which has been challenged for a long-term credential
-     * @param requestTransactionID the TransactionID of request because request only has it as a byte
-     * array and TransactionID is required for the applicationData property value
-     * @return true if the challenge has been processed and this StunCandidateHarvest is to continue processing STUN
-     * Responses; otherwise, false
+     * @param requestTransactionID the TransactionID of request because request only has it as a byte array and TransactionID is required for the applicationData property value
+     * @return true if the challenge has been processed and to continue processing STUN Responses; otherwise, false
      * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(byte[] realm, byte[] nonce, Request request, TransactionID requestTransactionID) throws StunException {
+        logger.info("processChallenge: request transaction id: {}", requestTransactionID);
         UsernameAttribute usernameAttribute = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
         if (usernameAttribute == null) {
             if (longTermCredentialSession == null) {
@@ -472,23 +471,32 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(Response response, Request request, TransactionID transactionID) throws StunException {
+        logger.debug("processChallenge: transaction id: {}", transactionID);
         boolean retried = false;
         if (response.getAttributeCount() > 0) {
+            if (logger.isDebugEnabled()) {
+                response.getAttributes().forEach(attr -> {
+                    logger.debug("Attribute: {}", attr);
+                });
+            }
             // The response SHOULD NOT contain a USERNAME or MESSAGE-INTEGRITY attribute.
             EnumSet<Attribute.Type> excludedResponseAttributeTypes = EnumSet.of(Attribute.Type.USERNAME, Attribute.Type.MESSAGE_INTEGRITY);
             boolean challenge = true;
             // TODO XXX Paul - possibly where we're failing Edge since it sends a username??
-            if (response.containsNoneAttributes(excludedResponseAttributeTypes)) {
+            if (response.containsAnyAttributes(excludedResponseAttributeTypes)) {
                 challenge = false;
             }
             if (challenge) {
+                logger.debug("Challenge detected transaction id: {}", transactionID);
                 // This response MUST include a REALM value.
                 RealmAttribute realmAttribute = (RealmAttribute) response.getAttribute(Attribute.Type.REALM);
+                //logger.debug("Challenge realm: {}", realmAttribute);
                 if (realmAttribute == null) {
                     challenge = false;
                 } else {
                     // The response MUST include a NONCE.
                     NonceAttribute nonceAttribute = (NonceAttribute) response.getAttribute(Attribute.Type.NONCE);
+                    //logger.debug("Challenge nonce: {}", nonceAttribute);
                     if (nonceAttribute == null) {
                         challenge = false;
                     } else {
@@ -564,12 +572,23 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
         Request request = event.getRequest();
         boolean completedResolvingCandidate = true;
         try {
-            logger.trace("Response: {}", response);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Response: {}", response);
+                response.getAttributes().forEach(attr -> {
+                    logger.debug("Attribute: {}", attr);
+                });
+            }
             if (response.isSuccessResponse()) {
                 // https://tools.ietf.org/html/rfc5389#section-7.3.3
                 if (response.getMessageType() == Message.BINDING_SUCCESS_RESPONSE) {
                     // check for mapped or xor mapped address in binding response
                     if (!response.containsAnyAttributes(EnumSet.of(Attribute.Type.MAPPED_ADDRESS, Attribute.Type.XOR_MAPPED_ADDRESS))) {
+                        logger.warn("Mapped address attributes are absent, discarding response");
+                        return;
+                    }
+                } else if (response.getMessageType() == Message.ALLOCATE_RESPONSE) {
+                    // check for mapped or xor mapped address in allocate response
+                    if (!response.containsAnyAttributes(EnumSet.of(Attribute.Type.MAPPED_ADDRESS, Attribute.Type.XOR_MAPPED_ADDRESS, Attribute.Type.XOR_RELAYED_ADDRESS))) {
                         logger.warn("Mapped address attributes are absent, discarding response");
                         return;
                     }
@@ -593,16 +612,20 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
                 processSuccess(response, request, transactionID);
             } else {
                 ErrorCodeAttribute errorCodeAttr = (ErrorCodeAttribute) response.getAttribute(Attribute.Type.ERROR_CODE);
-                if ((errorCodeAttr != null) && (errorCodeAttr.getErrorClass() == 4)) {
+                if (errorCodeAttr != null && errorCodeAttr.getErrorClass() == 4) {
+                    int errorNumber = errorCodeAttr.getErrorNumber();
+                    logger.info("Error code: {}", errorNumber);
                     try {
-                        switch (errorCodeAttr.getErrorNumber()) {
+                        switch (errorNumber) {
                             case 1: // 401 Unauthorized
-                                if (processUnauthorized(response, request, transactionID))
+                                if (processUnauthorized(response, request, transactionID)) {
                                     completedResolvingCandidate = false;
+                                }
                                 break;
                             case 38: // 438 Stale Nonce
-                                if (processStaleNonce(response, request, transactionID))
+                                if (processStaleNonce(response, request, transactionID)) {
                                     completedResolvingCandidate = false;
+                                }
                                 break;
                         }
                     } catch (StunException sex) {
@@ -658,21 +681,14 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Handles a specific STUN error Response with error code
-     * "401 Unauthorized" to a specific STUN Request.
+     * Handles a specific STUN error Response with error code "401 Unauthorized" to a specific STUN Request.
      *
-     * @param response the received STUN error Response with error code
-     * "401 Unauthorized" which is to be handled
-     * @param request the STUN Request to which response
-     * responds
-     * @param transactionID the TransactionID of response and
-     * request because response and request only have
-     * it as a byte array and TransactionID is required for
-     * the applicationData property value
-     * @return true if the specified STUN error response was
-     * successfully handled; false, otherwise
-     * @throws StunException if anything goes wrong while handling the specified
-     * "401 Unauthorized" error response
+     * @param response the received STUN error Response with error code "401 Unauthorized" which is to be handled
+     * @param request the STUN Request to which response responds
+     * @param transactionID the TransactionID of response and request because response and request only have
+     * it as a byte array and TransactionID is required for the applicationData property value
+     * @return true if the specified STUN error response was successfully handled; false, otherwise
+     * @throws StunException if anything goes wrong while handling the specified "401 Unauthorized" error response
      */
     private boolean processUnauthorized(Response response, Request request, TransactionID transactionID) throws StunException {
         // If the response is a challenge, retry the request with a new transaction.
@@ -788,8 +804,15 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * StunCandidateHarvest
      */
     protected TransactionID sendRequest(Request request, boolean firstRequest, TransactionID transactionID) throws StunException {
-        logger.debug("sendRequest {}", request);
-        if (!firstRequest && (longTermCredentialSession != null)) {
+        logger.debug("sendRequest {} long-term-creds session: {}", request, longTermCredentialSession);
+        final char type = request.getMessageType();
+        if (firstRequest && type == Message.ALLOCATE_REQUEST) {
+            // if this is the first request and we've got long-term-creds, ensure username and message-integrity aren't here!
+            logger.debug("Removing short-term-cred attributes on an allocation request");
+            request.removeAttribute(Attribute.Type.USERNAME);
+            request.removeAttribute(Attribute.Type.MESSAGE_INTEGRITY);
+        } else if (longTermCredentialSession != null && (type == Message.ALLOCATE_REQUEST || type == Message.CREATEPERMISSION_REQUEST)) {
+            logger.debug("Adding long-term-cred attributes");
             longTermCredentialSession.addAttributes(request);
         }
         StunStack stunStack = harvester.getStunStack();
@@ -798,10 +821,15 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
         if (transactionID == null) {
             byte[] transactionIDAsBytes = request.getTransactionID();
             //logger.warn("transactionIDAsBytes {}", (transactionIDAsBytes != null ? transactionIDAsBytes.length : null));
-            transactionID = (transactionIDAsBytes == null) ? TransactionID.createNewTransactionID() : TransactionID.createTransactionID(harvester.getStunStack(), transactionIDAsBytes);
+            transactionID = (transactionIDAsBytes == null) ? TransactionID.createNewTransactionID() : TransactionID.createTransactionID(stunStack, transactionIDAsBytes);
             //logger.debug("TransactionID: {}", transactionID);
         }
         logger.debug("Request transaction id: {}", transactionID.toString());
+        if (logger.isDebugEnabled()) {
+            request.getAttributes().forEach(attr -> {
+                logger.debug("Attribute: {}", attr);
+            });
+        }
         try {
             transactionID = stunStack.sendRequest(request, stunServer, hostCandidateTransportAddress, this, transactionID);
         } catch (IllegalArgumentException iaex) {
@@ -816,17 +844,12 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Sets the interval in milliseconds at which a new STUN keep-alive message
-     * is to be sent to the STUN server associated with the
-     * StunCandidateHarvester of this instance in order to keep one of
-     * the Candidates harvested by this instance alive.
+     * Sets the interval in milliseconds at which a new STUN keep-alive message is to be sent to the STUN server associated with the
+     * StunCandidateHarvester of this instance in order to keep one of the Candidates harvested by this instance alive.
      *
-     * @param sendKeepAliveMessageInterval the interval in milliseconds at which
-     * a new STUN keep-alive message is to be sent to the STUN server associated
-     * with the StunCandidateHarvester of this instance in order to
-     * keep one of the Candidates harvested by this instance alive or
-     * {@link #SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED} if the keep-alive
-     * functionality is to not be utilized
+     * @param sendKeepAliveMessageInterval the interval in milliseconds at which a new STUN keep-alive message is to be sent to the STUN server associated
+     * with the StunCandidateHarvester of this instance in order to keep one of the Candidates harvested by this instance alive or
+     * {@link #SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED} if the keep-alive functionality is to not be utilized
      */
     protected void setSendKeepAliveMessageInterval(long sendKeepAliveMessageInterval) {
         if ((sendKeepAliveMessageInterval != SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED) && (sendKeepAliveMessageInterval < 1)) {
@@ -846,9 +869,8 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     /**
      * Starts the harvesting of Candidates to be performed for {@link #hostCandidate}.
      *
-     * @return true if this StunCandidateHarvest has started the harvesting of Candidates for {@link #hostCandidate};
-     * otherwise, false
-     * @throws Exception if anything goes wrong while starting the harvesting of Candidates to be performed for {@link #hostCandidate}
+     * @return true if this StunCandidateHarvest has started the harvesting of Candidates for hostCandidate} otherwise, false
+     * @throws Exception if anything goes wrong while starting the harvesting of Candidates to be performed for hostCandidate
      */
     boolean startResolvingCandidate() throws Exception {
         Request requestToStartResolvingCandidate;

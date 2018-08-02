@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -619,10 +620,14 @@ public class Agent {
      * @param harvester a CandidateHarvester that this agent should use when gathering candidates.
      */
     public void addCandidateHarvester(CandidateHarvester harvester) {
+        logger.debug("addCandidateHarvester: {}", harvester);
         if (harvester.isHostHarvester()) {
             hostHarvesters.add(harvester);
         } else {
             harvesters.add(harvester);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("harvesters: {}", harvesters);
         }
     }
 
@@ -763,7 +768,10 @@ public class Agent {
      * @return the IceMediaStream with the specified name or null if no such stream has been registered with this Agent yet
      */
     public IceMediaStream getStream(String name) {
-        return mediaStreams.get(name);
+        if (Optional.ofNullable(name).isPresent()) {
+            return mediaStreams.get(name);
+        }
+        return null;
     }
 
     /**

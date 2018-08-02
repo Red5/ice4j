@@ -39,15 +39,11 @@ public class CredentialsManager {
     private final CopyOnWriteArraySet<CredentialsAuthority> authorities = new CopyOnWriteArraySet<>();
 
     /**
-     * Verifies whether username is currently known to any of the
-     * {@link CredentialsAuthority}s registered with this manager and
+     * Verifies whether username is currently known to any of the {@link CredentialsAuthority}s registered with this manager and
      * and returns true if so. Returns false otherwise.
      *
-     * @param username the user name whose validity we'd like to check.
-     *
-     * @return true if username is known to any of the
-     * CredentialsAuthoritys registered here and false
-     * otherwise.
+     * @param username the user name whose validity we'd like to check
+     * @return true if username is known to any of the CredentialsAuthoritys registered here and false otherwise
      */
     public boolean checkLocalUserName(String username) {
         for (CredentialsAuthority auth : authorities) {
@@ -59,17 +55,12 @@ public class CredentialsManager {
     }
 
     /**
-     * Queries all currently registered {@link CredentialsAuthority}s for a
-     * password corresponding to the specified local username or user
+     * Queries all currently registered {@link CredentialsAuthority}s for a password corresponding to the specified local username or user
      * frag and returns the first non-null one.
      *
-     * @param username a local user name or user frag whose credentials we'd
-     * like to obtain.
-     *
-     * @return null if username was not a recognized local user name
-     * for none of the currently registered CredentialsAuthoritys or
-     * a byte array containing the first non-null password
-     * that one of them returned.
+     * @param username a local user name or user frag whose credentials we'd like to obtain
+     * @return null if username was not a recognized local user name for none of the currently registered CredentialsAuthoritys or
+     * a byte array containing the first non-null password that one of them returned
      */
     public byte[] getLocalKey(String username) {
         logger.trace("getLocalKey username: {}", username);
@@ -90,14 +81,10 @@ public class CredentialsManager {
      * password corresponding to the specified remote username or user
      * frag and returns the first non-null one.
      *
-     * @param username a remote user name or user frag whose credentials we'd
-     * like to obtain.
-     * @param media the media name that we want to get remote key.
-     *
-     * @return null if username was not a recognized remote user name
-     * for none of the currently registered CredentialsAuthoritys or
-     * a byte array containing the first non-null password
-     * that one of them returned.
+     * @param username a remote user name or user frag whose credentials we'd like to obtain
+     * @param media the media name that we want to get remote key
+     * @return null if username was not a recognized remote user name for none of the currently registered CredentialsAuthoritys or
+     * a byte array containing the first non-null password that one of them returned
      */
     public byte[] getRemoteKey(String username, String media) {
         logger.trace("getRemoteKey username: {} media: {}", username, media);
@@ -114,21 +101,18 @@ public class CredentialsManager {
     }
 
     /**
-     * Adds authority to the list of {@link CredentialsAuthority}s
-     * registered with this manager.
+     * Adds authority to the list of {@link CredentialsAuthority}s registered with this manager.
      *
-     * @param authority the {@link CredentialsAuthority} to add to this manager.
+     * @param authority the {@link CredentialsAuthority} to add to this manager
      */
     public void registerAuthority(CredentialsAuthority authority) {
         authorities.add(authority);
     }
 
     /**
-     * Removes authority from the list of {@link CredentialsAuthority}s
-     * registered with this manager.
+     * Removes authority from the list of {@link CredentialsAuthority}s registered with this manager.
      *
-     * @param authority the {@link CredentialsAuthority} to remove from this
-     * manager.
+     * @param authority the {@link CredentialsAuthority} to remove from this manager
      */
     public void unregisterAuthority(CredentialsAuthority authority) {
         authorities.remove(authority);

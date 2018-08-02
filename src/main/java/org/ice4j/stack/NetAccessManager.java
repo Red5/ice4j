@@ -175,8 +175,8 @@ public class NetAccessManager {
         final ConcurrentMap<TransportAddress, Map<TransportAddress, Connector>> connectorsMap = udp ? udpConnectors : tcpConnectors;
         Connector connector = null;
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Local connectors: {}", connectorsForLocalAddress);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Local connectors: {}", connectorsForLocalAddress);
         }
         if (connectorsForLocalAddress != null) {
             connector = connectorsForLocalAddress.get(remoteAddress);

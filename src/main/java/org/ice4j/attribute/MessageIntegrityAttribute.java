@@ -233,35 +233,28 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
         if (logger.isDebugEnabled()) {
             logger.debug("encode - offset: {} length: {}\n{}", offset, length, StunStack.toHexString(content));
         }
-
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
-
         //Type
         int type = getAttributeType().getType();
         binValue[0] = (byte) (type >> 8);
         binValue[1] = (byte) (type & 0x00FF);
-
         //Length
         binValue[2] = (byte) (getDataLength() >> 8);
         binValue[3] = (byte) (getDataLength() & 0x00FF);
-
         byte[] key = null;
         char msgType = (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
         // PR124
         if (Message.isRequestType(msgType) || Message.isIndicationType(msgType)) {
-            /* attribute part of a request, use the remote key */
+            // attribute part of a request, use the remote key
             key = stunStack.getCredentialsManager().getRemoteKey(username, media);
         } else if (Message.isSuccessResponseType(msgType) || Message.isErrorResponseType(msgType)) {
-            /* attribute part of a response, use the local key */
+            // attribute part of a response, use the local key
             key = stunStack.getCredentialsManager().getLocalKey(username);
         }
-
         //now calculate the HMAC-SHA1
-        this.hmacSha1Content = calculateHmacSha1(content, offset, length, key);
-
+        hmacSha1Content = calculateHmacSha1(content, offset, length, key);
         //username
         System.arraycopy(hmacSha1Content, 0, binValue, 4, getDataLength());
-
         return binValue;
     }
 

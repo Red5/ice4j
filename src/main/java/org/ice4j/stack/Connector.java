@@ -2,8 +2,8 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 
+import org.apache.mina.core.buffer.IoBuffer;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 
@@ -81,8 +81,9 @@ class Connector {
      * @throws IOException if an exception occurs while sending the message
      */
     void sendMessage(byte[] message, TransportAddress address) throws IOException {
-        DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
-        sock.send(datagramPacket);
+        //        DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
+        //        sock.send(datagramPacket);
+        sock.send(IoBuffer.wrap(message), address);
     }
 
     /**

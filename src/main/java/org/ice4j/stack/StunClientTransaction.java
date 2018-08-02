@@ -6,12 +6,25 @@
  */
 package org.ice4j.stack;
 
-import java.io.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
+import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.ice4j.*;
-import org.ice4j.message.*;
+import org.ice4j.ResponseCollector;
+import org.ice4j.StackProperties;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.StunResponseEvent;
+import org.ice4j.StunTimeoutEvent;
+import org.ice4j.TransportAddress;
+import org.ice4j.message.Request;
+import org.ice4j.message.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,23 +47,29 @@ public class StunClientTransaction implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(StunClientTransaction.class);
 
     /**
-     * The number of times to retransmit a request if no explicit value has been
-     * specified by org.ice4j.MAX_RETRANSMISSIONS.
+     * The number of times to retransmit a request if no explicit value has been specified by org.ice4j.MAX_RETRANSMISSIONS.
      */
     public static final int DEFAULT_MAX_RETRANSMISSIONS = 6;
 
     /**
-     * The maximum number of milliseconds a client should wait between
-     * consecutive retransmissions, after it has sent a request for the first
+     * The maximum number of milliseconds a client should wait between consecutive retransmissions, after it has sent a request for the first
      * time.
      */
     public static final int DEFAULT_MAX_WAIT_INTERVAL = 1600;
 
     /**
-     * The number of milliseconds a client should wait before retransmitting,
-     * after it has sent a request for the first time.
+     * The number of milliseconds a client should wait before retransmitting, after it has sent a request for the first time.
      */
     public static final int DEFAULT_ORIGINAL_WAIT_INTERVAL = 100;
+
+    private static UncaughtExceptionHandler uncaughtExceptionHandler = new UncaughtExceptionHandler() {
+
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            logger.warn("Uncaught exception on thread: {}", t.getName(), e);
+        }
+
+    };
 
     /**
      * The pool of Threads which retransmit StunClientTransactions.
@@ -73,6 +92,7 @@ public class StunClientTransaction implements Runnable {
                     name = "";
                 }
                 t.setName("StunClientTransaction-" + name);
+                t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
             }
             return t;
         }
@@ -261,7 +281,7 @@ public class StunClientTransaction implements Runnable {
      *
      */
     void sendRequest() throws IllegalArgumentException, IOException {
-        logger.debug("sending STUN  tid {} from {} to {}", transactionID, localAddress, requestDestination);
+        logger.debug("Sending STUN tid {} from {} to {}", transactionID, localAddress, requestDestination);
         sendRequest0();
         retransmissionThreadPool.execute(this);
     }
@@ -276,7 +296,7 @@ public class StunClientTransaction implements Runnable {
      */
     private void sendRequest0() throws IllegalArgumentException, IOException {
         if (cancelled) {
-            logger.debug("Trying to resend a cancelled transaction.");
+            logger.debug("Trying to resend a cancelled transaction");
         } else {
             stackCallback.getNetAccessManager().sendMessage(request, localAddress, requestDestination);
         }

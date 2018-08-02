@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import java.util.zip.*;
@@ -51,16 +35,13 @@ import org.ice4j.stack.*;
  * @author Sebastien Vincent
  * @author Emil Ivov
  */
-public class FingerprintAttribute
-    extends Attribute
-    implements ContentDependentAttribute
-{
+public class FingerprintAttribute extends Attribute implements ContentDependentAttribute {
 
     /**
      * The value that we need to XOR the CRC with. The XOR helps in cases where
      * an application packet is also using CRC-32 in it).
      */
-    public static final byte[] XOR_MASK = { 0x53, 0x54, 0x55, 0x4e};
+    public static final byte[] XOR_MASK = { 0x53, 0x54, 0x55, 0x4e };
 
     /**
      * The CRC32 checksum that this attribute is carrying. Only used in incoming
@@ -71,8 +52,7 @@ public class FingerprintAttribute
     /**
      * Creates a FingerPrintAttribute instance.
      */
-    FingerprintAttribute()
-    {
+    FingerprintAttribute() {
         super(Attribute.Type.FINGERPRINT);
     }
 
@@ -83,8 +63,7 @@ public class FingerprintAttribute
      * @return the CRC32 checksum that this attribute is carrying or
      * null if it has not been set.
      */
-    public byte[] getChecksum()
-    {
+    public byte[] getChecksum() {
         return crc;
     }
 
@@ -93,8 +72,7 @@ public class FingerprintAttribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return 4;
     }
 
@@ -106,18 +84,15 @@ public class FingerprintAttribute
      *
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof FingerprintAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof FingerprintAttribute))
             return false;
 
         if (obj == this)
             return true;
 
         FingerprintAttribute att = (FingerprintAttribute) obj;
-        if (att.getAttributeType() != getAttributeType()
-                || att.getDataLength() != getDataLength())
-        {
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength()) {
             return false;
         }
 
@@ -132,12 +107,8 @@ public class FingerprintAttribute
      * ContentDependentAttribute}s should be encoded through the content
      * dependent encode method.
      */
-    public byte[] encode()
-        throws UnsupportedOperationException
-    {
-        throw new UnsupportedOperationException(
-                        "ContentDependentAttributes should be encoded "
-                        + "through the contend-dependent encode method");
+    public byte[] encode() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("ContentDependentAttributes should be encoded " + "through the contend-dependent encode method");
     }
 
     /**
@@ -154,19 +125,16 @@ public class FingerprintAttribute
      * @return a binary representation of this attribute valid for the message
      * with the specified content.
      */
-    public byte[] encode(
-            StunStack stunStack,
-            byte[] content, int offset, int length)
-    {
+    public byte[] encode(StunStack stunStack, byte[] content, int offset, int length) {
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         //calculate the check sum
         byte[] xorCrc32 = calculateXorCRC32(content, offset, length);
@@ -193,12 +161,8 @@ public class FingerprintAttribute
      *
      * @throws StunException if attrubteValue contains invalid data.
      */
-    public void decodeAttributeBody( byte[] attributeValue,
-            int offset, int length)
-        throws StunException
-    {
-        if(length != 4)
-        {
+    public void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        if (length != 4) {
             throw new StunException("length invalid");
         }
 
@@ -224,8 +188,7 @@ public class FingerprintAttribute
      * @return the CRC value that should be sent in a FINGERPRINT
      * attribute traveling in the message message.
      */
-    public static byte[] calculateXorCRC32(byte[] message, int offset, int len)
-    {
+    public static byte[] calculateXorCRC32(byte[] message, int offset, int len) {
         //now check whether the CRC really is what it's supposed to be.
         //re calculate the check sum
         CRC32 checksum = new CRC32();
@@ -234,10 +197,10 @@ public class FingerprintAttribute
         long crc = checksum.getValue();
         byte[] xorCRC32 = new byte[4];
 
-        xorCRC32[0] = (byte)((byte)((crc >> 24) & 0xff) ^ XOR_MASK[0]);
-        xorCRC32[1] = (byte)((byte)((crc >> 16) & 0xff) ^ XOR_MASK[1]);
-        xorCRC32[2] = (byte)((byte)((crc >> 8)  & 0xff) ^ XOR_MASK[2]);
-        xorCRC32[3] = (byte)((byte) (crc        & 0xff) ^ XOR_MASK[3]);
+        xorCRC32[0] = (byte) ((byte) ((crc >> 24) & 0xff) ^ XOR_MASK[0]);
+        xorCRC32[1] = (byte) ((byte) ((crc >> 16) & 0xff) ^ XOR_MASK[1]);
+        xorCRC32[2] = (byte) ((byte) ((crc >> 8) & 0xff) ^ XOR_MASK[2]);
+        xorCRC32[3] = (byte) ((byte) (crc & 0xff) ^ XOR_MASK[3]);
 
         return xorCRC32;
     }

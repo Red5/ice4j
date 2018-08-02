@@ -15,7 +15,6 @@ import org.ice4j.attribute.UsernameAttribute;
 import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.message.Message;
 import org.ice4j.socket.IceSocketWrapper;
-import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.socket.SocketClosedException;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
@@ -234,29 +233,8 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      * @param buf
      */
     void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, byte[] buf) {
-        // check for turn first, since turn is an extension of stun
-        if (isTurn(buf) && isTurnMethod(buf)) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Dispatching a TURN message");
-            }
-            // get the relay connection to process the message
-            RelayedCandidateConnection relayedCandidateConnection = iceSocket.getRelayedCandidateConnection();
-            if (relayedCandidateConnection != null) {
-                try {
-                    // gets the stun stack if there is one, but its only used here to create the stun message event
-                    StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
-                    // create a message
-                    RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
-                    Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                    StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
-                    relayedCandidateConnection.handleMessageEvent(stunMessageEvent);
-                } catch (Exception ex) {
-                    logger.warn("Failed to decode a stun/turn message!", ex);
-                }
-            } else {
-                logger.warn("Relayed connection was null for session: {}, cannot decode TURN messages", session.getId());
-            }
-        } else if (isStun(buf) && isStunMethod(buf)) {
+        // if special TURN processing is needed, we'll have to separate it out to be run first since TURN messages are STUN messages
+        if ((isStun(buf) && isStunMethod(buf)) || (isTurn(buf) && isTurnMethod(buf))) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Dispatching a STUN message");
             }
@@ -266,6 +244,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                     // create a message
                     RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
                     Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
+                    logger.debug("Message: {}", stunMessage);
                     StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
                     stunStack.handleMessageEvent(stunMessageEvent);
                 } catch (Exception ex) {
@@ -369,7 +348,6 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         }
         return isStunPacket;
     }
-
 
     /**
      * Ensures that a TURN message is something we'd be interested in.

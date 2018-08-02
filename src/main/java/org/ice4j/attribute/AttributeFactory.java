@@ -1,15 +1,11 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
-import java.io.*;
-import java.lang.reflect.*;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.UndeclaredThrowableException;
 
-import org.ice4j.*;
+import org.ice4j.StunException;
+import org.ice4j.TransportAddress;
 
 /**
  * This class provides factory methods to allow an application to create STUN /
@@ -150,17 +146,14 @@ public class AttributeFactory {
     }
 
     /**
-     * Creates a SourceFromAddressAttribute of the specified type and with the
-     * specified address and port
+     * Creates a SourceFromAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
-     * @return the newly created address attribute.
+     * @return the newly created address attribute
      */
     public static SourceAddressAttribute createSourceAddressAttribute(TransportAddress address) {
         SourceAddressAttribute attribute = new SourceAddressAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
@@ -171,40 +164,32 @@ public class AttributeFactory {
      */
     public static UnknownAttributesAttribute createUnknownAttributesAttribute() {
         UnknownAttributesAttribute attribute = new UnknownAttributesAttribute();
-
         return attribute;
     }
 
     /**
-     * Creates a XorRelayedAddressAttribute of the specified type and with the
-     * specified address and port.
+     * Creates a XorRelayedAddressAttribute of the specified type and with the specified address and port.
      *
      * @param address the address value of the address attribute
-     * @param tranID the ID of the transaction that we will be using for the XOR
-     * mask.
-     *
-     * @return the newly created address attribute.
+     * @param tranID the ID of the transaction that we will be using for the XOR mask
+     * @return the newly created address attribute
      */
     public static XorRelayedAddressAttribute createXorRelayedAddressAttribute(TransportAddress address, byte[] tranID) {
         XorRelayedAddressAttribute attribute = new XorRelayedAddressAttribute();
-
         // TODO (Emil): shouldn't we be XORing the address before setting it?
         attribute.setAddress(address, tranID);
         return attribute;
     }
 
     /**
-     * Creates a XorPeerAddressAttribute of the specified type and with the
-     * specified address and port
+     * Creates a XorPeerAddressAttribute of the specified type and with the specified address and port
      *
      * @param address the address value of the address attribute
-     * @param tranID the ID of the transaction that we will be using for the XOR
-     * mask.
-     * @return the newly created address attribute.
+     * @param tranID the ID of the transaction that we will be using for the XOR mask
+     * @return the newly created address attribute
      */
     public static XorPeerAddressAttribute createXorPeerAddressAttribute(TransportAddress address, byte[] tranID) {
         XorPeerAddressAttribute attribute = new XorPeerAddressAttribute();
-
         // TODO (Emil): shouldn't we be XORing the address before setting it?
         attribute.setAddress(address, tranID);
         return attribute;
@@ -214,10 +199,8 @@ public class AttributeFactory {
      * Creates a XorMappedAddressAttribute for the specified address.
      *
      * @param address the address value of the address attribute
-     * @param tranID the ID of the transaction that we will be using for the XOR
-     * mask.
-     *
-     * @return the newly created XOR address attribute.
+     * @param tranID the ID of the transaction that we will be using for the XOR mask
+     * @return the newly created XOR address attribute
      */
     public static XorMappedAddressAttribute createXorMappedAddressAttribute(TransportAddress address, byte[] tranID) {
         XorMappedAddressAttribute attribute = new XorMappedAddressAttribute();
@@ -231,12 +214,10 @@ public class AttributeFactory {
      * Create a UsernameAttribute.
      *
      * @param username username value
-     *
      * @return newly created UsernameAttribute
      */
     public static UsernameAttribute createUsernameAttribute(byte username[]) {
         UsernameAttribute attribute = new UsernameAttribute();
-
         attribute.setUsername(username);
         return attribute;
     }
@@ -249,7 +230,6 @@ public class AttributeFactory {
      */
     public static UsernameAttribute createUsernameAttribute(String username) {
         UsernameAttribute attribute = new UsernameAttribute();
-
         try {
             attribute.setUsername(username.getBytes("UTF-8"));
         } catch (UnsupportedEncodingException ueex) {
@@ -272,7 +252,6 @@ public class AttributeFactory {
      */
     public static MessageIntegrityAttribute createMessageIntegrityAttribute(String username) {
         MessageIntegrityAttribute attribute = new MessageIntegrityAttribute();
-
         attribute.setUsername(username);
         return attribute;
     }
@@ -286,7 +265,6 @@ public class AttributeFactory {
      */
     public static FingerprintAttribute createFingerprintAttribute() {
         FingerprintAttribute attribute = new FingerprintAttribute();
-
         return attribute;
     }
 
@@ -298,7 +276,6 @@ public class AttributeFactory {
      */
     public static ChannelNumberAttribute createChannelNumberAttribute(char channelNumber) {
         ChannelNumberAttribute attribute = new ChannelNumberAttribute();
-
         attribute.setChannelNumber(channelNumber);
         return attribute;
     }
@@ -311,7 +288,6 @@ public class AttributeFactory {
      */
     public static RealmAttribute createRealmAttribute(byte realm[]) {
         RealmAttribute attribute = new RealmAttribute();
-
         attribute.setRealm(realm);
         return attribute;
     }
@@ -324,7 +300,6 @@ public class AttributeFactory {
      */
     public static NonceAttribute createNonceAttribute(byte nonce[]) {
         NonceAttribute attribute = new NonceAttribute();
-
         attribute.setNonce(nonce);
         return attribute;
     }
@@ -337,7 +312,6 @@ public class AttributeFactory {
      */
     public static SoftwareAttribute createSoftwareAttribute(byte software[]) {
         SoftwareAttribute attribute = new SoftwareAttribute();
-
         attribute.setSoftware(software);
         return attribute;
     }
@@ -350,7 +324,6 @@ public class AttributeFactory {
      */
     public static EvenPortAttribute createEvenPortAttribute(boolean rFlag) {
         EvenPortAttribute attribute = new EvenPortAttribute();
-
         attribute.setRFlag(rFlag);
         return attribute;
     }
@@ -358,12 +331,11 @@ public class AttributeFactory {
     /**
      * Create a LifetimeAttribute.
      *
-     * @param lifetime lifetime value
+     * @param lifetime lifetime value in seconds
      * @return newly created LifetimeAttribute
      */
     public static LifetimeAttribute createLifetimeAttribute(int lifetime) {
         LifetimeAttribute attribute = new LifetimeAttribute();
-
         attribute.setLifetime(lifetime);
         return attribute;
     }
@@ -376,7 +348,6 @@ public class AttributeFactory {
      */
     public static RequestedTransportAttribute createRequestedTransportAttribute(byte protocol) {
         RequestedTransportAttribute attribute = new RequestedTransportAttribute();
-
         attribute.setRequestedTransport(protocol);
         return attribute;
     }
@@ -389,7 +360,6 @@ public class AttributeFactory {
      */
     public static ReservationTokenAttribute createReservationTokenAttribute(byte token[]) {
         ReservationTokenAttribute attribute = new ReservationTokenAttribute();
-
         attribute.setReservationToken(token);
         return attribute;
     }
@@ -402,7 +372,6 @@ public class AttributeFactory {
      */
     public static DataAttribute createDataAttribute(byte data[]) {
         DataAttribute attribute = new DataAttribute();
-
         attribute.setData(data);
         return attribute;
     }
@@ -415,14 +384,12 @@ public class AttributeFactory {
      */
     public static DataAttribute createDataAttributeWithoutPadding(byte data[]) {
         DataAttribute attribute = new DataAttribute(false);
-
         attribute.setData(data);
         return attribute;
     }
 
     /**
-     * Creates an IceControlledAttribute object with the specified tie-breaker
-     * value
+     * Creates an IceControlledAttribute object with the specified tie-breaker value
      *
      * @param tieBreaker the tie-breaker value to be used
      * @return the created IceControlledAttribute
@@ -430,7 +397,6 @@ public class AttributeFactory {
     public static IceControlledAttribute createIceControlledAttribute(long tieBreaker) {
         IceControlledAttribute attribute = new IceControlledAttribute();
         attribute.setTieBreaker(tieBreaker);
-
         return attribute;
     }
 
@@ -439,14 +405,11 @@ public class AttributeFactory {
      *
      * @param priority the priority value
      * @return the created PriorityAttribute
-     * @throws IllegalArgumentException if priority &lt; 0 or priority &gt;
-     *             (2^31 - 1)
+     * @throws IllegalArgumentException if priority &lt; 0 or priority &gt; (2^31 - 1)
      */
     public static PriorityAttribute createPriorityAttribute(long priority) throws IllegalArgumentException {
         PriorityAttribute attribute = new PriorityAttribute();
-
         attribute.setPriority(priority);
-
         return attribute;
     }
 
@@ -457,7 +420,6 @@ public class AttributeFactory {
      */
     public static UseCandidateAttribute createUseCandidateAttribute() {
         UseCandidateAttribute attribute = new UseCandidateAttribute();
-
         return attribute;
     }
 
@@ -471,7 +433,6 @@ public class AttributeFactory {
     public static IceControllingAttribute createIceControllingAttribute(long tieBreaker) {
         IceControllingAttribute attribute = new IceControllingAttribute();
         attribute.setTieBreaker(tieBreaker);
-
         return attribute;
     }
 
@@ -494,9 +455,7 @@ public class AttributeFactory {
      */
     public static DestinationAddressAttribute createDestinationAddressAttribute(TransportAddress address) {
         DestinationAddressAttribute attribute = new DestinationAddressAttribute();
-
         attribute.setAddress(address);
-
         return attribute;
     }
 
@@ -509,12 +468,10 @@ public class AttributeFactory {
      */
     public static RequestedAddressFamilyAttribute createRequestedAddressFamilyAttribute(char family) {
         RequestedAddressFamilyAttribute attribute = new RequestedAddressFamilyAttribute();
-
         boolean isSet = attribute.setFamily(family);
         if (!isSet) {
             attribute = null;
         }
-
         return attribute;
     }
 
@@ -526,9 +483,7 @@ public class AttributeFactory {
      */
     public static ConnectionIdAttribute createConnectionIdAttribute(int connectionIdValue) {
         ConnectionIdAttribute attribute = new ConnectionIdAttribute();
-
         attribute.setConnectionIdValue(connectionIdValue);
-
         return attribute;
     }
 
@@ -542,7 +497,6 @@ public class AttributeFactory {
         ConnectionIdAttribute attribute = new ConnectionIdAttribute();
         int connectionIdValue = attribute.hashCode();
         attribute.setConnectionIdValue(connectionIdValue);
-
         return attribute;
     }
 

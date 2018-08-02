@@ -283,6 +283,9 @@ public class MessageFactory {
             if (rFlag) {
                 allocateRequest.putAttribute(AttributeFactory.createEvenPortAttribute(rFlag));
             }
+            // LIFETIME per rfc5766 (3600s / 1h)
+            LifetimeAttribute lifetimeAttribute = AttributeFactory.createLifetimeAttribute(3600);
+            allocateRequest.putAttribute(lifetimeAttribute);
         } catch (StunException ex) {
             logger.warn("Failed to set message type", ex);
         }

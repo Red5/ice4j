@@ -18,12 +18,10 @@ public class Indication extends Message {
     }
 
     /**
-     * Checks whether indicationType is a valid indication type and if yes sets
-     * it as the type of this instance.
+     * Checks whether indicationType is a valid indication type and if yes sets it as the type of this instance.
      *
      * @param indicationType the type to set
-     * @throws IllegalArgumentException if indicationType is not a valid
-     * indication type
+     * @throws IllegalArgumentException if indicationType is not a valid indication type
      */
     @Override
     public void setMessageType(char indicationType) throws IllegalArgumentException {

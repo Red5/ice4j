@@ -745,11 +745,9 @@ public abstract class Message {
     /**
      * Returns a binary representation of this message.
      *
-     * @param stunStack the StunStack in the context of which the
-     * request to encode this Message is being made
-     * @return a binary representation of this message.
-     *
-     * @throws IllegalStateException if the message does not have all required attributes.
+     * @param stunStack the StunStack in the context of which the request to encode this Message is being made
+     * @return a binary representation of this message
+     * @throws IllegalStateException if the message does not have all required attributes
      */
     public byte[] encode(StunStack stunStack) throws IllegalStateException {
         prepareForEncoding();
@@ -801,7 +799,7 @@ public abstract class Message {
     }
 
     /**
-     * Adds attributes that have been requested vis configuration properties.
+     * Adds attributes that have been requested via configuration properties.
      * Asserts attribute order where necessary.
      */
     private void prepareForEncoding() {

@@ -173,11 +173,18 @@ public class IceHandler extends IoHandlerAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
         }
+        // allow flagging a session from being closed on idle
+        boolean closeOnIdle = true;
+        if (session.containsAttribute(IceTransport.Ice.CLOSE_ON_IDLE)) {
+            closeOnIdle = Boolean.valueOf((boolean) session.getAttribute(IceTransport.Ice.CLOSE_ON_IDLE));
+        }
         // get the existing reference to an ice socket
         final IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
         // close the idle socket
-        if (iceSocket != null) {
+        if (iceSocket != null && closeOnIdle) {
             iceSocket.close();
+        } else {
+            logger.debug("Skipping close on idle session: {}", session);
         }
     }
 

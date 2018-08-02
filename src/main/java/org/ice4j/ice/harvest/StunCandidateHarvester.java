@@ -27,7 +27,6 @@ import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -39,7 +38,9 @@ import org.slf4j.LoggerFactory;
  */
 public class StunCandidateHarvester extends AbstractCandidateHarvester {
 
-    private static final Logger logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
+    {
+        logger = LoggerFactory.getLogger(StunCandidateHarvester.class);
+    }
 
     /**
      * The list of StunCandidateHarvests which have been successfully completed i.e. have harvested Candidates.
@@ -355,6 +356,37 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((shortTermCredentialUsername == null) ? 0 : shortTermCredentialUsername.hashCode());
+        result = prime * result + ((stunServer == null) ? 0 : stunServer.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        StunCandidateHarvester other = (StunCandidateHarvester) obj;
+        if (shortTermCredentialUsername == null) {
+            if (other.shortTermCredentialUsername != null)
+                return false;
+        } else if (!shortTermCredentialUsername.equals(other.shortTermCredentialUsername))
+            return false;
+        if (stunServer == null) {
+            if (other.stunServer != null)
+                return false;
+        } else if (!stunServer.equals(other.stunServer))
+            return false;
+        return true;
     }
 
     /**

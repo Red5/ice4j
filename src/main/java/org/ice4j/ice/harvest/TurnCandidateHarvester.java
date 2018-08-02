@@ -1,11 +1,12 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
+import java.util.Optional;
+
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.security.LongTermCredential;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -16,7 +17,9 @@ import org.slf4j.LoggerFactory;
  */
 public class TurnCandidateHarvester extends StunCandidateHarvester {
 
-    private static final Logger logger = LoggerFactory.getLogger(TurnCandidateHarvester.class);
+    {
+        logger = LoggerFactory.getLogger(TurnCandidateHarvester.class);
+    }
 
     /**
      * Data for the SSL message sent by the server.
@@ -53,7 +56,7 @@ public class TurnCandidateHarvester extends StunCandidateHarvester {
      * long-term credential mechanism is not determined at the time of the initialization of the new TurnCandidateHarvester instance
      */
     public TurnCandidateHarvester(TransportAddress turnServer, LongTermCredential longTermCredential) {
-        super(turnServer);
+        super(turnServer, (Optional.ofNullable(longTermCredential).isPresent() ? LongTermCredential.toString(longTermCredential.getUsername()) : null));
         this.longTermCredential = longTermCredential;
         logger.debug("ctor - turnServer: {} longTermCredential: {}", turnServer, longTermCredential);
     }
@@ -98,6 +101,31 @@ public class TurnCandidateHarvester extends StunCandidateHarvester {
     @Override
     protected LongTermCredential createLongTermCredential(StunCandidateHarvest harvest, byte[] realm) {
         return longTermCredential;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + ((longTermCredential == null) ? 0 : longTermCredential.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!super.equals(obj))
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TurnCandidateHarvester other = (TurnCandidateHarvester) obj;
+        if (longTermCredential == null) {
+            if (other.longTermCredential != null)
+                return false;
+        } else if (!longTermCredential.equals(other.longTermCredential))
+            return false;
+        return true;
     }
 
 }

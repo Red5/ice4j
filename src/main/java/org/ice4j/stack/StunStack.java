@@ -370,7 +370,6 @@ public class StunStack implements MessageEventHandler {
      * @param  sendTo      the destination address of the request
      * @param  sendThrough the local address to use when sending the request
      * @param  collector   the instance to notify when a response arrives or the transaction timeouts
-     *
      * @return the TransactionID of the StunClientTransaction that we used in order to send the request
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
@@ -387,7 +386,6 @@ public class StunStack implements MessageEventHandler {
      * @param  collector   the instance to notify when a response arrives or the transaction timeouts
      * @param transactionID the ID that we'd like the new transaction to use in case the application created it in order to use it for application
      * data correlation
-     *
      * @return the TransactionID of the StunClientTransactionthat we used in order to send the request
      * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
@@ -410,7 +408,6 @@ public class StunStack implements MessageEventHandler {
      * @param maxRetransmissions Maximum number of retransmissions. Once this number is reached and if no response is received after maxWaitInterval
      * milliseconds the request is considered unanswered
      * @return the TransactionID of the StunClientTransaction that we used in order to send the request
-     *
      * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */

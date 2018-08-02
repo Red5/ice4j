@@ -21,8 +21,7 @@ import org.ice4j.message.*;
 public class LongTermCredentialSession implements CredentialsAuthority {
 
     /**
-     * The LongTermCredential a use of which is represented by this
-     * instance.
+     * The LongTermCredential a use of which is represented by this instance.
      */
     private final LongTermCredential longTermCredential;
 
@@ -233,7 +232,6 @@ public class LongTermCredentialSession implements CredentialsAuthority {
      */
     public boolean usernameEquals(byte[] username) {
         byte[] thisUsername = getUsername();
-
         return (username == null) ? (thisUsername == null) : Arrays.equals(username, thisUsername);
     }
 }

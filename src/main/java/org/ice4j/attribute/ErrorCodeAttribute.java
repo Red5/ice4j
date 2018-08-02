@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.attribute;
 
@@ -83,24 +72,23 @@ package org.ice4j.attribute;
  * @author Emil Ivov
  * @author Aakash Garg
  */
-public class ErrorCodeAttribute extends Attribute
-{
+public class ErrorCodeAttribute extends Attribute {
 
     // Common error codes
-   /** 
-    * Try Alternate error code.
-    */
-   public static final char TRY_ALTERNATE  = 300;
-   
+    /** 
+     * Try Alternate error code.
+     */
+    public static final char TRY_ALTERNATE = 300;
+
     /**
      * Bad request error code.
      */
-    public static final char BAD_REQUEST   = 400;
+    public static final char BAD_REQUEST = 400;
 
     /**
      * Unauthorized error code.
      */
-    public static final char UNAUTHORIZED  = 401;
+    public static final char UNAUTHORIZED = 401;
 
     /**
      * Forbidden error code.
@@ -135,13 +123,13 @@ public class ErrorCodeAttribute extends Attribute
     /**
      * Allocation Mismatch error code.
      */
-    public static final char ALLOCATION_MISMATCH  = 437;
-   
-   /**
-    * Stale Nonce error code.
-    */
-   public static final char STALE_NONCE  = 438;
-   
+    public static final char ALLOCATION_MISMATCH = 437;
+
+    /**
+     * Stale Nonce error code.
+     */
+    public static final char STALE_NONCE = 438;
+
     /**
      * Address Family not Supported error code.
      */
@@ -150,7 +138,7 @@ public class ErrorCodeAttribute extends Attribute
     /**
      * Wrong Credentials error code.
      */
-    public static final char WRONG_CREDENTIALS  = 441;
+    public static final char WRONG_CREDENTIALS = 441;
 
     /**
      * Unsupported Transport Protocol error code.
@@ -161,26 +149,26 @@ public class ErrorCodeAttribute extends Attribute
      * Peer Address Family Mismatch error code.
      */
     public static final char PEER_ADDRESS_FAMILY_MISMATCH = 443;
-    
+
     /**
      * Connection Already Exists error code.
      */
     public static final char CONNECTION_ALREADY_EXISTS = 446;
-    
+
     /**
      * Connection Timeout or Failure error code.
      */
     public static final char CONNECTION_TIMEOUT_OR_FAILURE = 447;
-    
+
     /**
      * Allocation Quota reached error code.
      */
-    public static final char ALLOCATION_QUOTA_REACHED  = 486;
+    public static final char ALLOCATION_QUOTA_REACHED = 486;
 
     /**
      * Role conflict error code.
      */
-    public static final char ROLE_CONFLICT   = 487;
+    public static final char ROLE_CONFLICT = 487;
 
     /**
      * Server error code.
@@ -190,13 +178,13 @@ public class ErrorCodeAttribute extends Attribute
     /**
      * Insufficient Capacity error code.
      */
-    public static final char INSUFFICIENT_CAPACITY  = 508;
+    public static final char INSUFFICIENT_CAPACITY = 508;
 
     /**
      * Global failure error code.
      */
     public static final char GLOBAL_FAILURE = 600;
-    
+
     /**
      * The class represents the hundreds digit of the response code.  The
      * value MUST be between 1 and 6.
@@ -218,8 +206,7 @@ public class ErrorCodeAttribute extends Attribute
     /**
      * Constructs a new ERROR-CODE attribute
      */
-    ErrorCodeAttribute()
-    {
+    ErrorCodeAttribute() {
         super(Attribute.Type.ERROR_CODE);
     }
 
@@ -232,11 +219,9 @@ public class ErrorCodeAttribute extends Attribute
      * @param errorCode the errorCode that this class encapsulates.
      * @throws IllegalArgumentException if errorCode is not a valid error code.
      */
-    public void setErrorCode(char errorCode)
-        throws IllegalArgumentException
-    {
-        setErrorClass((byte)(errorCode / 100));
-        setErrorNumber((byte)(errorCode % 100));
+    public void setErrorCode(char errorCode) throws IllegalArgumentException {
+        setErrorClass((byte) (errorCode / 100));
+        setErrorNumber((byte) (errorCode % 100));
     }
 
     /**
@@ -244,9 +229,8 @@ public class ErrorCodeAttribute extends Attribute
      * class and number.
      * @return the code of the error this attribute represents.
      */
-    public char getErrorCode()
-    {
-        return (char)(getErrorClass() * 100 + getErrorNumber());
+    public char getErrorCode() {
+        return (char) (getErrorClass() * 100 + getErrorNumber());
     }
 
     /**
@@ -255,13 +239,9 @@ public class ErrorCodeAttribute extends Attribute
      * @throws IllegalArgumentException if errorNumber is not a valid error
      * number.
      */
-    public void setErrorNumber(byte errorNumber)
-        throws IllegalArgumentException
-    {
+    public void setErrorNumber(byte errorNumber) throws IllegalArgumentException {
         /*
-        if(errorNumber < 0 || errorNumber > 9999)
-            throw new IllegalArgumentException(
-                            errorNumber + " is not a valid error number!");
+         * if(errorNumber < 0 || errorNumber > 9999) throw new IllegalArgumentException( errorNumber + " is not a valid error number!");
          */
         this.errorNumber = errorNumber;
     }
@@ -270,8 +250,7 @@ public class ErrorCodeAttribute extends Attribute
      * Returns this attribute's error number.
      * @return  this attribute's error number.
      */
-    public byte getErrorNumber()
-    {
+    public byte getErrorNumber() {
         return this.errorNumber;
     }
 
@@ -281,12 +260,9 @@ public class ErrorCodeAttribute extends Attribute
      * @throws IllegalArgumentException if errorClass is not a valid error
      * class.
      */
-    public void setErrorClass(byte errorClass)
-        throws IllegalArgumentException
-    {
-        if(errorClass < 0 || errorClass > 99)
-            throw new IllegalArgumentException(
-                errorClass + " is not a valid error number!");
+    public void setErrorClass(byte errorClass) throws IllegalArgumentException {
+        if (errorClass < 0 || errorClass > 99)
+            throw new IllegalArgumentException(errorClass + " is not a valid error number!");
         this.errorClass = errorClass;
     }
 
@@ -294,8 +270,7 @@ public class ErrorCodeAttribute extends Attribute
      * Returns this error's error class.
      * @return this error's error class.
      */
-    public byte getErrorClass()
-    {
+    public byte getErrorClass() {
         return errorClass;
     }
 
@@ -307,86 +282,53 @@ public class ErrorCodeAttribute extends Attribute
      * @return a default reason phrase corresponding to the specified error
      * code, as described by rfc 3489.
      */
-    public static String getDefaultReasonPhrase(char errorCode)
-    {
-        switch(errorCode)
-        {
+    public static String getDefaultReasonPhrase(char errorCode) {
+        switch (errorCode) {
             case 300:
-                return "(Try Alternate): The server would like the client to"
-                    + " use the server specified in the ALTERNATE-SERVER"
-                    + " attribute instead.";
+                return "(Try Alternate): The server would like the client to" + " use the server specified in the ALTERNATE-SERVER" + " attribute instead.";
             case 400:
-                return "(Bad Request): The request was malformed.  The client"
-                    + " should not retry the request without modification from"
-                    + " the previous attempt.";
+                return "(Bad Request): The request was malformed.  The client" + " should not retry the request without modification from" + " the previous attempt.";
             case 401:
-                return "(Unauthorized): The Binding Request did not contain"
-                    + " a MESSAGE-INTEGRITY attribute.";
+                return "(Unauthorized): The Binding Request did not contain" + " a MESSAGE-INTEGRITY attribute.";
             case 403:
-                return "(Forbidden): The request was valid but cannot be"
-                    + " performed due to administrative or similar"
-                    + " restrictions.";
+                return "(Forbidden): The request was valid but cannot be" + " performed due to administrative or similar" + " restrictions.";
             case 420:
-                return "(Unknown Attribute): The server did not understand"
-                    + " a mandatory attribute in the request.";
+                return "(Unknown Attribute): The server did not understand" + " a mandatory attribute in the request.";
             case 430:
-                return "(Stale Credentials): The Binding Request did contain"
-                    + " a MESSAGE-INTEGRITY attribute, but it used a shared"
-                    + " secret that has expired.";
+                return "(Stale Credentials): The Binding Request did contain" + " a MESSAGE-INTEGRITY attribute, but it used a shared" + " secret that has expired.";
             case 431:
-                return "(Integrity Check Failure): The Binding Request"
-                    + " contained a MESSAGE-INTEGRITY attribute, but the HMAC"
-                    + " failed verification.";
+                return "(Integrity Check Failure): The Binding Request" + " contained a MESSAGE-INTEGRITY attribute, but the HMAC" + " failed verification.";
             case 432:
-                return "(Missing Username): The Binding Request contained"
-                    + " a MESSAGE-INTEGRITY attribute, but not a USERNAME"
-                    + " attribute.";
+                return "(Missing Username): The Binding Request contained" + " a MESSAGE-INTEGRITY attribute, but not a USERNAME" + " attribute.";
             case 433:
-                return "(Use TLS): The Shared Secret request has to be sent"
-                    + " over TLS, but was not received over TLS.";
+                return "(Use TLS): The Shared Secret request has to be sent" + " over TLS, but was not received over TLS.";
             case 437:
-                return "(Allocation Mismatch): A request was received by the"
-                    + " server that requires an allocation to be in place,"
-                    + " but no allocation exists, or a request was received"
-                    + " that requires no allocation, but an allocation exists.";
+                return "(Allocation Mismatch): A request was received by the" + " server that requires an allocation to be in place," + " but no allocation exists, or a request was received" + " that requires no allocation, but an allocation exists.";
             case 438:
-                return "(Stale Nonce): See the procedures for the long-term"
-                    + " credential mechanism.";
+                return "(Stale Nonce): See the procedures for the long-term" + " credential mechanism.";
             case 440:
-                return "(Address Family not Supported):  The server does not"
-                    + " support the address family requested by the client.";
+                return "(Address Family not Supported):  The server does not" + " support the address family requested by the client.";
             case 441:
-                return "(Wrong Credentials): The credentials in the"
-                    + " (non-Allocate) request do not match those used"
-                    + " to create the allocation.";
+                return "(Wrong Credentials): The credentials in the" + " (non-Allocate) request do not match those used" + " to create the allocation.";
             case 442:
-                return "(Unsupported Transport Protocol): The Allocate request"
-                    + " asked the server to use a transport protocol between"
-                    + " the server and the peer that the server does not"
-                    + " support.";
+                return "(Unsupported Transport Protocol): The Allocate request" + " asked the server to use a transport protocol between" + " the server and the peer that the server does not" + " support.";
             case 443:
-                return "Peer Address Family Mismatch):  A peer address was of"
-                    + " a different address family than that of the relayed"
-                    + " transport address of the allocation.";
+                return "Peer Address Family Mismatch):  A peer address was of" + " a different address family than that of the relayed" + " transport address of the allocation.";
             case 446:
-                return  "Connection Already Exists";
+                return "Connection Already Exists";
             case 447:
-                return  "Connection Timeout or Failure";
+                return "Connection Timeout or Failure";
             case 486:
-                return "(Allocation Quota Reached): No more allocations using"
-                    + " this username can be created at the present time.";
+                return "(Allocation Quota Reached): No more allocations using" + " this username can be created at the present time.";
             case 500:
-                return  "(Server Error): The server has suffered a temporary"
-                    + " error. The client should try again.";
+                return "(Server Error): The server has suffered a temporary" + " error. The client should try again.";
             case 508:
-                return "(Insufficient Capacity): The server is unable to carry"
-                    + " out the request due to some capacity limit being"
-                    + " reached.";
+                return "(Insufficient Capacity): The server is unable to carry" + " out the request due to some capacity limit being" + " reached.";
             case 600:
-                return "(Global Failure:) The server is refusing to fulfill"
-                    + " the request. The client should not retry.";
-            
-            default:  return "Unknown Error";
+                return "(Global Failure:) The server is refusing to fulfill" + " the request. The client should not retry.";
+
+            default:
+                return "Unknown Error";
         }
     }
 
@@ -397,8 +339,7 @@ public class ErrorCodeAttribute extends Attribute
      *
      * @param reasonPhrase a reason phrase that describes this error.
      */
-    public void setReasonPhrase(String reasonPhrase)
-    {
+    public void setReasonPhrase(String reasonPhrase) {
         this.reasonPhrase = reasonPhrase.getBytes();
     }
 
@@ -409,9 +350,8 @@ public class ErrorCodeAttribute extends Attribute
      *
      * @return reasonPhrase a reason phrase that describes this error.
      */
-    public String getReasonPhrase()
-    {
-        if(reasonPhrase == null)
+    public String getReasonPhrase() {
+        if (reasonPhrase == null)
             return null;
 
         return new String(reasonPhrase);
@@ -422,10 +362,9 @@ public class ErrorCodeAttribute extends Attribute
      * @return the length of this attribute's value.
      */
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         int len = (4 //error code numbers
-           + (reasonPhrase == null ? 0 : reasonPhrase.length));
+        + (reasonPhrase == null ? 0 : reasonPhrase.length));
 
         return len;
     }
@@ -435,16 +374,15 @@ public class ErrorCodeAttribute extends Attribute
      * @return a binary representation of this attribute.
      */
     @Override
-    public byte[] encode()
-    {
-        byte binValue[] =  new byte[HEADER_LENGTH + getDataLength()
-                                    //add padding
-                                    + (4 - getDataLength() % 4) % 4];
+    public byte[] encode() {
+        byte binValue[] = new byte[HEADER_LENGTH + getDataLength()
+        //add padding
+                + (4 - getDataLength() % 4) % 4];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
         binValue[2] = (byte) (getDataLength() >> 8);
         binValue[3] = (byte) (getDataLength() & 0x00FF);
@@ -457,7 +395,7 @@ public class ErrorCodeAttribute extends Attribute
         binValue[6] = getErrorClass();
         binValue[7] = getErrorNumber();
 
-        if(reasonPhrase != null)
+        if (reasonPhrase != null)
             System.arraycopy(reasonPhrase, 0, binValue, 8, reasonPhrase.length);
 
         return binValue;
@@ -470,27 +408,21 @@ public class ErrorCodeAttribute extends Attribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-     @Override
-    public boolean equals(Object obj)
-     {
-         if (! (obj instanceof ErrorCodeAttribute))
-             return false;
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ErrorCodeAttribute))
+            return false;
 
-         if (obj == this)
-             return true;
+        if (obj == this)
+            return true;
 
-         ErrorCodeAttribute att = (ErrorCodeAttribute) obj;
-         if (att.getAttributeType() != getAttributeType()
-             || att.getDataLength() != getDataLength()
-             //compare data
-             || att.getErrorClass() != getErrorClass()
-             || att.getErrorNumber()!= getErrorNumber()
-             || ( att.getReasonPhrase() != null
-                  && !att.getReasonPhrase().equals(getReasonPhrase()))
-             )
-             return false;
+        ErrorCodeAttribute att = (ErrorCodeAttribute) obj;
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength()
+        //compare data
+                || att.getErrorClass() != getErrorClass() || att.getErrorNumber() != getErrorNumber() || (att.getReasonPhrase() != null && !att.getReasonPhrase().equals(getReasonPhrase())))
+            return false;
 
-         return true;
+        return true;
     }
 
     /**
@@ -504,8 +436,7 @@ public class ErrorCodeAttribute extends Attribute
      * @param length the length of the binary array.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-    {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) {
 
         offset += 2; //skip the 0s
 
@@ -516,8 +447,7 @@ public class ErrorCodeAttribute extends Attribute
         //Reason Phrase
         byte[] reasonBytes = new byte[length - 4];
 
-        System.arraycopy(attributeValue, offset, reasonBytes,
-                            0, reasonBytes.length);
+        System.arraycopy(attributeValue, offset, reasonBytes, 0, reasonBytes.length);
         setReasonPhrase(new String(reasonBytes));
     }
 }
