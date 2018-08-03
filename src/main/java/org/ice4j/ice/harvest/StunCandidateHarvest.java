@@ -67,7 +67,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     /**
      * The list of Candidates harvested for {@link #hostCandidate} by this harvest.
      */
-    private final List<LocalCandidate> candidates = new LinkedList<>();
+    protected final List<LocalCandidate> candidates = new LinkedList<>();
 
     /**
      * The indicator which determines whether this StunCandidateHarvest has completed the harvesting of Candidates for {@link #hostCandidate}.
@@ -353,22 +353,18 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
-     * Gets the number of Candidates harvested for
-     * {@link #hostCandidate} during this harvest.
+     * Gets the number of Candidates harvested for {@link #hostCandidate} during this harvest.
      *
-     * @return the number of Candidates harvested for
-     * {@link #hostCandidate} during this harvest
+     * @return the number of Candidates harvested for hostCandidate during this harvest
      */
     int getCandidateCount() {
         return candidates.size();
     }
 
     /**
-     * Gets the Candidates harvested for {@link #hostCandidate} during
-     * this harvest.
+     * Gets the Candidates harvested for {@link #hostCandidate} during this harvest.
      *
-     * @return an array containing the Candidates harvested for
-     * {@link #hostCandidate} during this harvest
+     * @return an array containing the Candidates harvested for hostCandidate during this harvest
      */
     LocalCandidate[] getCandidates() {
         return candidates.toArray(NO_CANDIDATES);
@@ -474,11 +470,6 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
         logger.debug("processChallenge: transaction id: {}", transactionID);
         boolean retried = false;
         if (response.getAttributeCount() > 0) {
-            if (logger.isDebugEnabled()) {
-                response.getAttributes().forEach(attr -> {
-                    logger.debug("Attribute: {}", attr);
-                });
-            }
             // The response SHOULD NOT contain a USERNAME or MESSAGE-INTEGRITY attribute.
             EnumSet<Attribute.Type> excludedResponseAttributeTypes = EnumSet.of(Attribute.Type.USERNAME, Attribute.Type.MESSAGE_INTEGRITY);
             boolean challenge = true;
@@ -858,8 +849,9 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
         synchronized (sendKeepAliveMessageSyncRoot) {
             this.sendKeepAliveMessageInterval = sendKeepAliveMessageInterval;
             if (sendKeepAliveMessageThread == null) {
-                if (this.sendKeepAliveMessageInterval != SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED)
+                if (this.sendKeepAliveMessageInterval != SEND_KEEP_ALIVE_MESSAGE_INTERVAL_NOT_SPECIFIED) {
                     createSendKeepAliveMessageThread();
+                }
             } else {
                 sendKeepAliveMessageSyncRoot.notify();
             }
@@ -869,7 +861,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     /**
      * Starts the harvesting of Candidates to be performed for {@link #hostCandidate}.
      *
-     * @return true if this StunCandidateHarvest has started the harvesting of Candidates for hostCandidate} otherwise, false
+     * @return true if this StunCandidateHarvest has started the harvesting of Candidates for hostCandidate otherwise, false
      * @throws Exception if anything goes wrong while starting the harvesting of Candidates to be performed for hostCandidate
      */
     boolean startResolvingCandidate() throws Exception {

@@ -8,6 +8,8 @@ import org.ice4j.TransportAddress;
 import org.ice4j.ice.harvest.TurnCandidateHarvest;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.RelayedCandidateConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a Candidate obtained by sending a TURN Allocate request from a HostCandidate to a TURN server. The relayed candidate is
@@ -17,6 +19,8 @@ import org.ice4j.socket.RelayedCandidateConnection;
  * @author Paul Gregoire
  */
 public class RelayedCandidate extends LocalCandidate {
+
+    private static final Logger logger = LoggerFactory.getLogger(RelayedCandidate.class);
 
     /**
      * The RelayedCandidateConnection of this RelayedCandidate.
@@ -59,6 +63,7 @@ public class RelayedCandidate extends LocalCandidate {
     @Override
     public IceSocketWrapper getCandidateIceSocketWrapper() {
         if (socket == null) {
+            logger.debug("getCandidateIceSocketWrapper {}", relayedCandidateConnection);
             try {
                 if (relayedCandidateConnection == null) {
                     // create the RelayedCandidateConnection of this RelayedCandidate

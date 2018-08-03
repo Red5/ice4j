@@ -707,6 +707,10 @@ public abstract class Message {
                 return "SHARED-SECRET-RESPONSE";
             case SHARED_SECRET_ERROR_RESPONSE:
                 return "SHARED-SECRET-ERROR-RESPONSE";
+            case CHANNELBIND_REQUEST:
+                return "CHANNELBIND-REQUEST";
+            case CHANNELBIND_RESPONSE:     
+                return "CHANNELBIND-RESPONSE";     
             default:
                 return "UNKNOWN-MESSAGE";
         }

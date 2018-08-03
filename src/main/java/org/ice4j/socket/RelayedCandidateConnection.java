@@ -7,8 +7,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,6 +46,8 @@ import org.slf4j.LoggerFactory;
  * Represents an application-purposed (as opposed to an ICE-specific) DatagramSocket for a RelayedCandidate harvested by a TurnCandidateHarvest
  * (and its associated TurnCandidateHarvester, of course). RelayedCandidateConnection is associated with a successful Allocation on a TURN server
  * and implements sends and receives through it using TURN messages to and from that TURN server.
+ *
+ * {@link https://tools.ietf.org/html/rfc5766#page-48}
  *
  * @author Lyubomir Marinov
  * @author Paul Gregoire
@@ -112,18 +112,6 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * The next free channel number to be returned by {@link #getNextChannelNumber()} and marked as non-free.
      */
     private char nextChannelNumber = MIN_CHANNEL_NUMBER;
-
-    /**
-     * The DatagramPackets which are to be received through this DatagramSocket upon calls to its
-     * {@link #receive(DatagramPacket)} method. They have been received from the TURN server in the form of Data indications.
-     */
-    private final List<DatagramPacket> packetsToReceive = new LinkedList<>();
-
-    /**
-     * The DatagramPackets which have been sent through this DatagramSocket using its {@link #send(DatagramPacket)} method
-     * and which are to be relayed through its associated TURN server in the form of Send indications.
-     */
-    private final List<DatagramPacket> packetsToSend = new LinkedList<>();
 
     /**
      * The RelayedCandidate which uses this instance as the value of its socket property.
@@ -210,12 +198,6 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      */
     public void close() {
         if (closed.compareAndSet(false, true)) {
-            synchronized (packetsToReceive) {
-                packetsToReceive.notifyAll();
-            }
-            synchronized (packetsToSend) {
-                packetsToSend.notifyAll();
-            }
             turnCandidateHarvest.harvester.getStunStack().removeIndicationListener(turnCandidateHarvest.hostCandidate.getTransportAddress(), this);
             turnCandidateHarvest.close(this);
         }
@@ -347,6 +329,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * @param request the Request sent by this instance to which response responds
      */
     public void processSuccess(Response response, Request request) {
+        logger.debug("processSuccess - {} to {}", request, response);
         switch (request.getMessageType()) {
             case Message.CHANNELBIND_REQUEST:
                 setChannelNumberIsConfirmed(request, true);
@@ -355,11 +338,35 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 setChannelBound(request, true);
                 break;
         }
+        switch (response.getMessageType()) {
+            case Message.ALLOCATE_RESPONSE:
+                //logger.debug("Relayed candidate - mapped: {} relayed: {}", relayedCandidate.getMappedAddress(), relayedCandidate.getRelayedAddress());
+                byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
+                Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(relayedCandidate.getRelayedAddress(), createPermissionTransactionID);
+                try {
+                    createPermissionRequest.setTransactionID(createPermissionTransactionID);
+                    turnCandidateHarvest.sendRequest(this, createPermissionRequest);
+                } catch (StunException sex) {
+                    logger.warn("Failed to obtain permission", sex);
+                }
+                break;
+            case Message.CREATEPERMISSION_RESPONSE:
+                Channel channel = new Channel(relayedCandidate.getRelayedAddress());
+                channels.add(channel);
+                // send indication is the next step in the rfc5766 process pg.51
+                try {
+                    channel.send(IoBuffer.wrap(new byte[0]), relayedCandidate.getRelayedAddress());
+                } catch (StunException sex) {
+                    logger.warn("Failed to send indication", sex);
+                }
+                break;
+        }
     }
 
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
+        logger.debug("send: {} to {}", buf, destAddress);
         if (closed.get()) {
-            throw new IOException(RelayedCandidateConnection.class.getSimpleName() + " has been closed.");
+            throw new IOException(RelayedCandidateConnection.class.getSimpleName() + " has been closed");
         } else {
             // Get a channel to the peer which is to receive the packetToSend.
             int channelCount = channels.size();
@@ -391,13 +398,13 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 try {
                     channel.send(buf, peerAddress);
                 } catch (StunException sex) {
-                    logger.warn("Failed to send through " + RelayedCandidateConnection.class.getSimpleName() + " channel", sex);
+                    logger.warn("Failed to send through channel", sex);
                 }
             } else if (forceBind || !channel.isBinding()) {
                 try {
                     channel.bind();
                 } catch (StunException sex) {
-                    logger.warn("Failed to bind " + RelayedCandidateConnection.class.getSimpleName() + " channel", sex);
+                    logger.warn("Failed to bind channel", sex);
                 }
             }
         }
@@ -495,6 +502,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * @param bound true if the bound property of the Channel is to be set to true; otherwise, false
      */
     private void setChannelBound(Request request, boolean bound) {
+        logger.debug("setChannelBound: {}", bound);
         XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
         TransportAddress peerAddress = peerAddressAttribute.getAddress(transactionID);
@@ -602,7 +610,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
         private boolean bound;
 
         /**
-         * The indicator which determines whether this Channel is set to prefer sending DatagramPackets using TURN ChannelData
+         * The indicator which determines whether this Channel is set to prefer sending using TURN ChannelData
          * messages instead of Send indications.
          */
         private boolean channelDataIsPreferred;
@@ -774,6 +782,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
          * binding/installing has arrived
          */
         public void setBound(boolean bound, byte[] boundTransactionID) {
+            logger.debug("setBound: {} {}", bound, boundTransactionID);
             if (bindingTransactionID != null) {
                 bindingTransactionID = null;
                 this.bound = bound;
@@ -801,6 +810,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
          * the confirmation about the allocation of the channel number has arrived
          */
         public void setChannelNumberIsConfirmed(boolean channelNumberIsConfirmed, byte[] channelNumberIsConfirmedTransactionID) {
+            logger.debug("setChannelNumberIsConfirmed: {} {}", channelNumberIsConfirmed, channelNumberIsConfirmedTransactionID);
             this.channelNumberIsConfirmed = channelNumberIsConfirmed;
         }
 

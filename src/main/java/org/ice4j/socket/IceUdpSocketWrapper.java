@@ -83,8 +83,22 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 if (relayedCandidateConnection == null || (relayedCandidateConnection != null && IceDecoder.isTurn(buf.array()))) {
                     IoSession sess = getSession();
                     if (sess != null) {
-                        writeFuture = sess.write(buf, destAddress);
-                        writeFuture.addListener(writeListener);
+                        // ensure that the destination matches the session remote
+                        if (destAddress.equals(sess.getRemoteAddress())) {
+                            writeFuture = sess.write(buf, destAddress);
+                            writeFuture.addListener(writeListener);
+                        } else {
+                            // look thru stale sessions for a match
+                            staleSessions.forEach(stale -> {
+                                if (destAddress.equals(stale.getRemoteAddress())) {
+                                    if (logger.isTraceEnabled()) {
+                                        logger.trace("Stale session send: {} to: {}", buf, destAddress);
+                                    }
+                                    stale.write(buf, destAddress);
+                                    return;
+                                }
+                            });
+                        }
                     } else {
                         logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
                         // if we're not bound, attempt to create a client session
@@ -110,6 +124,9 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         }
                     }
                 } else {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Relayed send: {} to: {}", buf, destAddress);
+                    }
                     relayedCandidateConnection.send(buf, destAddress);
                 }
             } catch (Throwable t) {

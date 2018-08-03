@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import org.ice4j.*;
@@ -26,8 +10,7 @@ import org.ice4j.*;
  *
  * @author Sebastien Vincent
  */
-public class DontFragmentAttribute extends Attribute
-{
+public class DontFragmentAttribute extends Attribute {
 
     /**
      * The length of the data contained by this attribute.
@@ -37,8 +20,7 @@ public class DontFragmentAttribute extends Attribute
     /**
      * Constructor.
      */
-    DontFragmentAttribute()
-    {
+    DontFragmentAttribute() {
         super(Attribute.Type.DONT_FRAGMENT);
     }
 
@@ -48,9 +30,8 @@ public class DontFragmentAttribute extends Attribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof DontFragmentAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof DontFragmentAttribute))
             return false;
 
         return true;
@@ -60,8 +41,7 @@ public class DontFragmentAttribute extends Attribute
      * Returns the length of this attribute's body.
      * @return the length of this attribute's value (8 bytes).
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH;
     }
 
@@ -69,18 +49,17 @@ public class DontFragmentAttribute extends Attribute
      * Returns a binary representation of this attribute.
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         /* there is no data */
         byte binValue[] = new byte[HEADER_LENGTH];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         return binValue;
     }
@@ -95,11 +74,8 @@ public class DontFragmentAttribute extends Attribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-        throws StunException
-    {
-        if(length != 0)
-        {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        if (length != 0) {
             throw new StunException("length invalid");
         }
     }

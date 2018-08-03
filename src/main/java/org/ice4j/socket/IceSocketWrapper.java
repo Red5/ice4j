@@ -266,11 +266,20 @@ public abstract class IceSocketWrapper {
         if (newSession == null || newSession.equals(NULL_SESSION)) {
             session.set(NULL_SESSION);
         } else if (session.compareAndSet(NULL_SESSION, newSession)) {
+            // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
+            // set the newly added session as the active one
+            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
         } else if (newSession.getId() != session.get().getId()) {
             // if there was an old session and its not a dummy or incoming one, close it
             IoSession oldSession = session.getAndSet(newSession);
-            logger.info("Sessions didn't match, storing previous session: {}", oldSession);
+            logger.debug("Sessions didn't match, storing previous session: {}", oldSession);
+            // set the connection attribute
+            newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
+            // set the newly added session as the active one
+            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
+            // remove active session indicator from previous session
+            oldSession.removeAttribute(IceTransport.Ice.ACTIVE_SESSION);
             // set a flag to prevent the idle checker on old session from closing the socket wrapper
             oldSession.setAttribute(IceTransport.Ice.CLOSE_ON_IDLE, Boolean.FALSE);
             // add to stale for closing later

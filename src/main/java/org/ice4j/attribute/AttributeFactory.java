@@ -204,9 +204,7 @@ public class AttributeFactory {
      */
     public static XorMappedAddressAttribute createXorMappedAddressAttribute(TransportAddress address, byte[] tranID) {
         XorMappedAddressAttribute attribute = new XorMappedAddressAttribute();
-
         attribute.setAddress(address, tranID);
-
         return attribute;
     }
 
@@ -338,6 +336,15 @@ public class AttributeFactory {
         LifetimeAttribute attribute = new LifetimeAttribute();
         attribute.setLifetime(lifetime);
         return attribute;
+    }
+
+    /**
+     * Create a DontFragmentAttribute.
+     *
+     * @return newly created DontFragmentAttribute
+     */
+    public static DontFragmentAttribute createDontFragmentAttribute() {
+        return new DontFragmentAttribute();
     }
 
     /**

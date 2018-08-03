@@ -22,7 +22,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
     private static final Logger logger = LoggerFactory.getLogger(TurnCandidateHarvest.class);
 
     /**
-     * The Request created by the last call to {@link #createRequestToStartResolvingCandidate()}.
+     * The Request created by the last call to createRequestToStartResolvingCandidate.
      */
     private Request requestToStartResolvingCandidate;
 
@@ -94,8 +94,21 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
      */
     @Override
     protected void createCandidates(Response response) {
-        createRelayedCandidate(response);
-        // Let the super create the ServerReflexiveCandidate.
+        // Creates a RelayedCandidate using the XOR-RELAYED-ADDRESS attribute in a specific STUN Response for the actual TransportAddress of the
+        // new candidate. If the message is malformed and/or does not contain the corresponding attribute, no relay candidate is created.
+        Attribute attribute = response.getAttribute(Attribute.Type.XOR_RELAYED_ADDRESS);
+        if (attribute instanceof XorRelayedAddressAttribute) {
+            TransportAddress relayedAddress = ((XorRelayedAddressAttribute) attribute).getAddress(response.getTransactionID());
+            RelayedCandidate relayedCandidate = createRelayedCandidate(relayedAddress, getMappedAddress(response));
+            if (relayedCandidate != null) {
+                IceSocketWrapper socket = relayedCandidate.getCandidateIceSocketWrapper();
+                // connectivity checks utilize STUN on the (application-purposed) socket of the RelayedCandidate, add it to the StunStack
+                //harvester.getStunStack().addSocket(socket, relayedAddress, false);
+                relayedCandidate.getParentComponent().getComponentSocket().setSocket(socket);
+                addCandidate(relayedCandidate);
+            }
+        }
+        // Let the super create the ServerReflexiveCandidate
         super.createCandidates(response);
     }
 
@@ -130,28 +143,6 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
     }
 
     /**
-     * Creates a RelayedCandidate using the XOR-RELAYED-ADDRESS attribute in a specific STUN
-     * Response for the actual TransportAddress of the new candidate. If the message is malformed and/or does not contain the
-     * corresponding attribute, this method simply has no effect.
-     *
-     * @param response the STUN Response which is supposed to contain the address we should use for the new candidate
-     */
-    private void createRelayedCandidate(Response response) {
-        Attribute attribute = response.getAttribute(Attribute.Type.XOR_RELAYED_ADDRESS);
-        if (attribute instanceof XorRelayedAddressAttribute) {
-            TransportAddress relayedAddress = ((XorRelayedAddressAttribute) attribute).getAddress(response.getTransactionID());
-            RelayedCandidate relayedCandidate = createRelayedCandidate(relayedAddress, getMappedAddress(response));
-            if (relayedCandidate != null) {
-                // The ICE connectivity checks will utilize STUN on the (application-purposed) socket of the RelayedCandidate and will not add it to the
-                // StunStack so we have to do it.
-                //harvester.getStunStack().addSocket(relayedCandidate.getStunSocket(null));
-                relayedCandidate.getParentComponent().getComponentSocket().setSocket(relayedCandidate.getCandidateIceSocketWrapper());
-                addCandidate(relayedCandidate);
-            }
-        }
-    }
-
-    /**
      * Creates a new RelayedCandidate instance which is to represent a specific TransportAddress harvested through
      * {@link #hostCandidate} and the TURN server associated with {@link #harvester}.
      *
@@ -177,15 +168,17 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
      */
     @Override
     protected Request createRequestToRetry(Request request) {
-        switch (request.getMessageType()) {
+        logger.debug("createRequestToRetry: {}", request.getName());
+        char type = request.getMessageType();
+        switch (type) {
             case Message.ALLOCATE_REQUEST: {
                 RequestedTransportAttribute requestedTransportAttribute = (RequestedTransportAttribute) request.getAttribute(Attribute.Type.REQUESTED_TRANSPORT);
                 // XXX defaults to UDP if no transport is requested via attribute
                 int requestedTransport = (requestedTransportAttribute == null) ? Transport.UDP.getProtocolNumber() : requestedTransportAttribute.getRequestedTransport();
-                logger.info("createRequestToRetry - ALLOCATE_REQUEST type: {}", requestedTransport);
+                //logger.debug("createRequestToRetry - ALLOCATE_REQUEST type: {}", requestedTransport);
                 // XXX not sure that even-port is allowed with TCP TURN
                 EvenPortAttribute evenPortAttribute = (EvenPortAttribute) request.getAttribute(Attribute.Type.EVEN_PORT);
-                boolean rFlag = (evenPortAttribute != null) && evenPortAttribute.isRFlag();
+                boolean rFlag = (evenPortAttribute != null) && evenPortAttribute.isRFlag();                
                 return MessageFactory.createAllocateRequest((byte) requestedTransport, rFlag);
             }
             case Message.CHANNELBIND_REQUEST: {
@@ -226,7 +219,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 return super.createRequestToRetry(request);
         }
     }
-
+    
     /**
      * Creates a new Request which is to be sent to {@link TurnCandidateHarvester#stunServer} in order to start resolving {@link #hostCandidate}.
      *
@@ -235,15 +228,16 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
      */
     @Override
     protected Request createRequestToStartResolvingCandidate() {
+        logger.debug("createRequestToStartResolvingCandidate");
         if (requestToStartResolvingCandidate == null) {
             // get the protocol number matching our transport
             byte protocol = hostCandidate.getTransport().getProtocolNumber();
             logger.info("createRequestToStartResolvingCandidate - protocol: {}", protocol);
             requestToStartResolvingCandidate = MessageFactory.createAllocateRequest(protocol, false);
             return requestToStartResolvingCandidate;
-        } else if (requestToStartResolvingCandidate.getMessageType() == Message.ALLOCATE_REQUEST) {
-            requestToStartResolvingCandidate = super.createRequestToStartResolvingCandidate();
-            return requestToStartResolvingCandidate;
+//        } else if (requestToStartResolvingCandidate.getMessageType() == Message.ALLOCATE_REQUEST) {
+//            requestToStartResolvingCandidate = super.createRequestToStartResolvingCandidate();
+//            return requestToStartResolvingCandidate;
         }
         return null;
     }
@@ -282,12 +276,28 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
     protected void processSuccess(Response response, Request request, TransactionID transactionID) {
         super.processSuccess(response, request, transactionID);
         LifetimeAttribute lifetimeAttribute;
-        int lifetime /* minutes */= -1;
+        // lifetime is in seconds
+        int lifetime = -1;
+        // TurnCandidateHarvest uses the applicationData of TransactionID to deliver the results of Requests sent by RelayedCandidateConnection back to it
+        Object applicationData = transactionID.getApplicationData();
         switch (response.getMessageType()) {
             case Message.ALLOCATE_RESPONSE:
                 // The default lifetime of an allocation is 10 minutes.
                 lifetimeAttribute = (LifetimeAttribute) response.getAttribute(Attribute.Type.LIFETIME);
-                lifetime = (lifetimeAttribute == null) ? (10 * 60) : lifetimeAttribute.getLifetime();
+                lifetime = (lifetimeAttribute == null) ? 600 : lifetimeAttribute.getLifetime();
+                // attach a relayed connection to the transaction in lieu of it successfully
+                if (applicationData == null) {
+                    candidates.forEach(candidate -> {
+                        if (candidate instanceof RelayedCandidate) {
+                            try {
+                                transactionID.setApplicationData(new RelayedCandidateConnection((RelayedCandidate) candidate, this));
+                            } catch (Exception e) {
+                                logger.warn("Exception creating relayed connection", e);
+                            }
+                        }
+                    });
+                    applicationData = transactionID.getApplicationData();
+                }
                 break;
             case Message.REFRESH_RESPONSE:
                 lifetimeAttribute = (LifetimeAttribute) response.getAttribute(Attribute.Type.LIFETIME);
@@ -300,8 +310,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             // milliseconds
             setSendKeepAliveMessageInterval(1000L * lifetime);
         }
-        // TurnCandidateHarvest uses the applicationData of TransactionID to deliver the results of Requests sent by RelayedCandidateConnection back to it.
-        Object applicationData = transactionID.getApplicationData();
+        // forward the success if relay connection is attached
         if (applicationData instanceof RelayedCandidateConnection) {
             ((RelayedCandidateConnection) applicationData).processSuccess(response, request);
         }

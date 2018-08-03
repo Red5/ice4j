@@ -2,7 +2,9 @@ package org.ice4j.ice.nio;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -66,6 +68,21 @@ public class IceHandler extends IoHandlerAdapter {
         //            return result.get().getValue();
         //        }
         return iceSockets.get(address);
+    }
+
+    /**
+     * Returns an IceSocketWrapper for a given remote address if it exists and null if it doesn't.
+     * 
+     * @param remoteAddress
+     * @return IceSocketWrapper
+     */
+    public IceSocketWrapper lookupBindingByRemote(SocketAddress remoteAddress) {
+        IceSocketWrapper iceSocket = null;
+        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().filter(entry -> entry.getValue().getSession().getRemoteAddress().equals(remoteAddress)).findFirst();
+        if (result.isPresent()) {
+            iceSocket = result.get().getValue();
+        }
+        return iceSocket;
     }
 
     /**
@@ -192,68 +209,71 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
-        // determine transport type
-        Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
-        // ensure transport is correct using metadata if its set to TCP
-        if (transportType == Transport.TCP && session.getTransportMetadata().isConnectionless()) {
-            transportType = Transport.UDP;
-        }
-        InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
-        TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-        // clean-up
-        IceSocketWrapper iceSocket = null;
-        if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
-            iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
-        }
-        if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
-            // get the transport / acceptor id
-            String id = (String) session.getAttribute(IceTransport.Ice.UUID);
-            // get the stun stack
-            StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
-            if (iceSocket != null) {
-                stunStack.removeSocket(id, addr, iceSocket.getRemoteTransportAddress());
-            } else {
-                inetAddr = (InetSocketAddress) session.getRemoteAddress();
-                TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-                stunStack.removeSocket(id, addr, remoteAddr);
+        // shutdown and clear all the associated ice features only if the session is the "ACTIVE" one
+        if (session.containsAttribute(IceTransport.Ice.ACTIVE_SESSION)) {
+            // determine transport type
+            Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
+            // ensure transport is correct using metadata if its set to TCP
+            if (transportType == Transport.TCP && session.getTransportMetadata().isConnectionless()) {
+                transportType = Transport.UDP;
             }
-        }
-        // remove any map entries
-        stunStacks.remove(addr);
-        // determine if our ice socket was removed by the transport address
-        int count = iceSockets.size();
-        iceSockets.remove(addr);
-        // clear the socket props
-        if (iceSocket != null) {
-            iceSocket.setSession(IceSocketWrapper.NULL_SESSION);
-            // this is quick and dirty for possibly skipping looping through the collection
-            if (iceSockets.size() >= count) {
-                // removing by key doesnt seem to work correction, probably due to missing transport on SocketAddress instances
-                for (Entry<TransportAddress, IceSocketWrapper> ice : iceSockets.entrySet()) {
-                    if (iceSocket.equals(ice.getValue())) {
-                        logger.trace("Found matching ice socket by value");
-                        iceSockets.remove(ice.getKey());
-                        break;
+            InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
+            TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
+            // clean-up
+            IceSocketWrapper iceSocket = null;
+            if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
+                iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+            }
+            if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
+                // get the transport / acceptor id
+                String id = (String) session.getAttribute(IceTransport.Ice.UUID);
+                // get the stun stack
+                StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
+                if (iceSocket != null) {
+                    stunStack.removeSocket(id, addr, iceSocket.getRemoteTransportAddress());
+                } else {
+                    inetAddr = (InetSocketAddress) session.getRemoteAddress();
+                    TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
+                    stunStack.removeSocket(id, addr, remoteAddr);
+                }
+            }
+            // remove any map entries
+            stunStacks.remove(addr);
+            // determine if our ice socket was removed by the transport address
+            int count = iceSockets.size();
+            iceSockets.remove(addr);
+            // clear the socket props
+            if (iceSocket != null) {
+                iceSocket.setSession(IceSocketWrapper.NULL_SESSION);
+                // this is quick and dirty for possibly skipping looping through the collection
+                if (iceSockets.size() >= count) {
+                    // removing by key doesnt seem to work correction, probably due to missing transport on SocketAddress instances
+                    for (Entry<TransportAddress, IceSocketWrapper> ice : iceSockets.entrySet()) {
+                        if (iceSocket.equals(ice.getValue())) {
+                            logger.trace("Found matching ice socket by value");
+                            iceSockets.remove(ice.getKey());
+                            break;
+                        }
                     }
                 }
             }
-        }
-        // get the transport / acceptor identifier
-        String id = (String) session.getAttribute(IceTransport.Ice.UUID);
-        // get transport by type
-        IceTransport transport = IceTransport.getInstance(transportType, id);
-        if (transport != null) {
-            if (IceTransport.isSharedAcceptor()) {
-                // shared, so don't kill it, just remove binding
-                transport.removeBinding(addr);
+            // get the transport / acceptor identifier
+            String id = (String) session.getAttribute(IceTransport.Ice.UUID);
+            // get transport by type
+            IceTransport transport = IceTransport.getInstance(transportType, id);
+            if (transport != null) {
+                if (IceTransport.isSharedAcceptor()) {
+                    // shared, so don't kill it, just remove binding
+                    transport.removeBinding(addr);
+                } else {
+                    // remove binding
+                    transport.removeBinding(addr);
+                    // not-shared, kill it
+                    transport.stop();
+                }
             } else {
-                // remove binding
-                transport.removeBinding(addr);
-                // not-shared, kill it
-                transport.stop();
+                logger.debug("Transport for id: {} was not found", id);
             }
-        } else {
-            logger.debug("Transport for id: {} was not found", id);
         }
         super.sessionClosed(session);
     }

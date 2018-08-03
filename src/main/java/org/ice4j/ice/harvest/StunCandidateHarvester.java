@@ -227,6 +227,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         StringBuilder retval = new StringBuilder();
         for (Candidate<?> candidate : candidates) {
             retval.append(candidate.toShortString());
+            retval.append(' ');
         }
         return retval.toString();
     }

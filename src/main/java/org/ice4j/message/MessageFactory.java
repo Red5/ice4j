@@ -59,12 +59,8 @@ public class MessageFactory {
         }
         /* do not add this by default */
         /*
-         * //add a change request attribute 
-         * ChangeRequestAttribute attribute = AttributeFactory.createChangeRequestAttribute(); 
-         * try { bindingRequest.putAttribute(attribute); }
-         * catch (StunException ex) { 
-         * //shouldn't happen 
-         * throw new RuntimeException("Failed to add a change request attribute to a binding request!"); }
+         * //add a change request attribute ChangeRequestAttribute attribute = AttributeFactory.createChangeRequestAttribute(); try { bindingRequest.putAttribute(attribute); }
+         * catch (StunException ex) { //shouldn't happen throw new RuntimeException("Failed to add a change request attribute to a binding request!"); }
          */
         return bindingRequest;
     }
@@ -274,7 +270,7 @@ public class MessageFactory {
         Request allocateRequest = new Request();
         try {
             allocateRequest.setMessageType(Message.ALLOCATE_REQUEST);
-            if (protocol != Transport.TCP.getProtocolNumber() && protocol != Transport.UDP.getProtocolNumber()){
+            if (protocol != Transport.TCP.getProtocolNumber() && protocol != Transport.UDP.getProtocolNumber()) {
                 throw new StunException("Protocol not valid!");
             }
             // REQUESTED-TRANSPORT
@@ -283,9 +279,10 @@ public class MessageFactory {
             if (rFlag) {
                 allocateRequest.putAttribute(AttributeFactory.createEvenPortAttribute(rFlag));
             }
-            // LIFETIME per rfc5766 (3600s / 1h)
-            LifetimeAttribute lifetimeAttribute = AttributeFactory.createLifetimeAttribute(3600);
-            allocateRequest.putAttribute(lifetimeAttribute);
+            // LIFETIME per rfc5766 (3600s / 1h) we'll use 600s = 10m
+            allocateRequest.putAttribute(AttributeFactory.createLifetimeAttribute(600));
+            // DONT_FRAGMENT
+            allocateRequest.putAttribute(AttributeFactory.createDontFragmentAttribute());
         } catch (StunException ex) {
             logger.warn("Failed to set message type", ex);
         }
@@ -632,14 +629,16 @@ public class MessageFactory {
         Indication sendIndication = new Indication();
         try {
             sendIndication.setMessageType(Message.SEND_INDICATION);
-            /* add XOR-PEER-ADDRESS attribute */
+            // add XOR-PEER-ADDRESS attribute
             XorPeerAddressAttribute peerAddressAttribute = AttributeFactory.createXorPeerAddressAttribute(peerAddress, tranID);
             sendIndication.putAttribute(peerAddressAttribute);
-            /* add DATA if data */
+            // add DATA if data
             if (data != null && data.length > 0) {
                 DataAttribute dataAttribute = AttributeFactory.createDataAttribute(data);
                 sendIndication.putAttribute(dataAttribute);
             }
+            // who wants fragments?
+            sendIndication.putAttribute(AttributeFactory.createDontFragmentAttribute());
         } catch (IllegalArgumentException ex) {
             logger.warn("Failed to set message type", ex);
         }

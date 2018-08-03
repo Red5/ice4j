@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import java.net.*;
@@ -57,15 +41,12 @@ import org.ice4j.message.*;
  *
  * @author Emil Ivov
  */
-public class XorMappedAddressAttribute
-    extends AddressAttribute
-{
+public class XorMappedAddressAttribute extends AddressAttribute {
 
     /**
      * Creates an instance of this attribute
      */
-    XorMappedAddressAttribute()
-    {
+    XorMappedAddressAttribute() {
         super(Attribute.Type.XOR_MAPPED_ADDRESS);
     }
 
@@ -73,18 +54,16 @@ public class XorMappedAddressAttribute
      * Constructor.
      * @param type other type than XOR-MAPPED-ADDRESS
      */
-    XorMappedAddressAttribute(char type)
-    {
-      super(type);
+    XorMappedAddressAttribute(char type) {
+        super(type);
     }
 
     /**
      * Constructor.
      * @param type other type than XOR-MAPPED-ADDRESS
      */
-    XorMappedAddressAttribute(Attribute.Type type)
-    {
-      super(type);
+    XorMappedAddressAttribute(Attribute.Type type) {
+        super(type);
     }
 
     /**
@@ -96,27 +75,21 @@ public class XorMappedAddressAttribute
      *
      * @return the XOR-ed address.
      */
-    public static TransportAddress applyXor(TransportAddress address,
-                                       byte[] transactionID)
-    {
+    public static TransportAddress applyXor(TransportAddress address, byte[] transactionID) {
         byte[] addressBytes = address.getAddressBytes();
-        char port = (char)address.getPort();
+        char port = (char) address.getPort();
 
-        char portModifier = (char)( (transactionID[0] << 8 & 0x0000FF00)
-                                  | (transactionID[1] & 0x000000FF));
+        char portModifier = (char) ((transactionID[0] << 8 & 0x0000FF00) | (transactionID[1] & 0x000000FF));
 
         port ^= portModifier;
 
-        for(int i = 0; i < addressBytes.length; i++)
+        for (int i = 0; i < addressBytes.length; i++)
             addressBytes[i] ^= transactionID[i];
 
         TransportAddress xoredAdd;
-        try
-        {
+        try {
             xoredAdd = new TransportAddress(addressBytes, port, Transport.UDP);
-        }
-        catch (UnknownHostException e)
-        {
+        } catch (UnknownHostException e) {
             //shouldn't happen so just throw an illegal arg
             throw new IllegalArgumentException(e);
         }
@@ -133,8 +106,7 @@ public class XorMappedAddressAttribute
      *
      * @return the XOR-ed address.
      */
-    public TransportAddress getAddress(byte[] transactionID)
-    {
+    public TransportAddress getAddress(byte[] transactionID) {
         byte[] xorMask = new byte[16];
 
         System.arraycopy(Message.MAGIC_COOKIE, 0, xorMask, 0, 4);
@@ -152,8 +124,7 @@ public class XorMappedAddressAttribute
      *
      * @return the XOR-ed address.
      */
-    public TransportAddress applyXor(byte[] xorMask)
-    {
+    public TransportAddress applyXor(byte[] xorMask) {
         return applyXor(getAddress(), xorMask);
     }
 
@@ -166,8 +137,7 @@ public class XorMappedAddressAttribute
      * @param transactionID the transaction identifier that we should use
      * when creating the XOR mask.
      */
-    public void setAddress(TransportAddress address, byte[] transactionID)
-    {
+    public void setAddress(TransportAddress address, byte[] transactionID) {
         byte[] xorMask = new byte[16];
 
         System.arraycopy(Message.MAGIC_COOKIE, 0, xorMask, 0, 4);

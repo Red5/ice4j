@@ -4,6 +4,7 @@ package org.ice4j.ice;
 import java.net.SocketAddress;
 
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
 
@@ -60,7 +61,8 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
         // The default implementation just refers to the method which doesn't involve a remove address.
         // Extenders which support multiple instances mapped by remote address should override.
-        return getCandidateIceSocketWrapper();
+        IceSocketWrapper iceSocket = IceTransport.getIceHandler().lookupBindingByRemote(remoteAddress);
+        return iceSocket != null ? iceSocket : getCandidateIceSocketWrapper();
     }
 
     /**

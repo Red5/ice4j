@@ -1,23 +1,7 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
-import org.ice4j.*;
+import org.ice4j.StunException;
 
 /**
  * The LIFETIME attribute is used to know the lifetime
@@ -26,9 +10,7 @@ import org.ice4j.*;
  * @author Sebastien Vincent
  * @author Aakash Garg
  */
-public class LifetimeAttribute
-    extends Attribute
-{
+public class LifetimeAttribute extends Attribute {
 
     /**
      * The length of the data contained by this attribute.
@@ -43,8 +25,7 @@ public class LifetimeAttribute
     /**
      * Constructor.
      */
-    LifetimeAttribute()
-    {
+    LifetimeAttribute() {
         super(Attribute.Type.LIFETIME);
     }
 
@@ -55,20 +36,17 @@ public class LifetimeAttribute
      * @return true if the attributes are equal and false otherwise.
      */
     @Override
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof LifetimeAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof LifetimeAttribute))
             return false;
 
         if (obj == this)
             return true;
 
         LifetimeAttribute att = (LifetimeAttribute) obj;
-        if (att.getAttributeType() != getAttributeType()
-                || att.getDataLength() != getDataLength()
-                /* compare data */
-                || att.lifetime != lifetime
-           )
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength()
+        /* compare data */
+        || att.lifetime != lifetime)
             return false;
 
         return true;
@@ -79,8 +57,7 @@ public class LifetimeAttribute
      * @return the length of this attribute's value (8 bytes).
      */
     @Override
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH;
     }
 
@@ -89,22 +66,21 @@ public class LifetimeAttribute
      * @return a binary representation of this attribute.
      */
     @Override
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
         //Data
-        binValue[4] = (byte)((lifetime >> 24) & 0xff);
-        binValue[5] = (byte)((lifetime >> 16) & 0xff);
-        binValue[6] = (byte)((lifetime >> 8) & 0xff);
-        binValue[7] = (byte)((lifetime) & 0xff);
+        binValue[4] = (byte) ((lifetime >> 24) & 0xff);
+        binValue[5] = (byte) ((lifetime >> 16) & 0xff);
+        binValue[6] = (byte) ((lifetime >> 8) & 0xff);
+        binValue[7] = (byte) ((lifetime) & 0xff);
 
         return binValue;
     }
@@ -120,26 +96,19 @@ public class LifetimeAttribute
      * @throws StunException if attrubteValue contains invalid data.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-        throws StunException
-    {
-        if(length != 4)
-        {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        if (length != 4) {
             throw new StunException("length invalid");
         }
 
-        lifetime = ((attributeValue[offset] << 24) & 0xff000000) +
-            ((attributeValue[offset + 1] << 16) & 0x00ff0000) +
-            ((attributeValue[offset + 2] << 8) & 0x0000ff00) +
-            (attributeValue[offset + 3] & 0x000000ff);
+        lifetime = ((attributeValue[offset] << 24) & 0xff000000) + ((attributeValue[offset + 1] << 16) & 0x00ff0000) + ((attributeValue[offset + 2] << 8) & 0x0000ff00) + (attributeValue[offset + 3] & 0x000000ff);
     }
 
     /**
      * Set the lifetime.
      * @param lifetime lifetime
      */
-    public void setLifetime(int lifetime)
-    {
+    public void setLifetime(int lifetime) {
         this.lifetime = lifetime;
     }
 
@@ -147,8 +116,7 @@ public class LifetimeAttribute
      * Get the lifetime.
      * @return lifetime
      */
-    public int getLifetime()
-    {
+    public int getLifetime() {
         return lifetime;
     }
 }

@@ -352,8 +352,14 @@ public class StunStack implements MessageEventHandler {
      * identified by sendThrough
      */
     public void sendIndication(Indication indication, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
+        logger.debug("sendIndication {} sendTo: {} sendThrough: {}", indication, sendTo, sendThrough);
         if (indication.getTransactionID() == null) {
             indication.setTransactionID(TransactionID.createNewTransactionID().getBytes());
+        }
+        if (logger.isDebugEnabled()) {
+            indication.getAttributes().forEach(attr -> {
+                logger.debug("Attribute: {}", attr);
+            });
         }
         try {
             getNetAccessManager().sendMessage(indication, sendThrough, sendTo);
@@ -814,7 +820,8 @@ public class StunStack implements MessageEventHandler {
             logger.warn("Local key was not found for {}", username);
             return false;
         }
-        if (logger.isTraceEnabled()) {
+        if (logger.isTraceEnabled() && shortTermCredentialMechanism) {
+            // no username[1] with long term creds
             logger.trace("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
         }
         /*
