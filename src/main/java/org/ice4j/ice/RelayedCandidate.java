@@ -68,7 +68,7 @@ public class RelayedCandidate extends LocalCandidate {
                 if (relayedCandidateConnection == null) {
                     // create the RelayedCandidateConnection of this RelayedCandidate
                     relayedCandidateConnection = new RelayedCandidateConnection(this, turnCandidateHarvest);
-                    // use turn server as remote destination and set relayed flag
+                    // use turn server as remote destination and set relayed connection
                     socket = IceSocketWrapper.build(relayedCandidateConnection);
                 }
             } catch (IOException e) {

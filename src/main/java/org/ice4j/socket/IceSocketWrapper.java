@@ -493,14 +493,17 @@ public abstract class IceSocketWrapper {
      */
     public final static IceSocketWrapper build(RelayedCandidateConnection relayedCandidateConnection) throws IOException {
         TransportAddress localAddress = (TransportAddress) relayedCandidateConnection.getLocalSocketAddress();
-        TransportAddress remoteAddress = relayedCandidateConnection.getTurnCandidateHarvest().harvester.stunServer;
-        IceSocketWrapper iceSocket = null;
-        if (localAddress.getTransport() == Transport.UDP) {
-            iceSocket = new IceUdpSocketWrapper(localAddress);
-        } else {
-            iceSocket = new IceTcpSocketWrapper(localAddress);
-            // set remote address (only sticks if its TCP)
-            iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
+        // look for an existing ice socket before creating a new one with the same local address
+        IceSocketWrapper iceSocket = IceTransport.getIceHandler().lookupBinding(localAddress);
+        if (iceSocket == null) {
+            TransportAddress remoteAddress = relayedCandidateConnection.getTurnCandidateHarvest().harvester.stunServer;
+            if (localAddress.getTransport() == Transport.UDP) {
+                iceSocket = new IceUdpSocketWrapper(localAddress);
+            } else {
+                iceSocket = new IceTcpSocketWrapper(localAddress);
+                // set remote address (only sticks if its TCP)
+                iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
+            }
         }
         iceSocket.setRelayedConnection(relayedCandidateConnection);
         return iceSocket;
