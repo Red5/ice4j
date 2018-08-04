@@ -338,29 +338,29 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 setChannelBound(request, true);
                 break;
         }
-        switch (response.getMessageType()) {
-            case Message.ALLOCATE_RESPONSE:
-                //logger.debug("Relayed candidate - mapped: {} relayed: {}", relayedCandidate.getMappedAddress(), relayedCandidate.getRelayedAddress());
-                byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
-                Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(relayedCandidate.getRelayedAddress(), createPermissionTransactionID);
-                try {
-                    createPermissionRequest.setTransactionID(createPermissionTransactionID);
-                    turnCandidateHarvest.sendRequest(this, createPermissionRequest);
-                } catch (StunException sex) {
-                    logger.warn("Failed to obtain permission", sex);
-                }
-                break;
-            case Message.CREATEPERMISSION_RESPONSE:
-                Channel channel = new Channel(relayedCandidate.getRelayedAddress());
-                channels.add(channel);
-                // send indication is the next step in the rfc5766 process pg.51
-                try {
-                    channel.send(IoBuffer.wrap(new byte[0]), relayedCandidate.getRelayedAddress());
-                } catch (StunException sex) {
-                    logger.warn("Failed to send indication", sex);
-                }
-                break;
-        }
+        //switch (response.getMessageType()) {
+        //            case Message.ALLOCATE_RESPONSE:
+        //                //logger.debug("Relayed candidate - mapped: {} relayed: {}", relayedCandidate.getMappedAddress(), relayedCandidate.getRelayedAddress());
+        //                byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
+        //                Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(relayedCandidate.getRelayedAddress(), createPermissionTransactionID);
+        //                try {
+        //                    createPermissionRequest.setTransactionID(createPermissionTransactionID);
+        //                    turnCandidateHarvest.sendRequest(this, createPermissionRequest);
+        //                } catch (StunException sex) {
+        //                    logger.warn("Failed to obtain permission", sex);
+        //                }
+        //                break;
+        //            case Message.CREATEPERMISSION_RESPONSE:
+        //                Channel channel = new Channel(relayedCandidate.getRelayedAddress());
+        //                channels.add(channel);
+        //                // send indication is the next step in the rfc5766 process pg.51
+        //                try {
+        //                    channel.send(IoBuffer.wrap(new byte[0]), relayedCandidate.getRelayedAddress());
+        //                } catch (StunException sex) {
+        //                    logger.warn("Failed to send indication", sex);
+        //                }
+        //                break;
+        //}
     }
 
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
@@ -544,19 +544,17 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                     SocketSessionConfig config = connector.getSessionConfig();
                     config.setReuseAddress(true);
                     config.setTcpNoDelay(true);
-                    // set an idle time of 30s (default)
-                    //config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
                     // QoS
                     config.setTrafficClass(IceTransport.trafficClass);
                     // set connection timeout of x milliseconds
                     connector.setConnectTimeoutMillis(3000L);
-                    // add the ice protocol encoder/decoder
-                    //connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                     // set the handler on the connector
                     connector.setHandler(this);
                     // connect it
                     ConnectFuture future = connector.connect(peerAddress, transportAddress);
                     future.addListener(connectListener);
+                    future.awaitUninterruptibly();
+                    logger.debug("Connect future: {}", future.isDone());
                 } catch (Throwable t) {
                     logger.warn("Exception creating new TCP connector for {} to {}", transportAddress, peerAddress, t);
                 }
@@ -569,19 +567,17 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                     config.setBroadcast(false);
                     config.setReuseAddress(true);
                     config.setCloseOnPortUnreachable(true);
-                    // set an idle time of 30s (default)
-                    //config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
                     // QoS
                     config.setTrafficClass(IceTransport.trafficClass);
                     // set connection timeout of x milliseconds
                     connector.setConnectTimeoutMillis(3000L);
-                    // add the ice protocol encoder/decoder
-                    //connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                     // set the handler on the connector
                     connector.setHandler(this);
                     // connect it
                     ConnectFuture future = connector.connect(peerAddress, transportAddress);
                     future.addListener(connectListener);
+                    future.awaitUninterruptibly();
+                    logger.debug("Connect future: {}", future.isDone());
                 } catch (Throwable t) {
                     logger.warn("Exception creating new UDP connector for {} to {}", transportAddress, peerAddress, t);
                 }
@@ -738,11 +734,11 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
         }
 
         /**
-         * Sends a specific DatagramPacket through this Channel to a specific peer TransportAddress.
+         * Sends a specific data through this Channel to a specific peer TransportAddress.
          *
          * @param data the data to be sent
-         * @param peerAddress the TransportAddress of the peer to which the DatagramPacket is to be sent
-         * @throws StunException if anything goes wrong while sending the specified DatagramPacket to the specified peer address
+         * @param peerAddress the TransportAddress of the peer to which the data is to be sent
+         * @throws StunException if anything goes wrong while sending the specified data to the specified peer address
          */
         public void send(IoBuffer data, TransportAddress peerAddress) throws StunException {
             if (channelDataIsPreferred && (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED) && channelNumberIsConfirmed) {
@@ -764,7 +760,11 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 // flip it so we can send it
                 channelDataBuffer.flip();
                 // send it out
-                channelDataSession.write(channelDataBuffer, turnCandidateHarvest.harvester.stunServer);
+                if (Transport.UDP.equals(peerAddress.getTransport())) {
+                    channelDataSession.write(channelDataBuffer, peerAddress);
+                } else {
+                    channelDataSession.write(channelDataBuffer);
+                }
             } else {
                 byte[] transactionID = TransactionID.createNewTransactionID().getBytes();
                 // data array won't contain the channel number + length

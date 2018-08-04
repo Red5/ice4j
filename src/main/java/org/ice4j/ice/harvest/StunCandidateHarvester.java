@@ -7,23 +7,22 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.future.ConnectFuture;
-import org.apache.mina.core.future.IoFutureListener;
+import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 import org.ice4j.StackProperties;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
-import org.ice4j.ice.Agent;
 import org.ice4j.ice.Candidate;
 import org.ice4j.ice.CandidateTcpType;
 import org.ice4j.ice.Component;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.nio.IceHandler;
 import org.ice4j.ice.nio.IceTransport;
-import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
@@ -239,8 +238,10 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      * @param hostCand the HostCandidate that we'd like to resolve.
      */
     private void startResolvingCandidate(HostCandidate hostCand) {
+        // get the transport address for the incoming host candidate
+        TransportAddress hostAddress = hostCand.getTransportAddress();
         // first of all, make sure that the STUN server and the Candidate address are of the same type and that they can communicate.
-        if (!hostCand.getTransportAddress().canReach(stunServer)) {
+        if (!hostAddress.canReach(stunServer)) {
             logger.info("Transport mismatch, skipping candidate in this harvester");
             return;
         }
@@ -250,53 +251,47 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         // create a new TCP HostCandidate
         if (hostCand.getTransport() == Transport.TCP) {
             logger.info("Creating a new TCP HostCandidate");
-            NioSocketConnector connector = new NioSocketConnector();
-            connector.setHandler(IceTransport.getIceHandler());
-            ConnectFuture future = connector.connect(stunServer);
-            future.addListener(new IoFutureListener<ConnectFuture>() {
-
-                @Override
-                public void operationComplete(ConnectFuture future) {
-                    IoSession sess = future.getSession();
-                    if (!future.isConnected()) {
-                        logger.warn("Connect failed from: {} to: {}", sess.getLocalAddress(), sess.getRemoteAddress());
-                    } else {
-                        try {
+            try {
+                final IceHandler iceHandler = IceTransport.getIceHandler();
+                // lookup the existing host candidates ice socket (should have been created by host harvester)
+                IceSocketWrapper iceSocket = iceHandler.lookupBinding(hostAddress);
+                if (iceSocket != null) {
+                    // create a new session connected to the stun server and add it to the existing ice socket
+                    NioSocketConnector connector = new NioSocketConnector();
+                    SocketSessionConfig config = connector.getSessionConfig();
+                    config.setReuseAddress(true);
+                    config.setTcpNoDelay(true);
+                    // set an idle time of 30s (default)
+                    config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
+                    // QoS
+                    config.setTrafficClass(IceTransport.trafficClass);
+                    // set connection timeout of x milliseconds
+                    connector.setConnectTimeoutMillis(3000L);
+                    // add the ice protocol encoder/decoder
+                    connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
+                    // set the handler on the connector
+                    connector.setHandler(iceHandler);
+                    // connect 
+                    ConnectFuture future = connector.connect(stunServer);
+                    future.awaitUninterruptibly(3000L);
+                    if (future.isConnected()) {
+                        IoSession sess = future.getSession();
+                        if (sess != null) {
+                            iceSocket.setSession(sess);
                             Component component = hostCand.getParentComponent();
-                            Agent agent = component.getParentStream().getParentAgent();
-                            // the builder will determine tcp or udp based on "connection-less" property
-                            IceSocketWrapper sock = IceSocketWrapper.build(sess);
-                            // create a new host candidate
-                            HostCandidate hostCandidate = new HostCandidate(sock, component, Transport.TCP);
+                            // create a new host candidate 
+                            cand = new HostCandidate(iceSocket, component, Transport.TCP);
                             // set the tcptype (we need to know if the other end is active, but for now all the browsers appear to be
-                            //hostCandidate.setTcpType(agent.isControlling() ? CandidateTcpType.ACTIVE : CandidateTcpType.PASSIVE);
-                            hostCandidate.setTcpType(CandidateTcpType.PASSIVE);
-                            // set the candidate on the session so it may be accessed outside the io thread
-                            sess.setAttribute(Ice.CANDIDATE, hostCandidate);
-                            //agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), !agent.isControlling()); // do socket binding
-                            agent.getStunStack().addSocket(sock, sock.getRemoteTransportAddress(), true); // passive == bind, active == no
-                            component.getComponentSocket().setSocket(sock);
-                        } catch (Exception e) {
-                            logger.warn("Exception TCP client connect", e);
+                            cand.setTcpType(CandidateTcpType.PASSIVE);
+                            stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress(), true); // passive == bind, active == no 
+                            component.getComponentSocket().setSocket(iceSocket);
                         }
                     }
-                    // count down since connect operation completed
-                    connectLatch.countDown();
+                } else {
+                    logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
                 }
-
-            });
-            // wait until a little past a standard time for STUN to complete
-            try {
-                if (connectLatch.await(3000L, TimeUnit.MILLISECONDS)) {
-                    // pull-out the host candidate if one exists
-                    if (future.getSession() != null) {
-                        cand = (HostCandidate) future.getSession().removeAttribute(Ice.CANDIDATE);
-                    } else {
-                        logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
-                    }
-                }
-            } catch (InterruptedException e) {
-                logger.warn("STUN connection wait interrupted", e);
+            } catch (Exception e) {
+                logger.warn("Exception resolving TCP HostCandidate", e);
             }
         } else {
             logger.trace("Using existing UDP HostCandidate");
@@ -365,6 +360,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         int result = 1;
         result = prime * result + ((shortTermCredentialUsername == null) ? 0 : shortTermCredentialUsername.hashCode());
         result = prime * result + ((stunServer == null) ? 0 : stunServer.hashCode());
+        result = prime * result + (Transport.UDP.equals(stunServer.getTransport()) ? 2 : 4);
         return result;
     }
 
@@ -376,6 +372,9 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
             return false;
         if (getClass() != obj.getClass())
             return false;
+        if (!Transport.UDP.equals(stunServer.getTransport())) {
+            return false;
+        }
         StunCandidateHarvester other = (StunCandidateHarvester) obj;
         if (shortTermCredentialUsername == null) {
             if (other.shortTermCredentialUsername != null)

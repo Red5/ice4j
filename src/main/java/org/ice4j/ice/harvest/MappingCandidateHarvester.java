@@ -110,10 +110,38 @@ public class MappingCandidateHarvester extends AbstractCandidateHarvester {
     public TransportAddress getFace() {
         return face;
     }
+    
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((face == null) ? 0 : face.hashCode());
+        result = prime * result + ((mask == null) ? 0 : mask.hashCode());
+        return result;
+    }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MappingCandidateHarvester other = (MappingCandidateHarvester) obj;
+        if (face == null) {
+            if (other.face != null)
+                return false;
+        } else if (!face.equals(other.face))
+            return false;
+        if (mask == null) {
+            if (other.mask != null)
+                return false;
+        } else if (!mask.equals(other.mask))
+            return false;
+        return true;
+    }
+
     @Override
     public String toString() {
         TransportAddress face = getFace();

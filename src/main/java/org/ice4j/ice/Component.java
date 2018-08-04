@@ -7,9 +7,11 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -43,6 +45,29 @@ public class Component implements PropertyChangeListener {
     private static boolean skipPrivateNetworkHostCandidate = StackProperties.getBoolean("SKIP_REMOTE_PRIVATE_HOSTS", false);
 
     /**
+     * Comparator allowing sort by priority and preference.
+     */
+    private final static Comparator<? super LocalCandidate> candidateComparator = new Comparator<LocalCandidate>() {
+
+        @Override
+        public int compare(LocalCandidate cand1, LocalCandidate cand2) {
+            int result = 0;
+            if (cand1.priority < cand2.priority) {
+                result -= 1;
+            } else if (cand1.priority > cand2.priority) {
+                result += 1;
+            }
+            if (cand1.getDefaultPreference() < cand2.getDefaultPreference()) {
+                result -= 1;
+            } else if (cand1.getDefaultPreference() > cand2.getDefaultPreference()) {
+                result += 1;
+            }
+            return result;
+        }
+
+    };
+
+    /**
      * A component id is a positive integer between 1 and 256 which identifies the specific component of the media stream for which this is a candidate.
      * It MUST start at 1 and MUST increment by 1 for each component of a particular candidate. For media streams based on RTP, candidates for the
      * actual RTP media MUST have a component ID of 1, and candidates for RTCP MUST have a component ID of 2. Other types of media streams which
@@ -59,7 +84,7 @@ public class Component implements PropertyChangeListener {
     /**
      * The list locally gathered candidates for this media stream.
      */
-    private final Queue<LocalCandidate> localCandidates = new PriorityQueue<>();
+    private final Queue<LocalCandidate> localCandidates = new PriorityQueue<>(3, candidateComparator);
 
     /**
      * The list of candidates that the peer agent sent for this stream.
@@ -122,31 +147,26 @@ public class Component implements PropertyChangeListener {
     }
 
     /**
-     * Add a local candidate to this component. The method should only be
-     * accessed and local candidates added by the candidate harvesters
+     * Add a local candidate to this component. The method should only be accessed and local candidates added by the candidate harvesters
      * registered with the agent.
      *
      * @param candidate the candidate object to be added
-     *
-     * @return true if we actually added the new candidate or
-     * false in case we didn't because it was redundant to an existing
-     * candidate.
+     * @return true if we actually added the new candidate or false in case we didn't because it was redundant to an existing candidate.
      */
     public boolean addLocalCandidate(LocalCandidate candidate) {
         Agent agent = getParentStream().getParentAgent();
-        //assign foundation.
+        // assign foundation
         agent.getFoundationsRegistry().assignFoundation(candidate);
-        //compute priority
+        // compute priority
         candidate.computePriority();
-        //check if we already have such a candidate (redundant)
-        LocalCandidate redundantCandidate = findRedundant(candidate);
-        if (redundantCandidate != null) {
-            //if we get here, then it's clear we won't be adding anything we will just update something at best. We purposefully don't
-            //care about priorities because allowing candidate replace is tricky to handle on the signaling layer with trickle
-            return false;
+        // check if we already have such a candidate (redundant)
+        Optional<LocalCandidate> existingCandidate = localCandidates.stream().filter(existing -> (existing.toShortString().equals(candidate.toShortString()))).findFirst();
+        if (existingCandidate.isPresent()) {
+            logger.debug("Candidate entry already exists - {} {}", candidate, existingCandidate.get());
+        } else {
+            return localCandidates.add(candidate);
         }
-        localCandidates.add(candidate);
-        return true;
+        return false;
     }
 
     /**
@@ -194,7 +214,13 @@ public class Component implements PropertyChangeListener {
         if (skipPrivateNetworkHostCandidate && ((InetSocketAddress) candidate.getTransportAddress()).getAddress().isSiteLocalAddress()) {
             logger.debug("Skipping remote candidate with private IP address: {}", candidate);
         } else {
-            remoteCandidates.add(candidate);
+            // check if we already have such a candidate (redundant)
+            Optional<RemoteCandidate> existingCandidate = remoteCandidates.stream().filter(existing -> (existing.toShortString().equals(candidate.toShortString()))).findFirst();
+            if (existingCandidate.isPresent()) {
+                logger.debug("Candidate entry already exists - {} {}", candidate, existingCandidate.get());
+            } else {
+                remoteCandidates.add(candidate);
+            }
         }
     }
 
@@ -347,25 +373,6 @@ public class Component implements PropertyChangeListener {
     }
 
     /**
-     * Finds and returns the first candidate that is redundant to cand. A candidate is redundant if its transport address equals another
-     * candidate, and its base equals the base of that other candidate. Note that two candidates can have the same transport address yet have
-     * different bases, and these would not be considered redundant. Frequently, a server reflexive candidate and a host candidate will be redundant when
-     * the agent is not behind a NAT. The agent SHOULD eliminate the redundant candidate with the lower priority which is why we have to run this method
-     * only after prioritizing candidates.
-     *
-     * @param cand the {@link LocalCandidate} that we'd like to check for redundancies.
-     * @return the first candidate that is redundant to cand or null if there is no such candidate.
-     */
-    private LocalCandidate findRedundant(LocalCandidate cand) {
-        for (LocalCandidate redundantCand : localCandidates) {
-            if ((cand != redundantCand) && cand.getTransportAddress().equals(redundantCand.getTransportAddress()) && cand.getBase().equals(redundantCand.getBase())) {
-                return redundantCand;
-            }
-        }
-        return null;
-    }
-
-    /**
      * Returns the Candidate that has been selected as the default for this Component or null if no such
      * Candidate has been selected yet. A candidate is said to be default if it would be the target of media from a non-ICE peer;
      *
@@ -425,10 +432,10 @@ public class Component implements PropertyChangeListener {
          * }; for (CandidateType candidateType : candidateTypes) { for (LocalCandidate localCandidate : localCandidates) { if (candidateType.equals(localCandidate.getType())) {
          * free(localCandidate); localCandidates.remove(localCandidate); } } }
          */
-        // Free whatever's left.
-        for (LocalCandidate localCandidate : localCandidates) {
-            free(localCandidate);
-        }
+        // Free at last
+        localCandidates.forEach(candidate -> {
+            free(candidate);
+        });
         localCandidates.clear();
         getParentStream().removePairStateChangeListener(this);
         keepAlivePairs.clear();

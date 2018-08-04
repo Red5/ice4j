@@ -485,37 +485,34 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Adds a new MessageEventHandler which is to be notified about
-     * STUN indications received at a specific local TransportAddress.
+     * Adds a new MessageEventHandler which is to be notified about STUN indications received at a specific local TransportAddress.
      *
-     * @param localAddr the TransportAddress of the local socket for
-     * which received STUN indications are to be reported to the specified
+     * @param localAddr the TransportAddress of the local socket for which received STUN indications are to be reported to the specified
      * MessageEventHandler
-     * @param indicationListener the MessageEventHandler which is to be
-     * registered for notifications about STUN indications received at the
+     * @param indicationListener the MessageEventHandler which is to be registered for notifications about STUN indications received at the
      * specified local TransportAddress
      */
     public void addIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
+        logger.info("addIndicationListener - {} listener: {}", localAddr, indicationListener);
         eventDispatcher.addIndicationListener(localAddr, indicationListener);
     }
 
     /**
-     * Adds a new MessageEventHandler which is to be notified about
-     * old indications received at a specific local TransportAddress.
+     * Adds a new MessageEventHandler which is to be notified about old indications received at a specific local TransportAddress.
      *
-     * @param localAddr the TransportAddress of the local socket for
-     * which received STUN indications are to be reported to the specified
+     * @param localAddr the TransportAddress of the local socket for which received STUN indications are to be reported to the specified
      * MessageEventHandler
-     * @param indicationListener the MessageEventHandler which is to be
-     * registered for notifications about old indications received at the
+     * @param indicationListener the MessageEventHandler which is to be registered for notifications about old indications received at the
      * specified local TransportAddress
      */
     public void addOldIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
+        logger.info("addOldIndicationListener - {} listener: {}", localAddr, indicationListener);
         eventDispatcher.addOldIndicationListener(localAddr, indicationListener);
     }
 
     /**
      * Sets the listener that should be notified when a new Request is received.
+     * 
      * @param requestListener the listener interested in incoming requests
      */
     public void addRequestListener(RequestListener requestListener) {
@@ -523,8 +520,7 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Removes an existing MessageEventHandler to no longer be notified about STUN indications received at a specific local
-     * TransportAddress.
+     * Removes an existing MessageEventHandler to no longer be notified about STUN indications received at a specific local TransportAddress.
      *
      * @param localAddr the TransportAddress of the local socket for which received STUN indications are to no longer be reported to the
      * specified MessageEventHandler
@@ -532,6 +528,7 @@ public class StunStack implements MessageEventHandler {
      * specified local TransportAddress
      */
     public void removeIndicationListener(TransportAddress localAddr, MessageEventHandler indicationListener) {
+        logger.info("removeIndicationListener - {} listener: {}", localAddr, indicationListener);
     }
 
     /**

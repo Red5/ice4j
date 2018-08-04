@@ -183,24 +183,28 @@ public abstract class IceSocketWrapper {
         if (sess != null) {
             logger.debug("Close session: {}", sess.getId());
             try {
-                CloseFuture future = sess.closeNow();
-                // wait until the connection is closed
-                future.awaitUninterruptibly();
-                //logger.debug("CloseFuture done: {}", sess.getId());
-                // now connection should be closed
-                if (future.isClosed()) {
-                    //logger.debug("CloseFuture closed: {}", sess.getId());
-                    session.set(NULL_SESSION);
-                    closed = true;
-                } else {
-                    logger.info("CloseFuture not closed: {}", sess.getId());
+                // if the session isn't already closed or disconnected
+                if (!sess.isClosing()) {
+                    CloseFuture future = sess.closeNow();
+                    // wait until the connection is closed
+                    future.awaitUninterruptibly();
+                    //logger.debug("CloseFuture done: {}", sess.getId());
+                    // now connection should be closed
+                    if (!future.isClosed()) {
+                        logger.info("CloseFuture not closed: {}", sess.getId());
+                    }
                 }
+                session.set(NULL_SESSION);
+                closed = true;
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
             } finally {
                 staleSessions.forEach(session -> {
                     try {
-                        session.closeNow();
+                        // if the session isn't already closed or disconnected
+                        if (!session.isClosing()) {
+                            session.closeNow();
+                        }
                     } catch (Throwable t) {
                         logger.warn("Fail on (stale session) close", t);
                     }
@@ -505,6 +509,7 @@ public abstract class IceSocketWrapper {
                 iceSocket.setRemoteTransportAddress(new TransportAddress(remoteAddress.getAddress(), remoteAddress.getPort(), Transport.TCP));
             }
         }
+        // attach the relay connection
         iceSocket.setRelayedConnection(relayedCandidateConnection);
         return iceSocket;
     }

@@ -146,19 +146,17 @@ public class NetAccessManager {
     public void stop() {
         logger.debug("stop");
         // close all udp
-        for (Map<TransportAddress, Connector> map : udpConnectors.values()) {
-            // TODO fix ConcurrentModificationException that may occur here
-            for (Connector connector : map.values()) {
+        udpConnectors.values().forEach(connectorMap -> {
+            connectorMap.values().forEach(connector -> {
                 connector.stop();
-            }
-        }
+            });
+        });
         // close all tcp
-        for (Map<TransportAddress, Connector> map : tcpConnectors.values()) {
-            // TODO fix ConcurrentModificationException that may occur here
-            for (Connector connector : map.values()) {
+        tcpConnectors.values().forEach(connectorMap -> {
+            connectorMap.values().forEach(connector -> {
                 connector.stop();
-            }
-        }
+            });
+        });
     }
 
     /**
@@ -248,12 +246,12 @@ public class NetAccessManager {
      * @throws IllegalArgumentException if the descriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
-//    void receiveMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
-//        Connector ap = getConnector(srcAddr, remoteAddr);
-//        if (ap == null) {
-//            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
-//        }
-//        ap.receiveMessage(bytes, remoteAddr);
-//    }
+    //    void receiveMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
+    //        Connector ap = getConnector(srcAddr, remoteAddr);
+    //        if (ap == null) {
+    //            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
+    //        }
+    //        ap.receiveMessage(bytes, remoteAddr);
+    //    }
 
 }

@@ -30,10 +30,10 @@ public class IceHandler extends IoHandlerAdapter {
     private static final Logger logger = LoggerFactory.getLogger(IceHandler.class);
 
     // temporary holding area for stun stacks awaiting session creation
-    private ConcurrentMap<TransportAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
+    private static ConcurrentMap<TransportAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
 
     // temporary holding area for ice sockets awaiting session creation
-    private ConcurrentMap<TransportAddress, IceSocketWrapper> iceSockets = new ConcurrentHashMap<>();
+    private static ConcurrentMap<TransportAddress, IceSocketWrapper> iceSockets = new ConcurrentHashMap<>();
 
     /**
      * Registers a StunStack and IceSocketWrapper to the internal maps to wait for their associated IoSession creation.
@@ -61,12 +61,7 @@ public class IceHandler extends IoHandlerAdapter {
      * @return IceSocketWrapper
      */
     public IceSocketWrapper lookupBinding(TransportAddress address) {
-        logger.trace("lookupBinding on {} for address: {} existing bindings: {}", this, address, iceSockets);
-        //        final String addrString = address.toString();
-        //        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().peek(entry -> System.out.printf("Equals - %b %b%n", entry.getKey().equals(address), entry.getKey().toString().equals(address.toString()))).filter(entry -> entry.getKey().toString().equals(addrString)).findFirst();
-        //        if (result.isPresent()) {
-        //            return result.get().getValue();
-        //        }
+        logger.trace("lookupBinding for address: {} existing bindings: {}", address, iceSockets);
         return iceSockets.get(address);
     }
 
@@ -77,8 +72,9 @@ public class IceHandler extends IoHandlerAdapter {
      * @return IceSocketWrapper
      */
     public IceSocketWrapper lookupBindingByRemote(SocketAddress remoteAddress) {
+        logger.trace("lookupBindingByRemote for address: {} existing bindings: {}", remoteAddress, iceSockets);
         IceSocketWrapper iceSocket = null;
-        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().filter(entry -> entry.getValue().getSession().getRemoteAddress().equals(remoteAddress)).findFirst();
+        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().filter(entry -> (entry.getValue().getSession() != null && entry.getValue().getSession().getRemoteAddress().equals(remoteAddress))).findFirst();
         if (result.isPresent()) {
             iceSocket = result.get().getValue();
         }
@@ -99,18 +95,9 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionCreated(IoSession session) throws Exception {
         logger.trace("Created (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void sessionOpened(IoSession session) throws Exception {
-        logger.debug("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
         Transport transport = session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP;
         // set transport type, making it easier to look-up later
         session.setAttribute(IceTransport.Ice.TRANSPORT, transport);
-        //if (logger.isTraceEnabled()) {
-        //    logger.trace("Acceptor sessions (existing): {}", IceTransport.getInstance(transport).getAcceptor().getManagedSessions());
-        //}
         // get the local address
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
@@ -123,7 +110,7 @@ public class IceHandler extends IoHandlerAdapter {
                 session.setAttribute(IceTransport.Ice.CONNECTION, iceSocket);
             }
         } else {
-            logger.debug("No ice socket at open for: {}", addr);
+            logger.debug("No ice socket at create for: {}", addr);
             /*
              * iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION); if (iceSocket != null) { iceSocket.setSession(session);
              * logger.debug("Ice socket in session at create for: {} session in socket: {}", addr, iceSocket.getSession()); } else {
@@ -147,8 +134,14 @@ public class IceHandler extends IoHandlerAdapter {
                 }
             }
         } else {
-            logger.debug("No stun stack at open for: {}", addr);
+            logger.debug("No stun stack at create for: {}", addr);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
+        logger.debug("Opened (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
     }
 
     /** {@inheritDoc} */

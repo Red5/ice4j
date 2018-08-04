@@ -121,10 +121,12 @@ public class TurnCandidateHarvester extends StunCandidateHarvester {
             return false;
         TurnCandidateHarvester other = (TurnCandidateHarvester) obj;
         if (longTermCredential == null) {
-            if (other.longTermCredential != null)
+            if (other.longTermCredential != null) {
                 return false;
-        } else if (!longTermCredential.equals(other.longTermCredential))
+            }
+        } else if (!longTermCredential.equals(other.longTermCredential)) {
             return false;
+        }
         return true;
     }
 

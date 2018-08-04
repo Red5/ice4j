@@ -113,7 +113,7 @@ public class HostCandidateHarvester {
             try {
                 initializeInterfaceFilters();
             } catch (Exception e) {
-                logger.warn("There were errors during host candidate interface filters initialization.", e);
+                logger.warn("There were errors during host candidate interface filters initialization", e);
             }
         }
         return blockedInterfaces;
@@ -212,7 +212,7 @@ public class HostCandidateHarvester {
                 }
             }
         } catch (SocketException se) {
-            logger.info("Failed to get network interfaces: {}", se);
+            logger.warn("Failed to get network interfaces", se);
         }
         return addresses;
     }
@@ -245,7 +245,7 @@ public class HostCandidateHarvester {
                 }
             }
         } catch (SocketException se) {
-            logger.info("Failed to get network interfaces: {}", se);
+            logger.warn("Failed to get network interfaces", se);
         }
         return addresses;
     }
@@ -265,10 +265,10 @@ public class HostCandidateHarvester {
      */
     public void harvest(Component component, int preferredPort, int minPort, int maxPort, Transport transport) throws IllegalArgumentException, IOException {
         logger.debug("harvest port: {}", preferredPort);
-        if (transport != Transport.UDP && transport != Transport.TCP) {
+        if (transport == null || (transport != Transport.UDP && transport != Transport.TCP)) {
             throw new IllegalArgumentException("Transport protocol not supported: " + transport);
         }
-        logger.debug("starting socket creation loop");
+        logger.trace("Starting socket creation loop");
         availableHostAddresses.forEach(addrRef -> {
             logger.debug("addr: {}", addrRef);
             IceSocketWrapper sock = null;
@@ -288,14 +288,15 @@ public class HostCandidateHarvester {
                 component.getComponentSocket().setSocket(sock);
             } catch (Throwable t) {
                 // There seems to be a problem with this particular address let's just move on for now and hope we will find better
-                logger.warn("Socket creation failed on: {}\\{}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort);
+                logger.info("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort);
+                logger.warn("Host harvest failed", t);
             }
         });
-        logger.debug("exited socket creation loop");
+        logger.trace("Exited socket creation loop");
         if (component.getLocalCandidateCount() == 0) {
             throw new IOException("Failed to bind even a single host candidate for component:" + component + " preferredPort=" + preferredPort + " minPort=" + minPort + " maxPort=" + maxPort);
         }
-        logger.debug("exit harvest port: {}", preferredPort);
+        logger.debug("Exit harvest port: {}", preferredPort);
     }
 
     /**

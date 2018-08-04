@@ -114,8 +114,7 @@ public class Agent {
     private final CandidateHarvesterSet harvesters = new CandidateHarvesterSet();
 
     /**
-     * We use the FoundationsRegistry to keep track of the foundations we assign within a session (i.e. the entire life time of an
-     * Agent)
+     * We use the FoundationsRegistry to keep track of the foundations we assign within a session (i.e. the entire life time of an Agent)
      */
     private final FoundationsRegistry foundationsRegistry = new FoundationsRegistry();
 
@@ -375,7 +374,7 @@ public class Agent {
         } else if (hostHarvesters.isEmpty()) {
             logger.warn("No host harvesters available!");
         }
-        logger.debug("hostHarvesters: {}", hostHarvesters);
+        //logger.debug("hostHarvesters: {}", hostHarvesters);
         for (CandidateHarvester harvester : hostHarvesters) {
             harvester.harvest(component);
         }

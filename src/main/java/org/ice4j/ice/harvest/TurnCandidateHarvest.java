@@ -289,14 +289,18 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 if (applicationData == null) {
                     candidates.forEach(candidate -> {
                         if (candidate instanceof RelayedCandidate) {
+                            TransportAddress relayedAddr = ((RelayedCandidate) candidate).getRelayedAddress();
+                            logger.debug("Relayed address: {}", relayedAddr);
                             try {
                                 transactionID.setApplicationData(new RelayedCandidateConnection((RelayedCandidate) candidate, this));
                             } catch (Exception e) {
                                 logger.warn("Exception creating relayed connection", e);
                             }
+                            return;
                         }
                     });
                     applicationData = transactionID.getApplicationData();
+                    logger.debug("Transaction application data: {}", applicationData);
                 }
                 break;
             case Message.REFRESH_RESPONSE:
@@ -312,6 +316,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
         }
         // forward the success if relay connection is attached
         if (applicationData instanceof RelayedCandidateConnection) {
+            logger.debug("Forwarding success to the relayed candidate");
             ((RelayedCandidateConnection) applicationData).processSuccess(response, request);
         }
     }

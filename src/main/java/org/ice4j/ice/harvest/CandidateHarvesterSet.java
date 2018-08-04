@@ -12,12 +12,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,10 +42,9 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
     private static final Logger logger = LoggerFactory.getLogger(CandidateHarvesterSet.class);
 
     /**
-     * The CandidateHarvesters which are the elements of this
-     * Set.
+     * The CandidateHarvesters which are the elements of this Set.
      */
-    private final Collection<CandidateHarvesterSetElement> elements = new LinkedList<>();
+    private final Collection<CandidateHarvesterSetElement> elements = new ConcurrentLinkedDeque<>();
 
     /**
      * A pool of thread used for gathering process.
@@ -58,34 +58,25 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
     }
 
     /**
-     * Adds a specific CandidateHarvester to this
-     * CandidateHarvesterSet and returns true if it is not
-     * already present. Otherwise, leaves this set unchanged and returns
-     * false.
+     * Adds a specific CandidateHarvester to this CandidateHarvesterSet and returns true if it is not already present. Otherwise, leaves this
+     * set unchanged and returns false.
      *
-     * @param harvester the CandidateHarvester to be added to this
-     * CandidateHarvesterSet
-     * @return true if this CandidateHarvesterSet did not
-     * already contain the specified harvester; otherwise,
-     * false
+     * @param harvester the CandidateHarvester to be added to this CandidateHarvesterSet
+     * @return true if this CandidateHarvesterSet did not already contain the specified harvester; otherwise, false
      * @see Set#add(Object)
      */
     @Override
     public boolean add(CandidateHarvester harvester) {
-        synchronized (elements) {
-            for (CandidateHarvesterSetElement element : elements)
-                if (element.harvesterEquals(harvester))
-                    return false;
-
+        Optional<CandidateHarvesterSetElement> result = elements.stream().filter(element -> element.harvesterEquals(harvester)).findFirst();
+        if (!result.isPresent()) {
             elements.add(new CandidateHarvesterSetElement(harvester));
             return true;
         }
+        return false;
     }
 
     /**
-     * Gathers candidate addresses for a specific Component.
-     * CandidateHarvesterSet delegates to the
-     * CandidateHarvesters which are its Set elements.
+     * Gathers candidate addresses for a specific Component. CandidateHarvesterSet delegates to the CandidateHarvesters which are its Set elements.
      *
      * @param component the Component to gather candidate addresses for
      * @see CandidateHarvester#harvest(Component)
@@ -95,80 +86,56 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
     }
 
     /**
-     * Gathers candidate addresses for a specific Component.
-     * CandidateHarvesterSet delegates to the
-     * CandidateHarvesters which are its Set elements.
+     * Gathers candidate addresses for a specific Component. CandidateHarvesterSet delegates to the CandidateHarvesters which are its Set elements.
      *
      * @param components the Component to gather candidate addresses for
      * @see CandidateHarvester#harvest(Component)
-     * @param trickleCallback the {@link TrickleCallback} that we will be
-     * feeding candidates to, or null in case the application doesn't
+     * @param trickleCallback the {@link TrickleCallback} that we will be feeding candidates to, or null in case the application doesn't
      * want us trickling any candidates
      */
     public void harvest(final List<Component> components, TrickleCallback trickleCallback) {
-        synchronized (elements) {
-            harvest(elements.iterator(), components, threadPool, trickleCallback);
-        }
+        harvest(elements.iterator(), components, threadPool, trickleCallback);
     }
 
     /**
-     * Gathers candidate addresses for a specific Component using
-     * specific CandidateHarvesters.
+     * Gathers candidate addresses for a specific Component using specific CandidateHarvesters.
      *
-     * @param harvesters the CandidateHarvesters to gather candidate
-     * addresses for the specified Component
-     * @param components the Components to gather candidate addresses
-     * for.
-     * @param executorService the ExecutorService to schedule the
-     * execution of the gathering of candidate addresses performed by the
+     * @param harvesters the CandidateHarvesters to gather candidate addresses for the specified Component
+     * @param components the Components to gather candidate addresses for
+     * @param executorService the ExecutorService to schedule the execution of the gathering of candidate addresses performed by the
      * specified harvesters
-     * @param trickleCallback the {@link TrickleCallback} that we will be
-     * feeding candidates to, or null in case the application doesn't
+     * @param trickleCallback the {@link TrickleCallback} that we will be feeding candidates to, or null in case the application doesn't
      * want us trickling any candidates
      */
     private void harvest(final Iterator<CandidateHarvesterSetElement> harvesters, final List<Component> components, ExecutorService executorService, final TrickleCallback trickleCallback) {
-        /*
-         * Start asynchronously executing the CandidateHarvester#harvest(Component) method of the harvesters.
-         */
+        // Start asynchronously executing the CandidateHarvester#harvest(Component) method of the harvesters.
         Map<CandidateHarvesterSetTask, Future<?>> tasks = new HashMap<>();
-
         while (true) {
-            /*
-             * Find the next CandidateHarvester which is to start gathering candidates.
-             */
+            // Find the next CandidateHarvester which is to start gathering candidates.
             CandidateHarvesterSetElement harvester;
-
             synchronized (harvesters) {
-                if (harvesters.hasNext())
+                if (harvesters.hasNext()) {
                     harvester = harvesters.next();
-                else
+                } else {
                     break;
+                }
             }
-
-            if (!harvester.isEnabled())
+            if (!harvester.isEnabled()) {
                 continue;
-
+            }
             List<Component> componentsCopy;
-
             synchronized (components) {
                 componentsCopy = new ArrayList<>(components);
             }
-
             // Asynchronously start gathering candidates using the harvester.
             CandidateHarvesterSetTask task = new CandidateHarvesterSetTask(harvester, componentsCopy, trickleCallback);
-
             tasks.put(task, executorService.submit(task));
         }
-
-        /*
-         * Wait for all harvesters to be given a chance to execute their CandidateHarvester#harvest(Component) method.
-         */
+        // Wait for all harvesters to be given a chance to execute their CandidateHarvester#harvest(Component) method.
         Iterator<Map.Entry<CandidateHarvesterSetTask, Future<?>>> taskIter = tasks.entrySet().iterator();
-
         while (taskIter.hasNext()) {
             Map.Entry<CandidateHarvesterSetTask, Future<?>> task = taskIter.next();
             Future<?> future = task.getValue();
-
             do {
                 try {
                     future.get(StackProperties.getInt(StackProperties.HARVESTING_TIMEOUT, 15), TimeUnit.SECONDS);
@@ -186,10 +153,8 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
                     break;
                 } catch (ExecutionException ee) {
                     CandidateHarvesterSetElement harvester = task.getKey().getHarvester();
-                    /*
-                     * A problem appeared during the execution of the task. CandidateHarvesterSetTask clears its harvester property for the purpose of determining whether the
-                     * problem has appeared while working with a harvester.
-                     */
+                    // A problem appeared during the execution of the task. CandidateHarvesterSetTask clears its harvester property for the
+                    // purpose of determining whether the problem has appeared while working with a harvester.
                     logger.warn("Disabling harvester {}", harvester.getHarvester(), ee);
                     if (harvester != null) {
                         harvester.setEnabled(false);
@@ -203,12 +168,10 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
     }
 
     /**
-     * Returns an Iterator over the CandidateHarvesters which
-     * are elements in this CandidateHarvesterSet. The elements are
+     * Returns an Iterator over the CandidateHarvesters which are elements in this CandidateHarvesterSet. The elements are
      * returned in no particular order.
      *
-     * @return an Iterator over the CandidateHarvesters which
-     * are elements in this CandidateHarvesterSet
+     * @return an Iterator over the CandidateHarvesters which are elements in this CandidateHarvesterSet
      * @see Set#iterator()
      */
     public Iterator<CandidateHarvester> iterator() {
@@ -218,8 +181,7 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
             /**
              * Determines whether this iteration has more elements.
              *
-             * @return true if this iteration has more elements;
-             * otherwise, false
+             * @return true if this iteration has more elements; otherwise, false
              * @see Iterator#hasNext()
              */
             public boolean hasNext() {
@@ -230,8 +192,7 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
              * Returns the next element in this iteration.
              *
              * @return the next element in this iteration
-             * @throws NoSuchElementException if this iteration has no more
-             * elements
+             * @throws NoSuchElementException if this iteration has no more elements
              * @see Iterator#next()
              */
             public CandidateHarvester next() throws NoSuchElementException {
@@ -239,19 +200,13 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
             }
 
             /**
-             * Removes from the underlying CandidateHarvesterSet
-             * the last CandidateHarvester (element) returned by
-             * this Iterator. CandidateHarvestSet does not
-             * implement the remove operation at the time of this
-             * writing i.e. it always throws
-             * UnsupportedOperationException.
+             * Removes from the underlying CandidateHarvesterSet the last CandidateHarvester (element) returned by
+             * this Iterator. CandidateHarvestSet does not implement the remove operation at the time of this
+             * writing i.e. it always throws UnsupportedOperationException.
              *
-             * @throws IllegalStateException if the next method has
-             * not yet been called, or the remove method has
-             * already been called after the last call to the next
-             * method
-             * @throws UnsupportedOperationException if the remove
-             * operation is not supported by this Iterator
+             * @throws IllegalStateException if the next method has not yet been called, or the remove method has
+             * already been called after the last call to the next method
+             * @throws UnsupportedOperationException if the remove operation is not supported by this Iterator
              * @see Iterator#remove()
              */
             public void remove() throws IllegalStateException, UnsupportedOperationException {
@@ -261,16 +216,12 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
     }
 
     /**
-     * Returns the number of CandidateHarvesters which are elements in
-     * this CandidateHarvesterSet.
+     * Returns the number of CandidateHarvesters which are elements in this CandidateHarvesterSet.
      *
-     * @return the number of CandidateHarvesters which are elements in
-     * this CandidateHarvesterSet
+     * @return the number of CandidateHarvesters which are elements in this CandidateHarvesterSet
      * @see Set#size()
      */
     public int size() {
-        synchronized (elements) {
-            return elements.size();
-        }
+        return elements.size();
     }
 }

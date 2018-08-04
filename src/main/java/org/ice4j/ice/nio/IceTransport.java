@@ -85,8 +85,9 @@ public abstract class IceTransport {
         // configure DNS cache ttl
         String ttl = System.getProperty("networkaddress.cache.ttl");
         if (ttl == null) {
-            // persist successful lookup forever (during jvm instance existence)
-            System.setProperty("networkaddress.cache.ttl", "-1");
+            // persist successful lookup forever -1
+            // https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/java-dg-jvm-ttl.html
+            System.setProperty("networkaddress.cache.ttl", "60");
         } else {
             logger.debug("DNS cache ttl: {}", ttl);
         }
