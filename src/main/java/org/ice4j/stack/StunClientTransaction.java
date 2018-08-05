@@ -266,7 +266,7 @@ public class StunClientTransaction implements Runnable {
             return;
         }
         stackCallback.removeClientTransaction(this);
-        responseCollector.processTimeout(new StunTimeoutEvent(stackCallback, this.request, getLocalAddress(), transactionID));
+        responseCollector.processTimeout(new StunTimeoutEvent(stackCallback, request, getLocalAddress(), transactionID));
     }
 
     /**

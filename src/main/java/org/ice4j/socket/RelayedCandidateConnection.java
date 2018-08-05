@@ -364,7 +364,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
     }
 
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
-        logger.debug("send: {} to {}", buf, destAddress);
+        logger.info("send: {} to {}", buf, destAddress);
         if (closed.get()) {
             throw new IOException(RelayedCandidateConnection.class.getSimpleName() + " has been closed");
         } else {
@@ -383,11 +383,9 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 channel = new Channel(peerAddress);
                 channels.add(channel);
             }
-            /*
-             * RFC 5245 says that "it is RECOMMENDED that the agent defer creation of a TURN channel until ICE completes." RelayedCandidateConnection is not explicitly told from
-             * the outside that ICE has completed so it tries to determine it by assuming that connectivity checks send only STUN messages and ICE has completed by the time a
-             * non-STUN message is to be sent.
-             */
+            // RFC 5245 says that "it is RECOMMENDED that the agent defer creation of a TURN channel until ICE completes." RelayedCandidateConnection
+            // is not explicitly told from the outside that ICE has completed so it tries to determine it by assuming that connectivity checks send
+            // only STUN messages and ICE has completed by the time a non-STUN message is to be sent.
             boolean forceBind = false;
             if (channelDataSession != null && !channel.getChannelDataIsPreferred() && !IceDecoder.isStun(buf.array())) {
                 channel.setChannelDataIsPreferred(true);
@@ -649,6 +647,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
          * @throws StunException if anything goes wrong while binding/installing this channel
          */
         public void bind() throws StunException {
+            logger.debug("bind!");
             byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
             Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(peerAddress, createPermissionTransactionID);
             createPermissionRequest.setTransactionID(createPermissionTransactionID);
@@ -741,6 +740,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
          * @throws StunException if anything goes wrong while sending the specified data to the specified peer address
          */
         public void send(IoBuffer data, TransportAddress peerAddress) throws StunException {
+            logger.debug("send: {} to {}", data, peerAddress);
             if (channelDataIsPreferred && (channelNumber != CHANNEL_NUMBER_NOT_SPECIFIED) && channelNumberIsConfirmed) {
                 int length = data.limit();
                 int channelDataLength = CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH + length;
@@ -782,7 +782,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
          * binding/installing has arrived
          */
         public void setBound(boolean bound, byte[] boundTransactionID) {
-            logger.debug("setBound: {} {}", bound, boundTransactionID);
+            logger.debug("setBound: {} transaction id: {}", bound, TransactionID.toString(boundTransactionID));
             if (bindingTransactionID != null) {
                 bindingTransactionID = null;
                 this.bound = bound;

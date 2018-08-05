@@ -56,9 +56,7 @@ public class ServerReflexiveCandidate extends LocalCandidate {
         computePriority();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public IceSocketWrapper getCandidateIceSocketWrapper() {
         return getBase().getCandidateIceSocketWrapper();
@@ -66,7 +64,7 @@ public class ServerReflexiveCandidate extends LocalCandidate {
 
     /**
      * Frees resources allocated by this candidate such as itsDatagramSocket, for example. The socket of this
-     * LocalCandidate is closed only if it is not the socketof the base of this LocalCandidate.
+     * LocalCandidate is closed only if it is not the socket of the base of this LocalCandidate.
      */
     @Override
     public void free() {

@@ -1,14 +1,32 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice.harvest;
 
-import java.lang.reflect.*;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.Optional;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.ice.*;
-import org.ice4j.message.*;
-import org.ice4j.socket.*;
-import org.ice4j.stack.*;
+import org.ice4j.StunException;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.ChannelNumberAttribute;
+import org.ice4j.attribute.EvenPortAttribute;
+import org.ice4j.attribute.LifetimeAttribute;
+import org.ice4j.attribute.RequestedTransportAttribute;
+import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.attribute.XorRelayedAddressAttribute;
+import org.ice4j.ice.Candidate;
+import org.ice4j.ice.CandidateType;
+import org.ice4j.ice.HostCandidate;
+import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.RelayedCandidate;
+import org.ice4j.ice.ServerReflexiveCandidate;
+import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.message.Response;
+import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.RelayedCandidateConnection;
+import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,6 +112,8 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
      */
     @Override
     protected void createCandidates(Response response) {
+        // Let the super create the ServerReflexiveCandidate first
+        super.createCandidates(response);
         // Creates a RelayedCandidate using the XOR-RELAYED-ADDRESS attribute in a specific STUN Response for the actual TransportAddress of the
         // new candidate. If the message is malformed and/or does not contain the corresponding attribute, no relay candidate is created.
         Attribute attribute = response.getAttribute(Attribute.Type.XOR_RELAYED_ADDRESS);
@@ -101,6 +121,11 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             TransportAddress relayedAddress = ((XorRelayedAddressAttribute) attribute).getAddress(response.getTransactionID());
             RelayedCandidate relayedCandidate = createRelayedCandidate(relayedAddress, getMappedAddress(response));
             if (relayedCandidate != null) {
+//                Optional<LocalCandidate> cand = candidates.stream().filter(candidate -> CandidateType.SERVER_REFLEXIVE_CANDIDATE.equals(candidate.getType())).findFirst();
+//                if (cand.isPresent()) {
+//                    ((ServerReflexiveCandidate) cand.get())
+//                }
+                
                 IceSocketWrapper socket = relayedCandidate.getCandidateIceSocketWrapper();
                 // connectivity checks utilize STUN on the (application-purposed) socket of the RelayedCandidate, add it to the StunStack
                 //harvester.getStunStack().addSocket(socket, relayedAddress, false);
@@ -108,8 +133,6 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 addCandidate(relayedCandidate);
             }
         }
-        // Let the super create the ServerReflexiveCandidate
-        super.createCandidates(response);
     }
 
     /**
@@ -330,6 +353,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
      * @throws StunException if anything goes wrong while sending the specified Request
      */
     public byte[] sendRequest(RelayedCandidateConnection relayedConnection, Request request) throws StunException {
+        logger.debug("sendRequest: {}", request);
         TransactionID transactionID = TransactionID.createNewTransactionID();
         transactionID.setApplicationData(relayedConnection);
         transactionID = sendRequest(request, false, transactionID);

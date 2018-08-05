@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -169,6 +170,27 @@ public class Component implements PropertyChangeListener {
         return false;
     }
 
+    /**
+     * Removes candidates matching the supplied types. Example of how to remove reflexive candidates:
+     * <pre>
+     *     component.removeLocalCandidateByType(EnumSet.of(CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE));
+     * </pre>
+     * 
+     * @param candidateTypes EnumSet of CandidateType to match
+     */
+    public void removeLocalCandidateByType(EnumSet<CandidateType> candidateTypes) {
+        localCandidates.forEach(candidate -> {
+            if (candidateTypes.contains(candidate.getType())) {
+                // free the candidate; this may also close the candidates socket
+                free(candidate);
+                // remove it
+                if (localCandidates.remove(candidate)) {
+                    logger.debug("Candidate freed and removed: {}", candidate);
+                }
+            }
+        });
+    }
+    
     /**
      * Returns a copy of the list containing all local candidates currently registered in this component.
      *
@@ -425,13 +447,6 @@ public class Component implements PropertyChangeListener {
      * Releases all resources allocated by this Component and its Candidates like sockets for example.
      */
     protected void free() {
-        // Since the sockets of the non-HostCandidate LocalCandidates may depend on the socket of the HostCandidate for which they have 
-        // been harvested, order the freeing.
-        /*
-         * CandidateType[] candidateTypes = new CandidateType[] { CandidateType.RELAYED_CANDIDATE, CandidateType.PEER_REFLEXIVE_CANDIDATE, CandidateType.SERVER_REFLEXIVE_CANDIDATE
-         * }; for (CandidateType candidateType : candidateTypes) { for (LocalCandidate localCandidate : localCandidates) { if (candidateType.equals(localCandidate.getType())) {
-         * free(localCandidate); localCandidates.remove(localCandidate); } } }
-         */
         // Free at last
         localCandidates.forEach(candidate -> {
             free(candidate);
@@ -469,9 +484,11 @@ public class Component implements PropertyChangeListener {
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
         for (LocalCandidate localCnd : localCandidates) {
             if (localCnd.getTransportAddress().equals(localAddress)) {
+                logger.debug("Found local {} candidate for address: {}", localCnd.getType(), localAddress);
                 return localCnd;
             }
         }
+        logger.debug("No local candidate for address: {}", localAddress);
         return null;
     }
 

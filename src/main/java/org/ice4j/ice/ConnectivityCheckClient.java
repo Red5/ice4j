@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 
+import org.apache.mina.core.buffer.IoBuffer;
 import org.ice4j.ResponseCollector;
 import org.ice4j.StunException;
 import org.ice4j.StunResponseEvent;
@@ -30,6 +31,7 @@ import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
@@ -143,10 +145,9 @@ class ConnectivityCheckClient implements ResponseCollector {
      * Creates a STUN {@link Request} containing the necessary PRIORITY and CONTROLLING/CONTROLLED attributes. Also stores a reference to
      * candidatePair in the newly created transactionID so that we could then refer back to it in subsequent response or failure events.
      *
-     * @param candidatePair that {@link CandidatePair} that we'd like to start a check for.
-     *
+     * @param candidatePair that {@link CandidatePair} that we'd like to start a check for
      * @return a reference to the {@link TransactionID} used in the connectivity check client transaction or null if sending the check has
-     * failed for some reason.
+     * failed for some reason
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair) {
         return startCheckForPair(candidatePair, -1, -1, -1);
@@ -164,6 +165,7 @@ class ConnectivityCheckClient implements ResponseCollector {
      * failed for some reason.
      */
     protected TransactionID startCheckForPair(CandidatePair candidatePair, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) {
+        logger.debug("startCheckForPair: {} wait: {} max wait: {} max retrans: {}", candidatePair.toShortString(), originalWaitInterval, maxWaitInterval, maxRetransmissions);
         LocalCandidate localCandidate = candidatePair.getLocalCandidate();
         // the priority we'd like the remote party to use for a peer reflexive candidate if one is discovered as a consequence of this check
         long priority = localCandidate.computePriorityForType(CandidateType.PEER_REFLEXIVE_CANDIDATE);
@@ -208,9 +210,32 @@ class ConnectivityCheckClient implements ResponseCollector {
         request.putAttribute(msgIntegrity);
         TransactionID tran = TransactionID.createNewTransactionID();
         tran.setApplicationData(candidatePair);
-        logger.debug("Start {} check for {} tid {}", streamName, candidatePair.toShortString(), tran);
+        logger.debug("Start stream: {} check for {} tid {}", streamName, candidatePair.toShortString(), tran);
         try {
-            tran = stunStack.sendRequest(request, candidatePair.getRemoteCandidate().getTransportAddress(), localCandidate.getBase().getTransportAddress(), this, tran, originalWaitInterval, maxWaitInterval, maxRetransmissions);
+            RemoteCandidate remoteCandidate = candidatePair.getRemoteCandidate();
+            logger.debug("Remote addr: {} reflexive: {}", remoteCandidate.getTransportAddress(), remoteCandidate.getReflexiveAddress());
+            // if the candidate is relay, send a permission request ahead of any other request
+            if (CandidateType.RELAYED_CANDIDATE.equals(localCandidate.getType())) {
+                RelayedCandidate relayedCandidate = (RelayedCandidate) localCandidate;
+                RelayedCandidateConnection relayedConn = relayedCandidate.getRelayedCandidateConnection();
+                TransportAddress remoteAddress = remoteCandidate.getTransportAddress();
+//                if (CandidateType.SERVER_REFLEXIVE_CANDIDATE.equals(remoteCandidate.getType())) {
+//                    remoteAddress = remoteCandidate.getReflexiveAddress();
+//                } else if (CandidateType.RELAYED_CANDIDATE.equals(remoteCandidate.getType())) {
+//                    remoteAddress = remoteCandidate.getRelayedAddress();
+//                }
+                //if (remoteAddress != null) {
+                    TransactionID permTransID = TransactionID.createNewTransactionID();
+                    permTransID.setApplicationData(relayedConn);
+                    Request requestPerm = MessageFactory.createCreatePermissionRequest(remoteAddress, permTransID.getBytes());
+                    relayedCandidate.getTurnCandidateHarvest().sendRequest(relayedConn, requestPerm);
+                    // set the transaction id or request encode fails
+                    request.setTransactionID(tran.getBytes());
+                    relayedConn.send(IoBuffer.wrap(request.encode(stunStack)), remoteAddress);
+                //}
+            } else {
+                tran = stunStack.sendRequest(request, remoteCandidate.getTransportAddress(), localCandidate.getBase().getTransportAddress(), this, tran, originalWaitInterval, maxWaitInterval, maxRetransmissions);
+            }
             if (logger.isTraceEnabled()) {
                 logger.trace("Transaction {} sent for pair {}", tran, candidatePair);
             }
@@ -453,7 +478,6 @@ class ConnectivityCheckClient implements ResponseCollector {
      * symmetric.  If they are not symmetric, the agent sets the state of the pair to Failed.
      *
      * @param evt the {@link StunResponseEvent} that contains the {@link Response} we need to examine
-     *
      * @return true if the {@link Response} in evt had a source or a destination address that matched those of the
      * {@link Request}, or false otherwise.
      */
@@ -556,7 +580,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                         Thread.sleep(waitFor);
                     }
                     CandidatePair pairToCheck = checkList.popTriggeredCheck();
-                    //if there are no triggered checks, go for an ordinary one.
+                    // if there are no triggered checks, go for an ordinary one
                     if (pairToCheck == null) {
                         pairToCheck = checkList.getNextOrdinaryPairToCheck();
                     }
@@ -578,9 +602,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                             }
                         }
                     } else {
-                        // We are done sending checks for this list. We'll set its final state in either the processResponse(), 
-                        // processTimeout() or processFailure() method.
-                        //logger.trace("will skip a check beat");
+                        // done sending checks for this list; set the final state in processResponse, processTimeout or processFailure method.
                         checkList.fireEndOfOrdinaryChecks();
                     }
                 } catch (InterruptedException e) {

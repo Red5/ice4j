@@ -77,4 +77,13 @@ public class RelayedCandidate extends LocalCandidate {
         }
         return socket;
     }
+
+    public RelayedCandidateConnection getRelayedCandidateConnection() {
+        return relayedCandidateConnection;
+    }
+
+    public TurnCandidateHarvest getTurnCandidateHarvest() {
+        return turnCandidateHarvest;
+    }
+
 }

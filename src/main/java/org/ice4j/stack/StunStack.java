@@ -418,6 +418,7 @@ public class StunStack implements MessageEventHandler {
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
     public TransactionID sendRequest(Request request, TransportAddress sendTo, TransportAddress sendThrough, ResponseCollector collector, TransactionID transactionID, int originalWaitInterval, int maxWaitInterval, int maxRetransmissions) throws IllegalArgumentException, IOException {
+        logger.debug("sendRequest: {} to: {} thru: {}", request, sendTo, sendThrough);
         StunClientTransaction clientTransaction = new StunClientTransaction(this, request, sendTo, sendThrough, collector, transactionID);
         if (originalWaitInterval > 0) {
             clientTransaction.originalWaitInterval = originalWaitInterval;

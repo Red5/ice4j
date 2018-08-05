@@ -85,7 +85,7 @@ public class Agent {
     /**
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
      */
-    public static final int DEFAULT_TERMINATION_DELAY = 50; // spec says 3s, but there's no good reason for that value imho
+    public static final int DEFAULT_TERMINATION_DELAY = 1000; // spec says 3s, but there's no good reason for that value imho
 
     /**
      * The name of the {@link PropertyChangeEvent} that we use to deliver events on changes in the state of ICE processing in this agent.
