@@ -496,7 +496,8 @@ public abstract class IceSocketWrapper {
      * @throws IOException
      */
     public final static IceSocketWrapper build(RelayedCandidateConnection relayedCandidateConnection) throws IOException {
-        TransportAddress localAddress = (TransportAddress) relayedCandidateConnection.getLocalSocketAddress();
+        // use the host address
+        TransportAddress localAddress = (TransportAddress) relayedCandidateConnection.getTurnCandidateHarvest().hostCandidate.getTransportAddress();
         // look for an existing ice socket before creating a new one with the same local address
         IceSocketWrapper iceSocket = IceTransport.getIceHandler().lookupBinding(localAddress);
         if (iceSocket == null) {

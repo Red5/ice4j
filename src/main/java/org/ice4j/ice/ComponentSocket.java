@@ -64,9 +64,10 @@ public class ComponentSocket implements PropertyChangeListener {
 
     /**
      * Adds a specific address to the list of authorized remote addresses.
-     * @param address the address to add.
+     * 
+     * @param address the authorized address
      */
-    private void addAuthorizedAddress(SocketAddress address) {
+    public void addAuthorizedAddress(SocketAddress address) {
         if (!authorizedAddresses.contains(address)) {
             logger.debug("Adding allowed address: {}", address);
             authorizedAddresses.add(address);

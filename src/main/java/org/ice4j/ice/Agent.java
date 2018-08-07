@@ -10,6 +10,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ice4j.StackProperties;
+import org.ice4j.StunException;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.harvest.CandidateHarvester;
@@ -28,7 +30,11 @@ import org.ice4j.ice.harvest.HostCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.ice4j.ice.harvest.TrickleCallback;
+import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
+import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
@@ -85,7 +91,7 @@ public class Agent {
     /**
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
      */
-    public static final int DEFAULT_TERMINATION_DELAY = 1000; // spec says 3s, but there's no good reason for that value imho
+    public static final int DEFAULT_TERMINATION_DELAY = 50; // spec says 3s, but there's no good reason for that value imho
 
     /**
      * The name of the {@link PropertyChangeEvent} that we use to deliver events on changes in the state of ICE processing in this agent.
@@ -235,6 +241,11 @@ public class Agent {
     private Boolean useHostHarvester;
 
     private Transport requestedTransport = Transport.UDP;
+
+    /**
+     * Termination delay period to wait after connectivity checks are complete.
+     */
+    private long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
 
     /**
      * Creates an empty Agent with no streams, and no address.
@@ -391,9 +402,10 @@ public class Agent {
         // select the candidate to put in the media line
         component.selectDefaultCandidate();
         /*
-         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
-         * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
-         * started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
+         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make
+         * sure that the ConnectivityCheckServer is started. If there's been a previous connectivity establishment which has completed,
+         * it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not started after we've made the gathered
+         * LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
          */
         connCheckServer.start();
         return component;
@@ -450,17 +462,14 @@ public class Agent {
                 setState(IceProcessingState.FAILED);
                 return;
             }
-            //change state before we actually send checks so that we don't miss responses and hence the possibility to nominate a pair.
+            // change state before we actually send checks so that we don't miss responses and hence the possibility to nominate a pair.
             setState(IceProcessingState.RUNNING);
-            //if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
-            if (preDiscoveredPairsQueue.size() > 0) {
-                logger.debug("Trigger checks for pairs that were received before running state");
-                for (CandidatePair cp : preDiscoveredPairsQueue) {
-                    logger.debug("Triggering check on prediscovered pair: {}", cp);
-                    triggerCheck(cp);
-                }
-                preDiscoveredPairsQueue.clear();
-            }
+            // if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
+            preDiscoveredPairsQueue.forEach(pair -> {
+                logger.debug("Triggering check on prediscovered pair: {}", pair);
+                triggerCheck(pair);
+            });
+            preDiscoveredPairsQueue.clear();
             connCheckClient.startChecks();
         }
     }
@@ -571,9 +580,9 @@ public class Agent {
     private void fireStateChange(IceProcessingState oldState, IceProcessingState newState) {
         Collection<PropertyChangeListener> stateListenersCopy = Collections.unmodifiableCollection(stateListeners);
         final PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_ICE_PROCESSING_STATE, oldState, newState);
-        for (PropertyChangeListener l : stateListenersCopy) {
-            l.propertyChange(evt);
-        }
+        stateListenersCopy.forEach(listener -> {
+            listener.propertyChange(evt);
+        });
     }
 
     /**
@@ -1388,9 +1397,8 @@ public class Agent {
         }
         // stop making any checks.
         connCheckClient.stop();
-        //do not stop the conn check server here because it may still need to process STUN Binding Requests that remote agents may send our way.
-        //we'll do this in "free()" instead.
-        //connCheckServer.stop();
+        // dont stop the conn check server because it may need to process STUN Binding Requests that remote agents may send our way.
+        // we'll do this in "free()" instead.
         setState(terminationState);
     }
 
@@ -1441,7 +1449,6 @@ public class Agent {
      */
     @Override
     protected void finalize() throws Throwable {
-        //free();
         super.finalize();
     }
 
@@ -1534,7 +1541,6 @@ public class Agent {
             }
             try {
                 Thread.sleep(consentFreshnessInterval);
-                //Thread.yield();
             } catch (InterruptedException e) {
             }
         }
@@ -1751,7 +1757,6 @@ public class Agent {
          */
         public void run() {
             Thread.currentThread().setName("Terminator: " + getLocalUfrag());
-            long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
             logger.trace("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {
                 try {

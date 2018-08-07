@@ -8,7 +8,7 @@ package org.ice4j.stack;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.ice4j.StunMessageEvent;
 import org.ice4j.TransportAddress;
@@ -26,7 +26,7 @@ public class EventDispatcher {
     /**
      * The STUN request and indication listeners registered with this EventDispatcher.
      */
-    private final CopyOnWriteArrayList<MessageTypeEventHandler<?>> messageListeners = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArraySet<MessageTypeEventHandler<?>> messageListeners = new CopyOnWriteArraySet<>();
 
     /**
      * The Map of EventDispatchers which keep the registrations of STUN request and indication listeners registered for
@@ -283,7 +283,7 @@ public class EventDispatcher {
          * @param delegate the handler to which the new instance is to forward STUN messages with the specified messageType
          */
         public MessageTypeEventHandler(char messageType, T delegate) {
-            if (delegate == null){
+            if (delegate == null) {
                 throw new NullPointerException("delegate");
             }
             this.messageType = messageType;

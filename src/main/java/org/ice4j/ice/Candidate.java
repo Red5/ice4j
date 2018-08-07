@@ -684,23 +684,13 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     }
 
     /**
-     * Returns the related candidate corresponding to the address given in
-     * parameter:
-     * - null for a host candidate,
-     * - the base address (host candidate) for a reflexive candidate,
-     * - the mapped address (the mapped address of the TURN allocate response)
-     * for a relayed candidate.
-     * - null for a peer reflexive candidate : there is no way to know the
-     * related address.
+     * Returns the related candidate corresponding to the address given in parameter:
+     * - null for a host candidate
+     * - the base address (host candidate) for a reflexive candidate
+     * - the mapped address (the mapped address of the TURN allocate response) for a relayed candidate
+     * - null for a peer reflexive candidate : there is no way to know the related address
      *
-     * @return The related candidate corresponding to the address given in
-     * parameter:
-     * - null for a host candidate,
-     * - the base address (host candidate) for a reflexive candidate,
-     * - the mapped address (the mapped address of the TURN allocate response)
-     * for a relayed candidate.
-     * - null for a peer reflexive candidate : there is no way to know the
-     * related address.
+     * @return related candidate corresponding to the address given in parameter
      */
     public T getRelatedCandidate() {
         if (this.relatedCandidate == null) {

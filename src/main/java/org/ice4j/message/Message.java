@@ -1,12 +1,22 @@
 /* See LICENSE.md for license information */
 package org.ice4j.message;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.stack.*;
+import org.ice4j.StackProperties;
+import org.ice4j.StunException;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeDecoder;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ContentDependentAttribute;
+import org.ice4j.attribute.FingerprintAttribute;
+import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -709,8 +719,10 @@ public abstract class Message {
                 return "SHARED-SECRET-ERROR-RESPONSE";
             case CHANNELBIND_REQUEST:
                 return "CHANNELBIND-REQUEST";
-            case CHANNELBIND_RESPONSE:     
-                return "CHANNELBIND-RESPONSE";     
+            case CHANNELBIND_RESPONSE:
+                return "CHANNELBIND-RESPONSE";
+            case CHANNELBIND_ERROR_RESPONSE:
+                return "CHANNELBIND_ERROR_RESPONSE";
             default:
                 return "UNKNOWN-MESSAGE";
         }

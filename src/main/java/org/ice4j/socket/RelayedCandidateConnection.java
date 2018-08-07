@@ -25,8 +25,8 @@ import org.ice4j.StunMessageEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
-import org.ice4j.attribute.DataAttribute;
 import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.ice.ComponentSocket;
 import org.ice4j.ice.RelayedCandidate;
 import org.ice4j.ice.harvest.TurnCandidateHarvest;
 import org.ice4j.ice.nio.IceDecoder;
@@ -74,12 +74,12 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
     /**
      * The maximum channel number which is valid for TURN ChannelBind Request.
      */
-    private static final char MAX_CHANNEL_NUMBER = 0x7FFF;
+    public static final char MAX_CHANNEL_NUMBER = 0x7FFF;
 
     /**
      * The minimum channel number which is valid for TURN ChannelBind Requests.
      */
-    private static final char MIN_CHANNEL_NUMBER = 0x4000;
+    public static final char MIN_CHANNEL_NUMBER = 0x4000;
 
     /**
      * The lifetime in milliseconds of a TURN permission created using a CreatePermission request.
@@ -279,25 +279,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
         if (turnCandidateHarvest.hostCandidate.getTransportAddress().equals(event.getLocalAddress())) {
             // Is it from our TURN server?
             if (turnCandidateHarvest.harvester.stunServer.equals(event.getRemoteAddress())) {
-                Message message = event.getMessage();
-                char messageType = message.getMessageType();
-                if (messageType == Message.DATA_INDICATION) {
-                    // RFC 5766: When the client receives a Data indication, it checks that the Data indication contains both an XOR-PEER-ADDRESS and a DATA attribute
-                    // and discards the indication if it does not.
-                    XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) message.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
-                    if (peerAddressAttribute != null) {
-                        DataAttribute dataAttribute = (DataAttribute) message.getAttribute(Attribute.Type.DATA);
-                        if (dataAttribute != null) {
-                            TransportAddress peerAddress = peerAddressAttribute.getAddress(message.getTransactionID());
-                            if (peerAddress != null) {
-                                byte[] data = dataAttribute.getData();
-                                if (data != null) {
-                                    // XXX Paul i don't think we care about these incoming messages, maybe some handling should be done, but actual media should come over the channel as channel data
-                                }
-                            }
-                        }
-                    }
-                }
+                // data and processing is handled in the IceDecoder
             }
         }
     }
@@ -330,6 +312,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      */
     public void processSuccess(Response response, Request request) {
         logger.debug("processSuccess - {} to {}", request, response);
+        //logger.debug("Relayed candidate - mapped: {} relayed: {}", relayedCandidate.getMappedAddress(), relayedCandidate.getRelayedAddress());
         switch (request.getMessageType()) {
             case Message.CHANNELBIND_REQUEST:
                 setChannelNumberIsConfirmed(request, true);
@@ -338,29 +321,34 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 setChannelBound(request, true);
                 break;
         }
-        //switch (response.getMessageType()) {
-        //            case Message.ALLOCATE_RESPONSE:
-        //                //logger.debug("Relayed candidate - mapped: {} relayed: {}", relayedCandidate.getMappedAddress(), relayedCandidate.getRelayedAddress());
-        //                byte[] createPermissionTransactionID = TransactionID.createNewTransactionID().getBytes();
-        //                Request createPermissionRequest = MessageFactory.createCreatePermissionRequest(relayedCandidate.getRelayedAddress(), createPermissionTransactionID);
-        //                try {
-        //                    createPermissionRequest.setTransactionID(createPermissionTransactionID);
-        //                    turnCandidateHarvest.sendRequest(this, createPermissionRequest);
-        //                } catch (StunException sex) {
-        //                    logger.warn("Failed to obtain permission", sex);
-        //                }
-        //                break;
-        //            case Message.CREATEPERMISSION_RESPONSE:
-        //                Channel channel = new Channel(relayedCandidate.getRelayedAddress());
-        //                channels.add(channel);
-        //                // send indication is the next step in the rfc5766 process pg.51
-        //                try {
-        //                    channel.send(IoBuffer.wrap(new byte[0]), relayedCandidate.getRelayedAddress());
-        //                } catch (StunException sex) {
-        //                    logger.warn("Failed to send indication", sex);
-        //                }
-        //                break;
-        //}
+        switch (response.getMessageType()) {
+            case Message.CREATEPERMISSION_RESPONSE:
+                XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+                TransportAddress peerAddress = peerAddressAttribute.getAddress(request.getTransactionID());
+                logger.info("Peer address for send indication: {}", peerAddress);
+                TransactionID transID = TransactionID.createNewTransactionID();
+                transID.setApplicationData(this);
+                // send indication is the next step in the rfc5766 process pg.51
+                Indication indication = MessageFactory.createSendIndication(peerAddress, new byte[0], transID.getBytes());
+                try {
+                    turnCandidateHarvest.harvester.getStunStack().sendIndication(indication, turnCandidateHarvest.harvester.stunServer, turnCandidateHarvest.hostCandidate.getTransportAddress());
+                } catch (StunException sex) {
+                    logger.warn("Failed to send indication", sex);
+                }
+                // update the component socket to inform it of the ice socket wrapper to use
+                ComponentSocket componentSocket = relayedCandidate.getParentComponent().getComponentSocket();
+                // authorize the remote address
+                componentSocket.addAuthorizedAddress(peerAddress);
+                logger.debug("Component socket: {} relayed socket: {}", componentSocket.getSocket(), relayedCandidate.getCandidateIceSocketWrapper());
+                // get the relayed socket
+                IceSocketWrapper relayedSocket = relayedCandidate.getCandidateIceSocketWrapper();
+                // get currently set socket and close it if its not our relayed ice socket
+                IceSocketWrapper currentSocket = componentSocket.getSocket();
+                if (relayedSocket.equals(currentSocket)) {
+                    logger.debug("Component socket is relay compatible");
+                }
+                break;
+        }
     }
 
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
@@ -391,6 +379,7 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 channel.setChannelDataIsPreferred(true);
                 forceBind = true;
             }
+            logger.debug("Force: {} binding: {} bound: {} for peer: {}", forceBind, channel.isBinding(), channel.isBound(), peerAddress);
             // Either bind the channel or send the packetToSend through it.
             if (!forceBind && channel.isBound()) {
                 try {
@@ -506,7 +495,15 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
         TransportAddress peerAddress = peerAddressAttribute.getAddress(transactionID);
         channels.forEach(channel -> {
             if (channel.peerAddressEquals(peerAddress)) {
+                logger.debug("Channel {} bound, sending channel bind request for {}", channel.channelNumber, peerAddress);
                 channel.setBound(bound, transactionID);
+                // create and send a channel bind request
+                try {
+                    Request chanBindRequest = MessageFactory.createChannelBindRequest(channel.channelNumber, peerAddress, TransactionID.createNewTransactionID().getBytes());
+                    turnCandidateHarvest.sendRequest(this, chanBindRequest);
+                } catch (StunException sex) {
+                    logger.warn("Channel bind request failed", sex);
+                }
                 return;
             }
         });
@@ -520,9 +517,11 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * @param channelNumberIsConfirmed true if the channel number has been successfully allocated; otherwise, false
      */
     private void setChannelNumberIsConfirmed(Request request, boolean channelNumberIsConfirmed) {
+        logger.debug("setChannelNumberIsConfirmed: {} channelNumberIsConfirmed: {}", request, channelNumberIsConfirmed);
         XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
         byte[] transactionID = request.getTransactionID();
         TransportAddress peerAddress = peerAddressAttribute.getAddress(transactionID);
+        logger.debug("Channel number confirmed for {}", peerAddress);
         channels.forEach(channel -> {
             if (channel.peerAddressEquals(peerAddress)) {
                 channel.setChannelNumberIsConfirmed(channelNumberIsConfirmed, transactionID);

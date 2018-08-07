@@ -2,7 +2,6 @@
 package org.ice4j.ice.harvest;
 
 import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Optional;
 
 import org.ice4j.StunException;
 import org.ice4j.Transport;
@@ -19,7 +18,6 @@ import org.ice4j.ice.CandidateType;
 import org.ice4j.ice.HostCandidate;
 import org.ice4j.ice.LocalCandidate;
 import org.ice4j.ice.RelayedCandidate;
-import org.ice4j.ice.ServerReflexiveCandidate;
 import org.ice4j.message.Message;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
@@ -121,11 +119,6 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             TransportAddress relayedAddress = ((XorRelayedAddressAttribute) attribute).getAddress(response.getTransactionID());
             RelayedCandidate relayedCandidate = createRelayedCandidate(relayedAddress, getMappedAddress(response));
             if (relayedCandidate != null) {
-//                Optional<LocalCandidate> cand = candidates.stream().filter(candidate -> CandidateType.SERVER_REFLEXIVE_CANDIDATE.equals(candidate.getType())).findFirst();
-//                if (cand.isPresent()) {
-//                    ((ServerReflexiveCandidate) cand.get())
-//                }
-                
                 IceSocketWrapper socket = relayedCandidate.getCandidateIceSocketWrapper();
                 // connectivity checks utilize STUN on the (application-purposed) socket of the RelayedCandidate, add it to the StunStack
                 //harvester.getStunStack().addSocket(socket, relayedAddress, false);
@@ -201,7 +194,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 //logger.debug("createRequestToRetry - ALLOCATE_REQUEST type: {}", requestedTransport);
                 // XXX not sure that even-port is allowed with TCP TURN
                 EvenPortAttribute evenPortAttribute = (EvenPortAttribute) request.getAttribute(Attribute.Type.EVEN_PORT);
-                boolean rFlag = (evenPortAttribute != null) && evenPortAttribute.isRFlag();                
+                boolean rFlag = (evenPortAttribute != null) && evenPortAttribute.isRFlag();
                 return MessageFactory.createAllocateRequest((byte) requestedTransport, rFlag);
             }
             case Message.CHANNELBIND_REQUEST: {
@@ -209,6 +202,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 char channelNumber = channelNumberAttribute.getChannelNumber();
                 XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
                 TransportAddress peerAddress = peerAddressAttribute.getAddress(request.getTransactionID());
+                logger.debug("Retry channel bind for {}", peerAddress);
                 byte[] retryTransactionID = TransactionID.createNewTransactionID().getBytes();
                 Request retryChannelBindRequest = MessageFactory.createChannelBindRequest(channelNumber, peerAddress, retryTransactionID);
                 try {
@@ -221,6 +215,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             case Message.CREATEPERMISSION_REQUEST: {
                 XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
                 TransportAddress peerAddress = peerAddressAttribute.getAddress(request.getTransactionID());
+                logger.debug("Retry permission for {}", peerAddress);
                 byte[] retryTransactionID = TransactionID.createNewTransactionID().getBytes();
                 Request retryCreatePermissionRequest = MessageFactory.createCreatePermissionRequest(peerAddress, retryTransactionID);
                 try {
@@ -242,7 +237,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 return super.createRequestToRetry(request);
         }
     }
-    
+
     /**
      * Creates a new Request which is to be sent to {@link TurnCandidateHarvester#stunServer} in order to start resolving {@link #hostCandidate}.
      *
@@ -258,9 +253,9 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
             logger.info("createRequestToStartResolvingCandidate - protocol: {}", protocol);
             requestToStartResolvingCandidate = MessageFactory.createAllocateRequest(protocol, false);
             return requestToStartResolvingCandidate;
-//        } else if (requestToStartResolvingCandidate.getMessageType() == Message.ALLOCATE_REQUEST) {
-//            requestToStartResolvingCandidate = super.createRequestToStartResolvingCandidate();
-//            return requestToStartResolvingCandidate;
+            //        } else if (requestToStartResolvingCandidate.getMessageType() == Message.ALLOCATE_REQUEST) {
+            //            requestToStartResolvingCandidate = super.createRequestToStartResolvingCandidate();
+            //            return requestToStartResolvingCandidate;
         }
         return null;
     }

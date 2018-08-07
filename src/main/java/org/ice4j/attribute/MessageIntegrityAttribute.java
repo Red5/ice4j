@@ -1,20 +1,13 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
-import java.util.*;
+import java.util.Arrays;
 
-import javax.crypto.*;
-import javax.crypto.spec.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.ice4j.message.Message;
+import org.ice4j.stack.StunStack;
 
 /**
  * The MESSAGE-INTEGRITY attribute contains an HMAC-SHA1 [RFC2104] of
@@ -75,7 +68,7 @@ import org.slf4j.LoggerFactory;
  */
 public class MessageIntegrityAttribute extends Attribute implements ContentDependentAttribute {
 
-    private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
+    //private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
 
     /**
      * The HMAC-SHA1 algorithm.
@@ -230,9 +223,9 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
      * with the specified content.
      */
     public byte[] encode(StunStack stunStack, byte[] content, int offset, int length) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("encode - offset: {} length: {}\n{}", offset, length, StunStack.toHexString(content));
-        }
+        //if (logger.isDebugEnabled()) {
+        //    logger.debug("encode - offset: {} length: {}\n{}", offset, length, StunStack.toHexString(content));
+        //}
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
         //Type
         int type = getAttributeType().getType();

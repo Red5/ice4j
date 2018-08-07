@@ -3,8 +3,6 @@ package org.ice4j.stack;
 
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
@@ -302,47 +300,6 @@ public class StunStack implements MessageEventHandler {
      * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
      * StunStack using a specific TransportAddress.
      *
-     * @param udpMessage the RawMessage to be sent to the specified destination TransportAddress through the socket with
-     * the specified TransportAddress
-     * @param sendTo the TransportAddress of the destination to which the specified indication is to be sent
-     * @param sendThrough the TransportAddress of the socket registered with this StunStack through which the specified
-     * indication is to be sent
-     * @throws StunException if anything goes wrong while sending the specified indication to the destination sendTo through the socket
-     * identified by sendThrough
-     */
-    //public void sendUdpMessage(RawMessage udpMessage, TransportAddress sendTo, TransportAddress sendThrough) throws StunException {
-    //    try {
-    //        getNetAccessManager().sendMessage(udpMessage.getBytes(), sendThrough, sendTo);
-    //    } catch (IllegalArgumentException iaex) {
-    //        throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to send STUN indication: " + udpMessage, iaex);
-    //    } catch (IOException ioex) {
-    //        throw new StunException(StunException.NETWORK_ERROR, "Failed to send STUN indication: " + udpMessage, ioex);
-    //    }
-    //}
-
-    /**
-     * Receives a specific STUN Indication on a specific destination TransportAddress from a socket registered with this
-     * StunStack using a specific TransportAddress.
-     *
-     * @param message the bytes received
-     * @param sentTo the TransportAddress of the destination to which the specified indication was sent
-     * @param sendFrom the TransportAddress from which the message was received
-     * @throws StunException if anything goes wrong
-     */
-    //    public void receiveUdpMessage(byte[] message, TransportAddress sentTo, TransportAddress sendFrom) throws StunException {
-    //        try {
-    //            getNetAccessManager().receiveMessage(message, sentTo, sendFrom);
-    //        } catch (IllegalArgumentException iaex) {
-    //            throw new StunException(StunException.ILLEGAL_ARGUMENT, "Failed to receive STUN indication: " + message, iaex);
-    //        } catch (IOException ioex) {
-    //            throw new StunException(StunException.NETWORK_ERROR, "Failed to receive STUN indication: " + message, ioex);
-    //        }
-    //    }
-
-    /**
-     * Sends a specific STUN Indication to a specific destination TransportAddress through a socket registered with this
-     * StunStack using a specific TransportAddress.
-     *
      * @param indication the STUN Indication to be sent to the specified destination TransportAddress through the socket with
      * the specified TransportAddress
      * @param sendTo the TransportAddress of the destination to which the specified indication is to be sent
@@ -435,42 +392,15 @@ public class StunStack implements MessageEventHandler {
     }
 
     /**
-     * Sends the specified request through the specified access point, and
-     * registers the specified ResponseCollector for later notification.
-     * @param  request     the request to send
-     * @param  sendTo      the destination address of the request.
-     * @param  sendThrough the socket that we should send the request through.
-     * @param  collector   the instance to notify when a response arrives or the
-     *                     the transaction timeouts
-     *
-     * @return the TransactionID of the StunClientTransaction
-     * that we used in order to send the request.
-     *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     */
-    //public TransactionID sendRequest(Request request, TransportAddress sendTo, DatagramSocket sendThrough, ResponseCollector collector) throws IOException, IllegalArgumentException {
-    //    TransportAddress sendThroughAddr = new TransportAddress(sendThrough.getLocalAddress(), sendThrough.getLocalPort(), Transport.UDP);
-    //    return sendRequest(request, sendTo, sendThroughAddr, collector);
-    //}
-
-    /**
      * Sends the specified response message through the specified access point.
      *
-     * @param transactionID the id of the transaction to use when sending the
-     * response. Actually we are getting kind of redundant here as we already
-     * have the id in the response object, but I am bringing out as an extra
-     * parameter as the user might otherwise forget to explicitly set it.
-     * @param response      the message to send.
-     * @param sendThrough   the local address to use when sending the message.
-     * @param sendTo        the destination of the message.
-     *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
+     * @param transactionID the id of the transaction to use when sending the response. Actually we are getting kind of redundant here as we already
+     * have the id in the response object, but I am bringing out as an extra parameter as the user might otherwise forget to explicitly set it.
+     * @param response      the message to send
+     * @param sendThrough   the local address to use when sending the message
+     * @param sendTo        the destination of the message
+     * @throws IOException  if an error occurs while sending message bytes through the network socket.
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed,
      * @throws StunException if message encoding fails
      */
     public void sendResponse(byte[] transactionID, Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
@@ -581,7 +511,6 @@ public class StunStack implements MessageEventHandler {
         if (logger.isTraceEnabled()) {
             logger.trace("Received a message on {} of type: {}", ev.getLocalAddress(), msg.getName());
         }
-        //request
         if (msg instanceof Request) {
             logger.trace("Parsing request");
             // skip badly sized requests
@@ -628,11 +557,11 @@ public class StunStack implements MessageEventHandler {
                 serverTransactions.put(serverTid, sTran);
                 maybeStartServerTransactionExpireThread();
             }
-            // validate attributes that need validation.
+            // validate attributes that need validation
             try {
                 validateRequestAttributes(ev);
             } catch (Exception exc) {
-                // validation failed. log get lost.
+                // validation failed
                 logger.warn("Failed to validate msg: {}", ev, exc);
                 // remove failed transaction to account for Edge
                 removeServerTransaction(sTran);
@@ -660,9 +589,7 @@ public class StunStack implements MessageEventHandler {
                     logger.warn("Couldn't send a server error response", exc);
                 }
             }
-        }
-        //response
-        else if (msg instanceof Response) {
+        } else if (msg instanceof Response) {
             logger.trace("Parsing response");
             TransactionID tid = ev.getTransactionID();
             // skip badly sized requests
@@ -679,26 +606,22 @@ public class StunStack implements MessageEventHandler {
                 //do nothing - just drop the phantom response.
                 logger.debug("Dropped response - no matching client tran found for tid {}\nall tids in stock were {}", tid, clientTransactions.keySet());
             }
-        }
-        // indication
-        else if (msg instanceof Indication) {
+        } else if (msg instanceof Indication) {
             eventDispatcher.fireMessageEvent(ev);
         }
     }
 
     /**
-     * Returns the {@link CredentialsManager} that this stack is using for
-     * verification of {@link MessageIntegrityAttribute}s.
+     * Returns the {@link CredentialsManager} that this stack is using for verification of {@link MessageIntegrityAttribute}s.
      *
-     * @return the {@link CredentialsManager} that this stack is using for
-     * verification of {@link MessageIntegrityAttribute}s.
+     * @return the CredentialsManager that this stack is using for verification of MessageIntegrityAttributes
      */
     public CredentialsManager getCredentialsManager() {
         return credentialsManager;
     }
 
     /**
-     * Cancels all running transactions and prepares for garbage collection
+     * Cancels all running transactions and prepares for garbage collection.
      */
     public void shutDown() {
         // remove all listeners
@@ -981,24 +904,6 @@ public class StunStack implements MessageEventHandler {
             }
         } else {
             return null;
-        }
-    }
-
-    /**
-     * Logs a specific DatagramPacket using the packet logger of the StunStack.
-     *
-     * @param p The DatagramPacket to log
-     * @param isSent true if the packet is sent, or false if the packet is received
-     * @param interfaceAddress The InetAddress to use as source (if the packet was sent) or destination (if the packet was received)
-     * @param interfacePort The port to use as source (if the packet was sent) or destination (if the packet was received)
-     */
-    public static void logPacketToPcap(DatagramPacket p, boolean isSent, InetAddress interfaceAddress, int interfacePort) {
-        if (interfaceAddress != null && isPacketLoggerEnabled()) {
-            InetAddress[] addr = { interfaceAddress, p.getAddress() };
-            int[] port = { interfacePort, p.getPort() };
-            int fromIndex = isSent ? 0 : 1;
-            int toIndex = isSent ? 1 : 0;
-            getPacketLogger().logPacket(addr[fromIndex].getAddress(), port[fromIndex], addr[toIndex].getAddress(), port[toIndex], p.getData(), isSent);
         }
     }
 

@@ -11,13 +11,20 @@ import org.ice4j.StunMessageEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.DataAttribute;
 import org.ice4j.attribute.UsernameAttribute;
+import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.ice.harvest.TurnCandidateHarvest;
 import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Request;
 import org.ice4j.socket.IceSocketWrapper;
+import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.socket.SocketClosedException;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -232,7 +239,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      * @param remoteAddr
      * @param buf
      */
-    void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, byte[] buf) {
+    public static void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, byte[] buf) {
         // if special TURN processing is needed, we'll have to separate it out to be run first since TURN messages are STUN messages
         if ((isStun(buf) && isStunMethod(buf)) || (isTurn(buf) && isTurnMethod(buf))) {
             if (logger.isTraceEnabled()) {
@@ -245,8 +252,55 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                     RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
                     Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
                     logger.debug("Message: {}", stunMessage);
-                    StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
-                    stunStack.handleMessageEvent(stunMessageEvent);
+                    if (logger.isDebugEnabled()) {
+                        stunMessage.getAttributes().forEach(attr -> {
+                            logger.debug("Attribute: {}", attr);
+                        });
+                    }
+                    // if the message isnt a TURN data indication, handle it via event dispatch
+                    if (stunMessage.getMessageType() != Message.DATA_INDICATION) {
+                        StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
+                        stunStack.handleMessageEvent(stunMessageEvent);
+                    } else {
+                        // RFC 5766: When the client receives a Data indication, it checks that the Data indication contains both an 
+                        // XOR-PEER-ADDRESS and a DATA attribute and discards the indication if it does not.
+                        XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) stunMessage.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+                        DataAttribute dataAttribute = (DataAttribute) stunMessage.getAttribute(Attribute.Type.DATA);
+                        if (peerAddressAttribute != null && dataAttribute != null) {
+                            TransportAddress peerAddress = peerAddressAttribute.getAddress(stunMessage.getTransactionID());
+                            if (peerAddress != null) {
+                                byte[] data = dataAttribute.getData();
+                                if (data != null) {
+                                    //IceDecoder.process(session, iceSocket, localAddr, remoteAddr, data);
+                                    // create a raw message from the data bytes
+                                    RawMessage message2 = RawMessage.build(data, remoteAddr, localAddr);
+                                    // check for stun/turn
+                                    if (isTurn(data)) {
+                                        Message turnMessage = Message.decode(message2.getBytes(), 0, message2.getMessageLength());
+                                        logger.debug("Message: {}", turnMessage);
+                                        if (logger.isDebugEnabled()) {
+                                            turnMessage.getAttributes().forEach(attr -> {
+                                                logger.debug("Attribute: {}", attr);
+                                            });
+                                        }
+                                        if (turnMessage.getMessageType() == Message.BINDING_REQUEST) {
+                                            RelayedCandidateConnection relayedConnection = iceSocket.getRelayedCandidateConnection();
+                                            TurnCandidateHarvest turnHarvest = relayedConnection.getTurnCandidateHarvest();
+                                            TransportAddress localPeerAddr = relayedConnection.getRelayedCandidate().getRelatedAddress();
+                                            logger.debug("Channel bind peer address: {}", localPeerAddr);
+                                            // create and send a channel bind request
+                                            TransactionID transID = TransactionID.createNewTransactionID();
+                                            Request channelRequest = MessageFactory.createChannelBindRequest(RelayedCandidateConnection.MIN_CHANNEL_NUMBER, localPeerAddr, transID.getBytes());
+                                            turnHarvest.getLongTermCredentialSession().addAttributes(channelRequest);
+                                            turnHarvest.sendRequest(relayedConnection, channelRequest);
+                                        }
+                                    } else {
+                                        iceSocket.offerMessage(message2);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 } catch (Exception ex) {
                     logger.warn("Failed to decode a stun message!", ex);
                 }
@@ -465,7 +519,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         return null;
     }
 
-    String getMessageType(short msg_type) {
+    static String getMessageType(short msg_type) {
         switch (msg_type) {
             case HandshakeType.hello_request: // 0;
                 return "Hello request";

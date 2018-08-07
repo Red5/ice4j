@@ -41,9 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Represents the harvesting of STUN Candidates for a specific
- * HostCandidate performed by a specific
- * StunCandidateHarvester.
+ * Represents the harvesting of STUN Candidates for a specific HostCandidate performed by a specific StunCandidateHarvester.
  *
  * @author Lyubomir Marinov
  */
@@ -391,6 +389,15 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
     }
 
     /**
+     * Returns the LongTermCredentialSession if one has been established.
+     * 
+     * @return LongTermCredentialSession or null if it doesnt exist
+     */
+    public LongTermCredentialSession getLongTermCredentialSession() {
+        return longTermCredentialSession;
+    }
+
+    /**
      * Notifies this StunCandidateHarvest that a specific STUN Request has been challenged for a long-term credential (as the
      * short-term credential mechanism does not utilize challenging) in a specific realm and with a specific nonce.
      *
@@ -402,7 +409,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(byte[] realm, byte[] nonce, Request request, TransactionID requestTransactionID) throws StunException {
-        logger.info("processChallenge: request transaction id: {}", requestTransactionID);
+        logger.info("processChallenge - request: {}", request);
         UsernameAttribute usernameAttribute = (UsernameAttribute) request.getAttribute(Attribute.Type.USERNAME);
         if (usernameAttribute == null) {
             if (longTermCredentialSession == null) {
@@ -467,7 +474,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
      * @throws StunException if anything goes wrong while processing the challenge
      */
     private boolean processChallenge(Response response, Request request, TransactionID transactionID) throws StunException {
-        logger.debug("processChallenge: transaction id: {}", transactionID);
+        logger.trace("processChallenge: transaction id: {}", transactionID);
         boolean retried = false;
         if (response.getAttributeCount() > 0) {
             // The response SHOULD NOT contain a USERNAME or MESSAGE-INTEGRITY attribute.
@@ -605,7 +612,7 @@ public class StunCandidateHarvest extends AbstractResponseCollector {
                 ErrorCodeAttribute errorCodeAttr = (ErrorCodeAttribute) response.getAttribute(Attribute.Type.ERROR_CODE);
                 if (errorCodeAttr != null && errorCodeAttr.getErrorClass() == 4) {
                     int errorNumber = errorCodeAttr.getErrorNumber();
-                    logger.info("Error code: {}", errorNumber);
+                    logger.info("Error code: {} {}", errorNumber, errorCodeAttr.getReasonPhrase());
                     try {
                         switch (errorNumber) {
                             case 1: // 401 Unauthorized

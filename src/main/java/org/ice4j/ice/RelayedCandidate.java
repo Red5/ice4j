@@ -78,10 +78,20 @@ public class RelayedCandidate extends LocalCandidate {
         return socket;
     }
 
+    /**
+     * Returns the relayed candidate connection.
+     * 
+     * @return RelayedCandidateConnection
+     */
     public RelayedCandidateConnection getRelayedCandidateConnection() {
         return relayedCandidateConnection;
     }
 
+    /**
+     * Returns the TurnCandidateHarvest for this candidate.
+     * 
+     * @return TurnCandidateHarvest
+     */
     public TurnCandidateHarvest getTurnCandidateHarvest() {
         return turnCandidateHarvest;
     }

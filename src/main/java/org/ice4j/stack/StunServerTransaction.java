@@ -87,21 +87,17 @@ public class StunServerTransaction {
     private AtomicBoolean expired = new AtomicBoolean(false);
 
     /**
-     * Determines whether or not the transaction is in a retransmitting state.
-     * In other words whether a response has already been sent once to the
+     * Determines whether or not the transaction is in a retransmitting state. In other words whether a response has already been sent once to the
      * transaction request.
      */
     private boolean isRetransmitting;
 
     /**
      * Creates a server transaction
-     * @param stackCallback the stack that created us.
-     * @param tranID the transaction id contained by the request that was the
-     * cause for this transaction.
-     * @param localListeningAddress the TransportAddress that this
-     * transaction is receiving requests on.
-     * @param requestSource the TransportAddress that this
-     * transaction is receiving requests from.
+     * @param stackCallback the stack that created us
+     * @param tranID the transaction id contained by the request that was the cause for this transaction
+     * @param localListeningAddress the TransportAddress that this transaction is receiving requests on
+     * @param requestSource the TransportAddress that this transaction is receiving requests from
      */
     public StunServerTransaction(StunStack stackCallback, TransactionID tranID, TransportAddress localListeningAddress, TransportAddress requestSource) {
         this.stackCallback = stackCallback;
@@ -111,7 +107,7 @@ public class StunServerTransaction {
     }
 
     /**
-     * Start the transaction. This launches the countdown to the moment the transaction would expire.
+     * Start the transaction. This launches the count down to the moment the transaction would expire.
      */
     public void start() {
         if (!expirationTime.compareAndSet(Long.MAX_VALUE, (System.currentTimeMillis() + LIFETIME))) {
@@ -120,20 +116,15 @@ public class StunServerTransaction {
     }
 
     /**
-     * Sends the specified response through the <code>sendThrough</code>
-     * NetAccessPoint descriptor to the specified destination and changes
+     * Sends the specified response through the <code>sendThrough</code> NetAccessPoint descriptor to the specified destination and changes
      * the transaction's state to retransmitting.
      *
      * @param response the response to send the transaction to.
-     * @param sendThrough the local address through which responses are to
-     * be sent
-     * @param sendTo the destination for responses of this transaction.
-     *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws StunException if message encoding fails,
+     * @param sendThrough the local address through which responses are to be sent
+     * @param sendTo the destination for responses of this transaction
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws StunException if message encoding fails
      */
     public void sendResponse(Response response, TransportAddress sendThrough, TransportAddress sendTo) throws StunException, IOException, IllegalArgumentException {
         if (!isRetransmitting) {
@@ -148,14 +139,11 @@ public class StunServerTransaction {
     }
 
     /**
-     * Retransmits the response that was originally sent to the request that
-     * caused this transaction.
+     * Retransmits the response that was originally sent to the request that caused this transaction.
      *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
-     * @throws StunException if message encoding fails,
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
+     * @throws StunException if message encoding fails
      */
     protected void retransmitResponse() throws StunException, IOException, IllegalArgumentException {
         // don't retransmit if we are expired or if the user application hasn't yet transmitted a first response
@@ -176,21 +164,17 @@ public class StunServerTransaction {
     /**
      * Determines whether this StunServerTransaction is expired now.
      *
-     * @return true if this StunServerTransaction</tT> is expired
-     * now; otherwise, false
+     * @return true if this StunServerTransaction is expired now; otherwise, false
      */
     public boolean isExpired() {
         return isExpired(System.currentTimeMillis());
     }
 
     /**
-     * Determines whether this StunServerTransaction will be expired at
-     * a specific point in time.
+     * Determines whether this StunServerTransaction will be expired at a specific point in time.
      *
-     * @param now the time in milliseconds at which the expired state
-     * of this StunServerTransaction is to be returned
-     * @return true if this StunServerTransaction will be
-     * expired at the specified point in time; otherwise, false
+     * @param now the time in milliseconds at which the expired state of this StunServerTransaction is to be returned
+     * @return true if this StunServerTransaction will be expired at the specified point in time; otherwise, false
      */
     public boolean isExpired(long now) {
         if (expirationTime.get() < now && expired.compareAndSet(false, true)) {
@@ -212,19 +196,16 @@ public class StunServerTransaction {
      * Specifies whether this server transaction is in the retransmitting state.
      * Or in other words - has it already sent a first response or not?
      *
-     * @return true if this transaction is still retransmitting and
-     * false otherwise
+     * @return true if this transaction is still retransmitting and false otherwise
      */
     public boolean isRetransmitting() {
         return isRetransmitting;
     }
 
     /**
-     * Returns the local TransportAddress that this transaction is
-     * sending responses from.
+     * Returns the local TransportAddress that this transaction is sending responses from.
      *
-     * @return the local TransportAddress that this transaction is
-     * sending responses from.
+     * @return the local TransportAddress that this transaction is sending responses from
      */
     public TransportAddress getSendingAddress() {
         return localSendingAddress;
