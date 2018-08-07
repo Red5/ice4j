@@ -292,6 +292,10 @@ class ConnectivityCheckClient implements ResponseCollector {
         if (CandidateType.RELAYED_CANDIDATE.equals(checkedPair.getLocalCandidate().getType())) {
             // set success
             checkedPair.setStateSucceeded();
+            // set valid
+            checkedPair.validate();
+            // add to validated list
+            parentAgent.validatePair(checkedPair);
             // if we're a local relayed candidate, forward the success message
             RelayedCandidate localCandidate = (RelayedCandidate) checkedPair.getLocalCandidate();
             // process success with the relayed connection
@@ -308,10 +312,10 @@ class ConnectivityCheckClient implements ResponseCollector {
                         logger.warn("Received a malformed error response");
                         return; // malformed error response
                     }
-                    processErrorResponse(ev);
+                    processErrorResponse(checkedPair, request, response);
                 } else if (messageType == Response.BINDING_SUCCESS_RESPONSE || messageType == Response.CREATEPERMISSION_RESPONSE) {
                     // handle success responses
-                    processSuccessResponse(ev);
+                    processSuccessResponse(checkedPair, request, response);
                 }
             }
         }
@@ -372,13 +376,12 @@ class ConnectivityCheckClient implements ResponseCollector {
 
     /**
      * Handles STUN success responses as per the rules in RFC 5245.
-     *
-     * @param ev the event that delivered the success response
+     * 
+     * @param checkedPair
+     * @param request
+     * @param response
      */
-    private void processSuccessResponse(StunResponseEvent ev) {
-        Response response = ev.getResponse();
-        Request request = ev.getRequest();
-        CandidatePair checkedPair = (CandidatePair) ev.getTransactionID().getApplicationData();
+    private void processSuccessResponse(CandidatePair checkedPair, Request request, Response response) {
             TransportAddress mappedAddress = null;
             XorMappedAddressAttribute mappedAddressAttr = (XorMappedAddressAttribute) response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
             if (mappedAddressAttr == null) {
@@ -499,12 +502,12 @@ class ConnectivityCheckClient implements ResponseCollector {
             checkedPair.setConsentFreshness();
         }
         // if we're a local relayed candidate, forward the success message
-        LocalCandidate localCandidate = checkedPair.getLocalCandidate();
-        if (localCandidate instanceof RelayedCandidate) {
-            // cast to relayed type
-            RelayedCandidateConnection relayedConn = ((RelayedCandidate) localCandidate).getRelayedCandidateConnection();
-            relayedConn.processSuccess(response, request);
-        }
+//        LocalCandidate localCandidate = checkedPair.getLocalCandidate();
+//        if (localCandidate instanceof RelayedCandidate) {
+//            // cast to relayed type
+//            RelayedCandidateConnection relayedConn = ((RelayedCandidate) localCandidate).getRelayedCandidateConnection();
+//            relayedConn.processSuccess(response, request);
+//        }
     }
 
     /**
@@ -529,11 +532,11 @@ class ConnectivityCheckClient implements ResponseCollector {
      * In case of a role conflict, changes the state of the agent and reschedules the check, in all other cases sets the corresponding peer
      * state to FAILED.
      *
-     * @param ev the event that delivered the error response.
+     * @param pair
+     * @param request
+     * @param response
      */
-    private void processErrorResponse(StunResponseEvent ev) {
-        Response response = ev.getResponse();
-        Request originalRequest = ev.getRequest();
+    private void processErrorResponse(CandidatePair pair, Request request, Response response) {
         ErrorCodeAttribute errorAttr = (ErrorCodeAttribute) response.getAttribute(Attribute.Type.ERROR_CODE);
         // GTalk error code is not RFC3489/RFC5389 compliant
         // example: 400 becomes 0x01 0x90 with GTalk
@@ -542,10 +545,9 @@ class ConnectivityCheckClient implements ResponseCollector {
         int co = errorAttr.getErrorNumber() & 0xff;
         char errorCode = errorAttr.getErrorCode();
         logger.debug("Received error code {}", (int) errorCode);
-        CandidatePair pair = (CandidatePair) ev.getTransactionID().getApplicationData();
-        //RESOLVE ROLE_CONFLICTS
+        // RESOLVE ROLE_CONFLICTS
         if (errorCode == ErrorCodeAttribute.ROLE_CONFLICT) {
-            boolean wasControlling = (originalRequest.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
+            boolean wasControlling = (request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
             logger.debug("Switching to isControlling={}", !wasControlling);
             parentAgent.setControlling(!wasControlling);
             pair.getParentComponent().getParentStream().getCheckList().scheduleTriggeredCheck(pair);

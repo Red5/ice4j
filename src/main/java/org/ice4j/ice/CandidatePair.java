@@ -32,8 +32,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     private static final long MATH_POW_2_32 = 1L << 32;
 
     /**
-     * A Comparator using the compareTo method of the
-     * CandidatePair.
+     * A Comparator using the compareTo method of the CandidatePair.
      */
     public static final PairComparator comparator = new PairComparator();
 
@@ -438,11 +437,9 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns true if someone has previously raised this pair's
-     * useCandidateSent flag and false otherwise.
+     * Returns true if someone has previously raised this pair's useCandidateSent flag and false otherwise.
      *
-     * @return true if someone has previously raised this pair's
-     * useCandidate flag and false otherwise.
+     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise.
      */
     public boolean useCandidateSent() {
         return useCandidateSent;
@@ -456,46 +453,37 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Returns true if someone has previously raised this pair's
-     * useCandidate flag and false otherwise.
+     * Returns true if someone has previously raised this pair's useCandidate flag and false otherwise.
      *
-     * @return true if someone has previously raised this pair's
-     * useCandidate flag and false otherwise.
+     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise.
      */
     public boolean useCandidateReceived() {
         return useCandidate;
     }
 
     /**
-     * Sets this pair's nominated flag to true. If a valid candidate
-     * pair has its nominated flag set, it means that it may be selected by ICE
+     * Sets this pair's nominated flag to true. If a valid candidate pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      */
     public void nominate() {
         this.isNominated = true;
-        getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_NOMINATED,
-        /* oldValue */false,
-        /* newValue */true);
+        getParentComponent().getParentStream().firePairPropertyChange(this, IceMediaStream.PROPERTY_PAIR_NOMINATED, false, true);
     }
 
     /**
-     * Returns the value of this pair's nominated flag. If a valid candidate
-     * pair has its nominated flag set, it means that it may be selected by ICE
+     * Returns the value of this pair's nominated flag. If a valid candidate pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      *
-     * @return true if this pair has already been nominated for
-     * selection and false otherwise.
+     * @return true if this pair has already been nominated for selection and false otherwise.
      */
     public boolean isNominated() {
         return this.isNominated;
     }
 
     /**
-     * Returns true if this pair has been confirmed by a connectivity
-     * check response and false otherwise.
+     * Returns true if this pair has been confirmed by a connectivity check response and false otherwise.
      *
-     * @return true if this pair has been confirmed by a connectivity
-     * check response and false otherwise.
+     * @return true if this pair has been confirmed by a connectivity check response and false otherwise.
      */
     public boolean isValid() {
         return isValid;
@@ -510,30 +498,25 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
-     * Gets the time in milliseconds of the latest consent freshness
-     * confirmation.
+     * Gets the time in milliseconds of the latest consent freshness confirmation.
      *
-     * @return the time in milliseconds of the latest consent freshness
-     * confirmation
+     * @return the time in milliseconds of the latest consent freshness confirmation
      */
     public long getConsentFreshness() {
         return consentFreshness;
     }
 
     /**
-     * Sets the time in milliseconds of the latest consent freshness
-     * confirmation to now.
+     * Sets the time in milliseconds of the latest consent freshness confirmation to now.
      */
     void setConsentFreshness() {
         setConsentFreshness(System.currentTimeMillis());
     }
 
     /**
-     * Sets the time in milliseconds of the latest consent freshness
-     * confirmation to a specific time.
+     * Sets the time in milliseconds of the latest consent freshness confirmation to a specific time.
      *
-     * @param consentFreshness the time in milliseconds of the latest consent
-     * freshness to be set on this CandidatePair
+     * @param consentFreshness the time in milliseconds of the latest consent freshness to be set on this CandidatePair
      */
     void setConsentFreshness(long consentFreshness) {
         if (this.consentFreshness != consentFreshness) {

@@ -258,9 +258,10 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         });
                     }
                     // if the message isnt a TURN data indication, handle it via event dispatch
-                    if (stunMessage.getMessageType() != Message.DATA_INDICATION) {
+                    //if (stunMessage.getMessageType() != Message.DATA_INDICATION) {
                         StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
                         stunStack.handleMessageEvent(stunMessageEvent);
+                    /**
                     } else {
                         // RFC 5766: When the client receives a Data indication, it checks that the Data indication contains both an 
                         // XOR-PEER-ADDRESS and a DATA attribute and discards the indication if it does not.
@@ -301,6 +302,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             }
                         }
                     }
+                    */
                 } catch (Exception ex) {
                     logger.warn("Failed to decode a stun message!", ex);
                 }
