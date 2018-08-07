@@ -10,7 +10,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +20,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ice4j.StackProperties;
-import org.ice4j.StunException;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.harvest.CandidateHarvester;
@@ -30,11 +28,7 @@ import org.ice4j.ice.harvest.HostCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.ice4j.ice.harvest.TrickleCallback;
-import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.ice.nio.IceTransport;
-import org.ice4j.message.MessageFactory;
-import org.ice4j.message.Request;
-import org.ice4j.socket.RelayedCandidateConnection;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
@@ -402,10 +396,9 @@ public class Agent {
         // select the candidate to put in the media line
         component.selectDefaultCandidate();
         /*
-         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make
-         * sure that the ConnectivityCheckServer is started. If there's been a previous connectivity establishment which has completed,
-         * it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not started after we've made the gathered
-         * LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
+         * After we've gathered the LocalCandidate for a Component and before we've made them available to the caller, we have to make sure that the ConnectivityCheckServer is
+         * started. If there's been a previous connectivity establishment which has completed, it has stopped the ConnectivityCheckServer. If the ConnectivityCheckServer is not
+         * started after we've made the gathered LocalCandidates available to the caller, the caller may send them and a connectivity check may arrive from the remote Agent.
          */
         connCheckServer.start();
         return component;

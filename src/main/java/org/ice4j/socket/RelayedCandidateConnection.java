@@ -25,6 +25,7 @@ import org.ice4j.StunMessageEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.DataAttribute;
 import org.ice4j.attribute.XorPeerAddressAttribute;
 import org.ice4j.ice.ComponentSocket;
 import org.ice4j.ice.RelayedCandidate;
@@ -275,11 +276,52 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      */
     public void handleMessageEvent(StunMessageEvent event) {
         logger.debug("handleMessageEvent: {}", event);
+        SocketAddress localAddr = event.getLocalAddress();
+        SocketAddress remoteAddr = event.getRemoteAddress();
         // Is it meant for us? (It should be because RelayedCandidateConnection registers for STUN indications received at the associated local TransportAddress only)
         if (turnCandidateHarvest.hostCandidate.getTransportAddress().equals(event.getLocalAddress())) {
             // Is it from our TURN server?
             if (turnCandidateHarvest.harvester.stunServer.equals(event.getRemoteAddress())) {
-                // data and processing is handled in the IceDecoder
+                Message stunMessage = event.getMessage();
+                // RFC 5766: When the client receives a Data indication, it checks that the Data indication contains both an 
+                // XOR-PEER-ADDRESS and a DATA attribute and discards the indication if it does not.
+                XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) stunMessage.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
+                DataAttribute dataAttribute = (DataAttribute) stunMessage.getAttribute(Attribute.Type.DATA);
+                if (peerAddressAttribute != null && dataAttribute != null) {
+                    TransportAddress peerAddress = peerAddressAttribute.getAddress(stunMessage.getTransactionID());
+                    if (peerAddress != null) {
+                        byte[] data = dataAttribute.getData();
+                        if (data != null) {
+                            // create a raw message from the data bytes
+                            RawMessage message2 = RawMessage.build(data, remoteAddr, localAddr);
+                            // check for stun/turn
+                            if (IceDecoder.isTurn(data)) {
+                                try {
+                                    Message turnMessage = Message.decode(message2.getBytes(), 0, message2.getMessageLength());
+                                    logger.debug("Message: {}", turnMessage);
+                                    if (logger.isDebugEnabled()) {
+                                        turnMessage.getAttributes().forEach(attr -> {
+                                            logger.debug("Attribute: {}", attr);
+                                        });
+                                    }
+                                    if (turnMessage.getMessageType() == Message.BINDING_REQUEST) {
+                                        TransportAddress localPeerAddr = relayedCandidate.getRelatedAddress();
+                                        logger.debug("Channel bind peer address: {}", localPeerAddr);
+                                        // create and send a channel bind request
+                                        TransactionID transID = TransactionID.createNewTransactionID();
+                                        Request channelRequest = MessageFactory.createChannelBindRequest(RelayedCandidateConnection.MIN_CHANNEL_NUMBER, localPeerAddr, transID.getBytes());
+                                        turnCandidateHarvest.getLongTermCredentialSession().addAttributes(channelRequest);
+                                        turnCandidateHarvest.sendRequest(this, channelRequest);
+                                    }
+                                } catch (Exception ex) {
+                                    logger.warn("Failed to decode a stun message!", ex);
+                                }
+                            } else {
+                                relayedCandidate.getCandidateIceSocketWrapper().offerMessage(message2);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
