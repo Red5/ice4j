@@ -112,8 +112,8 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             }
             WriteFuture writeFuture = null;
             try {
-                // if we're not relaying, proceed with normal flow; if we are relaying, but this is a TURN message send here
-                if (relayedCandidateConnection == null || (relayedCandidateConnection != null && IceDecoder.isTurn(buf.array()))) {
+                // if we're not relaying, proceed with normal flow
+                if (relayedCandidateConnection == null || IceDecoder.isTurnMethod(buf.array())) {
                     IoSession sess = getSession();
                     if (sess != null) {
                         // ensure that the destination matches the session remote

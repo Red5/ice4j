@@ -79,8 +79,8 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             // write future for ensuring write/send
             WriteFuture writeFuture = null;
             try {
-                // if we're not relaying, proceed with normal flow; if we are relaying, but this is a TURN message send here
-                if (relayedCandidateConnection == null || (relayedCandidateConnection != null && IceDecoder.isTurn(buf.array()))) {
+                // if we're not relaying, proceed with normal flow
+                if (relayedCandidateConnection == null || IceDecoder.isTurnMethod(buf.array())) {
                     IoSession sess = getSession();
                     if (sess != null) {
                         // ensure that the destination matches the session remote
@@ -123,7 +123,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                             }
                         }
                     }
-                } else {
+                } else {                    
                     if (logger.isTraceEnabled()) {
                         logger.trace("Relayed send: {} to: {}", buf, destAddress);
                     }

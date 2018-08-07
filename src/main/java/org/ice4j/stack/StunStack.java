@@ -544,7 +544,7 @@ public class StunStack implements MessageEventHandler {
                     return;
                 }
             } else {
-                logger.trace("Existing transaction not found");
+                logger.trace("Creating new server transaction for: {}. Local: {} remote: {}", serverTid, ev.getLocalAddress(), ev.getRemoteAddress());
                 sTran = new StunServerTransaction(this, serverTid, ev.getLocalAddress(), ev.getRemoteAddress());
                 // if there is an OOM error here, it will lead to NetAccessManager.handleFatalError that will stop the
                 // MessageProcessor thread and restart it that will lead again to an OOM error and so on... So stop here right now

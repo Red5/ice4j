@@ -44,7 +44,7 @@ public class StunServerTransaction {
     /**
      * The StunStack that created us.
      */
-    private final StunStack stackCallback;
+    private final StunStack stunStack;
 
     /**
      * The address that we are sending responses to.
@@ -94,13 +94,13 @@ public class StunServerTransaction {
 
     /**
      * Creates a server transaction
-     * @param stackCallback the stack that created us
+     * @param stunStack the stack that created us
      * @param tranID the transaction id contained by the request that was the cause for this transaction
      * @param localListeningAddress the TransportAddress that this transaction is receiving requests on
      * @param requestSource the TransportAddress that this transaction is receiving requests from
      */
-    public StunServerTransaction(StunStack stackCallback, TransactionID tranID, TransportAddress localListeningAddress, TransportAddress requestSource) {
-        this.stackCallback = stackCallback;
+    public StunServerTransaction(StunStack stunStack, TransactionID tranID, TransportAddress localListeningAddress, TransportAddress requestSource) {
+        this.stunStack = stunStack;
         this.transactionID = tranID;
         this.localListeningAddress = localListeningAddress;
         this.requestSource = requestSource;
@@ -130,7 +130,7 @@ public class StunServerTransaction {
         if (!isRetransmitting) {
             this.response = response;
             // the transaction id might already have been set, but its our job to make sure of that
-            response.setTransactionID(this.transactionID.getBytes());
+            response.setTransactionID(transactionID.getBytes());
             this.localSendingAddress = sendThrough;
             this.responseDestination = sendTo;
         }
@@ -150,7 +150,7 @@ public class StunServerTransaction {
         if (isExpired() || !isRetransmitting) {
             return;
         }
-        stackCallback.getNetAccessManager().sendMessage(response, localSendingAddress, responseDestination);
+        stunStack.getNetAccessManager().sendMessage(response, localSendingAddress, responseDestination);
     }
 
     /**
@@ -256,4 +256,5 @@ public class StunServerTransaction {
     protected Response getResponse() {
         return response;
     }
+
 }

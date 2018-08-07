@@ -1,7 +1,6 @@
 /* See LICENSE.md for license information */
 package org.ice4j.ice;
 
-import java.net.NoRouteToHostException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -224,7 +223,6 @@ class ConnectivityCheckClient implements ResponseCollector {
                     } else {
                         // before we can send to the remote end, a permission must be requested                        
                         RelayedCandidate relayedCandidate = (RelayedCandidate) localCandidate; // cast over to relayed type
-                        //RelayedCandidateConnection relayedConn = relayedCandidate.getRelayedCandidateConnection();
                         // get the host candidates address so the lookup wont fail in NetAccessManager
                         TransportAddress localAddress = relayedCandidate.getTurnCandidateHarvest().hostCandidate.getTransportAddress();
                         // request permission for remote
@@ -232,18 +230,6 @@ class ConnectivityCheckClient implements ResponseCollector {
                         // destination for STUN/TURN messages in a relay is the TURN server
                         TransportAddress destAddress = relayedCandidate.getTurnCandidateHarvest().harvester.stunServer;
                         logger.debug("Requesting permission for {} to {} through {}", remoteAddress, destAddress, localAddress);
-                        //TransactionID permTransIDRemote = TransactionID.createNewTransactionID();
-                        //permTransIDRemote.setApplicationData(relayedConn);
-                        //Request requestPermRemote = MessageFactory.createCreatePermissionRequest(remoteAddress, permTransIDRemote.getBytes());
-                        //try {
-                        //relayedCandidate.getTurnCandidateHarvest().sendRequest(relayedConn, requestPermRemote);
-                        // maybe grab the checklist for this pair and mark it completed to prevent connectivity check failure?
-                        //checkList.setState(CheckListState.COMPLETED);
-                        //} catch (StunException e) {
-                        //  logger.warn("Permission request exception", e);
-                        //}                        
-                        // send the binding request, even though its not applicable 
-                        //tran = stunStack.sendRequest(request, remoteAddress, localAddress, this, tran, originalWaitInterval, maxWaitInterval, maxRetransmissions);
                         // send the permssion request instead of the binding request
                         request = MessageFactory.createCreatePermissionRequest(remoteAddress, tran.getBytes());
                         // add the extra attributes required
@@ -263,15 +249,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             }
         } catch (Exception ex) {
             tran = null;
-            IceSocketWrapper stunSocket = localCandidate.getStunSocket(null);
-            if (stunSocket != null) {
-                String msg = String.format("Failed to send %s through %s", String.valueOf(request), stunSocket.getLocalSocketAddress().toString());
-                if (ex instanceof NoRouteToHostException || (ex.getMessage() != null && ex.getMessage().equals("No route to host"))) {
-                    logger.warn(msg.concat(", No route to host"), ex);
-                } else {
-                    logger.warn(msg, ex);
-                }
-            }
+            logger.warn("Failed to start check for pair: {}", candidatePair, ex);
         }
         return tran;
     }
@@ -291,10 +269,12 @@ class ConnectivityCheckClient implements ResponseCollector {
         if (CandidateType.RELAYED_CANDIDATE.equals(checkedPair.getLocalCandidate().getType())) {
             // set success
             checkedPair.setStateSucceeded();
-            // set valid
-            checkedPair.validate();
-            // add to validated list
+            // add to validated list, which also sets validated flag
             parentAgent.validatePair(checkedPair);
+            // nominate! (only if we're controlling)
+            if (parentAgent.isControlling()) {
+                parentAgent.nominate(checkedPair);
+            }
             // if we're a local relayed candidate, forward the success message
             RelayedCandidate localCandidate = (RelayedCandidate) checkedPair.getLocalCandidate();
             // process success with the relayed connection
@@ -330,10 +310,10 @@ class ConnectivityCheckClient implements ResponseCollector {
      */
     private void updateCheckListAndTimerStates(CandidatePair checkedPair) {
         IceMediaStream stream = checkedPair.getParentComponent().getParentStream();
-        final CheckList checkList = stream.getCheckList();
         if (stream.getParentAgent().getState().isEstablished()) {
             return;
         }
+        final CheckList checkList = stream.getCheckList();
         // If all of the pairs in the check list are now either in the Failed or Succeeded state:
         if (checkList.allChecksCompleted()) {
             // If there is not a pair in the valid list for each component of the media stream, the state of the check list is set to Failed.
@@ -500,13 +480,6 @@ class ConnectivityCheckClient implements ResponseCollector {
         if (checkedPair.equals(checkedPair.getParentComponent().getSelectedPair())) {
             checkedPair.setConsentFreshness();
         }
-        // if we're a local relayed candidate, forward the success message
-        //        LocalCandidate localCandidate = checkedPair.getLocalCandidate();
-        //        if (localCandidate instanceof RelayedCandidate) {
-        //            // cast to relayed type
-        //            RelayedCandidateConnection relayedConn = ((RelayedCandidate) localCandidate).getRelayedCandidateConnection();
-        //            relayedConn.processSuccess(response, request);
-        //        }
     }
 
     /**

@@ -250,8 +250,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             logger.debug("Attribute: {}", attr);
                         });
                     }
-                    StunMessageEvent stunMessageEvent = new StunMessageEvent(stunStack, message, stunMessage);
-                    stunStack.handleMessageEvent(stunMessageEvent);
+                    stunStack.handleMessageEvent(new StunMessageEvent(stunStack, message, stunMessage));
                 } catch (Exception ex) {
                     logger.warn("Failed to decode a stun message!", ex);
                 }

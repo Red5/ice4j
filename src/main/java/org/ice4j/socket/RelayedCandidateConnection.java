@@ -2,7 +2,6 @@
 package org.ice4j.socket;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -26,6 +25,7 @@ import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.DataAttribute;
+import org.ice4j.attribute.XorMappedAddressAttribute;
 import org.ice4j.attribute.XorPeerAddressAttribute;
 import org.ice4j.ice.ComponentSocket;
 import org.ice4j.ice.RelayedCandidate;
@@ -39,6 +39,7 @@ import org.ice4j.message.Request;
 import org.ice4j.message.Response;
 import org.ice4j.stack.MessageEventHandler;
 import org.ice4j.stack.RawMessage;
+import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * (and its associated TurnCandidateHarvester, of course). RelayedCandidateConnection is associated with a successful Allocation on a TURN server
  * and implements sends and receives through it using TURN messages to and from that TURN server.
  *
- * {@link https://tools.ietf.org/html/rfc5766#page-48}
+ * {@link https://tools.ietf.org/html/rfc5766}
  *
  * @author Lyubomir Marinov
  * @author Paul Gregoire
@@ -93,28 +94,6 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
     private static final long PERMISSION_LIFETIME_LEEWAY = 60 /* seconds */* 1000L;
 
     /**
-     * The IoSession through which this RelayedCandidateConnection actually sends and receives the data. Since data can be exchanged with a TURN
-     * server using STUN messages (i.e. Send and Data indications), RelayedCandidateConnection may send and receive data using the associated
-     * StunStack and not channelDataSocket. However, using channelDataSession is supposed to be more efficient than using StunStack.
-     */
-    private IoSession channelDataSession;
-
-    /**
-     * The list of per-peer Channels through which this RelayedCandidateConnections relays data send to it to peer TransportAddresses.
-     */
-    private final CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
-
-    /**
-     * The indicator which determines whether this instance has started executing or has executed its {@link #close()} method.
-     */
-    private AtomicBoolean closed = new AtomicBoolean(false);
-
-    /**
-     * The next free channel number to be returned by {@link #getNextChannelNumber()} and marked as non-free.
-     */
-    private char nextChannelNumber = MIN_CHANNEL_NUMBER;
-
-    /**
      * The RelayedCandidate which uses this instance as the value of its socket property.
      */
     private final RelayedCandidate relayedCandidate;
@@ -123,6 +102,48 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * The TurnCandidateHarvest which has harvested {@link #relayedCandidate}.
      */
     private final TurnCandidateHarvest turnCandidateHarvest;
+
+    /**
+     * The list of per-peer Channels through which this RelayedCandidateConnections relays data send to it to peer TransportAddresses.
+     */
+    private final CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
+
+    /**
+     * Whether or not to use ChannelData instead of Indications (Send/Data).
+     */
+    private boolean useChannelData;
+
+    /**
+     * Transaction id for a channel bind request that was last sent.
+     */
+    private TransactionID channelBindRequest;
+
+    /**
+     * The IoSession through which this RelayedCandidateConnection actually sends and receives the data. Since data can be exchanged with a TURN
+     * server using STUN messages (i.e. Send and Data indications), RelayedCandidateConnection may send and receive data using the associated
+     * StunStack and not channelDataSocket. However, using channelDataSession is supposed to be more efficient than using StunStack.
+     */
+    private IoSession channelDataSession;
+
+    /**
+     * The next free channel number to be returned by {@link #getNextChannelNumber()} and marked as non-free.
+     */
+    private char nextChannelNumber = MIN_CHANNEL_NUMBER;
+
+    /**
+     * Peer address for the local connection. Peer-B transport address in the RFC example (Figure 1 pg. 5).
+     */
+    private TransportAddress localPeerAddress;
+
+    /**
+     * Peer address for the remote connection. Peer-A transport address in the RFC example (Figure 1 pg. 5).
+     */
+    private TransportAddress remotePeerAddress;
+
+    /**
+     * The indicator which determines whether this instance has started executing or has executed its {@link #close()} method.
+     */
+    private AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * Used to control connection flow.
@@ -168,31 +189,31 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
      * @param p the DatagramPacket which is to be checked whether it is accepted by channelDataSocket
      * @return true if channelDataSocket accepts p (i.e. channelDataSocket understands p and p is meant to be received by channelDataSocket); otherwise, false
      */
-    private boolean channelDataSocketAccept(DatagramPacket p) {
-        // Is it from our TURN server?
-        if (turnCandidateHarvest.harvester.stunServer.equals(p.getSocketAddress())) {
-            int pLength = p.getLength();
-            if (pLength >= (CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH)) {
-                byte[] pData = p.getData();
-                int pOffset = p.getOffset();
-                // The first two bits should be 0b01 because of the current channel number range 0x4000 - 0x7FFE. But 0b10 and 0b11
-                // which are currently reserved and may be used in the future to extend the range of channel numbers.
-                if ((pData[pOffset] & 0xC0) != 0) {
-                    // Technically, we cannot create a DatagramPacket from a ChannelData message with a Channel Number we do not know about. 
-                    // But determining that we know the value of the Channel Number field may be too much of an unnecessary performance penalty
-                    // and it may be unnecessary because the message comes from our TURN server and it looks like a ChannelData message already.
-                    pOffset += CHANNELDATA_CHANNELNUMBER_LENGTH;
-                    pLength -= CHANNELDATA_CHANNELNUMBER_LENGTH;
-                    int length = ((pData[pOffset++] << 8) | (pData[pOffset++] & 0xFF));
-                    int padding = ((length % 4) > 0) ? 4 - (length % 4) : 0;
-                    // The Length field specifies the length in bytes of the Application Data field. The Length field does not include the
-                    // padding that is sometimes present in the data of the DatagramPacket.
-                    return length == pLength - padding - CHANNELDATA_LENGTH_LENGTH || length == pLength - CHANNELDATA_LENGTH_LENGTH;
-                }
-            }
-        }
-        return false;
-    }
+    //    private boolean channelDataSocketAccept(DatagramPacket p) {
+    //        // Is it from our TURN server?
+    //        if (turnCandidateHarvest.harvester.stunServer.equals(p.getSocketAddress())) {
+    //            int pLength = p.getLength();
+    //            if (pLength >= (CHANNELDATA_CHANNELNUMBER_LENGTH + CHANNELDATA_LENGTH_LENGTH)) {
+    //                byte[] pData = p.getData();
+    //                int pOffset = p.getOffset();
+    //                // The first two bits should be 0b01 because of the current channel number range 0x4000 - 0x7FFE. But 0b10 and 0b11
+    //                // which are currently reserved and may be used in the future to extend the range of channel numbers.
+    //                if ((pData[pOffset] & 0xC0) != 0) {
+    //                    // Technically, we cannot create a DatagramPacket from a ChannelData message with a Channel Number we do not know about. 
+    //                    // But determining that we know the value of the Channel Number field may be too much of an unnecessary performance penalty
+    //                    // and it may be unnecessary because the message comes from our TURN server and it looks like a ChannelData message already.
+    //                    pOffset += CHANNELDATA_CHANNELNUMBER_LENGTH;
+    //                    pLength -= CHANNELDATA_CHANNELNUMBER_LENGTH;
+    //                    int length = ((pData[pOffset++] << 8) | (pData[pOffset++] & 0xFF));
+    //                    int padding = ((length % 4) > 0) ? 4 - (length % 4) : 0;
+    //                    // The Length field specifies the length in bytes of the Application Data field. The Length field does not include the
+    //                    // padding that is sometimes present in the data of the DatagramPacket.
+    //                    return length == pLength - padding - CHANNELDATA_LENGTH_LENGTH || length == pLength - CHANNELDATA_LENGTH_LENGTH;
+    //                }
+    //            }
+    //        }
+    //        return false;
+    //    }
 
     /**
      * Closes this datagram socket.
@@ -293,31 +314,36 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                         byte[] data = dataAttribute.getData();
                         if (data != null) {
                             // create a raw message from the data bytes
-                            RawMessage message2 = RawMessage.build(data, remoteAddr, localAddr);
+                            RawMessage message = RawMessage.build(data, remoteAddr, localAddr);
                             // check for stun/turn
-                            if (IceDecoder.isTurn(data)) {
+                            if (IceDecoder.isStun(data)) {
                                 try {
-                                    Message turnMessage = Message.decode(message2.getBytes(), 0, message2.getMessageLength());
+                                    Message turnMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
                                     logger.debug("Message: {}", turnMessage);
                                     if (logger.isDebugEnabled()) {
                                         turnMessage.getAttributes().forEach(attr -> {
                                             logger.debug("Attribute: {}", attr);
                                         });
                                     }
-                                    if (turnMessage.getMessageType() == Message.BINDING_REQUEST) {
+                                    // send the data-derived message back over to the stack for processing
+                                    StunStack stunStack = relayedCandidate.getStunStack();
+                                    stunStack.handleMessageEvent(new StunMessageEvent(stunStack, message, turnMessage));
+                                    // if we want to bind a channel, send the request (do we send this more than 1x?)
+                                    if (useChannelData && channelBindRequest == null) {
                                         TransportAddress localPeerAddr = relayedCandidate.getRelatedAddress();
                                         logger.debug("Channel bind peer address: {}", localPeerAddr);
                                         // create and send a channel bind request
                                         TransactionID transID = TransactionID.createNewTransactionID();
                                         Request channelRequest = MessageFactory.createChannelBindRequest(RelayedCandidateConnection.MIN_CHANNEL_NUMBER, localPeerAddr, transID.getBytes());
                                         turnCandidateHarvest.getLongTermCredentialSession().addAttributes(channelRequest);
-                                        turnCandidateHarvest.sendRequest(this, channelRequest);
+                                        // store the transaction id so we can keep track of it being sent
+                                        channelBindRequest = TransactionID.build(turnCandidateHarvest.sendRequest(this, channelRequest));
                                     }
                                 } catch (Exception ex) {
                                     logger.warn("Failed to decode a stun message!", ex);
                                 }
                             } else {
-                                relayedCandidate.getCandidateIceSocketWrapper().offerMessage(message2);
+                                relayedCandidate.getCandidateIceSocketWrapper().offerMessage(message);
                             }
                         }
                     }
@@ -364,23 +390,19 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 break;
         }
         switch (response.getMessageType()) {
+            case Message.ALLOCATE_RESPONSE:
+                XorMappedAddressAttribute mappedAddressAttribute = (XorMappedAddressAttribute) response.getAttribute(Attribute.Type.XOR_MAPPED_ADDRESS);
+                localPeerAddress = mappedAddressAttribute.getAddress(response.getTransactionID());
+                logger.info("Local peer address: {}", localPeerAddress);
+                break;
             case Message.CREATEPERMISSION_RESPONSE:
                 XorPeerAddressAttribute peerAddressAttribute = (XorPeerAddressAttribute) request.getAttribute(Attribute.Type.XOR_PEER_ADDRESS);
-                TransportAddress peerAddress = peerAddressAttribute.getAddress(request.getTransactionID());
-                logger.info("Peer address for send indication: {}", peerAddress);
-                TransactionID transID = TransactionID.createNewTransactionID();
-                transID.setApplicationData(this);
-                // send indication is the next step in the rfc5766 process pg.51
-                Indication indication = MessageFactory.createSendIndication(peerAddress, new byte[0], transID.getBytes());
-                try {
-                    turnCandidateHarvest.harvester.getStunStack().sendIndication(indication, turnCandidateHarvest.harvester.stunServer, turnCandidateHarvest.hostCandidate.getTransportAddress());
-                } catch (StunException sex) {
-                    logger.warn("Failed to send indication", sex);
-                }
+                remotePeerAddress = peerAddressAttribute.getAddress(request.getTransactionID());
+                logger.info("Remote peer address: {}", remotePeerAddress);
                 // update the component socket to inform it of the ice socket wrapper to use
                 ComponentSocket componentSocket = relayedCandidate.getParentComponent().getComponentSocket();
                 // authorize the remote address
-                componentSocket.addAuthorizedAddress(peerAddress);
+                componentSocket.addAuthorizedAddress(remotePeerAddress);
                 logger.debug("Component socket: {} relayed socket: {}", componentSocket.getSocket(), relayedCandidate.getCandidateIceSocketWrapper());
                 // get the relayed socket
                 IceSocketWrapper relayedSocket = relayedCandidate.getCandidateIceSocketWrapper();
@@ -397,6 +419,18 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
         logger.info("send: {} to {}", buf, destAddress);
         if (closed.get()) {
             throw new IOException(RelayedCandidateConnection.class.getSimpleName() + " has been closed");
+        } else if (!useChannelData) { // if we're not using channel-data
+            // send indication is the next step after creating permission response. RFC-5766 pg. 51
+            byte[] data = new byte[buf.remaining()];
+            buf.get(data);
+            logger.debug("Send indication data length: {}", data.length);
+            TransactionID transID = TransactionID.createNewTransactionID(this);
+            Indication indication = MessageFactory.createSendIndication(remotePeerAddress, data, transID.getBytes());
+            try {
+                turnCandidateHarvest.harvester.getStunStack().sendIndication(indication, turnCandidateHarvest.harvester.stunServer, turnCandidateHarvest.hostCandidate.getTransportAddress());
+            } catch (StunException sex) {
+                logger.warn("Failed to send send-indication", sex);
+            }
         } else {
             // Get a channel to the peer which is to receive the packetToSend.
             int channelCount = channels.size();
@@ -438,17 +472,6 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
             }
         }
 
-    }
-
-    /**
-     * Sends a datagram packet from this socket. The DatagramPacket includes information indicating the data to be sent, its length, the IP
-     * address of the remote host, and the port number on the remote host.
-     *
-     * @param packetToSend the DatagramPacket to be sent
-     * @throws IOException if an I/O error occurs
-     */
-    public void send(DatagramPacket packetToSend) throws IOException {
-        send(IoBuffer.wrap(packetToSend.getData(), packetToSend.getOffset(), packetToSend.getLength()), packetToSend.getSocketAddress());
     }
 
     /** {@inheritDoc} */
@@ -570,6 +593,14 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 return;
             }
         });
+    }
+
+    public boolean isUseChannelData() {
+        return useChannelData;
+    }
+
+    public void setUseChannelData(boolean useChannelData) {
+        this.useChannelData = useChannelData;
     }
 
     // create either UDP or TCP sessions for the channel data to go over

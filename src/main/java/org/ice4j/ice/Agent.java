@@ -1133,13 +1133,11 @@ public class Agent {
      * Raises pair's nomination flag and schedules a triggered check. Applications only need to use this method if they disable this
      * Agent's internal nomination and implement their own nominator and turn off nominations in this agent.
      *
-     * @param pair the {@link CandidatePair} that we'd like to nominate and that we'd like to schedule a triggered check for.
-     *
-     * @throws IllegalStateException if this Agent is not a controlling agent and can therefore not nominate pairs.
-     *
+     * @param pair the {@link CandidatePair} that we'd like to nominate and that we'd like to schedule a triggered check for
+     * @throws IllegalStateException if this Agent is not a controlling agent and can therefore not nominate pairs
      * @see Agent#setNominationStrategy(NominationStrategy)
      */
-    public synchronized void nominate(CandidatePair pair) throws IllegalStateException {
+    public void nominate(CandidatePair pair) throws IllegalStateException {
         if (!isControlling()) {
             throw new IllegalStateException("Only controlling agents can nominate pairs");
         }

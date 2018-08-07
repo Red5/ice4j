@@ -74,6 +74,22 @@ public class TransactionID {
     }
 
     /**
+     * Creates a transaction id object.The transaction id itself is generated using the following algorithm:
+     *
+     * The first 6 bytes of the id are given the value of System.currentTimeMillis(). Putting the right most bits first
+     * so that we get a more optimized equals() method.
+     *
+     * @param applicationData attach the given application data
+     * @return A TransactionID object with a unique transaction id
+     */
+    public static TransactionID createNewTransactionID(Object applicationData) {
+        TransactionID tid = new TransactionID();
+        random.nextBytes(tid.transactionID);
+        tid.applicationData = applicationData;
+        return tid;
+    }
+
+    /**
      * Creates a RFC3489 transaction id object.The transaction id itself is generated using the following algorithm:
      *
      * The first 8 bytes of the id are given the value of System.currentTimeMillis(). Putting the right most bits first

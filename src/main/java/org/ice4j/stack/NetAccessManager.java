@@ -236,22 +236,4 @@ public class NetAccessManager {
         ap.sendMessage(bytes, remoteAddr);
     }
 
-    /**
-     * Receives the specified bytes on the specified access point.
-     *
-     * @param bytes the bytes received
-     * @param srcAddr the access point on which the bytes were received
-     * @param remoteAddr the origin of the message
-     *
-     * @throws IllegalArgumentException if the descriptor references an access point that had not been installed
-     * @throws IOException  if an error occurs while sending message bytes through the network socket
-     */
-    //    void receiveMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
-    //        Connector ap = getConnector(srcAddr, remoteAddr);
-    //        if (ap == null) {
-    //            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
-    //        }
-    //        ap.receiveMessage(bytes, remoteAddr);
-    //    }
-
 }
