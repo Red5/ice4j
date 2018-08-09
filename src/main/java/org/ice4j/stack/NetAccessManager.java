@@ -185,7 +185,7 @@ public class NetAccessManager {
                 connector = connectorsForLocalAddress.get(null);
             }
         }
-        logger.debug("Returning connector: {}", connector);
+        logger.debug("Returning connector - local: {} remote: {}", connector.getListenAddress(), connector.getRemoteAddress());
         return connector;
     }
 

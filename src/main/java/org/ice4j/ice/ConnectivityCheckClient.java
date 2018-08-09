@@ -598,8 +598,9 @@ class ConnectivityCheckClient implements ResponseCollector {
                     }
                     if (pairToCheck != null) {
                         // check for a TCP candidate with a destination port of 9 (masked) and don't attempt to connect to it!
-                        if (pairToCheck.getRemoteCandidate().getTcpType() == CandidateTcpType.ACTIVE) {
-                            logger.debug("TCP remote candidate is active with masked port, skip attempt to connect directly");
+                        RemoteCandidate remoteCandidate = pairToCheck.getRemoteCandidate();
+                        if (remoteCandidate.getTcpType() == CandidateTcpType.ACTIVE && remoteCandidate.getTransportAddress().getPort() == 9) {
+                            logger.debug("TCP remote candidate is active with masked port, skip attempt to connect directly. Remote: {}", remoteCandidate);
                             continue;
                         }
                         // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
