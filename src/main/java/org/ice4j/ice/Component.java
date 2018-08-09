@@ -114,7 +114,7 @@ public class Component implements PropertyChangeListener {
     private Candidate<?> defaultRemoteCandidate;
 
     /**
-     * The single {@link ComponentSocket} instance for this {@link Component}, which will merge the multiple sockets from the candidate/pairs.
+     * The single {@link ComponentSocket} instance for this {@link Component}.
      */
     private final ComponentSocket componentSocket;
 

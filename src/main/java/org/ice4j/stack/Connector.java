@@ -2,6 +2,7 @@
 package org.ice4j.stack;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.ice4j.TransportAddress;
@@ -33,6 +34,11 @@ class Connector {
     private final NetAccessManager netAccessManager;
 
     /**
+     * Whether or not the connector is alive (not yet stopped)
+     */
+    private final AtomicBoolean alive = new AtomicBoolean(true);
+
+    /**
      * Creates a network access point.
      * @param socket the socket that this access point is supposed to use for communication.
      * @param remoteAddress the remote address of the socket of this {@link Connector} if it is a TCP socket, or null if it is UDP.
@@ -54,24 +60,25 @@ class Connector {
     }
 
     /**
-     * Makes the access point stop listening on its socket.
+     * Returns alive status.
+     * 
+     * @return true if alive and false if stopped
      */
-    protected void stop() {
-        netAccessManager.removeSocket(listenAddress, remoteAddress);
-        if (!sock.isClosed()) {
-            sock.close();
-        }
+    public boolean isAlive() {
+        return alive.get();
     }
 
     /**
-     * Receives a message from the socket.
-     * 
-     * @param message the bytes received
-     * @param address message origin
+     * Makes the access point stop listening on its socket.
      */
-//    void receiveMessage(byte[] message, TransportAddress address) {
-//        messageQueue.add(RawMessage.build(message, message.length, address, listenAddress));
-//    }
+    protected void stop() {
+        if (alive.compareAndSet(true, false)) {
+            netAccessManager.removeSocket(listenAddress, remoteAddress);
+            if (!sock.isClosed()) {
+                sock.close();
+            }
+        }
+    }
 
     /**
      * Sends message through this access point's socket.
@@ -81,8 +88,6 @@ class Connector {
      * @throws IOException if an exception occurs while sending the message
      */
     void sendMessage(byte[] message, TransportAddress address) throws IOException {
-        //        DatagramPacket datagramPacket = new DatagramPacket(message, 0, message.length, address);
-        //        sock.send(datagramPacket);
         sock.send(IoBuffer.wrap(message), address);
     }
 

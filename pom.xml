@@ -7,15 +7,15 @@
         <version>1.0</version>
     </parent>
     <artifactId>ice4j</artifactId>
-    <version>3.2.10</version>
+    <version>3.2.11</version>
     <packaging>bundle</packaging>
     <name>ice4j</name>
-    <url>https://github.com/jitsi/ice4j</url>
+    <url>https://github.com/Red5/ice4j</url>
     <description>This is a fork maintained by Paul Gregoire (mondain@gmail.com)</description>
     <scm>
-        <url>https://github.com/jitsi/ice4j</url>
-        <connection>scm:git:https://github.com/jitsi/ice4j.git</connection>
-        <developerConnection>scm:git:https://github.com/jitsi/ice4j.git</developerConnection>
+        <url>https://github.com/Red5/ice4j</url>
+        <connection>scm:git:https://github.com/Red5/ice4j.git</connection>
+        <developerConnection>scm:git:https://github.com/Red5/ice4j.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
     <properties>
@@ -140,4 +140,5 @@
             </build>
         </profile>
     </profiles>
+    <inceptionYear>2017</inceptionYear>
 </project>

@@ -78,6 +78,9 @@ A comma-separated list of STUN server addresses to use for mapping harvesters.
 Each STUN server address is an ip_address:port pair.
 Example: `stun1.example.com:12345,stun2.example.com:23456`
 
+### *SKIP_REMOTE_PRIVATE_HOSTS*
+Whether or not to skip remote candidates originating from private network hosts; default is to allow them.
+
 ### *org.ice4j.TERMINATION_DELAY*
 Waits the specified period of time or the default of three seconds and then moves an Agent into the terminated state and frees all non-nominated candidates.
 

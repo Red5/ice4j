@@ -131,7 +131,7 @@ public class NetAccessManager {
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress != null) {
             Connector connector = connectorsForLocalAddress.remove(remoteAddress);
-            if (connector != null) {
+            if (connector != null && connector.isAlive()) {
                 connector.stop();
             }
             if (connectorsForLocalAddress.isEmpty()) {
@@ -147,14 +147,16 @@ public class NetAccessManager {
         logger.debug("stop");
         // close all udp
         udpConnectors.values().forEach(connectorMap -> {
-            connectorMap.values().forEach(connector -> {
-                connector.stop();
+            HashMap<TransportAddress, Connector> copy = new HashMap<>(connectorMap);
+            copy.values().forEach(connector -> {
+                removeSocket(connector.getListenAddress(), connector.getRemoteAddress());
             });
         });
         // close all tcp
         tcpConnectors.values().forEach(connectorMap -> {
-            connectorMap.values().forEach(connector -> {
-                connector.stop();
+            HashMap<TransportAddress, Connector> copy = new HashMap<>(connectorMap);
+            copy.values().forEach(connector -> {
+                removeSocket(connector.getListenAddress(), connector.getRemoteAddress());
             });
         });
     }

@@ -359,6 +359,7 @@ public class TcpHarvester extends AbstractTcpListener implements CandidateHarves
      * @return a TcpHostCandidate among the local candidates of Component with the same transport address as the local
      * address of Socket, or null if no such candidate exists.
      */
+    @SuppressWarnings("unused")
     private TcpHostCandidate findCandidate(Component component, Socket socket) {
         InetAddress localAddress = socket.getLocalAddress();
         int localPort = socket.getLocalPort();

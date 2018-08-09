@@ -234,8 +234,6 @@ public class Agent {
      */
     private Boolean useHostHarvester;
 
-    private Transport requestedTransport = Transport.UDP;
-
     /**
      * Termination delay period to wait after connectivity checks are complete.
      */
@@ -1714,24 +1712,6 @@ public class Agent {
      */
     public void setUseHostHarvester(boolean useHostHarvester) {
         this.useHostHarvester = useHostHarvester;
-    }
-
-    /**
-     * Returns the requested transport.
-     * 
-     * @return transport
-     */
-    public Transport getRequestedTransport() {
-        return requestedTransport;
-    }
-
-    /**
-     * Sets the requested / preferred transport type to use during negotiation.
-     * 
-     * @param transport
-     */
-    public void setRequestedTransport(Transport transport) {
-        this.requestedTransport = transport;
     }
 
     /**

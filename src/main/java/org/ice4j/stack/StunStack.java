@@ -20,7 +20,6 @@ import org.ice4j.ResponseCollector;
 import org.ice4j.StackProperties;
 import org.ice4j.StunException;
 import org.ice4j.StunMessageEvent;
-import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.attribute.Attribute;
 import org.ice4j.attribute.ErrorCodeAttribute;
@@ -188,7 +187,7 @@ public class StunStack implements MessageEventHandler {
     public void removeSocket(String id, TransportAddress localAddr, TransportAddress remoteAddr) {
         logger.debug("removeSocket: {} remote address: {}", localAddr, remoteAddr);
         // clean up server bindings and listener
-        IceTransport transport = IceTransport.getInstance(remoteAddr == null ? Transport.UDP : Transport.TCP, id);
+        IceTransport transport = IceTransport.getInstance(localAddr.getTransport(), id);
         if (transport != null) {
             transport.removeBinding(localAddr);
         }
