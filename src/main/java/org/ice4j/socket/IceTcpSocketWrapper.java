@@ -7,7 +7,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.ConnectFuture;
@@ -58,10 +57,13 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
         NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor();
         if (acceptor != null) {
             try {
-                // if the ports not bound, bind it
-                if (!transport.isBound(transportAddress.getPort())) {
-                    transport.addBinding(transportAddress);
+                // if the port is bound, unbind it since TCP can't be client and server on the same port in Java
+                if (transport.isBound(transportAddress.getPort())) {
+                    transport.removeBinding(transportAddress);
                 }
+                //if (!transport.isBound(transportAddress.getPort())) {
+                //    transport.addBinding(transportAddress);
+                //}
                 // if we're not bound, attempt to create a client session
                 NioSocketConnector connector = new NioSocketConnector();
                 SocketSessionConfig config = connector.getSessionConfig();
@@ -118,52 +120,46 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                     if (sess != null) {
                         // ensure that the destination matches the session remote
                         if (destAddress.equals(sess.getRemoteAddress())) {
-                            writeFuture = sess.write(buf);
+                            writeFuture = sess.write(pad(buf));
                             writeFuture.addListener(writeListener);
                         } else {
-                            // look thru stale sessions for a match
-                            staleSessions.forEach(stale -> {
-                                if (destAddress.equals(stale.getRemoteAddress())) {
-                                    if (logger.isTraceEnabled()) {
-                                        logger.trace("Stale session send: {} to: {}", buf, destAddress);
-                                    }
-                                    stale.write(buf);
-                                    return;
-                                }
-                            });
+                            // if the destination doesnt match, this isn't the right ice socket
+                            logger.debug("Destination {} doesnt match remote: {}", destAddress, sess.getRemoteAddress());
+                            throw new IOException(String.format("Session not available for destination: %s", destAddress.toString()));
                         }
                     } else {
-                        logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
-                        // if we're not bound, attempt to create a client session
-                        Thread retry = new Thread() {
-                            public void run() {
-                                newSession(destAddress);
+                        logger.debug("No session, attempting bind from: {} to: {}", transportAddress, destAddress);
+                        // look for an existing acceptor
+                        IceTcpTransport transport = IceTcpTransport.getInstance(getId());
+                        NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor();
+                        if (acceptor != null) {
+                            try {
+                                acceptor.bind(transportAddress);
+                            } catch (Exception e) {
+                                logger.warn("Exception binding for new session using acceptor for {}", transportAddress, e);
                             }
-                        };
-                        retry.setDaemon(true);
-                        retry.start();
-                        // join up in a max of 3s
-                        retry.join(3000L);
-                        // wait up-to x milliseconds for a connection to be established
-                        if (connectLatch.await(500L, TimeUnit.MILLISECONDS)) {
-                            // attempt to get a newly added session from connect process
-                            sess = getSession();
-                            if (sess != null) {
-                                writeFuture = sess.write(buf);
-                                writeFuture.addListener(writeListener);
-                            } else {
-                                logger.warn("Send failed on session creation");
-                            }
+                        } else {
+                            logger.debug("No existing TCP acceptor available");
+                        }
+                        // attempt to get a newly added session from connect process
+                        sess = getSession();
+                        if (sess != null) {
+                            writeFuture = sess.write(pad(buf));
+                            writeFuture.addListener(writeListener);
+                        } else {
+                            logger.warn("Send failed on session creation");
                         }
                     }
                 } else {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Relayed send: {} to: {}", buf, destAddress);
                     }
-                    relayedCandidateConnection.send(buf, destAddress);
+                    try {
+                        relayedCandidateConnection.send(buf, destAddress);
+                    } catch (Throwable t) {
+                        logger.warn("Exception attempting to relay", t);
+                    }
                 }
-            } catch (Throwable t) {
-                logger.warn("Exception attempting to send", t);
             } finally {
                 if (writeFuture != null) {
                     writeFuture.removeListener(writeListener);
@@ -178,14 +174,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
         //if (logger.isTraceEnabled()) {
         //    logger.trace("send: {}", p);
         //}
-        int len = p.getLength();
-        int off = p.getOffset();
-        IoBuffer data = IoBuffer.allocate(len + 2);
-        data.put((byte) ((len >> 8) & 0xff));
-        data.put((byte) (len & 0xff));
-        data.put(p.getData(), off, len);
-        data.flip();
-        send(data, p.getSocketAddress());
+        send(IoBuffer.wrap(p.getData(), p.getOffset(), p.getLength()), p.getSocketAddress());
     }
 
     /** {@inheritDoc} */
@@ -202,6 +191,23 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     @Override
     public RawMessage read() {
         return rawMessageQueue.poll();
+    }
+
+    /**
+     * Pad the data for TCP per RFC 4571.
+     * 
+     * @param buf non-padded source data
+     * @return padded data with length
+     */
+    private IoBuffer pad(IoBuffer buf) {
+        // pad the buffer for tcp transmission
+        int len = buf.limit();
+        IoBuffer data = IoBuffer.allocate(len + 2);
+        data.put((byte) ((len >> 8) & 0xff));
+        data.put((byte) (len & 0xff));
+        data.put(buf);
+        data.flip();
+        return data;
     }
 
     /** {@inheritDoc} */

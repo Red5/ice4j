@@ -252,9 +252,9 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
         if (hostCand.getTransport() == Transport.TCP) {
             logger.info("Creating a new TCP HostCandidate");
             try {
-                final IceHandler iceHandler = IceTransport.getIceHandler();
+                final IceHandler handler = IceTransport.getIceHandler();
                 // lookup the existing host candidates ice socket (should have been created by host harvester)
-                IceSocketWrapper iceSocket = iceHandler.lookupBinding(hostAddress);
+                IceSocketWrapper iceSocket = handler.lookupBinding(hostAddress);
                 if (iceSocket != null) {
                     // create a new session connected to the stun server and add it to the existing ice socket
                     NioSocketConnector connector = new NioSocketConnector();
@@ -270,9 +270,14 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                     // add the ice protocol encoder/decoder
                     connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
                     // set the handler on the connector
-                    connector.setHandler(iceHandler);
+                    connector.setHandler(handler);
+                    // check for existing registration
+                    if (handler.lookupBinding(hostAddress) == null) {
+                        // add this socket for attachment to the session upon opening
+                        handler.registerStackAndSocket(stunStack, iceSocket);
+                    }
                     // connect 
-                    ConnectFuture future = connector.connect(stunServer);
+                    ConnectFuture future = connector.connect(stunServer, hostAddress);
                     future.awaitUninterruptibly(3000L);
                     if (future.isConnected()) {
                         IoSession sess = future.getSession();

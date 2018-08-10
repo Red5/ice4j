@@ -1,12 +1,18 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stunclient;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.concurrent.SynchronousQueue;
 
-import org.ice4j.*;
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
+import org.ice4j.AbstractResponseCollector;
+import org.ice4j.BaseStunMessageEvent;
+import org.ice4j.StunException;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.StunResponseEvent;
+import org.ice4j.TransportAddress;
+import org.ice4j.message.Request;
+import org.ice4j.stack.StunStack;
+import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

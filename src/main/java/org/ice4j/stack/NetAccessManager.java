@@ -185,7 +185,13 @@ public class NetAccessManager {
                 connector = connectorsForLocalAddress.get(null);
             }
         }
-        logger.debug("Returning connector - local: {} remote: {}", connector.getListenAddress(), connector.getRemoteAddress());
+        if (logger.isDebugEnabled()) {
+            if (connector != null) {
+                logger.debug("Returning connector - local: {} remote: {}", connector.getListenAddress(), connector.getRemoteAddress());
+            } else {
+                logger.debug("Returning null connector");
+            }
+        }
         return connector;
     }
 
@@ -210,7 +216,6 @@ public class NetAccessManager {
      * @param channelData the message to send
      * @param srcAddr the access point to use to send the message
      * @param remoteAddr the destination of the message
-     *
      * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      * @throws StunException 
@@ -224,18 +229,17 @@ public class NetAccessManager {
      * Sends the specified bytes through the specified access point.
      *
      * @param bytes the bytes to send
-     * @param srcAddr the access point to use to send the bytes
-     * @param remoteAddr the destination of the message
-     *
+     * @param localAddress the access point to use to send the bytes
+     * @param remoteAddress the destination of the message
      * @throws IllegalArgumentException if the descriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
-    void sendMessage(byte[] bytes, TransportAddress srcAddr, TransportAddress remoteAddr) throws IllegalArgumentException, IOException {
-        Connector ap = getConnector(srcAddr, remoteAddr);
+    void sendMessage(byte[] bytes, TransportAddress localAddress, TransportAddress remoteAddress) throws IllegalArgumentException, IOException {
+        Connector ap = getConnector(localAddress, remoteAddress);
         if (ap == null) {
-            throw new IllegalArgumentException("No socket found for " + srcAddr + "->" + remoteAddr);
+            throw new IllegalArgumentException("No socket found for " + localAddress + "->" + remoteAddress);
         }
-        ap.sendMessage(bytes, remoteAddr);
+        ap.sendMessage(bytes, remoteAddress);
     }
 
 }
