@@ -255,6 +255,14 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                 final IceHandler handler = IceTransport.getIceHandler();
                 // lookup the existing host candidates ice socket (should have been created by host harvester)
                 IceSocketWrapper iceSocket = handler.lookupBinding(hostAddress);
+                if (iceSocket == null) {
+                    // do secondary lookup by destination, just to be sure
+                    iceSocket = IceTransport.getIceHandler().lookupBindingByRemote(stunServer);
+                    if (iceSocket == null) {
+                        // last-ditch effort
+                        iceSocket = IceSocketWrapper.build(hostAddress, stunServer);
+                    }
+                }
                 if (iceSocket != null) {
                     // create a new session connected to the stun server and add it to the existing ice socket
                     NioSocketConnector connector = new NioSocketConnector();
@@ -278,7 +286,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                     }
                     // connect 
                     ConnectFuture future = connector.connect(stunServer, hostAddress);
-                    future.awaitUninterruptibly(3000L);
+                    future.awaitUninterruptibly(500L);
                     if (future.isConnected()) {
                         IoSession sess = future.getSession();
                         if (sess != null) {
@@ -293,7 +301,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                         }
                     }
                 } else {
-                    logger.warn("Session failed to complete in 3s, no host candidate available for {}", hostCand.getTransportAddress());
+                    logger.warn("Session failed to complete, no host candidate available for {}", hostCand.getTransportAddress());
                 }
             } catch (Exception e) {
                 logger.warn("Exception resolving TCP HostCandidate", e);

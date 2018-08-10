@@ -292,7 +292,10 @@ public abstract class IceSocketWrapper {
                 staleSessions.add(oldSession);
             } else {
                 logger.debug("Closing previous TCP session: {}", oldSession);
-                oldSession.closeNow();
+                CloseFuture future = oldSession.closeNow();
+                // wait a few ticks for the old session to close
+                future.awaitUninterruptibly(500L);
+                logger.debug("Session closed: {}", future.isClosed());
             }
         }
     }

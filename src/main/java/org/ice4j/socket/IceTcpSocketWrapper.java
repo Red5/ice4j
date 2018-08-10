@@ -57,13 +57,9 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
         NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor();
         if (acceptor != null) {
             try {
-                // if the port is bound, unbind it since TCP can't be client and server on the same port in Java
-                if (transport.isBound(transportAddress.getPort())) {
-                    transport.removeBinding(transportAddress);
+                if (!transport.isBound(transportAddress.getPort())) {
+                    transport.addBinding(transportAddress);
                 }
-                //if (!transport.isBound(transportAddress.getPort())) {
-                //    transport.addBinding(transportAddress);
-                //}
                 // if we're not bound, attempt to create a client session
                 NioSocketConnector connector = new NioSocketConnector();
                 SocketSessionConfig config = connector.getSessionConfig();
@@ -103,6 +99,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("static-access")
     @Override
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
         if (isClosed()) {
@@ -131,23 +128,16 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
                         logger.debug("No session, attempting bind from: {} to: {}", transportAddress, destAddress);
                         // look for an existing acceptor
                         IceTcpTransport transport = IceTcpTransport.getInstance(getId());
-                        NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor();
-                        if (acceptor != null) {
-                            try {
-                                acceptor.bind(transportAddress);
-                            } catch (Exception e) {
-                                logger.warn("Exception binding for new session using acceptor for {}", transportAddress, e);
-                            }
-                        } else {
-                            logger.debug("No existing TCP acceptor available");
+                        if (!transport.isBound(transportAddress.getPort())) {
+                            transport.addBinding(transportAddress);
                         }
-                        // attempt to get a newly added session from connect process
+                        // attempt to get a new session post binding process
                         sess = getSession();
                         if (sess != null) {
                             writeFuture = sess.write(pad(buf));
                             writeFuture.addListener(writeListener);
                         } else {
-                            logger.warn("Send failed on session creation");
+                            logger.warn("Send failed, no session");
                         }
                     }
                 } else {
