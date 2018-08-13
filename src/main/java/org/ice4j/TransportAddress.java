@@ -207,17 +207,14 @@ public class TransportAddress extends InetSocketAddress {
             Inet6Address srcAddr = (Inet6Address) getAddress();
             Inet6Address dstAddr = (Inet6Address) dst.getAddress();
             if (srcAddr.isLinkLocalAddress() != dstAddr.isLinkLocalAddress()) {
-                //this one may actually work if for example we are contacting
-                //the public address of someone in our local network. however
-                //in most cases we would also be able to reach the same address
-                //via a global address of our own and the probability of the
-                //opposite is considerably lower than the probability of us
-                //trying to reach a distant global address through one of our
-                //own. Therefore we would return false here by default.
+                // this one may actually work if for example we are contacting the public address of someone in our local network. however
+                // in most cases we would also be able to reach the same address via a global address of our own and the probability of the
+                // opposite is considerably lower than the probability of us trying to reach a distant global address through one of our own.
+                // Therefore we would return false here by default.
                 return Boolean.getBoolean(StackProperties.ALLOW_LINK_TO_GLOBAL_REACHABILITY);
             }
         }
-        //may add more unreachability conditions here in the future;
+        // may add more unreachability conditions here in the future
         return true;
     }
 

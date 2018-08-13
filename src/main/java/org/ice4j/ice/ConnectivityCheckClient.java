@@ -230,7 +230,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                         // destination for STUN/TURN messages in a relay is the TURN server
                         TransportAddress destAddress = relayedCandidate.getTurnCandidateHarvest().harvester.stunServer;
                         logger.debug("Requesting permission for {} to {} through {}", remoteAddress, destAddress, localAddress);
-                        // send the permssion request instead of the binding request
+                        // send the permission request instead of the binding request
                         request = MessageFactory.createCreatePermissionRequest(remoteAddress, tran.getBytes());
                         // add the extra attributes required
                         logger.debug("Adding long-term-cred attributes");
@@ -298,7 +298,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 }
             }
         }
-        //Regardless of whether the check was successful or failed, the completion of the transaction may require updating of check list and timer states.
+        // regardless of whether the check was successful or failed, the completion of the transaction may require updating of check list and timer states.
         updateCheckListAndTimerStates(checkedPair);
     }
 

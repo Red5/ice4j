@@ -167,9 +167,11 @@ public abstract class IceSocketWrapper {
      * @return true = not open, false = not closed
      */
     public boolean isClosed() {
-        IoSession sess = session.get();
-        if (!sess.equals(NULL_SESSION)) {
-            closed = sess.isClosing(); // covers closing and / or closed
+        if (!closed) {
+            IoSession sess = session.get();
+            if (!sess.equals(NULL_SESSION)) {
+                closed = sess.isClosing(); // covers closing and / or closed
+            }
         }
         return closed;
     }

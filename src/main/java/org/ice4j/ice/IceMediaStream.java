@@ -236,7 +236,6 @@ public class IceMediaStream {
     protected void initCheckList() {
         // first init the check list
         //logger.debug("initCheckList: {}", checkList);
-        //checkList.clear();
         createCheckList(checkList);
         pruneCheckList(checkList);
         logger.trace("Checklist initialized");
@@ -290,35 +289,38 @@ public class IceMediaStream {
         Set<CandidatePair> tmpCheckList = new HashSet<>(checkList.size());
         for (CandidatePair pair : checkList) {
             //logger.trace("Candidate pair: {}", pair);
-            // drop all pairs above MAX_CHECK_LIST_SIZE
-            if (tmpCheckList.size() > maxCheckListSize) {
-                break;
-            }
-            // replace local server reflexive candidates with their base.
-            LocalCandidate localCnd = pair.getLocalCandidate();
-            switch (localCnd.getType()) {
-                case SERVER_REFLEXIVE_CANDIDATE:
-                case PEER_REFLEXIVE_CANDIDATE:
-                    pair.setLocalCandidate(localCnd.getBase());
-                    // if the new pair corresponds to another one with a higher priority, then remove it.
-                    if (tmpCheckList.contains(pair)) {
-                        logger.debug("Removing duplicate pair: {}", pair);
-                        continue;
-                    }
+            // validate transport first
+            if (pair.validTransport()) {
+                // drop all pairs above MAX_CHECK_LIST_SIZE
+                if (tmpCheckList.size() > maxCheckListSize) {
                     break;
-            }
-            // if the local candidate is TCP and tcptype is not set, configure it
-            if (localCnd.getTransport() == Transport.TCP && localCnd.getTcpType() == null) {
-                // if the remote is passive, set ours to active and anything else (passive or so) we go passive
-                switch (pair.getRemoteCandidate().getTcpType()) {
-                    case PASSIVE:
-                        localCnd.setTcpType(CandidateTcpType.ACTIVE);
-                        break;
-                    default:
-                        localCnd.setTcpType(CandidateTcpType.PASSIVE);
                 }
+                // replace local server reflexive candidates with their base.
+                LocalCandidate localCnd = pair.getLocalCandidate();
+                switch (localCnd.getType()) {
+                    case SERVER_REFLEXIVE_CANDIDATE:
+                    case PEER_REFLEXIVE_CANDIDATE:
+                        pair.setLocalCandidate(localCnd.getBase());
+                        // if the new pair corresponds to another one with a higher priority, then remove it.
+                        if (tmpCheckList.contains(pair)) {
+                            logger.debug("Removing duplicate pair: {}", pair);
+                            continue;
+                        }
+                        break;
+                }
+                // if the local candidate is TCP and tcptype is not set, configure it
+                if (localCnd.getTransport() == Transport.TCP && localCnd.getTcpType() == null) {
+                    // if the remote is passive, set ours to active and anything else (passive or so) we go passive
+                    switch (pair.getRemoteCandidate().getTcpType()) {
+                        case PASSIVE:
+                            localCnd.setTcpType(CandidateTcpType.ACTIVE);
+                            break;
+                        default:
+                            localCnd.setTcpType(CandidateTcpType.PASSIVE);
+                    }
+                }
+                tmpCheckList.add(pair);
             }
-            tmpCheckList.add(pair);
         }
         // clear original
         checkList.clear();
@@ -445,7 +447,10 @@ public class IceMediaStream {
      * @param candidatePair the pair that we'd like to add to this streams.
      */
     protected void addToCheckList(CandidatePair candidatePair) {
-        checkList.offer(candidatePair);
+        // ensure valid transport match first before any addition
+        if (candidatePair.validTransport()) {
+            checkList.offer(candidatePair);
+        }
     }
 
     /**

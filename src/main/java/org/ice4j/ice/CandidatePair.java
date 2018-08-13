@@ -498,6 +498,15 @@ public class CandidatePair implements Comparable<CandidatePair> {
     }
 
     /**
+     * Returns whether or not the local and remote candidate bases match.
+     * 
+     * @return true for a matching transport and false otherwise
+     */
+    public boolean validTransport() {
+        return (localCandidate.getBase().getTransportAddress().getTransport().equals(remoteCandidate.getTransportAddress().getTransport()));
+    }
+    
+    /**
      * Gets the time in milliseconds of the latest consent freshness confirmation.
      *
      * @return the time in milliseconds of the latest consent freshness confirmation
