@@ -270,15 +270,11 @@ public class StunClientTransaction implements Runnable {
     }
 
     /**
-     * Sends the request and schedules the first retransmission for after
-     * {@link #originalWaitInterval} and thus starts the retransmission
+     * Sends the request and schedules the first retransmission for after {@link #originalWaitInterval} and thus starts the retransmission
      * algorithm.
      *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed
-     *
+     * @throws IOException if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      */
     void sendRequest() throws IllegalArgumentException, IOException {
         logger.debug("Sending STUN tid {} from {} to {}", transactionID, localAddress, requestDestination);
@@ -289,10 +285,8 @@ public class StunClientTransaction implements Runnable {
     /**
      * Simply calls the sendMessage method of the access manager.
      *
-     * @throws IOException  if an error occurs while sending message bytes
-     * through the network socket.
-     * @throws IllegalArgumentException if the apDescriptor references an
-     * access point that had not been installed,
+     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      */
     private void sendRequest0() throws IllegalArgumentException, IOException {
         if (cancelled) {

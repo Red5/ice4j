@@ -238,6 +238,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
      * @param hostCand the HostCandidate that we'd like to resolve.
      */
     private void startResolvingCandidate(HostCandidate hostCand) {
+        logger.info("startResolvingCandidate: {}", hostCand);
         // get the transport address for the incoming host candidate
         TransportAddress hostAddress = hostCand.getTransportAddress();
         // first of all, make sure that the STUN server and the Candidate address are of the same type and that they can communicate.

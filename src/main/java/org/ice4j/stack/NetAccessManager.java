@@ -131,7 +131,7 @@ public class NetAccessManager {
         Map<TransportAddress, Connector> connectorsForLocalAddress = connectorsMap.get(localAddress);
         if (connectorsForLocalAddress != null) {
             Connector connector = connectorsForLocalAddress.remove(remoteAddress);
-            if (connector != null && connector.isAlive()) {
+            if (connector != null) {
                 connector.stop();
             }
             if (connectorsForLocalAddress.isEmpty()) {
@@ -202,7 +202,6 @@ public class NetAccessManager {
      * @param stunMessage the message to send
      * @param srcAddr the access point to use to send the message
      * @param remoteAddr the destination of the message
-     *
      * @throws IllegalArgumentException if the apDescriptor references an access point that had not been installed
      * @throws IOException  if an error occurs while sending message bytes through the network socket
      */
@@ -232,14 +231,16 @@ public class NetAccessManager {
      * @param localAddress the access point to use to send the bytes
      * @param remoteAddress the destination of the message
      * @throws IllegalArgumentException if the descriptor references an access point that had not been installed
-     * @throws IOException  if an error occurs while sending message bytes through the network socket
+     * @throws IOException if an error occurs while sending message bytes through the network socket
      */
     void sendMessage(byte[] bytes, TransportAddress localAddress, TransportAddress remoteAddress) throws IllegalArgumentException, IOException {
         Connector ap = getConnector(localAddress, remoteAddress);
         if (ap == null) {
-            throw new IllegalArgumentException("No socket found for " + localAddress + "->" + remoteAddress);
+            throw new IllegalArgumentException("No connector for " + localAddress + "->" + remoteAddress);
         }
-        ap.sendMessage(bytes, remoteAddress);
+        if (ap != null) {
+            ap.sendMessage(bytes, remoteAddress);
+        }
     }
 
 }

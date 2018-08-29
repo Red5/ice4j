@@ -89,6 +89,7 @@ public class SimpleAddressDetector {
      * @throws BindException if we cannot bind the socket
      */
     public TransportAddress getMappingFor(IceSocketWrapper socket) throws IOException, BindException {
+        logger.debug("getMappingFor: {}", socket);
         TransportAddress localAddress = socket.getTransportAddress();
         // this should work for both udp and tcp
         stunStack.addSocket(socket, socket.getRemoteTransportAddress(), true); // do socket binding
@@ -117,7 +118,7 @@ public class SimpleAddressDetector {
             // handle exception they are not responsible for.
             logger.warn("Internal Error. We apparently constructed a faulty request", exc);
         } finally {
-            stunStack.removeSocket(socket.getId(), localAddress);
+            stunStack.removeSocket(socket.getId(), localAddress, serverAddress);
         }
         return null;
     }

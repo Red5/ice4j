@@ -1,9 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import java.net.Inet6Address;
@@ -143,7 +138,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     /**
      * Returns the type of this candidate which should be an instance of the {@link CandidateType} enumeration.
      *
-     * @return a CandidateType indicating the type of this Candidate.
+     * @return a CandidateType indicating the type of this Candidate
      */
     public CandidateType getType() {
         return candidateType;
@@ -152,7 +147,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     /**
      * Sets the type of this candidate which should be an instance of the {@link CandidateType} enumeration.
      *
-     * @param candidateType a CandidateType instance indicating the type of this Candidate.
+     * @param candidateType a CandidateType instance indicating the type of this Candidate
      */
     public void setCandidateType(CandidateType candidateType) {
         this.candidateType = candidateType;
@@ -164,7 +159,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * these are different then the foundation will be different. Two candidate pairs with the same foundation pairs are likely to have similar network
      * characteristics. Typically, candidates for RTP and RTCP streams will share the same foundation. Foundations are used in the frozen algorithm.
      *
-     * @return the foundation of this Candidate.
+     * @return the foundation of this Candidate
      */
     public String getFoundation() {
         return foundation;
@@ -175,7 +170,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * base IP address, protocol (UDP, TCP, etc.) and STUN or TURN server. If any of these are different then the foundation will be different. Two
      * candidate pairs with the same foundation pairs are likely to have similar network characteristics. Foundations are used in the frozen algorithm.
      *
-     * @param foundation the foundation of this Candidate.
+     * @param foundation the foundation of this Candidate
      */
     public void setFoundation(String foundation) {
         this.foundation = foundation;
@@ -186,7 +181,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * A host candidate is also said to have a base, equal to that candidate itself. Similarly, the base of a relayed candidate is that candidate
      * itself.
      *
-     * @return the base Candidate for this Candidate.
+     * @return the base Candidate for this Candidate
      */
     public T getBase() {
         return base;
@@ -197,7 +192,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * A host candidate is also said to have a base, equal to that candidate itself. Similarly, the base of a relayed candidate is that candidate
      * itself.
      *
-     * @param base the base Candidate of this Candidate.
+     * @param base the base Candidate of this Candidate
      */
     public void setBase(T base) {
         this.base = base;
@@ -207,7 +202,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * Returns the priority of this candidate. Priority is a unique priority number that MUST be a positive integer between 1 and (2**32 - 1). This
      * priority will be set and used by ICE algorithms to  determine the order of the connectivity checks and the relative preference for candidates.
      *
-     * @return a number between 1 and (2**32 - 1) indicating the priority of this candidate.
+     * @return a number between 1 and (2**32 - 1) indicating the priority of this candidate
      */
     public long getPriority() {
         return priority;
@@ -216,57 +211,51 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     /**
      * Returns the transport address that this candidate is representing.
      *
-     * @return the TransportAddress encapsulated by this Candidate.
+     * @return the TransportAddress encapsulated by this Candidate
      */
     public TransportAddress getTransportAddress() {
         return transportAddress;
     }
 
     /**
-     * Indicates whether some other Candidate is "equal to" this one. We consider candidates equal when they are redundant, i.e.
-     * <p>
-     * @param obj the reference object with which to compare.
-     * <p>
-     * @return <code>true</code> if this Candidate is equal to the obj argument; <code>false</code> otherwise.
-     * @throws java.lang.NullPointerException if obj is null;
+     * Indicates whether some other Candidate is "equal to" this one. We consider candidates equal when they are redundant.
+     * 
+     * @param obj the reference object with which to compare
+     * @return <code>true</code> if this Candidate is equal to the obj argument; <code>false</code> otherwise
+     * @throws java.lang.NullPointerException if obj is null
      */
     @Override
     public boolean equals(Object obj) throws NullPointerException {
-        if (obj == this)
+        if (obj == this) {
             return true;
-
-        if (!(obj instanceof Candidate))
+        }
+        if (!(obj instanceof Candidate)) {
             return false;
-
+        }
         Candidate<?> candidate = (Candidate<?>) obj;
-
-        //compare candidate addresses
-        if (!candidate.getTransportAddress().equals(getTransportAddress()))
+        // compare candidate addresses
+        if (!candidate.getTransportAddress().equals(getTransportAddress())) {
             return false;
-
-        //compare bases
+        }
+        // compare bases
         Candidate<?> base = getBase();
         Candidate<?> candidateBase = candidate.getBase();
         boolean baseEqualsCandidateBase;
-
         if (base == null) {
-            if (candidateBase != null)
+            if (candidateBase != null) {
                 return false;
-            else
+            } else {
                 baseEqualsCandidateBase = true;
+            }
         } else {
-            // If this and candidate are bases of themselves, their bases are
-            // considered equal.
+            // If this and candidate are bases of themselves, their bases are considered equal
             baseEqualsCandidateBase = (base == this && candidateBase == candidate) || base.equals(candidateBase);
         }
-
-        //compare other properties
+        // compare other properties
         return baseEqualsCandidateBase && getPriority() == candidate.getPriority() && getType() == candidate.getType() && getFoundation().equals(candidate.getFoundation());
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public int hashCode() {
         // Even if the following hashCode algorithm has drawbacks because of it simplicity, it is better than nothing because at least it allows
@@ -369,17 +358,16 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
             return MIN_LOCAL_PREFERENCE;
         }
         InetAddress addr = getTransportAddress().getAddress();
-        // the following tries to reuse precedence from RFC 3484 but that's a bit tricky
-        // prefer IPv6 to IPv4
+        // the following tries to reuse precedence from RFC 3484 but that's a bit tricky, prefer IPv6 to IPv4
         if (addr instanceof Inet6Address) {
-            //prefer link local addresses to global ones
+            // prefer link local addresses to global ones
             if (addr.isLinkLocalAddress()) {
                 return 30;
             } else {
                 return 40;
             }
         } else {
-            //IPv4
+            // IPv4
             return 10;
         }
     }

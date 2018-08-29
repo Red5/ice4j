@@ -311,11 +311,6 @@ public abstract class AbstractTcpListener {
     private void addSocketChannel(InetSocketAddress address) throws IOException {
         ServerSocketChannel channel = ServerSocketChannel.open();
         channel.bind(address, 0);
-        // XXX if we need to add a datagram filter
-        /*
-         * new DatagramPacketFilter() {
-         * @Override public boolean accept(DatagramPacket p) { return isFirstDatagramPacket(p); } };
-         */
         serverSocketChannels.add(channel);
     }
 
@@ -441,12 +436,12 @@ public abstract class AbstractTcpListener {
         /**
          * The buffer which stores the data so far read from the channel.
          */
-        ByteBuffer buffer = null;
+        ByteBuffer buffer;
 
         /**
          * Whether we had checked for initial "pseudo" SSL handshake.
          */
-        boolean checkedForSSLHandshake = false;
+        boolean checkedForSSLHandshake;
 
         /**
          * Buffer to use if we had read some data in advance and want to process it after next read, used when we are checking for "pseudo" SSL and
@@ -631,7 +626,10 @@ public abstract class AbstractTcpListener {
                         processFirstDatagram(bytesRead, channel, key);
                     }
                 }
-            } catch (IOException | IllegalStateException e) {
+            } catch (Exception e) {
+                // The ReadThread should continue running no matter what exceptions occur in the code above (we've observed exceptions
+                // due to failures to allocate resources) because otherwise the #newChannels list is never pruned leading to a leak of
+                // sockets
                 logger.warn("Failed to handle TCP socket {}", channel.channel.socket(), e);
                 key.cancel();
                 closeNoExceptions(channel.channel);

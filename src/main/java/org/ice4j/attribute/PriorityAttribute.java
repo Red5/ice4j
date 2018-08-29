@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import org.ice4j.*;
@@ -30,9 +14,7 @@ import org.ice4j.*;
  *
  * @author Namal Senarathne
  */
-public class PriorityAttribute
-    extends Attribute
-{
+public class PriorityAttribute extends Attribute {
     /**
      * The length of the Data contained in the Priority Attribute
      */
@@ -48,35 +30,32 @@ public class PriorityAttribute
     /**
      * Creates a priority attribute.
      */
-    public PriorityAttribute()
-    {
+    public PriorityAttribute() {
         super(Attribute.Type.PRIORITY);
     }
 
-     /**
-     * Reconstructs the priority value from the given byte array
-     * and stores it in the 'long' variable
-     *
-     * @param attributeValue a binary array containing this attribute's
-     *   field values and NOT containing the attribute header.
-     * @param offset the position where attribute values begin (most often
-     *   offset is equal to the index of the first byte after length)
-     * @param length the length of the binary array.
-     * @throws StunException if attrubteValue contains invalid data.
-     */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-            throws StunException
-    {
+    /**
+    * Reconstructs the priority value from the given byte array
+    * and stores it in the 'long' variable
+    *
+    * @param attributeValue a binary array containing this attribute's
+    *   field values and NOT containing the attribute header.
+    * @param offset the position where attribute values begin (most often
+    *   offset is equal to the index of the first byte after length)
+    * @param length the length of the binary array.
+    * @throws StunException if attrubteValue contains invalid data.
+    */
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
 
         // array used to hold the intermediate long values reconstructed from
         // the attributeValue array
         long[] values = new long[4];
 
         // Reading in the network byte order (Big-Endian)
-        values[0] = (long)((attributeValue[offset++] & 0xff) << 24);
-        values[1] = (long)((attributeValue[offset++] & 0xff) << 16);
-        values[2] = (long)((attributeValue[offset++] & 0xff) << 8);
-        values[3] = (long)(attributeValue[offset++] & 0xff);
+        values[0] = (long) ((attributeValue[offset++] & 0xff) << 24);
+        values[1] = (long) ((attributeValue[offset++] & 0xff) << 16);
+        values[2] = (long) ((attributeValue[offset++] & 0xff) << 8);
+        values[3] = (long) (attributeValue[offset++] & 0xff);
 
         // reconstructing the priority value
         this.priority = values[0] | values[1] | values[2] | values[3];
@@ -87,24 +66,23 @@ public class PriorityAttribute
      *
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte[] binValue = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
 
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         //Priority
-        binValue[4] = (byte)((priority & 0xFF000000L) >> 24);
-        binValue[5] = (byte)((priority & 0x00FF0000L) >> 16);
-        binValue[6] = (byte)((priority & 0x0000FF00L) >> 8);
-        binValue[7] = (byte)(priority & 0x000000FFL);
+        binValue[4] = (byte) ((priority & 0xFF000000L) >> 24);
+        binValue[5] = (byte) ((priority & 0x00FF0000L) >> 16);
+        binValue[6] = (byte) ((priority & 0x0000FF00L) >> 8);
+        binValue[7] = (byte) (priority & 0x000000FFL);
 
         return binValue;
     }
@@ -116,18 +94,15 @@ public class PriorityAttribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof PriorityAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof PriorityAttribute))
             return false;
 
         if (obj == this)
             return true;
 
         PriorityAttribute att = (PriorityAttribute) obj;
-        if (att.getAttributeType() != getAttributeType()
-            || att.getDataLength() != getDataLength()
-            || (priority != att.priority))
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength() || (priority != att.priority))
             return false;
 
         return true;
@@ -138,8 +113,7 @@ public class PriorityAttribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH_PRIORITY;
     }
 
@@ -148,8 +122,7 @@ public class PriorityAttribute
      *
      * @return long specifying the priority
      */
-    public long getPriority()
-    {
+    public long getPriority() {
         return priority;
     }
 
@@ -160,16 +133,16 @@ public class PriorityAttribute
      *
      * @throws IllegalArgumentException if indicated priority value is illegal.
      */
-    public void setPriority(long priority)
-        throws IllegalArgumentException
-    {
+    public void setPriority(long priority) throws IllegalArgumentException {
         /* Priority must be between 1 and (2^31 - 1) */
-        if(priority <= 0 || priority > 0x7FFFFFFFL)
-        {
-            throw new IllegalArgumentException("Priority must be " +
-                    "between 0 and (2**31 - 1)");
-        }
-        else
+        if (priority <= 0 || priority > 0x7FFFFFFFL) {
+            throw new IllegalArgumentException("Priority must be " + "between 0 and (2**31 - 1)");
+        } else
             this.priority = priority;
+    }
+
+    @Override
+    public String toString() {
+        return "PriorityAttribute [priority=" + priority + "]";
     }
 }

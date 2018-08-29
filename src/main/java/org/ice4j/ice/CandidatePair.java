@@ -291,7 +291,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns the priority of this pair.
      *
-     * @return the priority of this pair.
+     * @return the priority of this pair
      */
     public long getPriority() {
         return priority;
@@ -332,12 +332,12 @@ public class CandidatePair implements Comparable<CandidatePair> {
         //}
         //return equal;
         // XXX Don't change this to also depend on other pair properties because ConnectivityCheckClient counts on it only using the candidates for comparisons
-        return localCandidate.equals(thatPair.localCandidate) && remoteCandidate.equals(thatPair.remoteCandidate);
+        //return localCandidate.equals(thatPair.localCandidate) && remoteCandidate.equals(thatPair.remoteCandidate);
+        // use the short string, it should be good enough to check pair equality
+        return localCandidate.toShortString().equals(thatPair.localCandidate.toShortString()) && remoteCandidate.toShortString().equals(thatPair.remoteCandidate.toShortString());
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public int hashCode() {
         // Even if the following hashCode algorithm has drawbacks because of it simplicity, it is better than nothing because at least it allows
@@ -349,7 +349,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns a String representation of this CandidatePair.
      *
-     * @return a String representation of the object.
+     * @return a String representation of the object
      */
     @Override
     public String toString() {
@@ -359,7 +359,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns a short String representation of this CandidatePair.
      *
-     * @return a short String representation of the object.
+     * @return a short String representation of the object
      */
     public String toShortString() {
         return getLocalCandidate().toShortString() + " -> " + getRemoteCandidate().toShortString() + " (" + getParentComponent().toShortString() + ")";
@@ -373,13 +373,11 @@ public class CandidatePair implements Comparable<CandidatePair> {
          * Compares pair1 and pair2 for order. Returns a negative integer, zero, or a positive integer as pair1's
          * priority is greater than, equal to, or less than the one of the pair2, thus insuring that higher priority pairs will come first.
          *
-         * @param pair1 the first CandidatePair to be compared.
-         * @param pair2 the second CandidatePair to be compared.
-         *
+         * @param pair1 the first CandidatePair to be compared
+         * @param pair2 the second CandidatePair to be compared
          * @return  a negative integer, zero, or a positive integer as the first pair's priority priority is greater than, equal to, or less than
          * the one of the second pair.
-         *
-         * @throws ClassCastException if the specified object's type prevents it from being compared to this Object.
+         * @throws ClassCastException if the specified object's type prevents it from being compared to this Object
          */
         public int compare(CandidatePair pair1, CandidatePair pair2) {
             return pair1.compareTo(pair2);
@@ -408,22 +406,18 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns the Component that this pair belongs to.
      *
-     * @return the Component that this pair belongs to.
+     * @return the Component that this pair belongs to
      */
     public Component getParentComponent() {
         return getLocalCandidate().getParentComponent();
     }
 
     /**
-     * Returns the {@link TransactionID} used in the connectivity check
-     * associated with this {@link CandidatePair} when it's in the
-     * {@link CandidatePairState#IN_PROGRESS} or null if it's in
-     * any other state.
+     * Returns the {@link TransactionID} used in the connectivity check associated with this {@link CandidatePair} when it's in the
+     * {@link CandidatePairState#IN_PROGRESS} or null if it's in any other state.
      *
-     * @return the {@link TransactionID} used in the connectivity check
-     * associated with this {@link CandidatePair} when it's in the
-     * {@link CandidatePairState#IN_PROGRESS} or null if it's in
-     * any other state.
+     * @return the {@link TransactionID} used in the connectivity check associated with this {@link CandidatePair} when it's in the
+     * {@link CandidatePairState#IN_PROGRESS} or null if it's in any other state.
      */
     public TransactionID getConnectivityCheckTransaction() {
         return connCheckTranID;
@@ -439,7 +433,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns true if someone has previously raised this pair's useCandidateSent flag and false otherwise.
      *
-     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise.
+     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise
      */
     public boolean useCandidateSent() {
         return useCandidateSent;
@@ -455,7 +449,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns true if someone has previously raised this pair's useCandidate flag and false otherwise.
      *
-     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise.
+     * @return true if someone has previously raised this pair's useCandidate flag and false otherwise
      */
     public boolean useCandidateReceived() {
         return useCandidate;
@@ -474,7 +468,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * Returns the value of this pair's nominated flag. If a valid candidate pair has its nominated flag set, it means that it may be selected by ICE
      * for sending and receiving media.
      *
-     * @return true if this pair has already been nominated for selection and false otherwise.
+     * @return true if this pair has already been nominated for selection and false otherwise
      */
     public boolean isNominated() {
         return this.isNominated;
@@ -483,7 +477,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     /**
      * Returns true if this pair has been confirmed by a connectivity check response and false otherwise.
      *
-     * @return true if this pair has been confirmed by a connectivity check response and false otherwise.
+     * @return true if this pair has been confirmed by a connectivity check response and false otherwise
      */
     public boolean isValid() {
         return isValid;
@@ -505,7 +499,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
     public boolean validTransport() {
         return (localCandidate.getBase().getTransportAddress().getTransport().equals(remoteCandidate.getTransportAddress().getTransport()));
     }
-    
+
     /**
      * Gets the time in milliseconds of the latest consent freshness confirmation.
      *

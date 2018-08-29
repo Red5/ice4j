@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import java.util.*;
@@ -30,20 +14,17 @@ import org.ice4j.*;
  *
  * @author Emil Ivov
  */
-public class OptionalAttribute
-    extends Attribute
-{
+public class OptionalAttribute extends Attribute {
+
     byte[] attributeValue = null;
 
     int typeOverride = Integer.MIN_VALUE;
 
-    protected OptionalAttribute() 
-    {
+    protected OptionalAttribute() {
         super(Attribute.Type.UNKNOWN_OPTIONAL_ATTRIBUTE);
     }
 
-    protected OptionalAttribute(int attributeType)
-    {
+    protected OptionalAttribute(int attributeType) {
         super(attributeType);
         if (attributeType != this.attributeType.type) {
             typeOverride = attributeType;
@@ -60,12 +41,9 @@ public class OptionalAttribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-        throws StunException
-    {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
         this.attributeValue = new byte[length];
-        System.arraycopy(attributeValue, offset, this.attributeValue, 0,
-                length);
+        System.arraycopy(attributeValue, offset, this.attributeValue, 0, length);
     }
 
     /**
@@ -73,20 +51,18 @@ public class OptionalAttribute
      *
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte binValue[] = new byte[HEADER_LENGTH + attributeValue.length];
 
         //Type
         int type = typeOverride != Integer.MIN_VALUE ? typeOverride : getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
-        System.arraycopy(attributeValue, 0,
-                         binValue, HEADER_LENGTH, attributeValue.length);
+        System.arraycopy(attributeValue, 0, binValue, HEADER_LENGTH, attributeValue.length);
 
         return binValue;
     }
@@ -96,8 +72,7 @@ public class OptionalAttribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return attributeValue.length;
     }
 
@@ -106,8 +81,7 @@ public class OptionalAttribute
      *
      * @return a reference to this attribute's unparsed value.
      */
-    public byte[] getBody()
-    {
+    public byte[] getBody() {
         return attributeValue;
     }
 
@@ -118,8 +92,7 @@ public class OptionalAttribute
      * @param offset the position to start
      * @param length the length to copy
      */
-    public void setBody(byte[] body, int offset, int length)
-    {
+    public void setBody(byte[] body, int offset, int length) {
         this.attributeValue = new byte[length];
         System.arraycopy(body, offset, this.attributeValue, 0, length);
     }
@@ -131,14 +104,15 @@ public class OptionalAttribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if(! (obj instanceof OptionalAttribute) )
+    public boolean equals(Object obj) {
+        if (!(obj instanceof OptionalAttribute))
             return false;
 
-        return
-            (obj == this
-             || Arrays.equals(((OptionalAttribute)obj).
-                              attributeValue, attributeValue));
+        return (obj == this || Arrays.equals(((OptionalAttribute) obj).attributeValue, attributeValue));
+    }
+
+    @Override
+    public String toString() {
+        return "OptionalAttribute [attributeValue=" + Arrays.toString(attributeValue) + ", typeOverride=" + typeOverride + "]";
     }
 }

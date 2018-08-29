@@ -225,10 +225,9 @@ public class Component implements PropertyChangeListener {
     }
 
     /**
-     * Adds a remote Candidates to this media-stream
-     * Component.
+     * Adds a remote Candidates to this media-stream Component.
      *
-     * @param candidate the Candidate instance to add.
+     * @param candidate the Candidate instance to add
      */
     public void addRemoteCandidate(RemoteCandidate candidate) {
         logger.debug("Add remote candidate for {}: {}", toShortString(), candidate.toShortString());

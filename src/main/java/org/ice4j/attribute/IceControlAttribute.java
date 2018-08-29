@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import org.ice4j.*;
@@ -23,9 +7,7 @@ import org.ice4j.*;
  *
  * @author Emil Ivov
  */
-public abstract class IceControlAttribute
-    extends Attribute
-{
+public abstract class IceControlAttribute extends Attribute {
     /**
      * The length of the data contained in this attribute
      */
@@ -49,8 +31,7 @@ public abstract class IceControlAttribute
      * @param isControlling indicates the kind of attribute we are trying to
      * create
      */
-    IceControlAttribute(boolean isControlling)
-    {
+    IceControlAttribute(boolean isControlling) {
         super(isControlling ? Attribute.Type.ICE_CONTROLLING : Attribute.Type.ICE_CONTROLLED);
         this.isControlling = isControlling;
     }
@@ -67,21 +48,11 @@ public abstract class IceControlAttribute
      *
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-            throws StunException
-    {
-        // array used to hold the intermediate long values reconstructed from
-        // the attributeValue array
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        // array used to hold the intermediate long values reconstructed from the attributeValue array
 
         // Reading in the network byte order (Big-Endian)
-        tieBreaker = ((attributeValue[offset++] & 0xffL) << 56)
-                  | ((attributeValue[offset++] & 0xffL) << 48)
-                  | ((attributeValue[offset++] & 0xffL) << 40)
-                  | ((attributeValue[offset++] & 0xffL) << 32)
-                  | ((attributeValue[offset++] & 0xffL) << 24)
-                  | ((attributeValue[offset++] & 0xffL) << 16)
-                  | ((attributeValue[offset++] & 0xffL) <<  8)
-                  | (attributeValue[offset]  & 0xffL);
+        tieBreaker = ((attributeValue[offset++] & 0xffL) << 56) | ((attributeValue[offset++] & 0xffL) << 48) | ((attributeValue[offset++] & 0xffL) << 40) | ((attributeValue[offset++] & 0xffL) << 32) | ((attributeValue[offset++] & 0xffL) << 24) | ((attributeValue[offset++] & 0xffL) << 16) | ((attributeValue[offset++] & 0xffL) << 8) | (attributeValue[offset] & 0xffL);
     }
 
     /**
@@ -89,28 +60,27 @@ public abstract class IceControlAttribute
      *
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte[] binValue = new byte[HEADER_LENGTH + getDataLength()];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
 
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         //Tie-Breaker
-        binValue[4]  = (byte)((tieBreaker & 0xFF00000000000000L) >> 56);
-        binValue[5]  = (byte)((tieBreaker & 0x00FF000000000000L) >> 48);
-        binValue[6]  = (byte)((tieBreaker & 0x0000FF0000000000L) >> 40);
-        binValue[7]  = (byte)((tieBreaker & 0x000000FF00000000L) >> 32);
-        binValue[8]  = (byte)((tieBreaker & 0x00000000FF000000L) >> 24);
-        binValue[9]  = (byte)((tieBreaker & 0x0000000000FF0000L) >> 16);
-        binValue[10] = (byte)((tieBreaker & 0x000000000000FF00L) >> 8);
-        binValue[11] = (byte)( tieBreaker & 0x00000000000000FFL);
+        binValue[4] = (byte) ((tieBreaker & 0xFF00000000000000L) >> 56);
+        binValue[5] = (byte) ((tieBreaker & 0x00FF000000000000L) >> 48);
+        binValue[6] = (byte) ((tieBreaker & 0x0000FF0000000000L) >> 40);
+        binValue[7] = (byte) ((tieBreaker & 0x000000FF00000000L) >> 32);
+        binValue[8] = (byte) ((tieBreaker & 0x00000000FF000000L) >> 24);
+        binValue[9] = (byte) ((tieBreaker & 0x0000000000FF0000L) >> 16);
+        binValue[10] = (byte) ((tieBreaker & 0x000000000000FF00L) >> 8);
+        binValue[11] = (byte) (tieBreaker & 0x00000000000000FFL);
 
         return binValue;
     }
@@ -123,20 +93,15 @@ public abstract class IceControlAttribute
      *
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if(!(obj instanceof IceControlAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof IceControlAttribute))
             return false;
 
-        if(obj == this)
+        if (obj == this)
             return true;
 
-        IceControlAttribute iceControlAtt = (IceControlAttribute)obj;
-        if(iceControlAtt.getAttributeType() != getAttributeType()
-            || iceControlAtt.isControlling != isControlling
-            || iceControlAtt.getDataLength() != DATA_LENGTH_ICE_CONTROL
-            || getTieBreaker() != iceControlAtt.getTieBreaker())
-        {
+        IceControlAttribute iceControlAtt = (IceControlAttribute) obj;
+        if (iceControlAtt.getAttributeType() != getAttributeType() || iceControlAtt.isControlling != isControlling || iceControlAtt.getDataLength() != DATA_LENGTH_ICE_CONTROL || getTieBreaker() != iceControlAtt.getTieBreaker()) {
             return false;
         }
 
@@ -148,8 +113,7 @@ public abstract class IceControlAttribute
      *
      * @return    the data length of this attribute
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH_ICE_CONTROL;
     }
 
@@ -158,8 +122,7 @@ public abstract class IceControlAttribute
      *
      * @param tieBreaker the the tie-breaker value
      */
-    public void setTieBreaker(long tieBreaker)
-    {
+    public void setTieBreaker(long tieBreaker) {
         this.tieBreaker = tieBreaker;
     }
 
@@ -168,8 +131,12 @@ public abstract class IceControlAttribute
      *
      * @return the value of the tie-breaker.
      */
-    public long getTieBreaker()
-    {
+    public long getTieBreaker() {
         return tieBreaker;
+    }
+
+    @Override
+    public String toString() {
+        return "IceControlAttribute [tieBreaker=" + tieBreaker + ", isControlling=" + isControlling + "]";
     }
 }

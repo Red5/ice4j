@@ -6,7 +6,8 @@
  */
 package org.ice4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -235,6 +236,21 @@ public class StackProperties {
         return str;
     }
 
+    /**
+     * Return a default if the property doesnt exist.
+     * 
+     * @param propertyName
+     * @param defaultValue
+     * @return default value
+     */
+    public static String getStringOrDefault(String propertyName, String defaultValue) {
+        String result = getString(propertyName);
+        if (result == null) {
+            return defaultValue;
+        }
+        return result;
+    }
+    
     /**
      * Returns the String array of the specified property, or null in case
      * the returned property string array had zero length.

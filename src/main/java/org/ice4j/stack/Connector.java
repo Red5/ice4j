@@ -40,8 +40,9 @@ class Connector {
 
     /**
      * Creates a network access point.
-     * @param socket the socket that this access point is supposed to use for communication.
-     * @param remoteAddress the remote address of the socket of this {@link Connector} if it is a TCP socket, or null if it is UDP.
+     * 
+     * @param socket the socket that this access point is supposed to use for communication
+     * @param remoteAddress the remote address of the socket of this {@link Connector} if it is a TCP socket, or null if it is UDP
      */
     protected Connector(IceSocketWrapper socket, TransportAddress remoteAddress, NetAccessManager netAccessManager) {
         this.sock = socket;
@@ -74,9 +75,7 @@ class Connector {
     protected void stop() {
         if (alive.compareAndSet(true, false)) {
             netAccessManager.removeSocket(listenAddress, remoteAddress);
-            if (!sock.isClosed()) {
-                sock.close();
-            }
+            sock.close();
         }
     }
 

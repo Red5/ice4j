@@ -10,9 +10,11 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -134,7 +136,7 @@ public class Agent {
      * are not running. Once they start, we are able to determine whether the addresses in here are actually peer-reflexive or not, and schedule
      * the necessary triggered checks.
      */
-    private final List<CandidatePair> preDiscoveredPairsQueue = new LinkedList<>();
+    private final Set<CandidatePair> preDiscoveredPairsQueue = new HashSet<>();
 
     /**
      * The lock that we use while starting connectivity establishment.
@@ -607,7 +609,7 @@ public class Agent {
             stream.setMaxCheckListSize(maxPerStreamSize);
             stream.initCheckList();
         }
-        //init the states of the first media stream as per 5245
+        // init the states of the first media stream as per 5245
         if (streamCount > 0) {
             streams.get(0).getCheckList().computeInitialCheckListPairStates();
         }
@@ -1038,7 +1040,7 @@ public class Agent {
         }
         synchronized (startLock) {
             if (state.get() == IceProcessingState.WAITING) {
-                logger.debug("Receive STUN checks before our ICE has started");
+                logger.debug("Receive STUN checks before our ICE has started. Current size: {}", preDiscoveredPairsQueue.size());
                 // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
                 preDiscoveredPairsQueue.add(triggeredPair);
             } else if (state.get() != IceProcessingState.FAILED) {
@@ -1059,10 +1061,12 @@ public class Agent {
      * @param triggerPair the pair containing the local and remote candidate that we'd need to trigger a check for.
      */
     private void triggerCheck(CandidatePair triggerPair) {
-        //first check whether we already know about the remote address in case we've just discovered a peer-reflexive candidate.
+        logger.debug("triggerCheck: {}", triggerPair);
+        // first check whether we already know about the remote address in case we've just discovered a peer-reflexive candidate
         CandidatePair knownPair = findCandidatePair(triggerPair.getLocalCandidate().getTransportAddress(), triggerPair.getRemoteCandidate().getTransportAddress());
         IceMediaStream parentStream = triggerPair.getLocalCandidate().getParentComponent().getParentStream();
         if (knownPair != null) {
+            logger.debug("Triggered pair is known as {}", knownPair);
             boolean useCand = triggerPair.useCandidateReceived();
             //if the incoming request contained a USE-CANDIDATE attribute then make sure we don't lose this piece of info.
             if (useCand) {
@@ -1092,6 +1096,7 @@ public class Agent {
                 getStunStack().cancelTransaction(checkTransaction);
             }
         } else {
+            logger.debug("Triggered pair is not yet known");
             //it appears that we've just discovered a peer-reflexive address.
             // RFC 5245: If the pair is not already on the check list: The pair is inserted into the check list based on its priority
             // Its state is set to Waiting [and it] is enqueued into the triggered check queue.
@@ -1101,8 +1106,7 @@ public class Agent {
             parentStream.addToCheckList(triggerPair);
         }
         // RFC 5245: The agent MUST create a new connectivity check for that pair (representing a new STUN Binding request transaction) by
-        // enqueueing the pair in the triggered check queue.  The state of the pair is then changed to Waiting.
-        // Emil: This actually applies for all cases.
+        // queuing the pair in the triggered check queue.  The state of the pair is then changed to Waiting.
         /*
          * Lyubomir: The connectivity checks for a CheckList are started elsewhere as soon as and only if the CheckList changes from frozen to unfrozen. Since
          * CheckList#scheduleTriggeredCheck will change triggerPair to Waiting and will thus unfreeze its CheckList, make sure that the connectivity checks for the CheckList are

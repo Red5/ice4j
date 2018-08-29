@@ -1,24 +1,7 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import java.util.Arrays;
-
 
 /**
  * The USERNAME attribute is used for message integrity.
@@ -27,8 +10,7 @@ import java.util.Arrays;
  * @author Sebastien Vincent
  * @author Emil Ivov
  */
-public class UsernameAttribute extends Attribute
-{
+public class UsernameAttribute extends Attribute {
     //private static final Logger logger = Logger.getLogger(UsernameAttribute.class.getName());
 
     /**
@@ -39,8 +21,7 @@ public class UsernameAttribute extends Attribute
     /**
      * Constructor.
      */
-    UsernameAttribute()
-    {
+    UsernameAttribute() {
         super(Attribute.Type.USERNAME);
     }
 
@@ -55,8 +36,7 @@ public class UsernameAttribute extends Attribute
      * @param length the length of the binary array.
      */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-    {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) {
         //logger.info("decodeAttributeBody offset: " + (int) offset + " len: " + (int) length + " value: " + new String(attributeValue) + "\n" + javax.xml.bind.DatatypeConverter.printHexBinary(attributeValue) + "\n" + Arrays.toString(attributeValue));
         username = new byte[length];
         System.arraycopy(attributeValue, offset, username, 0, length);
@@ -68,20 +48,19 @@ public class UsernameAttribute extends Attribute
      *
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()
-                                   //add padding
-                                   + (4 - getDataLength() % 4) % 4];
+        //add padding
+                + (4 - getDataLength() % 4) % 4];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
 
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
 
         //username
         System.arraycopy(username, 0, binValue, 4, getDataLength());
@@ -94,9 +73,8 @@ public class UsernameAttribute extends Attribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
-        return (char)username.length;
+    public int getDataLength() {
+        return (char) username.length;
     }
 
     /**
@@ -105,8 +83,7 @@ public class UsernameAttribute extends Attribute
      *
      * @return the binary array containing the username.
      */
-    public byte[] getUsername()
-    {
+    public byte[] getUsername() {
         return (username == null) ? null : username.clone();
     }
 
@@ -116,10 +93,8 @@ public class UsernameAttribute extends Attribute
      *
      * @param username the binary array containing the username.
      */
-    public void setUsername(byte[] username)
-    {
-        if (username == null)
-        {
+    public void setUsername(byte[] username) {
+        if (username == null) {
             this.username = null;
             return;
         }
@@ -136,9 +111,8 @@ public class UsernameAttribute extends Attribute
      *
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof UsernameAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof UsernameAttribute))
             return false;
 
         if (obj == this)
@@ -146,9 +120,7 @@ public class UsernameAttribute extends Attribute
 
         UsernameAttribute att = (UsernameAttribute) obj;
         //logger.info("Equality - type: " + att.getAttributeType() + " != " + getAttributeType() + " length: " + att.getDataLength() + " !=  " + getDataLength() + " array equal: " + Arrays.equals(att.username, username));
-        if (att.getAttributeType() != getAttributeType()
-                || att.getDataLength() != getDataLength()
-                || !Arrays.equals(att.username, username))
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength() || !Arrays.equals(att.username, username))
             return false;
 
         return true;

@@ -32,21 +32,18 @@ import org.slf4j.LoggerFactory;
  * @author Boris Grozev
  */
 public class MappingCandidateHarvesters {
-    /**
-     * The {@link Logger} used by the {@link MappingCandidateHarvesters}
-     * class for logging output.
-     */
+
     private static final Logger logger = LoggerFactory.getLogger(MappingCandidateHarvesters.class);
 
+    public static final String NAT_HARVESTER_DEFAULT_TRANSPORT_PNAME = "org.ice4j.ice.harvest.NAT_HARVESTER_DEFAULT_TRANSPORT";
+
     /**
-     * The name of the property that specifies the local address, if any, for
-     * the pre-configured NAT harvester.
+     * The name of the property that specifies the local address, if any, for the pre-configured NAT harvester.
      */
     public static final String NAT_HARVESTER_LOCAL_ADDRESS_PNAME = "org.ice4j.ice.harvest.NAT_HARVESTER_LOCAL_ADDRESS";
 
     /**
-     * The name of the property that specifies the public address, if any, for
-     * the pre-configured NAT harvester.
+     * The name of the property that specifies the public address, if any, for the pre-configured NAT harvester.
      */
     public static final String NAT_HARVESTER_PUBLIC_ADDRESS_PNAME = "org.ice4j.ice.harvest.NAT_HARVESTER_PUBLIC_ADDRESS";
 
@@ -61,10 +58,8 @@ public class MappingCandidateHarvesters {
     public static final String FORCE_AWS_HARVESTER_PNAME = "org.ice4j.ice.harvest.FORCE_AWS_HARVESTER";
 
     /**
-     * The name of the property which contains the addresses of the STUN servers
-     * to use for the STUN mapping harvester. The property should contain a
-     * comma-separated list of addresses (pairs of IP address and port,
-     * separated by a colon). Example:
+     * The name of the property which contains the addresses of the STUN servers to use for the STUN mapping harvester. The property should contain a
+     * comma-separated list of addresses (pairs of IP address and port, separated by a colon). Example:
      * {@code stun1.example.com:12345,stun2.example.com:23456}
      */
     public static final String STUN_MAPPING_HARVESTER_ADDRESSES_PNAME = "org.ice4j.ice.harvest.STUN_MAPPING_HARVESTER_ADDRESSES";
@@ -72,7 +67,7 @@ public class MappingCandidateHarvesters {
     /**
      * Whether {@link #harvesters} has been initialized.
      */
-    private static boolean initialized = false;
+    private static boolean initialized;
 
     /**
      * The list of already configured harvesters.
@@ -80,13 +75,17 @@ public class MappingCandidateHarvesters {
     private static MappingCandidateHarvester[] harvesters;
 
     /**
-     * Whether the discovery of a public address via STUN has failed.
-     * It is considered failed if the configuration included at least one STUN
-     * server, but we failed to receive at least one valid response.
-     * Note that this defaults to false and is only raised after we are certain
+     * Whether the discovery of a public address via STUN has failed. It is considered failed if the configuration included at least one STUN
+     * server, but we failed to receive at least one valid response. Note that this defaults to false and is only raised after we are certain
      * we failed (i.e. after our STUN transactions timeout).
      */
-    public static boolean stunDiscoveryFailed = false;
+    public static boolean stunDiscoveryFailed;
+
+    /**
+     * Prevent instance creation.
+     */
+    private MappingCandidateHarvesters() {
+    }
 
     /**
      * @return the list of configured harvesters.
@@ -97,54 +96,52 @@ public class MappingCandidateHarvesters {
     }
 
     /**
-     * Initializes {@link #harvesters}.
-     * First it reads the configuration and instantiates harvesters accordingly,
-     * waiting for their initialization (which may include network communication
-     * and thus take a long time). Then it removes harvesters which failed to
+     * Initializes {@link #harvesters}. First it reads the configuration and instantiates harvesters accordingly, waiting for their
+     * initialization (which may include network communication and thus take a long time). Then it removes harvesters which failed to
      * initialize properly and remove any harvesters with duplicate addresses.
      *
      * Three types of mapping harvesters are supported: NAT (with pre-configured addresses), AWS and STUN.
      */
     public static synchronized void initialize() {
-        if (initialized) {
-            return;
+        if (!initialized) {
+            initialized = true;
+            long start = System.currentTimeMillis();
+            List<MappingCandidateHarvester> harvesterList = new LinkedList<>();
+            // Pre-configured NAT harvester
+            Transport transport = Transport.parse(StackProperties.getStringOrDefault(NAT_HARVESTER_DEFAULT_TRANSPORT_PNAME, "udp"));
+            String localAddressStr = StackProperties.getString(NAT_HARVESTER_LOCAL_ADDRESS_PNAME);
+            String publicAddressStr = StackProperties.getString(NAT_HARVESTER_PUBLIC_ADDRESS_PNAME);
+            if (localAddressStr != null && publicAddressStr != null) {
+                // the port number is unused, 9 is for "discard"
+                TransportAddress localAddress = new TransportAddress(localAddressStr, 9, transport);
+                TransportAddress publicAddress = new TransportAddress(publicAddressStr, 9, transport);
+                harvesterList.add(new MappingCandidateHarvester(publicAddress, localAddress));
+            }
+            // AWS harvester
+            boolean disableAwsHarvester = StackProperties.getBoolean(DISABLE_AWS_HARVESTER_PNAME, true);
+            boolean forceAwsHarvester = StackProperties.getBoolean(FORCE_AWS_HARVESTER_PNAME, false);
+            if (logger.isDebugEnabled()) {
+                logger.debug("AWS configuration: disable=" + disableAwsHarvester + "; force=" + forceAwsHarvester);
+            }
+            if (!disableAwsHarvester && (forceAwsHarvester || AwsCandidateHarvester.smellsLikeAnEC2())) {
+                harvesterList.add(new AwsCandidateHarvester());
+            }
+            // STUN harvesters
+            String stunServers = StackProperties.getString(STUN_MAPPING_HARVESTER_ADDRESSES_PNAME);
+            if (stunServers != null && !stunServers.isEmpty()) {
+                // Create STUN harvesters (and wait for all of their discovery to finish).
+                List<StunMappingCandidateHarvester> stunHarvesters = createStunHarvesters(stunServers.split(","));
+                // We have STUN servers configured, so flag the failure if none of them were able to discover an address.
+                stunDiscoveryFailed = stunHarvesters.isEmpty();
+                harvesterList.addAll(stunHarvesters);
+            }
+            harvesterList = prune(harvesterList);
+            harvesters = harvesterList.toArray(new MappingCandidateHarvester[harvesterList.size()]);
+            for (MappingCandidateHarvester harvester : harvesters) {
+                logger.info("Using {}", harvester);
+            }
+            logger.info("Initialized mapping harvesters (delay=" + (System.currentTimeMillis() - start) + "ms). " + " stunDiscoveryFailed=" + stunDiscoveryFailed);
         }
-        initialized = true;
-        long start = System.currentTimeMillis();
-        List<MappingCandidateHarvester> harvesterList = new LinkedList<>();
-        // Pre-configured NAT harvester.
-        String localAddressStr = StackProperties.getString(NAT_HARVESTER_LOCAL_ADDRESS_PNAME);
-        String publicAddressStr = StackProperties.getString(NAT_HARVESTER_PUBLIC_ADDRESS_PNAME);
-        if (localAddressStr != null && publicAddressStr != null) {
-            // the port number is unused, 9 is for "discard"
-            TransportAddress localAddress = new TransportAddress(localAddressStr, 9, Transport.UDP);
-            TransportAddress publicAddress = new TransportAddress(publicAddressStr, 9, Transport.UDP);
-            harvesterList.add(new MappingCandidateHarvester(publicAddress, localAddress));
-        }
-        // AWS harvester
-        boolean disableAwsHarvester = StackProperties.getBoolean(DISABLE_AWS_HARVESTER_PNAME, true);
-        boolean forceAwsHarvester = StackProperties.getBoolean(FORCE_AWS_HARVESTER_PNAME, false);
-        if (logger.isDebugEnabled()) {
-            logger.debug("AWS configuration: disable=" + disableAwsHarvester + "; force=" + forceAwsHarvester);
-        }
-        if (!disableAwsHarvester && (forceAwsHarvester || AwsCandidateHarvester.smellsLikeAnEC2())) {
-            harvesterList.add(new AwsCandidateHarvester());
-        }
-        // STUN harvesters
-        String stunServers = StackProperties.getString(STUN_MAPPING_HARVESTER_ADDRESSES_PNAME);
-        if (stunServers != null && !stunServers.isEmpty()) {
-            // Create STUN harvesters (and wait for all of their discovery to finish).
-            List<StunMappingCandidateHarvester> stunHarvesters = createStunHarvesters(stunServers.split(","));
-            // We have STUN servers configured, so flag the failure if none of them were able to discover an address.
-            stunDiscoveryFailed = stunHarvesters.isEmpty();
-            harvesterList.addAll(stunHarvesters);
-        }
-        harvesterList = prune(harvesterList);
-        harvesters = harvesterList.toArray(new MappingCandidateHarvester[harvesterList.size()]);
-        for (MappingCandidateHarvester harvester : harvesters) {
-            logger.info("Using {}", harvester);
-        }
-        logger.info("Initialized mapping harvesters (delay=" + (System.currentTimeMillis() - start) + "ms). " + " stunDiscoveryFailed=" + stunDiscoveryFailed);
     }
 
     /**
@@ -185,11 +182,10 @@ public class MappingCandidateHarvesters {
     }
 
     /**
-     * Creates STUN mapping harvesters for each of the given STUN servers, and
-     * waits for address discovery to finish for all of them.
-     * @param stunServers an array of STUN server addresses (ip_address:port
-     * pairs).
-     * @return  the list of those who were successful in discovering an address.
+     * Creates STUN mapping harvesters for each of the given STUN servers, and waits for address discovery to finish.
+     * 
+     * @param stunServers an array of STUN server addresses (ip_address:port pairs)
+     * @return  the list of those who were successful in discovering an address
      */
     private static List<StunMappingCandidateHarvester> createStunHarvesters(String[] stunServers) {
         List<StunMappingCandidateHarvester> stunHarvesters = new LinkedList<>();
@@ -201,26 +197,30 @@ public class MappingCandidateHarvesters {
         // Create a StunMappingCandidateHarvester for each local:remote address pair.
         List<InetAddress> localAddresses = HostCandidateHarvester.getAllAllowedAddresses();
         for (String stunServer : stunServers) {
-            String[] addressAndPort = stunServer.split(":");
-            if (addressAndPort.length < 2) {
+            String[] parts = stunServer.split("[:|/]");
+            if (parts.length < 2) {
                 logger.warn("Failed to parse STUN server address: {}", stunServer);
                 continue;
             }
             int port;
             try {
-                port = Integer.parseInt(addressAndPort[1]);
+                port = Integer.parseInt(parts[1]);
             } catch (NumberFormatException nfe) {
-                logger.warn("Invalid STUN server port: {}", addressAndPort[1]);
+                logger.warn("Invalid STUN server port: {}", parts[1]);
                 continue;
             }
-            TransportAddress remoteAddress = new TransportAddress(addressAndPort[0], port, Transport.UDP);
+            // use the transport given with the address, don't assume UDP, but do use as a fallback
+            Transport transport = Transport.UDP;
+            if (parts.length == 3) {
+                transport = Transport.parse(parts[2]);
+            }
+            TransportAddress remoteAddress = new TransportAddress(parts[0], port, transport);
             for (InetAddress localInetAddress : localAddresses) {
                 if (localInetAddress instanceof Inet6Address) {
-                    // This is disabled, because it is broken for an unknown
-                    // reason and it is not currently needed.
+                    // This is disabled, because it is broken for an unknown reason and it is not currently needed.
                     continue;
                 }
-                TransportAddress localAddress = new TransportAddress(localInetAddress, 0, Transport.UDP);
+                TransportAddress localAddress = new TransportAddress(localInetAddress, 0, transport);
                 final StunMappingCandidateHarvester stunHarvester = new StunMappingCandidateHarvester(localAddress, remoteAddress);
                 Callable<StunMappingCandidateHarvester> task = new Callable<StunMappingCandidateHarvester>() {
                     @Override
@@ -244,12 +244,12 @@ public class MappingCandidateHarvesters {
         for (Future<StunMappingCandidateHarvester> future : futures) {
             try {
                 StunMappingCandidateHarvester harvester = future.get();
-                // The STUN server replied successfully.
+                // The STUN server replied successfully
                 if (harvester.getMask() != null) {
                     stunHarvesters.add(harvester);
                 }
             } catch (ExecutionException ee) {
-                // The harvester failed for some reason, discard it.
+                // The harvester failed for some reason, discard it
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(ie);
@@ -258,9 +258,4 @@ public class MappingCandidateHarvesters {
         return stunHarvesters;
     }
 
-    /**
-     * Prevent instance creation.
-     */
-    private MappingCandidateHarvesters() {
-    }
 }
