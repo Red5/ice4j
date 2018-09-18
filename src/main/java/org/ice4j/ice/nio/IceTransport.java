@@ -37,8 +37,8 @@ public abstract class IceTransport {
 
     protected final static IceHandler iceHandler = new IceHandler();
 
-    // used for idle timeout checks, connection timeout is currently 3s
-    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
+    // used for idle timeout checks, connection timeout is currently 3s; to disable this its -1
+    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", -1);
 
     // used for binding and unbinding timeout, default 2s
     protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
@@ -67,7 +67,7 @@ public abstract class IceTransport {
 
     protected int sendBufferSize = StackProperties.getInt("SO_SNDBUF", BUFFER_SIZE_DEFAULT);
 
-    protected int ioThreads = StackProperties.getInt("NIO_WORKERS", 16);
+    protected int ioThreads = StackProperties.getInt("NIO_WORKERS", Runtime.getRuntime().availableProcessors() * 2);
 
     /**
      * Local / instance socket acceptor; depending upon the transport, this will be NioDatagramAcceptor for UDP or NioSocketAcceptor for TCP.

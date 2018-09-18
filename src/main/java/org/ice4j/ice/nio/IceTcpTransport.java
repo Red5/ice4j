@@ -32,7 +32,7 @@ public class IceTcpTransport extends IceTransport {
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
     private IceTcpTransport() {
-        logger.info("id: {} shared: {}", id, sharedAcceptor);
+        logger.info("id: {} shared: {} accept timeout: {}s idle timeout: {}s I/O threads: {}", id, sharedAcceptor, acceptorTimeout, timeout, ioThreads);
     }
 
     /**
@@ -112,8 +112,10 @@ public class IceTcpTransport extends IceTransport {
             sessionConf.setTcpNoDelay(true);
             sessionConf.setSendBufferSize(sendBufferSize);
             sessionConf.setReadBufferSize(receiveBufferSize);
-            // set an idle time of 30s
-            sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
+            // set an idle time in seconds or disable this via -1
+            if (timeout > 0) {
+                sessionConf.setIdleTime(IdleStatus.BOTH_IDLE, timeout);
+            }
             // QoS
             sessionConf.setTrafficClass(trafficClass);
             // close sessions when the acceptor is stopped
