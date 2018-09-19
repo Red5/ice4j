@@ -92,7 +92,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                             staleSessions.forEach(stale -> {
                                 if (destAddress.equals(stale.getRemoteAddress())) {
                                     if (logger.isTraceEnabled()) {
-                                        logger.trace("Stale session send: {} to: {}", buf, destAddress);
+                                        logger.trace("Sending to stale session: {}", destAddress);
                                     }
                                     stale.write(buf, destAddress);
                                     return;

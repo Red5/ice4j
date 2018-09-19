@@ -11,6 +11,7 @@ import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.core.session.IoSessionRecycler;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.ice4j.TransportAddress;
@@ -105,6 +106,26 @@ public class IceUdpTransport extends IceTransport {
                 public void sessionDestroyed(IoSession session) throws Exception {
                     //logger.debug("sessionDestroyed: {}", session);
                 }
+            });
+            // set the recycler
+            ((NioDatagramAcceptor) acceptor).setSessionRecycler(new IoSessionRecycler() {
+
+                @Override
+                public void put(IoSession session) {
+                    logger.debug("Adding session to recycler: {}", session);
+                }
+
+                @Override
+                public IoSession recycle(SocketAddress remoteAddress) {
+                    logger.debug("Recycle remote address: {}", remoteAddress);
+                    return null;
+                }
+
+                @Override
+                public void remove(IoSession session) {
+                    logger.debug("Removing session from recycler: {}", session);
+                }
+                
             });
             // configure the acceptor
             DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
