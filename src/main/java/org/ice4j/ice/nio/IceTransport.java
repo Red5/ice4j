@@ -208,11 +208,6 @@ public abstract class IceTransport {
                 logger.info("Disposed acceptor: {}", id);
             }
         }
-        /*
-         * for (Entry<String, IceTransport> entry : transports.entrySet()) { logger.debug("Stopping acceptor: {}", entry.getKey()); IoAcceptor acceptor =
-         * entry.getValue().getAcceptor(); if (acceptor != null) { synchronized (acceptor) { acceptor.unbind(); acceptor.dispose(true); logger.info("Disposed acceptor"); } } }
-         * transports.clear();
-         */
     }
 
     /**

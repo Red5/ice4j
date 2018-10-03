@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
@@ -73,6 +74,16 @@ public abstract class IceSocketWrapper {
      */
     protected int soTimeout;
 
+    /**
+     * Written STUN/TURN message counter.
+     */
+    protected long writtenStunMessages;
+
+    /**
+     * Written STUN/TURN byte counter.
+     */
+    protected long writtenStunBytes;    
+    
     /**
      * The message queue is where incoming messages are added that were not otherwise processed (ie. DTLS etc..).
      */
@@ -222,6 +233,45 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Updates the STUN/TURN written bytes / message counters.
+     * 
+     * @param bytesLength
+     * @param messageCount
+     */
+    public void updateWriteCounters(int bytesLength, int messageCount) {
+        writtenStunBytes += bytesLength;
+        writtenStunMessages += messageCount;
+    }
+
+    /**
+     * Returns the written byte count excluding STUN/TURN bytes.
+     * 
+     * @return byte count minus STUN/TURN bytes
+     */
+    public long getWrittenBytes() {
+        long written = 0L;
+        Optional<IoSession> opt = Optional.ofNullable(getSession());
+        if (opt.isPresent()) {
+            written = opt.get().getWrittenBytes() - writtenStunBytes;
+        }
+        return written;
+    }
+
+    /**
+     * Returns the written message count excluding STUN/TURN messages.
+     * 
+     * @return message count minus STUN/TURN messages
+     */
+    public long getWrittenMessages() {
+        long written = 0L;
+        Optional<IoSession> opt = Optional.ofNullable(getSession());
+        if (opt.isPresent()) {
+            written = opt.get().getWrittenMessages() - writtenStunMessages;
+        }
+        return written;
+    }
+    
+    /**
      * Returns the unique identifier for the associated acceptor.
      * 
      * @return UUID string for this instance or "disconnected" if not set on the session or not connected
@@ -279,7 +329,7 @@ public abstract class IceSocketWrapper {
         } else if (newSession.getId() != session.get().getId()) {
             // if there was an old session and its not a dummy or incoming one, close it
             IoSession oldSession = session.getAndSet(newSession);
-            logger.debug("Sessions didn't match, previous session: {}", oldSession);
+            logger.warn("Sessions didn't match, previous session: {}", oldSession);
             // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
             // set the newly added session as the active one

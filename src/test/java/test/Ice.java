@@ -73,7 +73,7 @@ public class Ice {
     private static final TransportAddress stun6;
 
     static {
-        stun4 = new TransportAddress("10.0.0.5", 3478, selectedTransport);
+        stun4 = new TransportAddress("stun2.l.google.com", 19302, selectedTransport);
         stun6 = new TransportAddress("stun6.jitsi.net", 3478, selectedTransport);
     }
 
@@ -93,7 +93,8 @@ public class Ice {
         startTime = System.currentTimeMillis();
         Agent localAgent = createAgent(9090, false);
         localAgent.setNominationStrategy(NominationStrategy.NOMINATE_HIGHEST_PRIO);
-        Agent remotePeer = createAgent(6060, false);
+        // the port has to be open on the firewall for this to work
+        Agent remotePeer = createAgent(50200, false);
         localAgent.addStateChangeListener(new IceProcessingListener());
         //let them fight ... fights forge character.
         localAgent.setControlling(true);

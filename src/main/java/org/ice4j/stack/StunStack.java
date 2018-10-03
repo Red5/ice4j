@@ -732,7 +732,7 @@ public class StunStack implements MessageEventHandler {
         if (logger.isTraceEnabled()) {
             logger.trace("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}\nRawMessage: {}\n{}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()), message.getMessageLength(), toHexString(message.getBytes()));
         }
-        if ((username == null) || (username.length() < 1) || (shortTermCredentialMechanism && !username.contains(":"))) {
+        if (username == null || username.length() < 1 || (shortTermCredentialMechanism && !username.contains(":"))) {
             logger.debug("Received a message with an improperly formatted username");
             return false;
         }
@@ -803,7 +803,7 @@ public class StunStack implements MessageEventHandler {
      */
     private boolean validateUsername(String username) {
         int colon = username.indexOf(":");
-        if ((username.length() < 1) || (colon < 1)) {
+        if (username.length() < 1 || colon < 1) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Received a message with an improperly formatted username");
             }

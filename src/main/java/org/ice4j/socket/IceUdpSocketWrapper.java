@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.WriteFuture;
@@ -23,6 +24,11 @@ import org.ice4j.stack.RawMessage;
  * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
+
+    /**
+     * Utilized during connect on a new send to prevent reentrant connect attempts
+     */
+    private AtomicBoolean connecting = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -51,13 +57,20 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
         if (acceptor != null) {
             try {
                 // if the ports not bound, bind it
+                logger.info("Transport is bound: {}", transport.isBound(transportAddress.getPort()));
                 if (!transport.isBound(transportAddress.getPort())) {
                     transport.addBinding(transportAddress);
                 }
-                // attempt to create a server session, if it fails the local address isn't bound
-                setSession(acceptor.newSession(destAddress, transportAddress));
-                // count down since we have a session
-                connectLatch.countDown();
+                // check for session
+                IoSession sess = getSession();
+                if (sess == null) {
+                    // attempt to create a server session, if it fails the local address isn't bound
+                    setSession(acceptor.newSession(destAddress, transportAddress));
+                    // count down since we have a session
+                    connectLatch.countDown();
+                } else {
+                    logger.info("Session {} already connected", sess.getId());
+                }
             } catch (Exception e) {
                 logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
             }
@@ -101,29 +114,27 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                         }
                     } else {
                         logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
-                        // if we're not bound, attempt to create a client session
-                        Thread retry = new Thread() {
-                            public void run() {
-                                newSession(destAddress);
-                            }
-                        };
-                        retry.setDaemon(true);
-                        retry.start();
-                        // join up in a max of 3s
-                        retry.join(3000L);
+                        // if we've not attempted to connect yet
+                        if (connecting.compareAndSet(false, true)) {
+                            // if we're not bound, attempt to create a client session
+                            newSession(destAddress);
+                            logger.debug("New session request completed");
+                        }
                         // wait up-to x milliseconds for a connection to be established
-                        if (connectLatch.await(500, TimeUnit.MILLISECONDS)) {
+                        if (connectLatch.await(3000, TimeUnit.MILLISECONDS)) {
                             // attempt to get a newly added session from connect process
                             sess = getSession();
                             if (sess != null) {
                                 writeFuture = sess.write(buf, destAddress);
                                 writeFuture.addListener(writeListener);
                             } else {
-                                logger.warn("Send failed due to session timeout");
+                                logger.warn("Send failed due to null session");
                             }
+                        } else {
+                            logger.warn("Send failed due to connection timeout");
                         }
                     }
-                } else {                    
+                } else {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Relayed send: {} to: {}", buf, destAddress);
                     }

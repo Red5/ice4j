@@ -101,7 +101,7 @@ class ConnectivityCheckClient implements ResponseCollector {
     public void startChecks() {
         List<IceMediaStream> streamsWithPendingConnectivityEstablishment = parentAgent.getStreamsWithPendingConnectivityEstablishment();
         if (streamsWithPendingConnectivityEstablishment.size() > 0) {
-            logger.info("Start connectivity checks. Local ufrag {}", parentAgent.getLocalUfrag());
+            logger.debug("Start connectivity checks. Local ufrag {}", parentAgent.getLocalUfrag());
             startChecks(streamsWithPendingConnectivityEstablishment.get(0).getCheckList());
         } else {
             logger.info("Not starting any checks, because there are no pending streams");
@@ -393,7 +393,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Received a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
+                logger.debug("Received a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
             }
         }
         // check if the resulting valid pair was already in our check lists.
@@ -416,7 +416,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         }
         if (!validPair.isValid()) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Pair validated: {} Local ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
+                logger.debug("Pair validated: {} Local ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
             }
             parentAgent.validatePair(validPair);
         }
@@ -452,7 +452,7 @@ class ConnectivityCheckClient implements ResponseCollector {
         }
         Attribute attr = request.getAttribute(Attribute.Type.USE_CANDIDATE);
         if (validPair.getParentComponent().getSelectedPair() == null) {
-            logger.info("IsControlling USE-CANDIDATE: {}. Local ufrag {}", parentAgent.isControlling(), (attr != null || checkedPair.useCandidateSent()), parentAgent.getLocalUfrag());
+            logger.debug("IsControlling USE-CANDIDATE: {}. Local ufrag {}", parentAgent.isControlling(), (attr != null || checkedPair.useCandidateSent()), parentAgent.getLocalUfrag());
         }
         //If the agent was a controlling agent, and it had included a USE-CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
