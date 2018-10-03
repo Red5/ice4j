@@ -167,12 +167,21 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void messageSent(IoSession session, Object message) throws Exception {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
-            //logger.trace("Sent: {}", String.valueOf(message));
-            byte[] output = ((IoBuffer) message).array();
-            if (IceDecoder.isDtls(output)) {
-                logger.trace("Sent - DTLS sequence number: {}", readUint48(output, 5));
+        if (message instanceof IoBuffer) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
+                //logger.trace("Sent: {}", String.valueOf(message));
+                byte[] output = ((IoBuffer) message).array();
+                if (IceDecoder.isDtls(output)) {
+                    logger.trace("Sent - DTLS sequence number: {}", readUint48(output, 5));
+                }
+            }
+            Optional<Object> socket = Optional.ofNullable(session.getAttribute(IceTransport.Ice.CONNECTION));
+            if (socket.isPresent()) {
+                // update total message/byte counters
+                ((IceSocketWrapper) socket.get()).updateWriteCounters(session.getWrittenBytes());
+            } else {
+                logger.info("No socket present in session {} for write counter update", session.getId());
             }
         }
     }

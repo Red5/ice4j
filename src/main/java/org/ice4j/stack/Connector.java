@@ -88,7 +88,7 @@ class Connector {
      */
     void sendMessage(byte[] message, TransportAddress address) throws IOException {
         // update stun/turn message/byte counters
-        sock.updateWriteCounters((message != null ? message.length : 0), 1);
+        sock.updateSTUNWriteCounters((message != null ? message.length : 0));
         // send the message
         sock.send(IoBuffer.wrap(message), address);
     }

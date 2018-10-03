@@ -8,7 +8,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
@@ -75,6 +74,16 @@ public abstract class IceSocketWrapper {
     protected int soTimeout;
 
     /**
+     * Written message counter.
+     */
+    protected long writtenMessages;
+
+    /**
+     * Written byte counter.
+     */
+    protected long writtenBytes;
+
+    /**
      * Written STUN/TURN message counter.
      */
     protected long writtenStunMessages;
@@ -82,8 +91,8 @@ public abstract class IceSocketWrapper {
     /**
      * Written STUN/TURN byte counter.
      */
-    protected long writtenStunBytes;    
-    
+    protected long writtenStunBytes;
+
     /**
      * The message queue is where incoming messages are added that were not otherwise processed (ie. DTLS etc..).
      */
@@ -233,14 +242,27 @@ public abstract class IceSocketWrapper {
     }
 
     /**
+     * Updates the written bytes / message counters.
+     * 
+     * @param bytesLength
+     */
+    public void updateWriteCounters(long bytesLength) {
+        // incoming length is the total from the IoSession
+        writtenBytes = bytesLength;
+        writtenMessages++;
+        logger.info("updateWriteCounters - writtenBytes: {} writtenMessages: {}", writtenBytes, writtenMessages);
+    }
+
+    /**
      * Updates the STUN/TURN written bytes / message counters.
      * 
      * @param bytesLength
-     * @param messageCount
      */
-    public void updateWriteCounters(int bytesLength, int messageCount) {
+    public void updateSTUNWriteCounters(int bytesLength) {
+        // incoming length is the message bytes length
         writtenStunBytes += bytesLength;
-        writtenStunMessages += messageCount;
+        writtenStunMessages++;
+        logger.info("updateSTUNWriteCounters - writtenBytes: {} writtenMessages: {}", writtenStunBytes, writtenStunMessages);
     }
 
     /**
@@ -250,9 +272,8 @@ public abstract class IceSocketWrapper {
      */
     public long getWrittenBytes() {
         long written = 0L;
-        Optional<IoSession> opt = Optional.ofNullable(getSession());
-        if (opt.isPresent()) {
-            written = opt.get().getWrittenBytes() - writtenStunBytes;
+        if (writtenBytes > 0) {
+            written = writtenBytes - writtenStunBytes;
         }
         return written;
     }
@@ -264,13 +285,12 @@ public abstract class IceSocketWrapper {
      */
     public long getWrittenMessages() {
         long written = 0L;
-        Optional<IoSession> opt = Optional.ofNullable(getSession());
-        if (opt.isPresent()) {
-            written = opt.get().getWrittenMessages() - writtenStunMessages;
+        if (writtenMessages > 0) {
+            written = writtenMessages - writtenStunMessages;
         }
         return written;
     }
-    
+
     /**
      * Returns the unique identifier for the associated acceptor.
      * 
