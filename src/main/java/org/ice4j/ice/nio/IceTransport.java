@@ -37,8 +37,8 @@ public abstract class IceTransport {
 
     protected final static IceHandler iceHandler = new IceHandler();
 
-    // used for idle timeout checks, connection timeout is currently 3s; to disable this its -1
-    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", -1);
+    // used for idle timeout checks, the connection timeout is currently 3s; to disable this its -1
+    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
 
     // used for binding and unbinding timeout, default 2s
     protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
