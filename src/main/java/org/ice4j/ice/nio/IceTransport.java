@@ -38,7 +38,7 @@ public abstract class IceTransport {
     protected final static IceHandler iceHandler = new IceHandler();
 
     // used for idle timeout checks, the connection timeout is currently 3s; to disable this its -1
-    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 30);
+    protected static int timeout = StackProperties.getInt("SO_TIMEOUT", 120);
 
     // used for binding and unbinding timeout, default 2s
     protected static long acceptorTimeout = StackProperties.getInt("ACCEPTOR_TIMEOUT", 2);
@@ -152,6 +152,8 @@ public abstract class IceTransport {
      * @return true if successful and false otherwise
      */
     public boolean removeBinding(SocketAddress addr) {
+        // remove map entry
+        iceHandler.remove(addr);
         if (acceptor != null) {
             try {
                 int port = ((InetSocketAddress) addr).getPort();

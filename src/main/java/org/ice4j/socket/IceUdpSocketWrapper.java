@@ -87,7 +87,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             throw new ClosedChannelException();
         } else {
             if (logger.isTraceEnabled()) {
-                logger.trace("send: {} to: {}", buf, destAddress);
+                logger.trace("send: {} bytes to: {}", buf.remaining(), destAddress);
             }
             // write future for ensuring write/send
             WriteFuture writeFuture = null;
@@ -96,6 +96,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 if (relayedCandidateConnection == null || IceDecoder.isTurnMethod(buf.array())) {
                     IoSession sess = getSession();
                     if (sess != null) {
+                        logger.debug("Send to {} {} equal? {}", destAddress, sess.getRemoteAddress(), destAddress.equals(sess.getRemoteAddress()));
                         // ensure that the destination matches the session remote
                         if (destAddress.equals(sess.getRemoteAddress())) {
                             writeFuture = sess.write(buf, destAddress);
@@ -107,6 +108,11 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                                     if (logger.isTraceEnabled()) {
                                         logger.trace("Sending to stale session: {}", destAddress);
                                     }
+                                    // if a write is done on a "stale" session, set it as active
+                                    setSession(stale);
+                                    // remove from stale
+                                    staleSessions.remove(stale);
+                                    // write to the stale session
                                     stale.write(buf, destAddress);
                                     return;
                                 }

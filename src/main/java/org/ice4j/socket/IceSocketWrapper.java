@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
@@ -27,6 +28,7 @@ import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.stack.RawMessage;
+import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +108,7 @@ public abstract class IceSocketWrapper {
         @Override
         public void operationComplete(ConnectFuture future) {
             if (future.isConnected()) {
+                logger.debug("Setting session from future");
                 setSession(future.getSession());
             } else {
                 if (remoteTransportAddress == null) {
@@ -200,45 +203,96 @@ public abstract class IceSocketWrapper {
      * Closes the connected session as well as the acceptor, if its non-shared.
      */
     public void close() {
+        close(getSession());
+    }
+
+    /**
+     * Closes the connected session as well as the acceptor, if its non-shared.
+     * 
+     * @param sess IoSession being closed
+     */
+    public void close(IoSession sess) {
         //logger.debug("Close: {}", this);
-        IoSession sess = getSession();
-        if (sess != null) {
+        // do full clean up, if its the active session
+        boolean doCleanup = false;
+        Optional<IoSession> opt = Optional.ofNullable(sess);
+        if (opt.isPresent()) {
             logger.debug("Close session: {}", sess.getId());
+            doCleanup = sess.equals(getSession());
             try {
                 // if the session isn't already closed or disconnected
                 if (!sess.isClosing()) {
                     CloseFuture future = sess.closeNow();
                     // wait until the connection is closed
                     future.awaitUninterruptibly();
-                    //logger.debug("CloseFuture done: {}", sess.getId());
+                    logger.debug("CloseFuture done: {}", sess.getId());
                     // now connection should be closed
                     if (!future.isClosed()) {
                         logger.info("CloseFuture not closed: {}", sess.getId());
                     }
                 }
-                session.set(NULL_SESSION);
-                closed = true;
             } catch (Throwable t) {
                 logger.warn("Fail on close", t);
-            } finally {
-                staleSessions.forEach(session -> {
-                    try {
-                        // if the session isn't already closed or disconnected
-                        if (!session.isClosing()) {
-                            session.closeNow();
-                        }
-                    } catch (Throwable t) {
-                        logger.warn("Fail on (stale session) close", t);
-                    }
-                });
             }
-        } else {
-            //logger.debug("Session null, closed: {}", closed);
-            closed = true;
         }
-        // clear out raw messages lingering around at close
-        rawMessageQueue.clear();
-        //logger.debug("Exit close: {} closed: {}", this, closed);
+        logger.debug("Close with cleanup: {}", doCleanup);
+        if (doCleanup) {
+            // prevent re-entrance to this close() from the IceHandler by removing conn attribute
+            staleSessions.forEach(session -> {
+                session.removeAttribute(IceTransport.Ice.CONNECTION);
+                try {
+                    // if the session isn't already closed or disconnected
+                    if (!session.isClosing()) {
+                        // close the session
+                        session.closeNow();
+                    }
+                } catch (Throwable t) {
+                    logger.warn("Fail on (stale session) close", t);
+                }
+            });
+            // clear session
+            session.set(NULL_SESSION);
+            // set closed flag
+            closed = true;
+            // clear out raw messages lingering around at close
+            rawMessageQueue.clear();
+            // get the transport / acceptor identifier
+            String id = (String) sess.getAttribute(IceTransport.Ice.UUID);
+            // determine transport type
+            Transport transportType = (sess.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
+            // ensure transport is correct using metadata if its set to TCP
+            if (transportType == Transport.TCP && sess.getTransportMetadata().isConnectionless()) {
+                transportType = Transport.UDP;
+            }
+            InetSocketAddress inetAddr = (InetSocketAddress) sess.getLocalAddress();
+            TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
+            // clean-up
+            if (sess.containsAttribute(IceTransport.Ice.STUN_STACK)) {
+                // get the stun stack
+                StunStack stunStack = (StunStack) sess.removeAttribute(IceTransport.Ice.STUN_STACK);
+                stunStack.removeSocket(id, addr, getRemoteTransportAddress());
+            }
+            // get transport by type
+            IceTransport transport = IceTransport.getInstance(transportType, id);
+            if (transport != null) {
+                if (IceTransport.isSharedAcceptor()) {
+                    // shared, so don't kill it, just remove binding
+                    transport.removeBinding(addr);
+                } else {
+                    // remove binding
+                    transport.removeBinding(addr);
+                    try {
+                        // not-shared, kill it
+                        transport.stop();
+                    } catch (Exception e) {
+                        logger.warn("Exception stopping transport", e);
+                    }
+                }
+            } else {
+                logger.debug("Transport for id: {} was not found", id);
+            }
+        }
+        logger.trace("Exit close: {} closed: {}", this, closed);
     }
 
     /**
@@ -250,7 +304,7 @@ public abstract class IceSocketWrapper {
         // incoming length is the total from the IoSession
         writtenBytes = bytesLength;
         writtenMessages++;
-        logger.info("updateWriteCounters - writtenBytes: {} writtenMessages: {}", writtenBytes, writtenMessages);
+        logger.debug("updateWriteCounters - writtenBytes: {} writtenMessages: {}", writtenBytes, writtenMessages);
     }
 
     /**
@@ -262,7 +316,7 @@ public abstract class IceSocketWrapper {
         // incoming length is the message bytes length
         writtenStunBytes += bytesLength;
         writtenStunMessages++;
-        logger.info("updateSTUNWriteCounters - writtenBytes: {} writtenMessages: {}", writtenStunBytes, writtenStunMessages);
+        logger.debug("updateSTUNWriteCounters - writtenBytes: {} writtenMessages: {}", writtenStunBytes, writtenStunMessages);
     }
 
     /**
@@ -352,14 +406,8 @@ public abstract class IceSocketWrapper {
             logger.warn("Sessions didn't match, previous session: {}", oldSession);
             // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-            // set the newly added session as the active one
-            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
-            // remove active session indicator from previous session
-            oldSession.removeAttribute(IceTransport.Ice.ACTIVE_SESSION);
             // if old session is UDP add to stale, if TCP, close it
             if (isUDP()) {
-                // set a flag to prevent the idle checker on old session from closing the socket wrapper
-                oldSession.setAttribute(IceTransport.Ice.CLOSE_ON_IDLE, Boolean.FALSE);
                 // add to stale for closing later
                 staleSessions.add(oldSession);
             } else {

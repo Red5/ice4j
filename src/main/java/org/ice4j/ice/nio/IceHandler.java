@@ -192,18 +192,13 @@ public class IceHandler extends IoHandlerAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
         }
-        // allow flagging a session from being closed on idle
-        boolean closeOnIdle = true;
-        if (session.containsAttribute(IceTransport.Ice.CLOSE_ON_IDLE)) {
-            closeOnIdle = Boolean.valueOf((boolean) session.getAttribute(IceTransport.Ice.CLOSE_ON_IDLE));
-        }
         // get the existing reference to an ice socket
         final IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
-        // close the idle socket
-        if (iceSocket != null && closeOnIdle) {
-            iceSocket.close();
+        if (iceSocket != null) {
+            // let the socket know about the close
+            iceSocket.close(session);
         } else {
-            logger.debug("Skipping close on idle session: {}", session);
+            session.closeNow();
         }
     }
 
@@ -211,71 +206,13 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
-        // shutdown and clear all the associated ice features only if the session is the "ACTIVE" one
-        if (session.containsAttribute(IceTransport.Ice.ACTIVE_SESSION)) {
-            // determine transport type
-            Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
-            // ensure transport is correct using metadata if its set to TCP
-            if (transportType == Transport.TCP && session.getTransportMetadata().isConnectionless()) {
-                transportType = Transport.UDP;
-            }
-            InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
-            TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-            // clean-up
-            IceSocketWrapper iceSocket = null;
-            if (session.containsAttribute(IceTransport.Ice.CONNECTION)) {
-                iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
-            }
-            if (session.containsAttribute(IceTransport.Ice.STUN_STACK)) {
-                // get the transport / acceptor id
-                String id = (String) session.getAttribute(IceTransport.Ice.UUID);
-                // get the stun stack
-                StunStack stunStack = (StunStack) session.removeAttribute(IceTransport.Ice.STUN_STACK);
-                if (iceSocket != null) {
-                    stunStack.removeSocket(id, addr, iceSocket.getRemoteTransportAddress());
-                } else {
-                    inetAddr = (InetSocketAddress) session.getRemoteAddress();
-                    TransportAddress remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-                    stunStack.removeSocket(id, addr, remoteAddr);
-                }
-            }
-            // remove any map entries
-            stunStacks.remove(addr);
-            // determine if our ice socket was removed by the transport address
-            int count = iceSockets.size();
-            iceSockets.remove(addr);
-            // clear the socket props
-            if (iceSocket != null) {
-                iceSocket.setSession(IceSocketWrapper.NULL_SESSION);
-                // this is quick and dirty for possibly skipping looping through the collection
-                if (iceSockets.size() >= count) {
-                    // removing by key doesnt seem to work correction, probably due to missing transport on SocketAddress instances
-                    for (Entry<TransportAddress, IceSocketWrapper> ice : iceSockets.entrySet()) {
-                        if (iceSocket.equals(ice.getValue())) {
-                            logger.trace("Found matching ice socket by value");
-                            iceSockets.remove(ice.getKey());
-                            break;
-                        }
-                    }
-                }
-            }
-            // get the transport / acceptor identifier
-            String id = (String) session.getAttribute(IceTransport.Ice.UUID);
-            // get transport by type
-            IceTransport transport = IceTransport.getInstance(transportType, id);
-            if (transport != null) {
-                if (IceTransport.isSharedAcceptor()) {
-                    // shared, so don't kill it, just remove binding
-                    transport.removeBinding(addr);
-                } else {
-                    // remove binding
-                    transport.removeBinding(addr);
-                    // not-shared, kill it
-                    transport.stop();
-                }
-            } else {
-                logger.debug("Transport for id: {} was not found", id);
-            }
+        // get the existing reference to an ice socket
+        final IceSocketWrapper iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+        // close the idle socket only if the session is the current session in-use
+        if (iceSocket != null) {
+            iceSocket.close(session);
+        } else {
+            logger.debug("No socket in session at close: {}", session);
         }
         super.sessionClosed(session);
     }
@@ -309,8 +246,13 @@ public class IceHandler extends IoHandlerAdapter {
             iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
         }
         if (iceSocket != null) {
-            iceSocket.close();
+            iceSocket.close(session);
         }
+    }
+
+    public void remove(SocketAddress addr) {
+        stunStacks.remove(addr);
+        iceSockets.remove(addr);
     }
 
     /* From BC TlsUtils for debugging */
