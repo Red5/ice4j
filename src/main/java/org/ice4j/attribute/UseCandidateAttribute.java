@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import org.ice4j.*;
@@ -24,12 +8,9 @@ import org.ice4j.*;
  * This attribute is an extension to the original STUN protocol
  * This is used only during an ICE implementation
  *
- * This attribute serves as only a flag, it does not have any data
- * so the data length is zero
+ * This attribute serves as only a flag, it does not have any data so the data length is zero
  */
-public class UseCandidateAttribute
-    extends Attribute
-{
+public class UseCandidateAttribute extends Attribute {
     /**
      * Data length.
      */
@@ -38,8 +19,7 @@ public class UseCandidateAttribute
     /**
      * Constructor.
      */
-    protected UseCandidateAttribute()
-    {
+    protected UseCandidateAttribute() {
         super(Attribute.Type.USE_CANDIDATE);
     }
 
@@ -53,9 +33,7 @@ public class UseCandidateAttribute
      * @param length the length of the binary array.
      * @throws StunException if attrubteValue contains invalid data.
      */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-            throws StunException
-    {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
         // Do nothing, empty attribute body
     }
 
@@ -64,19 +42,15 @@ public class UseCandidateAttribute
      *
      * @return a binary representation of this attribute.
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         byte[] binValue = new byte[HEADER_LENGTH + DATA_LENGTH_USE_CANDIDATE];
-
         // Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
-
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         // Length
-        binValue[2] = (byte)(DATA_LENGTH_USE_CANDIDATE >> 8);
-        binValue[3] = (byte)(DATA_LENGTH_USE_CANDIDATE & 0x00FF);
-
+        binValue[2] = (byte) (DATA_LENGTH_USE_CANDIDATE >> 8);
+        binValue[3] = (byte) (DATA_LENGTH_USE_CANDIDATE & 0x00FF);
         return binValue;
     }
 
@@ -87,17 +61,15 @@ public class UseCandidateAttribute
      * @param obj the object to compare this attribute with.
      * @return true if the attributes are equal and false otherwise.
      */
-    public boolean equals(Object obj)
-    {
-        if(!(obj instanceof UseCandidateAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof UseCandidateAttribute))
             return false;
 
-        if(obj == this)
+        if (obj == this)
             return true;
 
-        UseCandidateAttribute useCandidateAtt = (UseCandidateAttribute)obj;
-        if(useCandidateAtt.getAttributeType() != getAttributeType()
-            || useCandidateAtt.getDataLength() != getDataLength())
+        UseCandidateAttribute useCandidateAtt = (UseCandidateAttribute) obj;
+        if (useCandidateAtt.getAttributeType() != getAttributeType() || useCandidateAtt.getDataLength() != getDataLength())
             return false;
 
         return true;
@@ -108,8 +80,7 @@ public class UseCandidateAttribute
      *
      * @return the length of this attribute's value.
      */
-    public int getDataLength()
-    {
+    public int getDataLength() {
         return DATA_LENGTH_USE_CANDIDATE;
     }
 

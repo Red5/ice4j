@@ -393,7 +393,7 @@ class ConnectivityCheckClient implements ResponseCollector {
             // However, the peer reflexive candidate is not paired with other remote candidates. This is not necessary; a valid pair will be generated from it momentarily
             validLocalCandidate = peerReflexiveCandidate;
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.debug("Received a peer-reflexive candidate: {} Local ufrag {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
+                logger.debug("Received a peer-reflexive candidate: {} Local ufrag: {}", peerReflexiveCandidate.getTransportAddress(), parentAgent.getLocalUfrag());
             }
         }
         // check if the resulting valid pair was already in our check lists.
@@ -410,13 +410,13 @@ class ConnectivityCheckClient implements ResponseCollector {
             //The agent sets the state of the pair that *generated* the check to Succeeded.  Note that, the pair which *generated* the check may be
             //different than the valid pair constructed above
             if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Pair succeeded: {} Local ufrag {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
+                logger.info("Pair succeeded: {} Local ufrag: {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
             }
             checkedPair.setStateSucceeded();
         }
         if (!validPair.isValid()) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
-                logger.debug("Pair validated: {} Local ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
+                logger.debug("Pair validated: {} Local ufrag: {}", validPair.toShortString(), parentAgent.getLocalUfrag());
             }
             parentAgent.validatePair(validPair);
         }
@@ -452,13 +452,13 @@ class ConnectivityCheckClient implements ResponseCollector {
         }
         Attribute attr = request.getAttribute(Attribute.Type.USE_CANDIDATE);
         if (validPair.getParentComponent().getSelectedPair() == null) {
-            logger.debug("IsControlling USE-CANDIDATE: {}. Local ufrag {}", parentAgent.isControlling(), (attr != null || checkedPair.useCandidateSent()), parentAgent.getLocalUfrag());
+            logger.debug("IsControlling: {} USE-CANDIDATE: {} Local ufrag: {}", parentAgent.isControlling(), (attr != null || checkedPair.useCandidateSent()), parentAgent.getLocalUfrag());
         }
         //If the agent was a controlling agent, and it had included a USE-CANDIDATE attribute in the Binding request, the valid pair generated
         //from that check has its nominated flag set to true.
         if (parentAgent.isControlling() && attr != null) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Nomination confirmed for pair: {}. Loal ufrag {}", validPair.toShortString(), parentAgent.getLocalUfrag());
+                logger.info("Nomination confirmed for pair: {} Local ufrag: {}", validPair.toShortString(), parentAgent.getLocalUfrag());
                 parentAgent.nominationConfirmed(validPair);
             } else {
                 logger.debug("Keep alive for pair: {}", validPair.toShortString());

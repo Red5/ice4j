@@ -144,7 +144,7 @@ public class DefaultNominator implements PropertyChangeListener {
      * The {@link NominationStrategy} that this nominator should use when deciding whether or not a valid {@link CandidatePair} is suitable for
      * nomination.
      *
-     * @param strategy the NominationStrategy we should be using.
+     * @param strategy the NominationStrategy we should be using
      */
     public void setStrategy(NominationStrategy strategy) {
         this.strategy = strategy;

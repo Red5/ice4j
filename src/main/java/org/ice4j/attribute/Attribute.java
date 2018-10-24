@@ -1,20 +1,4 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import org.ice4j.*;
@@ -75,8 +59,7 @@ import org.ice4j.*;
  * @author Namal Senarathne
  * @author Aakash Garg
  */
-public abstract class Attribute
-{
+public abstract class Attribute {
 
     public enum Type {
         /* STUN attributes */
@@ -131,12 +114,9 @@ public abstract class Attribute
             return type;
         }
 
-        public static Type valueOf(int type)
-        {
-            for (Type t : values())
-            {
-                if (t.type == type)
-                {
+        public static Type valueOf(int type) {
+            for (Type t : values()) {
+                if (t.type == type) {
                     return t;
                 }
             }
@@ -167,8 +147,7 @@ public abstract class Attribute
      *
      * @param attributeType the type of the attribute.
      */
-    protected Attribute(int attributeType)
-    {
+    protected Attribute(int attributeType) {
         setAttributeType(attributeType);
     }
 
@@ -177,8 +156,7 @@ public abstract class Attribute
      *
      * @param attributeType the type of the attribute.
      */
-    protected Attribute(Type attributeType)
-    {
+    protected Attribute(Type attributeType) {
         this.attributeType = attributeType;
     }
 
@@ -196,8 +174,7 @@ public abstract class Attribute
      *
      * @return this attribute's name.
      */
-    final public String getName()
-    {
+    final public String getName() {
         return attributeType.name();
     }
 
@@ -206,8 +183,7 @@ public abstract class Attribute
      *
      * @return the type of this attribute.
      */
-    public Type getAttributeType()
-    {
+    public Type getAttributeType() {
         return attributeType;
     }
 
@@ -216,8 +192,7 @@ public abstract class Attribute
      *
      * @param type the new type of this attribute
      */
-    protected void setAttributeType(int type)
-    {
+    protected void setAttributeType(int type) {
         this.attributeType = Type.valueOf(type);
     }
 
@@ -226,20 +201,18 @@ public abstract class Attribute
      *
      * @param type the new type of this attribute
      */
-    protected void setAttributeType(Type type)
-    {
+    protected void setAttributeType(Type type) {
         this.attributeType = type;
     }
 
-   /**
-    * Compares two STUN Attributes. Two attributes are considered equal when
-    * they have the same type length and value.
-    *
-    * @param obj the object to compare this attribute with.
-    *
-    * @return true if the attributes are equal and false otherwise.
-    */
-
+    /**
+     * Compares two STUN Attributes. Two attributes are considered equal when
+     * they have the same type length and value.
+     *
+     * @param obj the object to compare this attribute with.
+     *
+     * @return true if the attributes are equal and false otherwise.
+     */
     @Override
     public abstract boolean equals(Object obj);
 
@@ -258,8 +231,7 @@ public abstract class Attribute
      * @param index the original location of this attribute in the datagram
      * we got off the wire
      */
-    public void setLocationInMessage(int index)
-    {
+    public void setLocationInMessage(int index) {
         this.locationInMessage = index;
     }
 
@@ -271,8 +243,7 @@ public abstract class Attribute
      * @return the original location of this attribute in the datagram
      * we got off the wire or -1 if this is not an incoming {@link Attribute}
      */
-    public int getLocationInMessage()
-    {
+    public int getLocationInMessage() {
         return this.locationInMessage;
     }
 
@@ -287,8 +258,6 @@ public abstract class Attribute
      *
      * @throws StunException if attrubteValue contains invalid data.
      */
-    abstract void decodeAttributeBody(byte[] attributeValue,
-                                      int   offset,
-                                      int   length)
-        throws StunException;
+    abstract void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException;
+
 }

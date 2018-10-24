@@ -116,20 +116,20 @@ public class IceUdpTransport extends IceTransport {
                 
                 @Override
                 public void put(IoSession session) {
-                    logger.debug("Adding session to recycler: {}", session);
+                    logger.trace("Adding session to recycler: {}", session);
                     sessions.put(session.getRemoteAddress(), session);
                 }
 
                 @Override
                 public IoSession recycle(SocketAddress remoteAddress) {
-                    logger.debug("Recycle remote address: {}", remoteAddress);
+                    logger.trace("Recycle remote address: {}", remoteAddress);
                     // this is expected to return an existing session for the remote address                    
                     return sessions.get(remoteAddress);
                 }
 
                 @Override
                 public void remove(IoSession session) {
-                    logger.debug("Removing session from recycler: {}", session);
+                    logger.trace("Removing session from recycler: {}", session);
                     sessions.remove(session.getRemoteAddress());
                 }
                 

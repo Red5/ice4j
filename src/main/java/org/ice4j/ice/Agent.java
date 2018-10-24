@@ -126,7 +126,7 @@ public class Agent {
     private final DefaultNominator nominator;
 
     /**
-     * The value of Ta as specified by the application or -1 if non was specified and we should calculate one ourselves.
+     * The value of Ta as specified by the application or -1 if none was specified and we should calculate one ourself.
      */
     private long taValue = -1;
 

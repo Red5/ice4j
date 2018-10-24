@@ -353,7 +353,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      */
     @Override
     public String toString() {
-        return "CandidatePair (State=" + getState() + " Priority=" + getPriority() + "):\n\tLocalCandidate=" + getLocalCandidate() + "\n\tRemoteCandidate=" + getRemoteCandidate();
+        return "CandidatePair (State=" + getState() + " Priority=" + getPriority() + " UseCand=" + useCandidateReceived() + "):\n\tLocalCandidate=" + getLocalCandidate() + "\n\tRemoteCandidate=" + getRemoteCandidate();
     }
 
     /**

@@ -105,7 +105,8 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         // Learn the peer reflexive candidate, even if we are going to send a role conflict error. This allows us to learn faster, and compensates
         // for a buggy peer that doesn't switch roles when it gets a role conflict error.
         long priority = extractPriority(request);
-        boolean useCandidate = (request.getAttribute(Attribute.Type.USE_CANDIDATE) != null);
+        // if we're not controlling and use candidate is false, set it anyway to work around an Edge bug
+        boolean useCandidate = (request.getAttribute(Attribute.Type.USE_CANDIDATE) != null) || !parentAgent.isControlling();
         if (logger.isDebugEnabled()) {
             logger.debug("useCandidate: {}", useCandidate);
         }
@@ -116,7 +117,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         if (logger.isTraceEnabled()) {
             logger.trace("localUfrag: {} remoteUfrag: {}", localUFrag, remoteUfrag);
         }
-        //tell our address handler we saw a new remote address;
+        // tell our address handler we saw a new remote address
         parentAgent.incomingCheckReceived(evt.getRemoteAddress(), evt.getLocalAddress(), priority, remoteUfrag, localUFrag, useCandidate);
         boolean controlling = (parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLING) != null);
         boolean controlled = (!parentAgent.isControlling() && request.getAttribute(Attribute.Type.ICE_CONTROLLED) != null);

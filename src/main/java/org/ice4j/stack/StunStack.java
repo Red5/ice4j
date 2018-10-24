@@ -523,7 +523,12 @@ public class StunStack implements MessageEventHandler {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Username: {} length: {} data length: {}", ua.getUsername(), ua.getUsername().length, ua.getDataLength());
                 }
-                if (ua.getUsername().length != ua.getDataLength()) {
+                byte[] username = ua.getUsername();
+                if (username[username.length - 1] == 0) {
+                    logger.warn("Invalid username (null terminated), rejecting request");
+                    return;
+                }
+                if (username.length != ua.getDataLength()) {
                     logger.warn("Invalid username size, rejecting request");
                     return;
                 }
@@ -539,7 +544,7 @@ public class StunStack implements MessageEventHandler {
                 logger.trace("Found an existing transaction");
                 try {
                     sTran.retransmitResponse();
-                    logger.trace("Response retransmitted");
+                    logger.debug("Response retransmitted");
                 } catch (Exception ex) {
                     //we couldn't really do anything here .. apart from logging
                     logger.warn("Failed to retransmit a stun response", ex);

@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ice4j.Transport;
@@ -73,7 +73,7 @@ public class IceMediaStream {
      * An ordered set of candidate pairs for a media stream that have been validated by a successful STUN transaction. This list is empty at the
      * start of ICE processing, and fills as checks are performed, resulting in valid candidate pairs.
      */
-    private final TreeSet<CandidatePair> validList = new TreeSet<>();
+    private final ConcurrentSkipListSet<CandidatePair> validList = new ConcurrentSkipListSet<>();
 
     /**
      * The id that was last assigned to a component. The next id that we give to a component would be lastComponendID + 1;
@@ -459,10 +459,8 @@ public class IceMediaStream {
      * @param pair the {@link CandidatePair} to add to our valid list.
      */
     protected void addToValidList(CandidatePair pair) {
-        synchronized (validList) {
-            if (!validList.contains(pair)) {
-                validList.add(pair);
-            }
+        if (!validList.contains(pair)) {
+            validList.add(pair);
         }
         pair.validate();
     }
@@ -474,11 +472,9 @@ public class IceMediaStream {
      * @return true if this stream's validList contains a pair with the specified foundation and false otherwise.
      */
     protected boolean validListContainsFoundation(String foundation) {
-        synchronized (validList) {
-            for (CandidatePair pair : validList) {
-                if (pair.getFoundation().equals(foundation)) {
-                    return true;
-                }
+        for (CandidatePair pair : validList) {
+            if (pair.getFoundation().equals(foundation)) {
+                return true;
             }
         }
         return false;
@@ -529,11 +525,9 @@ public class IceMediaStream {
      */
     protected boolean allComponentsAreNominated() {
         List<Component> components = getComponents();
-        synchronized (validList) {
-            for (CandidatePair pair : validList) {
-                if (pair.isNominated()) {
-                    components.remove(pair.getParentComponent());
-                }
+        for (CandidatePair pair : validList) {
+            if (pair.isNominated()) {
+                components.remove(pair.getParentComponent());
             }
         }
         return components.isEmpty();
@@ -563,11 +557,9 @@ public class IceMediaStream {
      * @return a valid {@link CandidatePair} for the specified component if at least one exists, and null otherwise.
      */
     protected CandidatePair getValidPair(Component component) {
-        synchronized (validList) {
-            for (CandidatePair pair : validList) {
-                if (pair.getParentComponent() == component) {
-                    return pair;
-                }
+        for (CandidatePair pair : validList) {
+            if (pair.getParentComponent() == component) {
+                return pair;
             }
         }
         return null;
