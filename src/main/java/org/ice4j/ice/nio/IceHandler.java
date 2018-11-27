@@ -111,11 +111,6 @@ public class IceHandler extends IoHandlerAdapter {
             }
         } else {
             logger.debug("No ice socket at create for: {}", addr);
-            /*
-             * iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION); if (iceSocket != null) { iceSocket.setSession(session);
-             * logger.debug("Ice socket in session at create for: {} session in socket: {}", addr, iceSocket.getSession()); } else {
-             * logger.debug("Ice socket in session at create for: {} session in socket: null", addr); }
-             */
         }
         StunStack stunStack = stunStacks.get(addr);
         if (stunStack != null) {

@@ -403,7 +403,7 @@ public abstract class IceSocketWrapper {
         } else if (newSession.getId() != session.get().getId()) {
             // if there was an old session and its not a dummy or incoming one, close it
             IoSession oldSession = session.getAndSet(newSession);
-            logger.warn("Sessions didn't match, previous session: {}", oldSession);
+            logger.info("Sessions didn't match, previous session: {}", oldSession);
             // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
             // if old session is UDP add to stale, if TCP, close it
@@ -581,15 +581,16 @@ public abstract class IceSocketWrapper {
      * @throws IOException
      */
     public final static IceSocketWrapper build(IoSession session) throws IOException {
+        InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         IceSocketWrapper iceSocket = null;
         if (session.getTransportMetadata().isConnectionless()) {
-            iceSocket = new IceUdpSocketWrapper();
+            iceSocket = new IceUdpSocketWrapper(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.UDP));
             iceSocket.setSession(session);
         } else {
-            iceSocket = new IceTcpSocketWrapper();
+            iceSocket = new IceTcpSocketWrapper(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
             iceSocket.setSession(session);
             // set remote address (only sticks if its TCP)
-            InetSocketAddress inetAddr = (InetSocketAddress) session.getRemoteAddress();
+            inetAddr = (InetSocketAddress) session.getRemoteAddress();
             iceSocket.setRemoteTransportAddress(new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), Transport.TCP));
         }
         return iceSocket;

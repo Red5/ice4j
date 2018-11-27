@@ -36,6 +36,7 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
      * @throws IOException 
      */
     public IceTcpSocketWrapper(TransportAddress address) throws IOException {
+        logger.debug("New wrapper for {}", address);
         transportAddress = address;
     }
 

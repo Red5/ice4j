@@ -43,6 +43,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
      * @throws IOException 
      */
     public IceUdpSocketWrapper(TransportAddress address) throws IOException {
+        logger.debug("New wrapper for {}", address);
         transportAddress = address;
     }
 
