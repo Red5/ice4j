@@ -3,6 +3,7 @@ package org.ice4j.ice.nio;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -112,27 +113,38 @@ public class IceUdpTransport extends IceTransport {
             // set the recycler
             ((NioDatagramAcceptor) acceptor).setSessionRecycler(new IoSessionRecycler() {
 
-                ConcurrentMap<SocketAddress, IoSession> sessions = new ConcurrentHashMap<>();
+                ConcurrentMap<String, IoSession> sessions = new ConcurrentHashMap<>();
                 
                 @Override
                 public void put(IoSession session) {
                     logger.trace("Adding session to recycler: {}", session);
-                    sessions.put(session.getRemoteAddress(), session);
+                    sessions.put(generateKey(session), session);
                 }
 
                 @Override
                 public IoSession recycle(SocketAddress remoteAddress) {
-                    logger.trace("Recycle remote address: {}", remoteAddress);
+                    //logger.trace("Recycle remote address: {}", remoteAddress);
                     // this is expected to return an existing session for the remote address                    
-                    return sessions.get(remoteAddress);
+                    Optional<IoSession> opt = sessions.values().stream().filter(session -> session.getRemoteAddress().equals(remoteAddress)).findFirst();
+                    if (opt.isPresent()) {
+                        return opt.get();
+                    }
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Recycle not found for remote address: {}\n{}", remoteAddress, sessions.keySet());
+                    }
+                    return null;
                 }
 
                 @Override
                 public void remove(IoSession session) {
                     logger.trace("Removing session from recycler: {}", session);
-                    sessions.remove(session.getRemoteAddress());
+                    sessions.remove(generateKey(session));
                 }
                 
+                private String generateKey(IoSession session) {
+                    return String.format("%s@%s", session.getLocalAddress(), session.getRemoteAddress().toString());
+                }
+
             });
             // configure the acceptor
             DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();

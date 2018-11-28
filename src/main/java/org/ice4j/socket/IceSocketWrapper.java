@@ -400,14 +400,18 @@ public abstract class IceSocketWrapper {
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
             // set the newly added session as the active one
             newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
-        } else if (newSession.getId() != session.get().getId()) {
-            // if there was an old session and its not a dummy or incoming one, close it
+        } else if (session.get().getId() != newSession.getId()) {
+            // if there was an old session and its not a dummy or incoming one replace it
             IoSession oldSession = session.getAndSet(newSession);
             logger.info("Sessions didn't match, previous session: {}", oldSession);
             // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-            // if old session is UDP add to stale, if TCP, close it
+            // set the newly added session as the active one
+            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
+            // if old session is UDP add to stale list, if TCP, close it
             if (isUDP()) {
+                // remove active flag
+                oldSession.removeAttribute(IceTransport.Ice.ACTIVE_SESSION);
                 // add to stale for closing later
                 staleSessions.add(oldSession);
             } else {

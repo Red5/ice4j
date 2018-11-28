@@ -99,6 +99,8 @@ public class IceDecoder extends ProtocolDecoderAdapter {
     public void decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
         if (logger.isTraceEnabled()) {
             logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
+        } else if (logger.isDebugEnabled()) {
+            logger.debug("Decode session: {}", session);
         }
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
         if (iceSocket != null) {

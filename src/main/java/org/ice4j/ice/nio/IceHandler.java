@@ -3,7 +3,6 @@ package org.ice4j.ice.nio;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -74,9 +73,18 @@ public class IceHandler extends IoHandlerAdapter {
     public IceSocketWrapper lookupBindingByRemote(SocketAddress remoteAddress) {
         logger.trace("lookupBindingByRemote for address: {} existing bindings: {}", remoteAddress, iceSockets);
         IceSocketWrapper iceSocket = null;
-        Optional<Entry<TransportAddress, IceSocketWrapper>> result = iceSockets.entrySet().stream().filter(entry -> (entry.getValue().getSession() != null && entry.getValue().getSession().getRemoteAddress().equals(remoteAddress))).findFirst();
+        Optional<IceSocketWrapper> result = iceSockets.values().stream().filter(entry -> {
+            IoSession session = entry.getSession();
+            if (session != null) {
+                InetSocketAddress sessionRemoteAddress = (InetSocketAddress) session.getRemoteAddress();
+                // check the port and then also the host address
+                return (sessionRemoteAddress.getPort() == ((InetSocketAddress) remoteAddress).getPort() &&
+                        sessionRemoteAddress.getAddress().getHostAddress().equals(((InetSocketAddress) remoteAddress).getAddress().getHostAddress()));
+            }
+            return false;
+        }).findFirst();
         if (result.isPresent()) {
-            iceSocket = result.get().getValue();
+            iceSocket = result.get();
         }
         return iceSocket;
     }
@@ -143,8 +151,7 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
         if (logger.isTraceEnabled()) {
-            logger.trace("Message received (session: {}) local: {} remote: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress());
-            logger.trace("Received: {}", String.valueOf(message));
+            logger.trace("Message received (session: {}) local: {} remote: {}\nReceived: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), String.valueOf(message));
         }
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
         if (iceSocket != null) {
@@ -187,27 +194,25 @@ public class IceHandler extends IoHandlerAdapter {
         if (logger.isTraceEnabled()) {
             logger.trace("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
         }
-        // get the existing reference to an ice socket
-        final IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
-        if (iceSocket != null) {
-            // let the socket know about the close
-            iceSocket.close(session);
-        } else {
-            session.closeNow();
-        }
+        session.closeNow();
     }
 
     /** {@inheritDoc} */
     @Override
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
-        // get the existing reference to an ice socket
-        final IceSocketWrapper iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
-        // close the idle socket only if the session is the current session in-use
-        if (iceSocket != null) {
-            iceSocket.close(session);
+        // if the session is not marked as the active one, don't close it
+        if (session.containsAttribute(IceTransport.Ice.ACTIVE_SESSION)) {
+            // get the existing reference to an ice socket
+            final IceSocketWrapper iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
+            // close the idle socket only if the session is the current session in-use
+            if (iceSocket != null) {
+                iceSocket.close(session);
+            } else {
+                logger.debug("No socket in session at close: {}", session);
+            }
         } else {
-            logger.debug("No socket in session at close: {}", session);
+            logger.debug("Session not marked as active at close: {}", session);
         }
         super.sessionClosed(session);
     }
