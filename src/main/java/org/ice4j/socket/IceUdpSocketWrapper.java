@@ -6,13 +6,11 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceDecoder;
 import org.ice4j.ice.nio.IceUdpTransport;
@@ -24,11 +22,6 @@ import org.ice4j.stack.RawMessage;
  * @author Paul Gregoire
  */
 public class IceUdpSocketWrapper extends IceSocketWrapper {
-
-    /**
-     * Utilized during connect on a new send to prevent reentrant connect attempts
-     */
-    private AtomicBoolean connecting = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -50,38 +43,6 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     /** {@inheritDoc} */
     @SuppressWarnings("static-access")
     @Override
-    public void newSession(SocketAddress destAddress) {
-        logger.debug("newSession: {}", destAddress);
-        // look for an existing acceptor
-        IceUdpTransport transport = IceUdpTransport.getInstance(getId());
-        NioDatagramAcceptor acceptor = (NioDatagramAcceptor) transport.getAcceptor();
-        if (acceptor != null) {
-            try {
-                // if the ports not bound, bind it
-                logger.info("Transport is bound: {}", transport.isBound(transportAddress.getPort()));
-                if (!transport.isBound(transportAddress.getPort())) {
-                    transport.addBinding(transportAddress);
-                }
-                // check for session
-                IoSession sess = getSession();
-                if (sess == null) {
-                    // attempt to create a server session, if it fails the local address isn't bound
-                    setSession(acceptor.newSession(destAddress, transportAddress));
-                    // count down since we have a session
-                    connectLatch.countDown();
-                } else {
-                    logger.info("Session {} already connected", sess.getId());
-                }
-            } catch (Exception e) {
-                logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
-            }
-        } else {
-            logger.debug("No existing UDP acceptor available");
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public void send(IoBuffer buf, SocketAddress destAddress) throws IOException {
         if (isClosed()) {
             logger.debug("Connection is closed");
@@ -93,52 +54,51 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             // write future for ensuring write/send
             WriteFuture writeFuture = null;
             try {
+                // if no session is set, we're most likely to be in pre-nomination phase
+                IoSession sess = getSession();
+                if (sess == null) {
+                    // attempt to pull the session from the transport
+                    IceUdpTransport transport = IceUdpTransport.getInstance(getId());
+                    // get session matching the remote address
+                    sess = transport.getSessionByRemote(destAddress);
+                    // if theres no registered session pointing to the destination, create one
+                    if (sess == null) {
+                        try {
+                            // if the ports not bound, bind it
+                            logger.info("Port bound: {}", transport.isBound(transportAddress.getPort()));
+                            if (!transport.isBound(transportAddress.getPort())) {
+                                transport.addBinding(transportAddress);
+                            }
+                            logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
+                            // attempt to create a server session, if it fails the local address isn't bound
+                            sess = transport.createSession(this, destAddress);
+                        } catch (Exception e) {
+                            logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
+                        }
+                    }
+                }
                 // if we're not relaying, proceed with normal flow
                 if (relayedCandidateConnection == null || IceDecoder.isTurnMethod(buf.array())) {
-                    IoSession sess = getSession();
-                    if (sess != null) {
-                        logger.debug("Send to {} {} equal? {}", destAddress, sess.getRemoteAddress(), destAddress.equals(sess.getRemoteAddress()));
-                        // ensure that the destination matches the session remote
-                        if (destAddress.equals(sess.getRemoteAddress())) {
+                    // ensure that the destination matches the session remote
+                    if (destAddress.equals(sess.getRemoteAddress())) {
+                        //if (logger.isTraceEnabled()) {
+                        //    logger.trace("Destination match for send: {} -> {}", destAddress, sess.getRemoteAddress());
+                        //}
+                        if (sess != null) {
                             writeFuture = sess.write(buf, destAddress);
                             writeFuture.addListener(writeListener);
-                        } else {
-                            // look thru stale sessions for a match
-                            staleSessions.forEach(stale -> {
-                                if (destAddress.equals(stale.getRemoteAddress())) {
-                                    if (logger.isTraceEnabled()) {
-                                        logger.trace("Sending to stale session: {}", destAddress);
-                                    }
-                                    // if a write is done on a "stale" session, set it as active
-                                    setSession(stale);
-                                    // remove from stale
-                                    staleSessions.remove(stale);
-                                    // write to the stale session
-                                    stale.write(buf, destAddress);
-                                    return;
-                                }
-                            });
                         }
                     } else {
-                        logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
-                        // if we've not attempted to connect yet
-                        if (connecting.compareAndSet(false, true)) {
-                            // if we're not bound, attempt to create a client session
-                            newSession(destAddress);
-                            logger.debug("New session request completed");
-                        }
-                        // wait up-to x milliseconds for a connection to be established
-                        if (connectLatch.await(3000, TimeUnit.MILLISECONDS)) {
-                            // attempt to get a newly added session from connect process
-                            sess = getSession();
-                            if (sess != null) {
-                                writeFuture = sess.write(buf, destAddress);
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Destination didn't match for send: {} -> {}", destAddress, sess.getRemoteAddress());
+                            // write to the destination alternate if registered even though our active session has already been established
+                            IceUdpTransport transport = IceUdpTransport.getInstance(getId());
+                            Optional<IoSession> altSession = Optional.ofNullable(transport.getSessionByRemote(destAddress));
+                            if (altSession.isPresent()) {
+                                // write messaging through to ensure nomination etc still complete properly
+                                writeFuture = altSession.get().write(buf, destAddress);
                                 writeFuture.addListener(writeListener);
-                            } else {
-                                logger.warn("Send failed due to null session");
                             }
-                        } else {
-                            logger.warn("Send failed due to connection timeout");
                         }
                     }
                 } else {

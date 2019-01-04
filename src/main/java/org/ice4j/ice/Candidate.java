@@ -72,6 +72,20 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * determine the order of the connectivity checks and the relative preference for candidates.
      */
     protected long priority = 0;
+    
+    /**
+     * Ufrag for the candidate.
+     */
+    protected String ufrag;
+
+    /**
+     * Generation for the candidate.
+     */
+    protected int generation;
+    
+    protected int networkId;
+    
+    protected int networkCost;
 
     /**
      * Specifies whether the address associated with this candidate belongs to a VPN interface. In many cases (e.g. when running on a 1.5 JVM) we won't
@@ -215,6 +229,30 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      */
     public TransportAddress getTransportAddress() {
         return transportAddress;
+    }
+
+    public int getGeneration() {
+        return generation;
+    }
+
+    public void setGeneration(int generation) {
+        this.generation = generation;
+    }
+
+    public int getNetworkId() {
+        return networkId;
+    }
+
+    public void setNetworkId(int networkId) {
+        this.networkId = networkId;
+    }
+
+    public int getNetworkCost() {
+        return networkCost;
+    }
+
+    public void setNetworkCost(int networkCost) {
+        this.networkCost = networkCost;
     }
 
     /**
@@ -544,6 +582,19 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
             buff.append(" raddr ").append(relAddr.getHostAddress());
             buff.append(" rport ").append(relAddr.getPort());
         }
+        // generation
+        buff.append(" generation ").append(generation);
+        // user fragment
+        if (ufrag != null) {
+            buff.append(" ufrag ").append(ufrag);
+        }
+        // network id and cost
+        if (networkId > 0) {
+            buff.append(" network-id ").append(networkId);
+            if (networkCost > 0) {
+                buff.append(" network-cost ").append(networkCost);
+            }
+        }
         return buff.toString();
     }
 
@@ -603,11 +654,22 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     public abstract boolean isDefault();
 
     /**
-     * Get the local ufrag.
+     * Set the user fragment.
      *
-     * @return local ufrag
+     * @param ufrag
      */
-    public abstract String getUfrag();
+    public void setUfrag(String ufrag) {
+        this.ufrag = ufrag;
+    }
+
+    /**
+     * Get the user fragment.
+     *
+     * @return ufrag
+     */
+    public String getUfrag() {
+        return ufrag;
+    }
 
     /**
      * Returns this candidate host address.

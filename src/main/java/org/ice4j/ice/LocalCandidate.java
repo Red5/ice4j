@@ -2,11 +2,15 @@
 package org.ice4j.ice;
 
 import java.net.SocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LocalCandidates are obtained by an agent for every stream component and are then included in outgoing offers or answers.
@@ -16,6 +20,8 @@ import org.ice4j.stack.StunStack;
  */
 public abstract class LocalCandidate extends Candidate<LocalCandidate> {
 
+    protected Logger logger = LoggerFactory.getLogger(getClass());
+    
     /**
      * The type of method used to discover this candidate ("host", "upnp", "stun peer reflexive", "stun server reflexive", "turn relayed", "google turn
      * relayed", "google tcp turn relayed" or "jingle node").
@@ -23,15 +29,15 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     private CandidateExtendedType extendedType;
 
     /**
-     * Ufrag for the local candidate.
-     */
-    private String ufrag;
-
-    /**
      * Whether this LocalCandidate uses SSL.
      */
     private boolean isSSL;
 
+    /**
+     * Property map.
+     */
+    private ConcurrentMap<String, String> propertyMap = new ConcurrentHashMap<>();
+    
     /**
      * Creates a LocalCandidate instance for the specified transport address and properties.
      *
@@ -59,9 +65,11 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * @param remoteAddress the remote address for which to return an associated socket.
      */
     protected IceSocketWrapper getCandidateIceSocketWrapper(SocketAddress remoteAddress) {
+        logger.debug("getCandidateIceSocketWrapper remote: {}", remoteAddress);
         // The default implementation just refers to the method which doesn't involve a remove address.
         // Extenders which support multiple instances mapped by remote address should override.
         IceSocketWrapper iceSocket = IceTransport.getIceHandler().lookupBindingByRemote(remoteAddress);
+        logger.debug("Wrapper from lookup: {} current: {}", iceSocket, getCandidateIceSocketWrapper());
         return iceSocket != null ? iceSocket : getCandidateIceSocketWrapper();
     }
 
@@ -74,6 +82,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * performing connectivity checks.
      */
     public IceSocketWrapper getStunSocket(TransportAddress serverAddress) {
+        logger.debug("getStunSocket local: {}", serverAddress);
         IceSocketWrapper hostSocket = getCandidateIceSocketWrapper();
         return hostSocket;
     }
@@ -115,25 +124,6 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     public boolean isDefault() {
         Component parentCmp = getParentComponent();
         return (parentCmp != null) && equals(parentCmp.getDefaultCandidate());
-    }
-
-    /**
-     * Set the local user fragment.
-     *
-     * @param ufrag local ufrag
-     */
-    public void setUfrag(String ufrag) {
-        this.ufrag = ufrag;
-    }
-
-    /**
-     * Get the local user fragment.
-     *
-     * @return local ufrag
-     */
-    @Override
-    public String getUfrag() {
-        return ufrag;
     }
 
     /**
@@ -191,4 +181,25 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
     public void setSSL(boolean isSSL) {
         this.isSSL = isSSL;
     }
+
+    /**
+     * Sets a property on this candidate.
+     * 
+     * @param key
+     * @param value
+     */
+    public void setProperty(String key, String value) {
+        propertyMap.put(key, value);
+    }
+
+    /**
+     * Returns a value matching the given key in the property map, if it exists.
+     * 
+     * @param key
+     * @return value
+     */
+    public String getProperty(String key) {
+        return propertyMap.get(key);
+    }
+
 }

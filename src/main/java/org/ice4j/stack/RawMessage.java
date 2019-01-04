@@ -92,6 +92,11 @@ public class RawMessage {
         return IoBuffer.wrap(messageBytes, 0, messageBytes.length);
     }
 
+    @Override
+    public String toString() {
+        return "RawMessage [localAddress=" + localAddress + ", remoteAddress=" + remoteAddress + ", length=" + messageBytes.length + "]";
+    }
+
     /**
      * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
      *

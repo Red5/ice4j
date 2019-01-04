@@ -122,7 +122,7 @@ public class TurnCandidateHarvest extends StunCandidateHarvest {
                 IceSocketWrapper socket = relayedCandidate.getCandidateIceSocketWrapper();
                 // connectivity checks utilize STUN on the (application-purposed) socket of the RelayedCandidate, add it to the StunStack
                 //harvester.getStunStack().addSocket(socket, relayedAddress, false);
-                relayedCandidate.getParentComponent().getComponentSocket().setSocket(socket);
+                relayedCandidate.getParentComponent().getComponentSocket().setSocketWrapper(socket);
                 addCandidate(relayedCandidate);
             }
         }

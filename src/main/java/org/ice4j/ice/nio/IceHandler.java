@@ -109,6 +109,8 @@ public class IceHandler extends IoHandlerAdapter {
         // get the local address
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+        // XXX we're not adding the IoSession to an IceSocketWrapper until negotiations are complete
+        /*
         IceSocketWrapper iceSocket = iceSockets.get(addr);
         if (iceSocket != null) {
             // set the session
@@ -120,11 +122,13 @@ public class IceHandler extends IoHandlerAdapter {
         } else {
             logger.debug("No ice socket at create for: {}", addr);
         }
+        */
         StunStack stunStack = stunStacks.get(addr);
         if (stunStack != null) {
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
             // XXX create socket registration
             if (transport == Transport.TCP) {
+                IceSocketWrapper iceSocket = iceSockets.get(addr);               
                 if (iceSocket != null) {
                     // get the remote address
                     inetAddr = (InetSocketAddress) session.getRemoteAddress();
@@ -183,7 +187,7 @@ public class IceHandler extends IoHandlerAdapter {
                 // update total message/byte counters
                 ((IceSocketWrapper) socket.get()).updateWriteCounters(session.getWrittenBytes());
             } else {
-                logger.info("No socket present in session {} for write counter update", session.getId());
+                logger.debug("No socket present in session {} for write counter update", session.getId());
             }
         }
     }
@@ -201,18 +205,13 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void sessionClosed(IoSession session) throws Exception {
         logger.debug("Session closed: {}", session.getId());
-        // if the session is not marked as the active one, don't close it
-        if (session.containsAttribute(IceTransport.Ice.ACTIVE_SESSION)) {
-            // get the existing reference to an ice socket
-            final IceSocketWrapper iceSocket = (IceSocketWrapper) session.removeAttribute(IceTransport.Ice.CONNECTION);
-            // close the idle socket only if the session is the current session in-use
-            if (iceSocket != null) {
-                iceSocket.close(session);
-            } else {
-                logger.debug("No socket in session at close: {}", session);
-            }
+        // remove any existing reference to an ice socket
+        Optional<Object> socket = Optional.ofNullable(session.removeAttribute(IceTransport.Ice.CONNECTION));
+        if (socket.isPresent()) {
+            // update total message/byte counters
+            ((IceSocketWrapper) socket.get()).close(session);
         } else {
-            logger.debug("Session not marked as active at close: {}", session);
+            logger.debug("No socket associated with session: {} at close", session.getId());
         }
         super.sessionClosed(session);
     }

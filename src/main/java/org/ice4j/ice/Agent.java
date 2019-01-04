@@ -1482,7 +1482,7 @@ public class Agent {
             }
         }
         getStunStack().shutDown();
-        logger.info("ICE agent freed");
+        logger.info("ICE agent freed for: {}", ufrag);
     }
 
     /**

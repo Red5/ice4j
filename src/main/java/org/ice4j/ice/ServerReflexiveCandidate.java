@@ -6,9 +6,9 @@
  */
 package org.ice4j.ice;
 
-import org.ice4j.*;
-import org.ice4j.ice.harvest.*;
-import org.ice4j.socket.*;
+import org.ice4j.TransportAddress;
+import org.ice4j.ice.harvest.StunCandidateHarvest;
+import org.ice4j.socket.IceSocketWrapper;
 
 /**
  * ServerReflexiveCandidates are candidates whose IP address and port are a binding allocated by a NAT for an agent when it sent a packet through
@@ -20,6 +20,7 @@ import org.ice4j.socket.*;
  * @author Emil Ivov
  */
 public class ServerReflexiveCandidate extends LocalCandidate {
+
     /**
      * The STUN candidate harvest.
      */

@@ -64,6 +64,7 @@ public class HostCandidate extends LocalCandidate {
      */
     @Override
     public IceSocketWrapper getCandidateIceSocketWrapper() {
+        logger.debug("getCandidateIceSocketWrapper: {}", socket);
         return socket;
     }
 }

@@ -6,21 +6,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * RemoteCandidates are candidates that an agent received in an offer
- * or an answer from its peer, and that it would use to form candidate pairs
- * after combining them with its local candidates.
+ * RemoteCandidates are candidates that an agent received in an offer or an answer from its peer, and that it would use
+ * to form candidate pairs after combining them with its local candidates.
  *
  * @author Emil Ivov
  */
 public class RemoteCandidate extends Candidate<RemoteCandidate> {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteCandidate.class);
-
-    /**
-     * Ufrag for the Google Talk candidate.
-     */
-    private String ufrag = null;
-
+    
     /**
      * Creates a RemoteCandidate instance for the specified transport
      * address and properties.
@@ -92,20 +86,10 @@ public class RemoteCandidate extends Candidate<RemoteCandidate> {
     @Override
     public boolean isDefault() {
         Component parentCmp = getParentComponent();
-
-        if (parentCmp == null)
+        if (parentCmp == null) {
             return false;
-
+        }
         return equals(parentCmp.getDefaultRemoteCandidate());
-    }
-
-    /**
-     * Get the remote ufrag.
-     *
-     * @return remote ufrag
-     */
-    public String getUfrag() {
-        return ufrag;
     }
 
     /**

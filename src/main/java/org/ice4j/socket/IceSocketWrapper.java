@@ -7,10 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -27,6 +24,7 @@ import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
 import org.slf4j.Logger;
@@ -39,19 +37,14 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class IceSocketWrapper {
 
-    protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
-
     public final static IoSession NULL_SESSION = new DummySession();
 
     public final static String DISCONNECTED = "disconnected";
 
+    protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
+
     // whether or not we've been closed
     public boolean closed;
-
-    /**
-     * Used to control connection flow.
-     */
-    protected CountDownLatch connectLatch = new CountDownLatch(1);
 
     protected TransportAddress transportAddress;
 
@@ -64,11 +57,6 @@ public abstract class IceSocketWrapper {
      * IoSession for this socket / connection; will be one of type NioDatagramSession for UDP or NioSocketSession for TCP.
      */
     protected AtomicReference<IoSession> session = new AtomicReference<>(NULL_SESSION);
-
-    /**
-     * IoSession list of previous connections.
-     */
-    protected List<IoSession> staleSessions = new CopyOnWriteArrayList<>();
 
     /**
      * Socket timeout.
@@ -117,8 +105,6 @@ public abstract class IceSocketWrapper {
                     logger.warn("Connect failed from: {} to: {}", transportAddress, remoteTransportAddress);
                 }
             }
-            // count down since connect is complete
-            connectLatch.countDown();
         }
 
     };
@@ -143,15 +129,6 @@ public abstract class IceSocketWrapper {
         }
 
     };
-
-    /**
-     * Creates a new session with the given remote destination address.
-     * 
-     * @param destAddress remote address
-     */
-    public void newSession(SocketAddress destAddress) {
-        // this primarily for UDP see IceUdpSocketWrapper
-    }
 
     /**
      * Sends an IoBuffer from this socket. It is a utility method to provide a common way to send for both UDP and TCP socket.
@@ -213,47 +190,31 @@ public abstract class IceSocketWrapper {
      */
     public void close(IoSession sess) {
         //logger.debug("Close: {}", this);
-        // do full clean up, if its the active session
-        boolean doCleanup = false;
-        Optional<IoSession> opt = Optional.ofNullable(sess);
-        if (opt.isPresent()) {
-            logger.debug("Close session: {}", sess.getId());
-            doCleanup = sess.equals(getSession());
-            try {
-                // if the session isn't already closed or disconnected
-                if (!sess.isClosing()) {
-                    CloseFuture future = sess.closeNow();
-                    // wait until the connection is closed
-                    future.awaitUninterruptibly();
-                    logger.debug("CloseFuture done: {}", sess.getId());
-                    // now connection should be closed
-                    if (!future.isClosed()) {
-                        logger.info("CloseFuture not closed: {}", sess.getId());
-                    }
-                }
-            } catch (Throwable t) {
-                logger.warn("Fail on close", t);
-            }
-        }
-        logger.debug("Close with cleanup: {}", doCleanup);
-        if (doCleanup) {
-            // prevent re-entrance to this close() from the IceHandler by removing conn attribute
-            staleSessions.forEach(session -> {
-                session.removeAttribute(IceTransport.Ice.CONNECTION);
-                try {
-                    // if the session isn't already closed or disconnected
-                    if (!session.isClosing()) {
-                        // close the session
-                        session.closeNow();
-                    }
-                } catch (Throwable t) {
-                    logger.warn("Fail on (stale session) close", t);
-                }
-            });
-            // clear session
-            session.set(NULL_SESSION);
+        if (!closed) {
             // set closed flag
             closed = true;
+            // get the session and close it
+            Optional<IoSession> opt = Optional.ofNullable(sess);
+            if (opt.isPresent()) {
+                logger.debug("Close session: {}", sess.getId());
+                // clear session
+                session.set(NULL_SESSION);
+                try {
+                    // if the session isn't already closed or disconnected
+                    if (!sess.isClosing()) {
+                        CloseFuture future = sess.closeNow();
+                        // wait until the connection is closed
+                        future.awaitUninterruptibly();
+                        logger.debug("CloseFuture done: {}", sess.getId());
+                        // now connection should be closed
+                        if (!future.isClosed()) {
+                            logger.info("CloseFuture not closed: {}", sess.getId());
+                        }
+                    }
+                } catch (Throwable t) {
+                    logger.warn("Fail on close", t);
+                }
+            }
             // clear out raw messages lingering around at close
             rawMessageQueue.clear();
             // get the transport / acceptor identifier
@@ -291,8 +252,8 @@ public abstract class IceSocketWrapper {
             } else {
                 logger.debug("Transport for id: {} was not found", id);
             }
+            logger.trace("Exit close: {} closed: {}", this, closed);
         }
-        logger.trace("Exit close: {} closed: {}", this, closed);
     }
 
     /**
@@ -304,7 +265,7 @@ public abstract class IceSocketWrapper {
         // incoming length is the total from the IoSession
         writtenBytes = bytesLength;
         writtenMessages++;
-        logger.debug("updateWriteCounters - writtenBytes: {} writtenMessages: {}", writtenBytes, writtenMessages);
+        //logger.trace("updateWriteCounters - writtenBytes: {} writtenMessages: {}", writtenBytes, writtenMessages);
     }
 
     /**
@@ -316,7 +277,7 @@ public abstract class IceSocketWrapper {
         // incoming length is the message bytes length
         writtenStunBytes += bytesLength;
         writtenStunMessages++;
-        logger.debug("updateSTUNWriteCounters - writtenBytes: {} writtenMessages: {}", writtenStunBytes, writtenStunMessages);
+        //logger.trace("updateSTUNWriteCounters - writtenBytes: {} writtenMessages: {}", writtenStunBytes, writtenStunMessages);
     }
 
     /**
@@ -392,35 +353,25 @@ public abstract class IceSocketWrapper {
      * @param newSession
      */
     public void setSession(IoSession newSession) {
-        logger.trace("setSession - new: {} old: {}", newSession, session.get());
+        logger.trace("setSession - addr: {} session: {} previous: {}", transportAddress, newSession, session.get());
         if (newSession == null || newSession.equals(NULL_SESSION)) {
             session.set(NULL_SESSION);
         } else if (session.compareAndSet(NULL_SESSION, newSession)) {
             // set the connection attribute
             newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-            // set the newly added session as the active one
-            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
         } else if (session.get().getId() != newSession.getId()) {
             // if there was an old session and its not a dummy or incoming one replace it
-            IoSession oldSession = session.getAndSet(newSession);
-            logger.info("Sessions didn't match, previous session: {}", oldSession);
+            IoSession oldSession = session.get(); // no overwrite session.getAndSet(newSession);
+            logger.info("Sessions didn't match, current session: {}", oldSession);
             // set the connection attribute
-            newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-            // set the newly added session as the active one
-            newSession.setAttribute(IceTransport.Ice.ACTIVE_SESSION);
-            // if old session is UDP add to stale list, if TCP, close it
-            if (isUDP()) {
-                // remove active flag
-                oldSession.removeAttribute(IceTransport.Ice.ACTIVE_SESSION);
-                // add to stale for closing later
-                staleSessions.add(oldSession);
-            } else {
-                logger.debug("Closing previous TCP session: {}", oldSession);
-                CloseFuture future = oldSession.closeNow();
-                // wait a few ticks for the old session to close
-                future.awaitUninterruptibly(500L);
-                logger.debug("Session closed: {}", future.isClosed());
-            }
+            //newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
+            //logger.debug("Closing previous session: {}", oldSession);
+            //CloseFuture future = oldSession.closeNow();
+            // wait a few ticks for the old session to close
+            //future.awaitUninterruptibly(500L);
+            //logger.debug("Session closed: {}", future.isClosed());
+            logger.debug("Closing incoming session: {}", newSession);
+            newSession.closeOnFlush();
         }
     }
 
@@ -458,7 +409,14 @@ public abstract class IceSocketWrapper {
     public void setRemoteTransportAddress(TransportAddress remoteAddress) {
         // only set remote address for TCP
         if (this instanceof IceTcpSocketWrapper) {
-            this.remoteTransportAddress = remoteAddress;
+            remoteTransportAddress = remoteAddress;
+        } else {
+            // get the transport 
+            IceUdpTransport transport = IceUdpTransport.getInstance(getId());
+            // get session matching the remote address
+            IoSession sess = transport.getSessionByRemote(remoteAddress);
+            // set the selected session on the wrapper
+            setSession(sess);
         }
     }
 
@@ -538,6 +496,7 @@ public abstract class IceSocketWrapper {
      */
     public boolean offerMessage(RawMessage message) {
         if (!closed) {
+            //logger.trace("offered message: {} local: {} remote: {}", message, transportAddress, remoteTransportAddress);
             return rawMessageQueue.offer(message);
         }
         logger.debug("Message rejected, socket is closed");
@@ -584,6 +543,7 @@ public abstract class IceSocketWrapper {
      * @return IceSocketWrapper for the given session type
      * @throws IOException
      */
+    @Deprecated
     public final static IceSocketWrapper build(IoSession session) throws IOException {
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         IceSocketWrapper iceSocket = null;

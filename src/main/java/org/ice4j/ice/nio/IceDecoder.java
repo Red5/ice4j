@@ -102,125 +102,140 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         } else if (logger.isDebugEnabled()) {
             logger.debug("Decode session: {}", session);
         }
-        IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
-        if (iceSocket != null) {
-            // determine the transport in-use
-            Transport transport = (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP);
-            //logger.trace("Decoding: {}", in);
-            // SocketAddress from session are InetSocketAddress which fail cast to TransportAddress, so handle there here
-            SocketAddress localAddr = session.getLocalAddress();
-            if (localAddr instanceof InetSocketAddress) {
-                InetSocketAddress inetAddr = (InetSocketAddress) localAddr;
-                localAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-            }
-            SocketAddress remoteAddr = session.getRemoteAddress();
-            if (remoteAddr instanceof InetSocketAddress) {
-                InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
-                remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
-            }
-            // get the incoming bytes
-            byte[] buf = null;
-            // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
-            int frameLength = in.remaining();
-            //logger.trace("Remaining at start: {}", frameLength);
-            // if we're TCP (not UDP), grab the size and advance the position
-            if (transport != Transport.UDP) {
-                // loop reading input until no usable bytes remain
-                checkFrameComplete: do {
-                    //logger.trace("Remaining at loop start: {}", in.remaining());
-                    // check for an existing frame chunk first
-                    FrameChunk frameChunk = (FrameChunk) session.getAttribute(Ice.TCP_BUFFER);
-                    if (frameChunk != null) {
-                        // check for completed
-                        if (frameChunk.isComplete()) {
-                            // flip for reading
-                            frameChunk.chunk.flip();
-                            // size buf for reading all the frame chunk data
-                            buf = new byte[frameChunk.totalLength];
-                            // get the frame
-                            frameChunk.chunk.get(buf);
-                            // now clear / reset
-                            frameChunk.reset();
-                            // clear session local
-                            session.removeAttribute(Ice.TCP_BUFFER);
+        IceSocketWrapper iceSocket = null;
+        // determine the transport in-use
+        Transport transport = (session.getTransportMetadata().isConnectionless() ? Transport.UDP : Transport.TCP);
+        //logger.trace("Decoding: {}", in);
+        // SocketAddress from session are InetSocketAddress which fail cast to TransportAddress, so handle there here
+        SocketAddress localAddr = session.getLocalAddress();
+        if (localAddr instanceof InetSocketAddress) {
+            InetSocketAddress inetAddr = (InetSocketAddress) localAddr;
+            localAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+        }
+        SocketAddress remoteAddr = session.getRemoteAddress();
+        if (remoteAddr instanceof InetSocketAddress) {
+            InetSocketAddress inetAddr = (InetSocketAddress) remoteAddr;
+            remoteAddr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transport);
+        }
+        // get the incoming bytes
+        byte[] buf = null;
+        // TCP has a 2b prefix containing its size per RFC4571 formatted frame, UDP is simply the incoming data size so we start with that
+        int frameLength = in.remaining();
+        //logger.trace("Remaining at start: {}", frameLength);
+        // if we're TCP (not UDP), grab the size and advance the position
+        if (transport != Transport.UDP) {
+            // loop reading input until no usable bytes remain
+            checkFrameComplete: do {
+                //logger.trace("Remaining at loop start: {}", in.remaining());
+                // check for an existing frame chunk first
+                FrameChunk frameChunk = (FrameChunk) session.getAttribute(Ice.TCP_BUFFER);
+                if (frameChunk != null) {
+                    // check for completed
+                    if (frameChunk.isComplete()) {
+                        // flip for reading
+                        frameChunk.chunk.flip();
+                        // size buf for reading all the frame chunk data
+                        buf = new byte[frameChunk.totalLength];
+                        // get the frame
+                        frameChunk.chunk.get(buf);
+                        // now clear / reset
+                        frameChunk.reset();
+                        // clear session local
+                        session.removeAttribute(Ice.TCP_BUFFER);
+                        // get the socket
+                        iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
+                        if (iceSocket != null) {
                             // send a buffer of bytes for further processing / handling
                             process(session, iceSocket, localAddr, remoteAddr, buf);
-                            // no more frame chunks, so regular processing will proceed
-                            continue checkFrameComplete;
                         } else {
-                            // check existing frame chunk without an iobuffer, which means its length must be recalculated
-                            if (frameChunk.chunk == null) {
-                                frameLength = ((frameChunk.temporaryMSB & 0xFF) << 8) | (in.get() & 0xFF);
-                                frameChunk.setFrameLength(frameLength);
-                                //logger.trace("Updated frame chunk length: {}", frameLength);
-                            }
-                            // add to an existing incomplete frame
-                            int remaining = in.remaining();
-                            buf = new byte[Math.min(remaining, frameChunk.chunk.remaining())];
-                            in.get(buf);
-                            frameChunk.chunk.put(buf);
-                            // restart at the top of the loop checking to see if the frame is now complete and proceed appropriately
-                            //logger.debug("Existing frame chunk was appended, complete? {} in remaining: {}", frameChunk.isComplete(), in.remaining());
-                            // nothing should remain in the input at this point
-                            continue checkFrameComplete;
+                            logger.warn("No ice socket in session, closing: {}", session);
+                            throw new SocketClosedException();
                         }
+                        // no more frame chunks, so regular processing will proceed
+                        continue checkFrameComplete;
                     } else {
-                        // no frame chunks, handle input
+                        // check existing frame chunk without an iobuffer, which means its length must be recalculated
+                        if (frameChunk.chunk == null) {
+                            frameLength = ((frameChunk.temporaryMSB & 0xFF) << 8) | (in.get() & 0xFF);
+                            frameChunk.setFrameLength(frameLength);
+                            //logger.trace("Updated frame chunk length: {}", frameLength);
+                        }
+                        // add to an existing incomplete frame
                         int remaining = in.remaining();
-                        // we need at least 2 bytes for the frame length
-                        if (remaining > 1) {
-                            // get the frame length
-                            frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
-                            //logger.trace("Frame length: {}", frameLength);
-                            // update remaining (since we just grabbed 2 bytes)
-                            remaining -= 2;
-                            // if the frame length is greater than the remaining bytes, we'll have to buffer them until we get the full frame
-                            if (remaining < frameLength) {
-                                if (remaining > 0) {
-                                    //logger.debug("Creating new frame chunk with data: {}", remaining);
-                                    session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength, in));
-                                    //logger.debug("New frame chunk, complete? {} in remaining: {}", tcpFrameChunk.get().isComplete(), in.remaining());
-                                    // nothing should remain in the input at this point
-                                    continue checkFrameComplete;
-                                } else {
-                                    //logger.warn("Creating new frame chunk without data: {}", remaining);
-                                    session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength));
-                                }
+                        buf = new byte[Math.min(remaining, frameChunk.chunk.remaining())];
+                        in.get(buf);
+                        frameChunk.chunk.put(buf);
+                        // restart at the top of the loop checking to see if the frame is now complete and proceed appropriately
+                        //logger.debug("Existing frame chunk was appended, complete? {} in remaining: {}", frameChunk.isComplete(), in.remaining());
+                        // nothing should remain in the input at this point
+                        continue checkFrameComplete;
+                    }
+                } else {
+                    // no frame chunks, handle input
+                    int remaining = in.remaining();
+                    // we need at least 2 bytes for the frame length
+                    if (remaining > 1) {
+                        // get the frame length
+                        frameLength = ((in.get() & 0xFF) << 8) | (in.get() & 0xFF);
+                        //logger.trace("Frame length: {}", frameLength);
+                        // update remaining (since we just grabbed 2 bytes)
+                        remaining -= 2;
+                        // if the frame length is greater than the remaining bytes, we'll have to buffer them until we get the full frame
+                        if (remaining < frameLength) {
+                            if (remaining > 0) {
+                                //logger.debug("Creating new frame chunk with data: {}", remaining);
+                                session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength, in));
+                                //logger.debug("New frame chunk, complete? {} in remaining: {}", tcpFrameChunk.get().isComplete(), in.remaining());
+                                // nothing should remain in the input at this point
+                                continue checkFrameComplete;
                             } else {
-                                //logger.warn("Creating new frame with data: {}", remaining);
-                                // read as much as we have
-                                buf = new byte[frameLength];
-                                // get the bytes into our buffer
-                                in.get(buf);
+                                //logger.warn("Creating new frame chunk without data: {}", remaining);
+                                session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(frameLength));
+                            }
+                        } else {
+                            //logger.warn("Creating new frame with data: {}", remaining);
+                            // read as much as we have
+                            buf = new byte[frameLength];
+                            // get the bytes into our buffer
+                            in.get(buf);
+                            // get the socket
+                            iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
+                            if (iceSocket != null) {
                                 // send a buffer of bytes for further processing / handling
                                 process(session, iceSocket, localAddr, remoteAddr, buf);
+                            } else {
+                                logger.warn("No ice socket in session, closing: {}", session);
+                                throw new SocketClosedException();
                             }
-                        } else {
-                            // special case were we only have a single byte, so not big enough for a length determination
-                            //logger.warn("Creating new frame chunk without sizing or data");
-                            session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(in.get()));
                         }
+                    } else {
+                        // special case were we only have a single byte, so not big enough for a length determination
+                        //logger.warn("Creating new frame chunk without sizing or data");
+                        session.setAttribute(Ice.TCP_BUFFER, new FrameChunk(in.get()));
                     }
-                } while (in.hasRemaining());
-                logger.trace("All TCP input data decoded");
-            } else {
-                // do udp
-                buf = new byte[frameLength];
-                // get the bytes into our buffer
-                in.get(buf);
-                //logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
-                // STUN messages are at least 20 bytes and DTLS are 13+
-                if (buf.length > DTLS_RECORD_HEADER_LENGTH) {
-                    // send a buffer of bytes for further processing / handling
-                    process(session, iceSocket, localAddr, remoteAddr, buf);
-                } else {
-                    // there was not enough data in the buffer to parse - this should never happen
-                    logger.warn("Not enough data in the buffer to parse: {}", in);
                 }
-            }
+            } while (in.hasRemaining());
+            logger.trace("All TCP input data decoded");
         } else {
-            logger.warn("No ice socket in session, closing: {}", session);
-            throw new SocketClosedException();
+            // do udp
+            buf = new byte[frameLength];
+            // get the bytes into our buffer
+            in.get(buf);
+            //logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
+            // STUN messages are at least 20 bytes and DTLS are 13+
+            if (buf.length > DTLS_RECORD_HEADER_LENGTH) {
+                // get the socket which may be null if the associated candidate hasn't been nominated yet
+                iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
+                // if the ice socket is not in the session yet, attempt to pull it from those registered in the handler
+                if (iceSocket == null) {
+                    iceSocket = IceUdpTransport.getIceHandler().lookupBinding((TransportAddress) localAddr);
+                }
+                // send a buffer of bytes for further processing / handling
+                process(session, iceSocket, localAddr, remoteAddr, buf);
+            } else {
+                // there was not enough data in the buffer to parse - this should never happen
+                logger.warn("Not enough data in the buffer to parse: {}", in);
+            }
         }
     }
 
@@ -246,12 +261,13 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                     // create a message
                     RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
                     Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                    logger.debug("Message: {}", stunMessage);
                     if (logger.isDebugEnabled()) {
+                        logger.debug("Message: {}", stunMessage);
                         stunMessage.getAttributes().forEach(attr -> {
                             logger.debug("Attribute: {}", attr);
                         });
                     }
+                    // handling of stun/turn messages without an icesocket should be allowed to proceed
                     stunStack.handleMessageEvent(new StunMessageEvent(stunStack, message, stunMessage));
                 } catch (Exception ex) {
                     logger.warn("Failed to decode a stun message!", ex);

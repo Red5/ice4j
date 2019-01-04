@@ -298,7 +298,7 @@ public class StunCandidateHarvester extends AbstractCandidateHarvester {
                             // set the tcptype (we need to know if the other end is active, but for now all the browsers appear to be
                             cand.setTcpType(CandidateTcpType.PASSIVE);
                             stunStack.addSocket(iceSocket, iceSocket.getRemoteTransportAddress(), true); // passive == bind, active == no 
-                            component.getComponentSocket().setSocket(iceSocket);
+                            component.getComponentSocket().setSocketWrapper(iceSocket);
                         }
                     }
                 } else {

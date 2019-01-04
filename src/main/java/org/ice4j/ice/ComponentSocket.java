@@ -1,14 +1,8 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015-2016 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you
- * may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law
- * or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
- * the License for the specific language governing permissions and limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.ice;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.net.DatagramPacket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -20,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Extends {@link MergingDatagramSocket} with functionality specific to an ICE {@link Component}.
+ * Extends IoSession with functionality specific to an ICE {@link Component}.
  */
 public class ComponentSocket implements PropertyChangeListener {
 
@@ -42,6 +36,9 @@ public class ComponentSocket implements PropertyChangeListener {
      */
     private CopyOnWriteArraySet<SocketAddress> authorizedAddresses = new CopyOnWriteArraySet<>();
 
+    /**
+     * IceSocketWrapper associated with this ComponentSocket.
+     */
     private IceSocketWrapper socketWrapper;
 
     /**
@@ -51,15 +48,6 @@ public class ComponentSocket implements PropertyChangeListener {
     ComponentSocket(Component component) throws SocketException {
         this.component = component;
         component.getParentStream().addPairChangeListener(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     * <br>
-     * Verifies that the source of the packet is an authorized remote address.
-     */
-    protected boolean accept(DatagramPacket p) {
-        return authorizedAddresses.contains(p.getSocketAddress());
     }
 
     /**
@@ -131,6 +119,7 @@ public class ComponentSocket implements PropertyChangeListener {
             component.getParentStream().removePairStateChangeListener(this);
             this.component = null;
         }
+        authorizedAddresses.clear();
     }
 
     /**
@@ -138,7 +127,7 @@ public class ComponentSocket implements PropertyChangeListener {
      * 
      * @param socketWrapper
      */
-    public void setSocket(IceSocketWrapper socketWrapper) {
+    public void setSocketWrapper(IceSocketWrapper socketWrapper) {
         this.socketWrapper = socketWrapper;
     }
 
@@ -147,7 +136,7 @@ public class ComponentSocket implements PropertyChangeListener {
      * 
      * @return socketWrapper
      */
-    public IceSocketWrapper getSocket() {
+    public IceSocketWrapper getSocketWrapper() {
         return socketWrapper;
     }
 

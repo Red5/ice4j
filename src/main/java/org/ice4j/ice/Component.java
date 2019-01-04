@@ -63,6 +63,18 @@ public class Component implements PropertyChangeListener {
             } else if (cand1.getDefaultPreference() > cand2.getDefaultPreference()) {
                 result += 1;
             }
+            // add network-id and network-cost to the mix
+            if (cand1.getNetworkId() < cand2.getNetworkId()) {
+                result -= 1;
+                if (cand1.getNetworkCost() < cand2.getNetworkCost()) {
+                    result -= 1;
+                }
+            } else if (cand1.getNetworkId() > cand2.getNetworkId()) {
+                result += 1;
+                if (cand1.getNetworkCost() > cand2.getNetworkCost()) {
+                    result += 1;
+                }
+            }
             return result;
         }
 
@@ -553,7 +565,7 @@ public class Component implements PropertyChangeListener {
      * @return the socket for this {@link Component}, which should be used for reading/writing application data.
      */
     public IceSocketWrapper getSocket() {
-        return componentSocket.getSocket();
+        return componentSocket.getSocketWrapper();
     }
 
     /**

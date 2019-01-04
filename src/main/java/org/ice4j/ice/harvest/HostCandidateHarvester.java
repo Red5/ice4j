@@ -271,21 +271,21 @@ public class HostCandidateHarvester {
         logger.trace("Starting socket creation loop");
         availableHostAddresses.forEach(addrRef -> {
             logger.debug("addr: {}", addrRef);
-            IceSocketWrapper sock = null;
+            IceSocketWrapper iceSocket = null;
             try {
                 if (transport == Transport.UDP) {
-                    sock = createDatagramSocket(addrRef.getAddress(), preferredPort, minPort, maxPort);
+                    iceSocket = createDatagramSocket(addrRef.getAddress(), preferredPort, minPort, maxPort);
                 } else if (transport == Transport.TCP) {
-                    sock = createServerSocket(addrRef.getAddress(), preferredPort, minPort, maxPort, component);
+                    iceSocket = createServerSocket(addrRef.getAddress(), preferredPort, minPort, maxPort, component);
                 }
-                logger.debug("Socket created/bound: {}", sock);
-                HostCandidate candidate = new HostCandidate(sock, component, transport);
+                logger.debug("Socket created/bound: {}", iceSocket);
+                HostCandidate candidate = new HostCandidate(iceSocket, component, transport);
                 candidate.setVirtual(addrRef.isVirtual());
                 component.addLocalCandidate(candidate);
                 StunStack stunStack = candidate.getStunStack();
                 // add the socket wrapper to the stack which gets the bind and listening process started
-                stunStack.addSocket(sock, null, true); // do socket binding
-                component.getComponentSocket().setSocket(sock);
+                stunStack.addSocket(iceSocket, null, true); // do socket binding
+                component.getComponentSocket().setSocketWrapper(iceSocket);
             } catch (Throwable t) {
                 // There seems to be a problem with this particular address let's just move on for now and hope we will find better
                 logger.info("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort);

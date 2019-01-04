@@ -403,11 +403,11 @@ public class RelayedCandidateConnection extends IoHandlerAdapter implements Mess
                 ComponentSocket componentSocket = relayedCandidate.getParentComponent().getComponentSocket();
                 // authorize the remote address
                 componentSocket.addAuthorizedAddress(remotePeerAddress);
-                logger.debug("Component socket: {} relayed socket: {}", componentSocket.getSocket(), relayedCandidate.getCandidateIceSocketWrapper());
+                logger.debug("Component socket: {} relayed socket: {}", componentSocket.getSocketWrapper(), relayedCandidate.getCandidateIceSocketWrapper());
                 // get the relayed socket
                 IceSocketWrapper relayedSocket = relayedCandidate.getCandidateIceSocketWrapper();
                 // get currently set socket and close it if its not our relayed ice socket
-                IceSocketWrapper currentSocket = componentSocket.getSocket();
+                IceSocketWrapper currentSocket = componentSocket.getSocketWrapper();
                 if (relayedSocket.equals(currentSocket)) {
                     logger.debug("Component socket is relay compatible");
                 }

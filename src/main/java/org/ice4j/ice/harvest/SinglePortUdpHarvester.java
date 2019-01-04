@@ -188,7 +188,7 @@ public class SinglePortUdpHarvester extends AbstractUdpListener implements Candi
             // if agent is not controlling, we're considered a server so add a binding
             stunStack.addSocket(candidateSocket, new TransportAddress(remoteAddress, Transport.UDP), !agent.isControlling()); // do socket binding
             // TODO: maybe move this code to the candidates
-            component.getComponentSocket().setSocket(candidateSocket);
+            component.getComponentSocket().setSocketWrapper(candidateSocket);
             // if a socket already exists, it will be returned and closed after being replaced in the map
             IceSocketWrapper oldSocket = candidateSockets.put(remoteAddress, candidateSocket);
             if (oldSocket != null) {

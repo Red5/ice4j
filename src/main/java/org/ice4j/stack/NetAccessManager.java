@@ -234,12 +234,12 @@ public class NetAccessManager {
      * @throws IOException if an error occurs while sending message bytes through the network socket
      */
     void sendMessage(byte[] bytes, TransportAddress localAddress, TransportAddress remoteAddress) throws IllegalArgumentException, IOException {
-        Connector ap = getConnector(localAddress, remoteAddress);
-        if (ap == null) {
+        Connector connector = getConnector(localAddress, remoteAddress);
+        if (connector == null) {
             throw new IllegalArgumentException("No connector for " + localAddress + "->" + remoteAddress);
         }
-        if (ap != null) {
-            ap.sendMessage(bytes, remoteAddress);
+        if (connector != null) {
+            connector.sendMessage(bytes, remoteAddress);
         }
     }
 
