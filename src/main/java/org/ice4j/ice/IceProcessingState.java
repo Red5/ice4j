@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.ice;
 
@@ -37,11 +26,9 @@ package org.ice4j.ice;
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
-public enum IceProcessingState
-{
+public enum IceProcessingState {
     /**
-     * The state is equal to Waiting if ICE processing has not started
-     * for the corresponding {@link Agent}.
+     * The state is equal to Waiting if ICE processing has not started for the corresponding {@link Agent}.
      */
     WAITING("Waiting"),
 
@@ -56,18 +43,14 @@ public enum IceProcessingState
     COMPLETED("Completed"),
 
     /**
-     * The state is Completed when ICE processing is Failed if processing
-     * failed without success.
+     * The state is Completed when ICE processing is Failed if processing failed without success.
      */
     FAILED("Failed"),
 
     /**
-     * Once ICE processing has reached the Completed state for all peers for
-     * media streams using those candidates, the agent SHOULD wait an
-     * additional three seconds, and then it MAY cease responding to checks
-     * or generating triggered checks on that candidate.  It MAY free the
-     * candidate at that time. This is also when an agent would enter the
-     * terminated state.
+     * Once ICE processing has reached the Completed state for all peers for media streams using those candidates, the agent SHOULD wait an
+     * additional three seconds, and then it MAY cease responding to checks or generating triggered checks on that candidate.  It MAY free the
+     * candidate at that time. This is also when an agent would enter the terminated state.
      */
     TERMINATED("Terminated");
 
@@ -79,53 +62,38 @@ public enum IceProcessingState
     /**
      * Creates an IceProcessingState instance with the specified name.
      *
-     * @param stateName the name of the IceProcessingState instance
-     * we'd like to create.
+     * @param stateName the name of the IceProcessingState instance we'd like to create.
      */
-    private IceProcessingState(String stateName)
-    {
+    private IceProcessingState(String stateName) {
         this.stateName = stateName;
     }
 
     /**
-     * Returns the name of this IceProcessingState (e.g. "Running",
-     * "Completed", or "Failed").
+     * Returns the name of this IceProcessingState (e.g. "Running", "Completed", or "Failed").
      *
-     * @return the name of this IceProcessingState (e.g. "Running",
-     * "Completed", or "Failed").
+     * @return name of this IceProcessingState
      */
     @Override
-    public String toString()
-    {
+    public String toString() {
         return stateName;
     }
 
     /**
-     * Determines whether an {@link Agent} in this state has finished its ICE
-     * processing.
+     * Determines whether an {@link Agent} in this state has finished its ICE processing.
      *
-     * @return {@code true} if an {@code Agent} in this state has finished its
-     * ICE processing; otherwise, {@code false}
+     * @return true if an Agent in this state has finished its processing; otherwise false
      */
-    public boolean isOver()
-    {
-        return
-            COMPLETED.equals(this)
-                || FAILED.equals(this)
-                || TERMINATED.equals(this);
+    public boolean isOver() {
+        return COMPLETED.equals(this) || FAILED.equals(this) || TERMINATED.equals(this);
     }
 
     /**
-     * Returns true iff the state is one in which a connection
-     * has been established, that is either COMPLETED or
+     * Returns true if the state is one in which a connection has been established, that is either COMPLETED or
      * TERMINATED.
      *
-     * @return true iff the state is one in which a connection
-     * has been established, that is either COMPLETED or
-     * TERMINATED.
+     * @return true when a connection has been established and false otherwise
      */
-    public boolean isEstablished()
-    {
+    public boolean isEstablished() {
         return this == COMPLETED || this == TERMINATED;
     }
 }

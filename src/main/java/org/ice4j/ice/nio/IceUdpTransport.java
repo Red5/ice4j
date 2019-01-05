@@ -43,9 +43,10 @@ public class IceUdpTransport extends IceTransport {
         @Override
         public void put(IoSession session) {
             //logger.trace("Adding session to recycler: {}", session);
-            sessions.put(generateKey(session), session);
+            String key = generateKey(session);
+            sessions.put(key, session);
             if (logger.isTraceEnabled()) {
-                logger.trace("Added session: {}", session.getId());
+                logger.trace("Added session: {} {}", session.getId(), key);
             }
         }
 
@@ -60,7 +61,7 @@ public class IceUdpTransport extends IceTransport {
                 return sess;
             } else {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Recycle not found for remote address: {}\n{}", remoteAddress, sessions.keySet());
+                    logger.trace("Session not found in recycler for remote address: {}\n{}", remoteAddress, sessions.keySet());
                 }
             }
             return sess;
@@ -69,9 +70,11 @@ public class IceUdpTransport extends IceTransport {
         @Override
         public void remove(IoSession session) {
             //logger.trace("Removing session from recycler: {}", session);
-            sessions.remove(generateKey(session));
+            String key = generateKey(session);
+            // remove by key
+            sessions.remove(key);
             if (logger.isTraceEnabled()) {
-                logger.trace("Removed session: {}", session.getId());
+                logger.trace("Removed session: {} {}", session.getId(), key);
             }
         }
 
@@ -80,7 +83,7 @@ public class IceUdpTransport extends IceTransport {
         }
 
     };
-    
+
     /**
      * Creates the i/o handler and nio acceptor; ports and addresses are bound.
      */
@@ -144,15 +147,9 @@ public class IceUdpTransport extends IceTransport {
 
                 @Override
                 public void sessionCreated(IoSession session) throws Exception {
-                    logger.debug("sessionCreated: {}", session);
+                    //logger.debug("sessionCreated: {}", session);
                     //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
                     session.setAttribute(IceTransport.Ice.UUID, id);
-                    /*
-                    IceSocketWrapper iceSocket = localWrapper.get();
-                    if (iceSocket != null) {
-                        iceSocket.setSession(session);
-                    }
-                    */
                 }
 
                 @Override
@@ -257,7 +254,7 @@ public class IceUdpTransport extends IceTransport {
             TransportAddress transportAddress = socketWrapper.getTransportAddress();
             // newSession calls recycler.recycle(destAddress)
             try {
-                if (lock.tryAcquire(1000L, TimeUnit.MILLISECONDS)) {
+                if (lock.tryAcquire(500L, TimeUnit.MILLISECONDS)) {
                     // create the new session
                     session = acceptor.newSession(destAddress, transportAddress);
                     // set the session directly

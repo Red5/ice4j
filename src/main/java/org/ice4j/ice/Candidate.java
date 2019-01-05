@@ -3,6 +3,8 @@ package org.ice4j.ice;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
@@ -129,6 +131,11 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      * The CandidateTcpType for this Candidate.
      */
     private CandidateTcpType tcpType;
+
+    /**
+     * Property map.
+     */
+    protected ConcurrentMap<String, String> propertyMap = new ConcurrentHashMap<>();
 
     /**
      * Creates a candidate for the specified transport address and properties.
@@ -557,8 +564,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     protected abstract T findRelatedCandidate(TransportAddress relatedAddress);
 
     /**
-     * Returns a String representation of this Candidate
-     * containing its TransportAddress, base, foundation, priority and
+     * Returns a string representation of this candidate containing its TransportAddress, base, foundation, priority and
      * whatever other properties may be relevant.
      *
      * @return a String representation of this Candidate.
@@ -594,6 +600,11 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
             if (networkCost > 0) {
                 buff.append(" network-cost ").append(networkCost);
             }
+        }
+        if (!propertyMap.isEmpty()) {
+            propertyMap.forEach((key, value) -> {
+                buff.append(' ').append(key).append(' ').append(value);
+            });
         }
         return buff.toString();
     }
@@ -791,6 +802,26 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      */
     public void setTcpType(CandidateTcpType tcpType) {
         this.tcpType = tcpType;
+    }
+
+    /**
+     * Sets a property on this candidate.
+     * 
+     * @param key
+     * @param value
+     */
+    public void setProperty(String key, String value) {
+        propertyMap.put(key, value);
+    }
+
+    /**
+     * Returns a value matching the given key in the property map, if it exists.
+     * 
+     * @param key
+     * @return value
+     */
+    public String getProperty(String key) {
+        return propertyMap.get(key);
     }
 
 }

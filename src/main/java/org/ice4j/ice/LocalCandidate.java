@@ -2,8 +2,6 @@
 package org.ice4j.ice;
 
 import java.net.SocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
@@ -32,11 +30,6 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * Whether this LocalCandidate uses SSL.
      */
     private boolean isSSL;
-
-    /**
-     * Property map.
-     */
-    private ConcurrentMap<String, String> propertyMap = new ConcurrentHashMap<>();
     
     /**
      * Creates a LocalCandidate instance for the specified transport address and properties.
@@ -69,7 +62,7 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
         // The default implementation just refers to the method which doesn't involve a remove address.
         // Extenders which support multiple instances mapped by remote address should override.
         IceSocketWrapper iceSocket = IceTransport.getIceHandler().lookupBindingByRemote(remoteAddress);
-        logger.debug("Wrapper from lookup: {} current: {}", iceSocket, getCandidateIceSocketWrapper());
+        logger.warn("Wrapper from lookup: {} current: {}", iceSocket, getCandidateIceSocketWrapper());
         return iceSocket != null ? iceSocket : getCandidateIceSocketWrapper();
     }
 
@@ -101,10 +94,12 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * LocalCandidate is closed only if it is not the socket of the base of this LocalCandidate.
      */
     protected void free() {
+        logger.warn("free! {} {}", ufrag, propertyMap);
         // Close the socket associated with this LocalCandidate.
         IceSocketWrapper socket = getCandidateIceSocketWrapper();
         if (socket != null) {
             LocalCandidate base = getBase();
+            logger.warn("free! {} {} {}", ufrag, socket.getTransportAddress(), base.propertyMap);
             if (base == null || base == this || base.getCandidateIceSocketWrapper() != socket) {
                 // remove our socket from the stack
                 getStunStack().removeSocket(socket.getId(), getTransportAddress());
@@ -180,26 +175,6 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      */
     public void setSSL(boolean isSSL) {
         this.isSSL = isSSL;
-    }
-
-    /**
-     * Sets a property on this candidate.
-     * 
-     * @param key
-     * @param value
-     */
-    public void setProperty(String key, String value) {
-        propertyMap.put(key, value);
-    }
-
-    /**
-     * Returns a value matching the given key in the property map, if it exists.
-     * 
-     * @param key
-     * @return value
-     */
-    public String getProperty(String key) {
-        return propertyMap.get(key);
     }
 
 }

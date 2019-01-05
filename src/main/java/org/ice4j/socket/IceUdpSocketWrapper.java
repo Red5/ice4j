@@ -6,7 +6,6 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.util.Optional;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.future.WriteFuture;
@@ -54,7 +53,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
             // write future for ensuring write/send
             WriteFuture writeFuture = null;
             try {
-                // if no session is set, we're most likely to be in pre-nomination phase
+                // if no session is set, we're likely in the negotiation phase
                 IoSession sess = getSession();
                 if (sess == null) {
                     // attempt to pull the session from the transport
@@ -80,26 +79,16 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                 // if we're not relaying, proceed with normal flow
                 if (relayedCandidateConnection == null || IceDecoder.isTurnMethod(buf.array())) {
                     // ensure that the destination matches the session remote
-                    if (destAddress.equals(sess.getRemoteAddress())) {
+                    if (sess != null) {
                         //if (logger.isTraceEnabled()) {
                         //    logger.trace("Destination match for send: {} -> {}", destAddress, sess.getRemoteAddress());
                         //}
-                        if (sess != null) {
+                        if (destAddress.equals(sess.getRemoteAddress())) {
                             writeFuture = sess.write(buf, destAddress);
                             writeFuture.addListener(writeListener);
                         }
                     } else {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Destination didn't match for send: {} -> {}", destAddress, sess.getRemoteAddress());
-                            // write to the destination alternate if registered even though our active session has already been established
-                            IceUdpTransport transport = IceUdpTransport.getInstance(getId());
-                            Optional<IoSession> altSession = Optional.ofNullable(transport.getSessionByRemote(destAddress));
-                            if (altSession.isPresent()) {
-                                // write messaging through to ensure nomination etc still complete properly
-                                writeFuture = altSession.get().write(buf, destAddress);
-                                writeFuture.addListener(writeListener);
-                            }
-                        }
+                        logger.warn("Session established, skipping write to: {}", destAddress);
                     }
                 } else {
                     if (logger.isTraceEnabled()) {

@@ -6,9 +6,7 @@ import java.beans.PropertyChangeListener;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +22,6 @@ public class ComponentSocket implements PropertyChangeListener {
      * The owning {@link Component}.
      */
     private Component component;
-
-    /**
-     * Whether we have invoked {@link #initializeActive}.
-     */
-    private AtomicBoolean initializedActive = new AtomicBoolean(false);
 
     /**
      * The set of remote addresses, which this socket is allowed to receive from. These should be the addresses which we have confirmed
@@ -66,6 +59,7 @@ public class ComponentSocket implements PropertyChangeListener {
      * {@inheritDoc}
      * <br>
      * Handles property change events coming from ICE pairs.
+     * 
      * @param event
      */
     @Override
@@ -74,8 +68,7 @@ public class ComponentSocket implements PropertyChangeListener {
         if (event.getSource() instanceof CandidatePair) {
             CandidatePair pair = (CandidatePair) event.getSource();
             if (!pair.getParentComponent().equals(component)) {
-                // Events are fired by the IceMediaStream, which might have multiple components. Make sure that we only handle events
-                // for our own component.
+                // Events are fired by the IceMediaStream, ensure that we only handle events for our component
                 return;
             }
             String propertyName = event.getPropertyName();
@@ -83,28 +76,6 @@ public class ComponentSocket implements PropertyChangeListener {
                 CandidatePairState newState = (CandidatePairState) event.getNewValue();
                 if (CandidatePairState.SUCCEEDED.equals(newState)) {
                     addAuthorizedAddress(pair.getRemoteCandidate().getTransportAddress());
-                }
-            } else if (IceMediaStream.PROPERTY_PAIR_NOMINATED.equals(propertyName)) {
-                if (initializedActive.compareAndSet(false, true)) {
-                    // Find the remote address and the correct socket to be used by the pair.
-                    LocalCandidate localCandidate = pair.getLocalCandidate();
-                    LocalCandidate base = localCandidate.getBase();
-                    if (base != null) {
-                        localCandidate = base;
-                    }
-                    TransportAddress remoteAddress = null;
-                    RemoteCandidate remoteCandidate = pair.getRemoteCandidate();
-                    if (remoteCandidate != null) {
-                        remoteAddress = remoteCandidate.getTransportAddress();
-                    }
-                    // The local candidate may have more than one associated socket.
-                    // Make sure we get the one for the remote address that we are going to use.
-                    socketWrapper = localCandidate.getCandidateIceSocketWrapper(remoteAddress);
-                    // The remote address of the last received packet.
-                    // Note that this is updated only when a packet is received from this {@link SocketContainer} via {@link #receive(DatagramPacket)}, and
-                    // not when a packet is received from the underlying socket by its read thread. This is in order to prevent poisoning of the remote
-                    // address, since the verification of the address is performed by the {@link MergingDatagramSocket} after it invokes {@link #receive(DatagramPacket)}.
-                    socketWrapper.setRemoteTransportAddress(remoteAddress);
                 }
             }
         }

@@ -189,7 +189,19 @@ public class StunStack implements MessageEventHandler {
         // clean up server bindings and listener
         IceTransport transport = IceTransport.getInstance(localAddr.getTransport(), id);
         if (transport != null) {
-            transport.removeBinding(localAddr);
+            if (IceTransport.isSharedAcceptor()) {
+                // shared, so don't kill it, just remove binding
+                transport.removeBinding(localAddr);
+            } else {
+                // remove binding
+                transport.removeBinding(localAddr);
+                try {
+                    // not-shared, kill it
+                    transport.stop();
+                } catch (Exception e) {
+                    logger.warn("Exception stopping transport", e);
+                }
+            }
         }
         // first cancel all transactions using this address
         cancelTransactionsForAddress(localAddr, remoteAddr);

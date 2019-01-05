@@ -84,7 +84,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * The {@link TransactionID} of the client transaction for a connectivity check over this pair in case it is in the
      * {@link CandidatePairState#IN_PROGRESS} state.
      */
-    private TransactionID connCheckTranID = null;
+    private TransactionID connCheckTranID;
 
     /**
      * The time in milliseconds of the latest consent freshness confirmation.
@@ -242,6 +242,15 @@ public class CandidatePair implements Comparable<CandidatePair> {
         return getState().equals(CandidatePairState.FROZEN);
     }
 
+    /**
+     * Returns whether this candidate pair has succeeded or not.
+     * 
+     * @return true if this candidate pair has succeeded and false otherwise
+     */
+    public boolean isSucceeded() {
+        return getState().equals(CandidatePairState.SUCCEEDED);
+    }    
+    
     /**
      * Returns the candidate in this pair that belongs to the controlling agent.
      *

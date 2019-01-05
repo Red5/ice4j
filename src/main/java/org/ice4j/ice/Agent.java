@@ -31,6 +31,7 @@ import org.ice4j.ice.harvest.MappingCandidateHarvester;
 import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.ice4j.ice.harvest.TrickleCallback;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
 import org.slf4j.Logger;
@@ -87,7 +88,7 @@ public class Agent {
     /**
      * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
      */
-    public static final int DEFAULT_TERMINATION_DELAY = 50; // spec says 3s, but there's no good reason for that value imho
+    public static final int DEFAULT_TERMINATION_DELAY = 3000; // spec says 3s, but there's no good reason for that value imho
 
     /**
      * The name of the {@link PropertyChangeEvent} that we use to deliver events on changes in the state of ICE processing in this agent.
@@ -239,8 +240,12 @@ public class Agent {
     /**
      * Termination delay period to wait after connectivity checks are complete.
      */
-    private long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
+    private static long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
 
+    static {
+        logger.info("Termination delay: {}ms", terminationDelay);
+    }
+    
     /**
      * Creates an empty Agent with no streams, and no address.
      */
@@ -277,7 +282,7 @@ public class Agent {
         for (MappingCandidateHarvester harvester : MappingCandidateHarvesters.getHarvesters()) {
             addCandidateHarvester(harvester);
         }
-        logger.debug("Created a new Agent, ufrag={}", ufrag);
+        logger.debug("Created a new Agent ufrag: {}", ufrag);
     }
 
     /**
@@ -1186,9 +1191,8 @@ public class Agent {
     }
 
     /**
-     * After updating check list states as a result of an incoming response
-     * or a timeout event the method goes through all check lists and tries
-     * to assess the state of ICE processing.
+     * After updating check list states as a result of an incoming response or a timeout event the method goes through
+     * all check lists and tries to assess the state of ICE processing.
      */
     protected void checkListStatesUpdated() {
         boolean allListsEnded = true;
@@ -1235,6 +1239,7 @@ public class Agent {
             // schedule STUN checks for selected candidates
             scheduleStunKeepAlive();
         }
+        // give things a moment to settle.. then TERMINATE
         scheduleTermination();
         //print logs for the types of addresses we chose
         if (logger.isDebugEnabled()) {
@@ -1243,9 +1248,8 @@ public class Agent {
     }
 
     /**
-     * Goes through all streams and components and prints into the logs the type
-     * of local candidates that were selected as well as the server that
-     * were used (if any) to obtain them.
+     * Goes through all streams and components and prints into the logs the type of local candidates that were selected
+     * as well as the server that were used (if any) to obtain them.
      */
     private void logCandTypes() {
         for (IceMediaStream stream : getStreams()) {
@@ -1735,10 +1739,56 @@ public class Agent {
             logger.trace("Termination delay: {}", terminationDelay);
             if (terminationDelay >= 0) {
                 try {
+                    // sleep a few ticks...
                     Thread.sleep(terminationDelay);
                 } catch (InterruptedException ie) {
-                    logger.warn("Interrupted while waiting. Will speed up termination", ie);
+                    logger.warn("Termination sleep interrupted", ie);
                 }
+            }
+            try {
+                // loop through the streams and setup the selected pair with the ice socket
+                getStreams().forEach(stream -> {
+                    stream.getComponents().forEach(component -> {
+                        CandidatePair selectedPair = component.getSelectedPair();
+                        if (selectedPair != null) {
+                            logger.info("Selected pair: {}", selectedPair);
+                            Candidate<LocalCandidate> localCandidate = selectedPair.getLocalCandidate();
+                            LocalCandidate base = localCandidate.getBase();
+                            if (base != null) {
+                                localCandidate = base;
+                            }
+                            RemoteCandidate remoteCandidate = selectedPair.getRemoteCandidate();
+                            if (remoteCandidate != null) {
+                                TransportAddress remoteAddress = remoteCandidate.getTransportAddress();
+                                //logger.info("Remote address: {}", remoteAddress);
+                                IceSocketWrapper socketWrapper = base.getCandidateIceSocketWrapper(remoteAddress);
+                                if (selectedPair.isNominated()) {
+                                    logger.info("Setting remote address: {} on icesocket", remoteAddress);
+                                    socketWrapper.setRemoteTransportAddress(remoteAddress);
+                                }
+                                /*
+                                // get the transport id so we can use it for clean up
+                                if (socketWrapper.isUDP()) {
+                                    final IceUdpTransport transport = IceUdpTransport.getInstance(socketWrapper.getId());
+                                    // clean up candidate sessions not selected
+                                    component.getRemoteCandidates().forEach(candidate -> {
+                                        //logger.info("Clean up check for remote address: {}", candidate.getTransportAddress());
+                                        Optional<IoSession> session = Optional.ofNullable(transport.getSessionByRemote(candidate.getTransportAddress()));
+                                        if (session.isPresent()) {
+                                            if (!session.get().containsAttribute(Ice.ACTIVE_SESSION)) {
+                                                logger.warn("Cleaning up non-active session: {}", session.get().getId());
+                                                session.get().closeNow();
+                                            }
+                                        }
+                                    });
+                                }
+                                */
+                            }
+                        }
+                    });
+                });
+            } catch (Exception e) {
+                logger.warn("Exception during termination", e);
             }
             terminate(IceProcessingState.TERMINATED);
         }

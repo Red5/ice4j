@@ -566,7 +566,7 @@ public class IceMediaStream {
     }
 
     /**
-     * Adds l to the list of listeners registered for property changes if {@link CandidatePair}s. We add such listeners in the stream, rather
+     * Adds to the list of listeners registered for property changes if {@link CandidatePair}s. We add such listeners in the stream, rather
      * than having them in the candidate pair itself, because we don't want all pairs to keep lists of references to the same listeners.
      *
      * @param l the listener to register.
@@ -578,7 +578,7 @@ public class IceMediaStream {
     }
 
     /**
-     * Removes l from the list of listeners registered for property changes.
+     * Removes from the list of listeners registered for property changes.
      *
      * @param l the listener to remove.
      */

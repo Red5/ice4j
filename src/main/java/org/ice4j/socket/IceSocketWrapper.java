@@ -24,6 +24,7 @@ import org.apache.mina.transport.socket.SocketSessionConfig;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.nio.IceTransport;
+import org.ice4j.ice.nio.IceTransport.Ice;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
@@ -197,6 +198,8 @@ public abstract class IceSocketWrapper {
             Optional<IoSession> opt = Optional.ofNullable(sess);
             if (opt.isPresent()) {
                 logger.debug("Close session: {}", sess.getId());
+                // get the associated tranport id
+                String id = getId();
                 // clear session
                 session.set(NULL_SESSION);
                 try {
@@ -210,6 +213,32 @@ public abstract class IceSocketWrapper {
                         if (!future.isClosed()) {
                             logger.info("CloseFuture not closed: {}", sess.getId());
                         }
+                        // additional clean up steps
+                        Optional<Object> stunStack = Optional.ofNullable(sess.removeAttribute(IceTransport.Ice.STUN_STACK));
+                        if (stunStack.isPresent()) {
+                            // part of the removal process in stunstack removes the binding on the transport
+                            ((StunStack) stunStack.get()).removeSocket(id, transportAddress, remoteTransportAddress);
+                        } else {
+                            // if theres no stun stack, go the direct route
+                            IceTransport transport = IceTransport.getInstance((isUDP() ? Transport.UDP : Transport.TCP), id);
+                            if (transport != null) {
+                                if (IceTransport.isSharedAcceptor()) {
+                                    // shared, so don't kill it, just remove binding
+                                    transport.removeBinding(transportAddress);
+                                } else {
+                                    // remove binding
+                                    transport.removeBinding(transportAddress);
+                                    try {
+                                        // not-shared, kill it
+                                        transport.stop();
+                                    } catch (Exception e) {
+                                        logger.warn("Exception stopping transport", e);
+                                    }
+                                }
+                            } else {
+                                logger.debug("Transport for id: {} was not found", id);
+                            }
+                        }
                     }
                 } catch (Throwable t) {
                     logger.warn("Fail on close", t);
@@ -217,41 +246,6 @@ public abstract class IceSocketWrapper {
             }
             // clear out raw messages lingering around at close
             rawMessageQueue.clear();
-            // get the transport / acceptor identifier
-            String id = (String) sess.getAttribute(IceTransport.Ice.UUID);
-            // determine transport type
-            Transport transportType = (sess.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
-            // ensure transport is correct using metadata if its set to TCP
-            if (transportType == Transport.TCP && sess.getTransportMetadata().isConnectionless()) {
-                transportType = Transport.UDP;
-            }
-            InetSocketAddress inetAddr = (InetSocketAddress) sess.getLocalAddress();
-            TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-            // clean-up
-            if (sess.containsAttribute(IceTransport.Ice.STUN_STACK)) {
-                // get the stun stack
-                StunStack stunStack = (StunStack) sess.removeAttribute(IceTransport.Ice.STUN_STACK);
-                stunStack.removeSocket(id, addr, getRemoteTransportAddress());
-            }
-            // get transport by type
-            IceTransport transport = IceTransport.getInstance(transportType, id);
-            if (transport != null) {
-                if (IceTransport.isSharedAcceptor()) {
-                    // shared, so don't kill it, just remove binding
-                    transport.removeBinding(addr);
-                } else {
-                    // remove binding
-                    transport.removeBinding(addr);
-                    try {
-                        // not-shared, kill it
-                        transport.stop();
-                    } catch (Exception e) {
-                        logger.warn("Exception stopping transport", e);
-                    }
-                }
-            } else {
-                logger.debug("Transport for id: {} was not found", id);
-            }
             logger.trace("Exit close: {} closed: {}", this, closed);
         }
     }
@@ -358,20 +352,13 @@ public abstract class IceSocketWrapper {
             session.set(NULL_SESSION);
         } else if (session.compareAndSet(NULL_SESSION, newSession)) {
             // set the connection attribute
-            newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-        } else if (session.get().getId() != newSession.getId()) {
-            // if there was an old session and its not a dummy or incoming one replace it
-            IoSession oldSession = session.get(); // no overwrite session.getAndSet(newSession);
-            logger.info("Sessions didn't match, current session: {}", oldSession);
-            // set the connection attribute
-            //newSession.setAttribute(IceTransport.Ice.CONNECTION, this);
-            //logger.debug("Closing previous session: {}", oldSession);
-            //CloseFuture future = oldSession.closeNow();
-            // wait a few ticks for the old session to close
-            //future.awaitUninterruptibly(500L);
-            //logger.debug("Session closed: {}", future.isClosed());
-            logger.debug("Closing incoming session: {}", newSession);
-            newSession.closeOnFlush();
+            newSession.setAttribute(Ice.CONNECTION, this);
+            // flag the session as selected / active!
+            newSession.setAttribute(Ice.ACTIVE_SESSION, Boolean.TRUE);
+        //} else if (session.get().getId() != newSession.getId()) {
+        //logger.warn("Sessions don't match, current: {} incoming: {}", session.get(), newSession);
+        } else {
+            logger.warn("Session already set: {} incoming: {}", session.get(), newSession);
         }
     }
 
@@ -390,7 +377,9 @@ public abstract class IceSocketWrapper {
      * @return transport address
      */
     public TransportAddress getTransportAddress() {
-        logger.debug("getTransportAddress: {} session: {}", transportAddress, getSession());
+        if (logger.isTraceEnabled()) {
+            logger.trace("getTransportAddress: {} session: {}", transportAddress, getSession());
+        }
         if (transportAddress == null && !session.get().equals(NULL_SESSION)) {
             if (this instanceof IceUdpSocketWrapper) {
                 transportAddress = new TransportAddress((InetSocketAddress) session.get().getLocalAddress(), Transport.UDP);
@@ -418,6 +407,14 @@ public abstract class IceSocketWrapper {
             // set the selected session on the wrapper
             setSession(sess);
         }
+        // clear the queue of any messages not meant for the remote address being set
+        rawMessageQueue.forEach(message -> {
+            TransportAddress messageRemoteAddress = message.getRemoteAddress();
+            if (!messageRemoteAddress.equals(remoteAddress)) {
+                logger.warn("Ejecting message from {}", messageRemoteAddress);
+                rawMessageQueue.remove(message);
+            }
+        });
     }
 
     public TransportAddress getRemoteTransportAddress() {

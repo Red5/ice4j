@@ -1,9 +1,3 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
- * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under the License.
- */
 package org.ice4j;
 
 import java.util.ArrayList;
@@ -13,8 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The class contains a number of property names and their default values that
- * we use to configure the behavior of the ice4j stack.
+ * The class contains a number of property names and their default values that we use to configure the behavior of the ice4j stack.
  *
  * @author Emil Ivov
  */
@@ -23,8 +16,7 @@ public class StackProperties {
     private static final Logger logger = LoggerFactory.getLogger(StackProperties.class);
 
     /**
-     * The name of the property containing the number of binds that we should
-     * should execute in case a port is already bound to (each retry would be on
+     * The name of the property containing the number of binds that we should should execute in case a port is already bound to (each retry would be on
      * a new random port).
      */
     public static final String BIND_RETRIES = "org.ice4j.BIND_RETRIES";
@@ -36,8 +28,7 @@ public class StackProperties {
     public static final int BIND_RETRIES_DEFAULT_VALUE = 3;
 
     /**
-     * The name of the property that tells if we should bind to the
-     * wildcard address instead of the (usually more specific) harvest candidate
+     * The name of the property that tells if we should bind to the wildcard address instead of the (usually more specific) harvest candidate
      * addresses.
      *
      * The wildcard is a special local IP address. It usually means "any".
@@ -45,53 +36,42 @@ public class StackProperties {
     public static final String BIND_WILDCARD = "org.ice4j.BIND_WILDCARD";
 
     /**
-     * How often a STUN Binding request used for consent freshness check will be
-     * sent(value in milliseconds).
+     * How often a STUN Binding request used for consent freshness check will be sent(value in milliseconds).
      */
     public static final String CONSENT_FRESHNESS_INTERVAL = "org.ice4j.ice.CONSENT_FRESHNESS_INTERVAL";
 
     /**
-     * The maximum number of retransmissions of a STUN Binding request without
-     * a valid STUN Binding response after which consent freshness is to be
-     * considered unconfirmed according to &quot;STUN Usage for Consent
-     * Freshness&quot;.
+     * The maximum number of retransmissions of a STUN Binding request without a valid STUN Binding response after which consent freshness is to be
+     * considered unconfirmed according to &quot;STUN Usage for Consent Freshness&quot;.
      */
     public static final String CONSENT_FRESHNESS_MAX_RETRANSMISSIONS = "org.ice4j.ice.CONSENT_FRESHNESS_MAX_RETRANSMISSIONS";
 
     /**
-     * The number of milliseconds without a valid STUN Binding response after
-     * which a STUN Binding request is to be retransmitted according to
-     * &quot;STUN Usage for Consent Freshness&quot;. This is the final value
-     * for the back-off strategy.
-     * {@link #CONSENT_FRESHNESS_ORIGINAL_WAIT_INTERVAL} defines the initial
-     * interval for the first request sent. Value in milliseconds.
+     * The number of milliseconds without a valid STUN Binding response after which a STUN Binding request is to be retransmitted according to
+     * &quot;STUN Usage for Consent Freshness&quot;. This is the final value for the back-off strategy.
+     * {@link #CONSENT_FRESHNESS_ORIGINAL_WAIT_INTERVAL} defines the initial interval for the first request sent. Value in milliseconds.
      */
     public static final String CONSENT_FRESHNESS_MAX_WAIT_INTERVAL = "org.ice4j.ice.CONSENT_FRESHNESS_MAX_WAIT_INTERVAL";
 
     /**
-     * The number of milliseconds without a valid STUN Binding response after
-     * which a STUN Binding request is to be retransmitted according to
-     * &quot;STUN Usage for Consent Freshness&quot;. This is the original value
-     * for back-off strategy. {@link #CONSENT_FRESHNESS_MAX_WAIT_INTERVAL} sets
+     * The number of milliseconds without a valid STUN Binding response after which a STUN Binding request is to be retransmitted according to
+     * &quot;STUN Usage for Consent Freshness&quot;. This is the original value or back-off strategy. {@link #CONSENT_FRESHNESS_MAX_WAIT_INTERVAL} sets
      * the upper limit. Value in milliseconds.
      */
     public static final String CONSENT_FRESHNESS_ORIGINAL_WAIT_INTERVAL = "org.ice4j.ice.CONSENT_FRESHNESS_WAIT_INTERVAL";
 
     /**
-     * The number of milliseconds a client transaction should wait before
-     * retransmitting, after it has sent a request for the first time.
+     * The number of milliseconds a client transaction should wait before retransmitting, after it has sent a request for the first time.
      */
     public static final String FIRST_CTRAN_RETRANS_AFTER = "org.ice4j.FIRST_CTRAN_RETRANS_AFTER";
 
     /**
-     * The maximum number of milliseconds that an exponential client
-     * retransmission timer can reach.
+     * The maximum number of milliseconds that an exponential client retransmission timer can reach.
      */
     public static final String MAX_CTRAN_RETRANS_TIMER = "org.ice4j.MAX_CTRAN_RETRANS_TIMER";
 
     /**
-     * Indicates whether a client transaction should be kept after a response
-     * is received rather than destroying it which is the default.
+     * Indicates whether a client transaction should be kept after a response is received rather than destroying it which is the default.
      */
     public static final String KEEP_CRANS_AFTER_A_RESPONSE = "org.ice4j.KEEP_CRANS_AFTER_A_RESPONSE";
 
@@ -101,45 +81,38 @@ public class StackProperties {
     public static final String MAX_CTRAN_RETRANSMISSIONS = "org.ice4j.MAX_RETRANSMISSIONS";
 
     /**
-     * The name of the System property that allows us to set a custom maximum
-     * for check list sizes.
+     * The name of the System property that allows us to set a custom maximum for check list sizes.
      */
     public static final String MAX_CHECK_LIST_SIZE = "org.ice4j.MAX_CHECK_LIST_SIZE";
 
     /**
-     * The value of the SOFTWARE attribute that ice4j should include in all
-     * outgoing messages.
+     * The value of the SOFTWARE attribute that ice4j should include in all outgoing messages.
      */
     public static final String SOFTWARE = "org.ice4j.SOFTWARE";
 
     /**
-     * The name of the property that tells the stack whether or not it should
-     * let the application see retransmissions of incoming requests.
+     * The name of the property that tells the stack whether or not it should let the application see retransmissions of incoming requests.
      */
     public static final String PROPAGATE_RECEIVED_RETRANSMISSIONS = "org.ice4j.PROPAGATE_RECEIVED_RETRANSMISSIONS";
 
     /**
-     * A property that allows us to specify whether we would expect link local
-     * IPv6 addresses to be able to reach globally routable ones.
+     * A property that allows us to specify whether we would expect link local IPv6 addresses to be able to reach globally routable ones.
      */
     public static final String ALLOW_LINK_TO_GLOBAL_REACHABILITY = "org.ice4j.ALLOW_LINK_TO_GLOBAL_REACHABILITY";
 
     /**
-     * The name of the property that allows us to tell the stack to always
-     * sign STUN messages with a FINGERPRINT attribute.
+     * The name of the property that allows us to tell the stack to always sign STUN messages with a FINGERPRINT attribute.
      */
     public static final String ALWAYS_SIGN = "org.ice4j.ALWAYS_SIGN";
 
     /**
-     * Tells the stack whether to reject all incoming requests that do not
-     * carry a MESSAGE-INTEGRITY header.
+     * Tells the stack whether to reject all incoming requests that do not carry a MESSAGE-INTEGRITY header.
      */
     public static final String REQUIRE_MESSAGE_INTEGRITY = "org.ice4j.REQUIRE_MESSAGE_INTEGRITY";
 
     /**
-     * The name of the property that can be used to specify the number of
-     * milliseconds that we must wait after ICE processing enters a COMPLTED
-     * state and before we free candidates and move into the TERMINATED state.
+     * The name of the property that can be used to specify the number of milliseconds that we must wait after ICE processing
+     * enters a COMPLETED state and before we free candidates and move into the TERMINATED state.
      */
     public static final String TERMINATION_DELAY = "org.ice4j.TERMINATION_DELAY";
 
@@ -150,12 +123,9 @@ public class StackProperties {
     public static final String NO_KEEP_ALIVES = "org.ice4j.NO_KEEP_ALIVES";
 
     /**
-     * THIS PROPERTY IS CURRENTLY UNUSED. IF YOU WANT TO SPEED UP NOMINATIONS
-     * THEN CONSIDER SPEEDING UP TRANSACTION FAILURE FOR THE TIME BEING.
-     * The maximum number of milliseconds that we should wait for a check list
-     * to complete before nominating one of its valid pairs (unless there are
-     * none in which case we may have to wait until one appears or the whole
-     * list fails). Default value is -1 which causes the nominator
+     * THIS PROPERTY IS CURRENTLY UNUSED. IF YOU WANT TO SPEED UP NOMINATIONS THEN CONSIDER SPEEDING UP TRANSACTION FAILURE FOR THE TIME BEING.
+     * The maximum number of milliseconds that we should wait for a check list to complete before nominating one of its valid pairs (unless there are
+     * none in which case we may have to wait until one appears or the whole list fails). Default value is -1 which causes the nominator
      * to wait until the check list completes or fails.
      */
     public static final String NOMINATION_TIMER = "org.ice4j.NOMINATION_TIMER";
