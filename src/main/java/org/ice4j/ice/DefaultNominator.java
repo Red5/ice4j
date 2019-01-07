@@ -62,7 +62,7 @@ public class DefaultNominator implements PropertyChangeListener {
      */
     public void propertyChange(PropertyChangeEvent ev) {
         String propertyName = ev.getPropertyName();
-        if (Agent.PROPERTY_ICE_PROCESSING_STATE.equals(propertyName)) {
+        if (IceProcessingState.class.getName().equals(propertyName)) {
             if (ev.getNewValue() != IceProcessingState.RUNNING) {
                 return;
             }

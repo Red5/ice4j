@@ -61,6 +61,11 @@ public class Agent {
     private final static SecureRandom random = new SecureRandom();
 
     /**
+     * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
+     */
+    private static final int DEFAULT_TERMINATION_DELAY = 3000; // spec says 3s, but there's no good reason for that value imho
+
+    /**
      * Default value for {@link StackProperties#CONSENT_FRESHNESS_INTERVAL}.
      */
     private static final int DEFAULT_CONSENT_FRESHNESS_INTERVAL = 15000;
@@ -86,14 +91,9 @@ public class Agent {
     public static final int DEFAULT_MAX_CHECK_LIST_SIZE = 12;
 
     /**
-     * The default number of milliseconds we should wait before moving from {@link IceProcessingState#COMPLETED} into {@link IceProcessingState#TERMINATED}.
+     * Termination delay period to wait after connectivity checks are complete.
      */
-    public static final int DEFAULT_TERMINATION_DELAY = 3000; // spec says 3s, but there's no good reason for that value imho
-
-    /**
-     * The name of the {@link PropertyChangeEvent} that we use to deliver events on changes in the state of ICE processing in this agent.
-     */
-    public static final String PROPERTY_ICE_PROCESSING_STATE = "IceProcessingState";
+    private static long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
 
     /**
      * The Map used to store the media streams.
@@ -238,9 +238,9 @@ public class Agent {
     private Boolean useHostHarvester;
 
     /**
-     * Termination delay period to wait after connectivity checks are complete.
+     * Property map.
      */
-    private static long terminationDelay = StackProperties.getInt(StackProperties.TERMINATION_DELAY, DEFAULT_TERMINATION_DELAY);
+    private ConcurrentMap<String, String> propertyMap = new ConcurrentHashMap<>();
 
     static {
         logger.info("Termination delay: {}ms", terminationDelay);
@@ -577,7 +577,7 @@ public class Agent {
      */
     private void fireStateChange(IceProcessingState oldState, IceProcessingState newState) {
         Collection<PropertyChangeListener> stateListenersCopy = Collections.unmodifiableCollection(stateListeners);
-        final PropertyChangeEvent evt = new PropertyChangeEvent(this, PROPERTY_ICE_PROCESSING_STATE, oldState, newState);
+        final PropertyChangeEvent evt = new PropertyChangeEvent(this, IceProcessingState.class.getName(), oldState, newState);
         stateListenersCopy.forEach(listener -> {
             listener.propertyChange(evt);
         });
@@ -866,6 +866,11 @@ public class Agent {
         buff.append(" ice-pwd:").append(getLocalPassword());
         buff.append(" ice-ufrag:").append(getLocalUfrag());
         buff.append(" tie-breaker:").append(getTieBreaker());
+        if (!propertyMap.isEmpty()) {
+            propertyMap.forEach((key, value) -> {
+                buff.append(' ').append(key).append(':').append(value);
+            });
+        }
         buff.append("):\n");
         for (IceMediaStream stream : getStreams()) {
             buff.append(stream).append("\n");
@@ -1720,6 +1725,26 @@ public class Agent {
      */
     public void setUseHostHarvester(boolean useHostHarvester) {
         this.useHostHarvester = useHostHarvester;
+    }
+
+    /**
+     * Sets a property on this candidate.
+     * 
+     * @param key
+     * @param value
+     */
+    public void setProperty(String key, String value) {
+        propertyMap.put(key, value);
+    }
+
+    /**
+     * Returns a value matching the given key in the property map, if it exists.
+     * 
+     * @param key
+     * @return value
+     */
+    public String getProperty(String key) {
+        return propertyMap.get(key);
     }
 
     /**
