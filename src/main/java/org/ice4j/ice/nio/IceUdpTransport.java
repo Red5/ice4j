@@ -36,9 +36,12 @@ public class IceUdpTransport extends IceTransport {
 
     private Semaphore lock = new Semaphore(1, true);
 
-    private IoSessionRecycler recycler = new IoSessionRecycler() {
+    /**
+     * Recycler's session map.
+     */
+    private ConcurrentMap<String, IoSession> sessions = new ConcurrentHashMap<>();
 
-        ConcurrentMap<String, IoSession> sessions = new ConcurrentHashMap<>();
+    private IoSessionRecycler recycler = new IoSessionRecycler() {
 
         @Override
         public void put(IoSession session) {
@@ -271,6 +274,25 @@ public class IceUdpTransport extends IceTransport {
             logger.debug("No UDP acceptor available");
         }
         return session;
+    }
+
+    /**
+     * Returns the first session matching the given local address and port.
+     * 
+     * @param localAddress
+     * @return IoSession if match is found and null if not found
+     */
+    public IoSession getSessionByLocal(TransportAddress localAddress) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Session values: {}", sessions.values());
+        }
+        for (IoSession sess : sessions.values()) {
+            if (sess.getLocalAddress().equals(localAddress)) {
+                logger.debug("Found match for {} = {}", localAddress, sess);
+                return sess;
+            }
+        }
+        return null;
     }
 
     /**

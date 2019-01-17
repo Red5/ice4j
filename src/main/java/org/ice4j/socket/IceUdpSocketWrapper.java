@@ -4,6 +4,7 @@ package org.ice4j.socket;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 
@@ -63,16 +64,31 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                     // if theres no registered session pointing to the destination, create one
                     if (sess == null) {
                         try {
-                            // if the ports not bound, bind it
-                            logger.info("Port bound: {}", transport.isBound(transportAddress.getPort()));
-                            if (!transport.isBound(transportAddress.getPort())) {
+                            // if the ports not already bound, bind it
+                            boolean portBound = transport.isBound(transportAddress.getPort());
+                            logger.debug("Port bound: {}", portBound);
+                            if (portBound) {
+                                // if the port is already bound but no session is set as of yet; look up a usable session
+                                // in transport vs making a new one to prevent dupes with the same end points.
+                                logger.debug("No session, searching transport for: {} to: {}", transportAddress, destAddress);
+                                sess = transport.getSessionByLocal(transportAddress);
+                            } else {
+                                // bind it
                                 transport.addBinding(transportAddress);
                             }
-                            logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
-                            // attempt to create a server session, if it fails the local address isn't bound
-                            sess = transport.createSession(this, destAddress);
+                            // if the session wasn't found elsewhere, create one
+                            if (sess == null) {
+                                // verify that the address can be reached first
+                                if (InetAddress.getByName(((InetSocketAddress) destAddress).getHostString()).isReachable(500)) {
+                                    logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
+                                    // attempt to create a server session, if it fails the local address isn't bound
+                                    sess = transport.createSession(this, destAddress);
+                                } else {
+                                    logger.warn("Destination address: {} not reachable from: {}", destAddress, transportAddress);
+                                }
+                            }
                         } catch (Exception e) {
-                            logger.warn("Exception creating new session using acceptor for {}", transportAddress, e);
+                            logger.warn("Exception getting session for: {}", transportAddress, e);
                         }
                     }
                 }
