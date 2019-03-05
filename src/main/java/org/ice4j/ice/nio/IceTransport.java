@@ -165,12 +165,13 @@ public abstract class IceTransport {
                         public Boolean call() throws Exception {
                             logger.debug("Removing binding: {}", addr);
                             // remove the port from the list
-                            boundPorts.remove(port);
-                            // perform the unbinding
-                            synchronized (acceptor) {
-                                acceptor.unbind(addr);
+                            if (boundPorts.remove(port)) {
+                                // perform the unbinding
+                                synchronized (acceptor) {
+                                    acceptor.unbind(addr);
+                                }
+                                logger.debug("Binding removed: {}", addr);
                             }
-                            logger.debug("Binding removed: {}", addr);
                             return Boolean.TRUE;
                         }
 
