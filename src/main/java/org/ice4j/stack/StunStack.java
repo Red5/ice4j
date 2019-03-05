@@ -256,6 +256,7 @@ public class StunStack implements MessageEventHandler {
      * @param remoteAddr the remote TransportAddress that we'd like to remove transactions for. If null, then it will not be taken
      * into account (that is, all transactions with for localAddr will be cancelled).
      */
+    @SuppressWarnings("unlikely-arg-type")
     private void cancelTransactionsForAddress(TransportAddress localAddr, TransportAddress remoteAddr) {
         for (StunClientTransaction tran : clientTransactions.values()) {
             if (tran.getLocalAddress().equals(localAddr) && (remoteAddr == null || remoteAddr.equals(tran.getRemoteAddress()))) {
