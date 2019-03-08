@@ -51,7 +51,7 @@ public abstract class IceTransport {
 
     // used to set QoS / traffic class option on the sockets
     public static int trafficClass = StackProperties.getInt("TRAFFIC_CLASS", 0);
-    
+
     // thread-safe map containing ice transport instances
     protected static Map<String, IceTransport> transports = new CopyOnWriteMap<>(1);
 
@@ -158,26 +158,30 @@ public abstract class IceTransport {
             try {
                 int port = ((InetSocketAddress) addr).getPort();
                 if (isBound(port)) {
-                    // unbind
-                    Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
+                    // remove the port from the list
+                    if (boundPorts.remove(port)) {
+                        // unbind
+                        Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
 
-                        @Override
-                        public Boolean call() throws Exception {
-                            logger.debug("Removing binding: {}", addr);
-                            // remove the port from the list
-                            if (boundPorts.remove(port)) {
+                            @Override
+                            public Boolean call() throws Exception {
+                                logger.debug("Removing binding: {}", addr);
                                 // perform the unbinding
                                 synchronized (acceptor) {
                                     acceptor.unbind(addr);
                                 }
                                 logger.debug("Binding removed: {}", addr);
+                                return Boolean.TRUE;
                             }
-                            return Boolean.TRUE;
-                        }
 
-                    });
-                    // wait a maximum of x seconds for this to complete the binding
-                    return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+                        });
+                        // wait a maximum of x seconds for this to complete the binding
+                        return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+                    }
+                }
+            } catch (InterruptedException iex) {
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Binding removal interrupted on {}", addr, iex);
                 }
             } catch (TimeoutException tex) {
                 logger.warn("Binding removal timed-out on {}", addr, tex);
@@ -189,7 +193,8 @@ public abstract class IceTransport {
                         acceptor.dispose(false);
                         acceptor = null;
                     }
-                } else {
+                } else if (logger.isDebugEnabled()) {
+                    // putting on the debug guard to prevent flooding the log
                     logger.warn("Remove binding failed on {}", addr, t);
                 }
             }
