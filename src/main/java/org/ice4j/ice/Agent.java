@@ -1747,6 +1747,31 @@ public class Agent {
         return propertyMap.get(key);
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((ufrag == null) ? 0 : ufrag.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Agent other = (Agent) obj;
+        if (ufrag == null) {
+            if (other.ufrag != null)
+                return false;
+        } else if (!ufrag.equals(other.ufrag))
+            return false;
+        return true;
+    }
+
     /**
      * RFC 5245 says: Once ICE processing has reached the Completed state for all peers for media streams using those candidates, the agent SHOULD
      * wait an additional three seconds, and then it MAY cease responding to checks or generating triggered checks on that candidate.  It MAY free

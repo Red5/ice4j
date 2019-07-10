@@ -33,8 +33,7 @@ public class CredentialsManager {
     private final static Logger logger = LoggerFactory.getLogger(CredentialsManager.class);
 
     /**
-     * The list of CredentialsAuthoritys registered with this manager
-     * as being able to provide credentials.
+     * The list of CredentialsAuthoritys registered with this manager as being able to provide credentials.
      */
     private final CopyOnWriteArraySet<CredentialsAuthority> authorities = new CopyOnWriteArraySet<>();
 

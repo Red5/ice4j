@@ -307,4 +307,30 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
             stunStack.removeRequestListener(this);
         }
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((parentAgent == null) ? 0 : parentAgent.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        ConnectivityCheckServer other = (ConnectivityCheckServer) obj;
+        if (parentAgent == null) {
+            if (other.parentAgent != null)
+                return false;
+        } else if (!parentAgent.equals(other.parentAgent))
+            return false;
+        return true;
+    }
+
 }

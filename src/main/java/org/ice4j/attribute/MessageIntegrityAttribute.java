@@ -8,6 +8,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.ice4j.message.Message;
 import org.ice4j.stack.StunStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The MESSAGE-INTEGRITY attribute contains an HMAC-SHA1 [RFC2104] of
@@ -68,7 +70,7 @@ import org.ice4j.stack.StunStack;
  */
 public class MessageIntegrityAttribute extends Attribute implements ContentDependentAttribute {
 
-    //private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessageIntegrityAttribute.class);
 
     /**
      * The HMAC-SHA1 algorithm.
@@ -157,25 +159,21 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
      */
     public static byte[] calculateHmacSha1(byte[] message, int offset, int length, byte[] key) throws IllegalArgumentException {
         byte[] hmac;
-
         try {
             // get an HMAC-SHA1 key from the raw key bytes
             SecretKeySpec signingKey = new SecretKeySpec(key, HMAC_SHA1_ALGORITHM);
             // get an HMAC-SHA1 Mac instance and initialize it with the key
             Mac mac = Mac.getInstance(HMAC_SHA1_ALGORITHM);
-
             mac.init(signingKey);
-
             // compute the hmac on input data bytes
             byte[] macInput = new byte[length];
-
             //doFinal seems incapable to only work with a part of an array
             //so we'd need to create an array that only contains what we
             //actually need to work with.
             System.arraycopy(message, offset, macInput, 0, length);
             hmac = mac.doFinal(macInput);
         } catch (Exception exc) {
-            throw new IllegalArgumentException("Could not create HMAC-SHA1 request encoding: ", exc);
+            throw new IllegalArgumentException("Could not create HMAC-SHA1 request encoding", exc);
         }
         return hmac;
     }
@@ -205,7 +203,7 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
      * dependent encode method.
      */
     public byte[] encode() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("ContentDependentAttributes should be encoded " + "through the content-dependent encode method");
+        throw new UnsupportedOperationException("ContentDependentAttributes should be encoded through the content-dependent encode method");
     }
 
     /**
@@ -236,18 +234,23 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
         binValue[3] = (byte) (getDataLength() & 0x00FF);
         byte[] key = null;
         char msgType = (char) (((content[0] & 0xFF) << 8) | (content[1] & 0xFF));
-        // PR124
         if (Message.isRequestType(msgType) || Message.isIndicationType(msgType)) {
             // attribute part of a request, use the remote key
             key = stunStack.getCredentialsManager().getRemoteKey(username, media);
-        } else if (Message.isSuccessResponseType(msgType) || Message.isErrorResponseType(msgType)) {
+        } else {
+            // default to using the local key to prevent any missing parameters passed to hash/key routine
+            //} else if (Message.isResponseType(msgType)) {
             // attribute part of a response, use the local key
             key = stunStack.getCredentialsManager().getLocalKey(username);
         }
-        //now calculate the HMAC-SHA1
-        hmacSha1Content = calculateHmacSha1(content, offset, length, key);
-        //username
-        System.arraycopy(hmacSha1Content, 0, binValue, 4, getDataLength());
+        if (key.length > 0) {
+            // now calculate the HMAC-SHA1
+            hmacSha1Content = calculateHmacSha1(content, offset, length, key);
+            //username
+            System.arraycopy(hmacSha1Content, 0, binValue, 4, getDataLength());
+        } else {
+            logger.warn("Key bytes were not found for {}", username);
+        }
         return binValue;
     }
 
@@ -268,16 +271,16 @@ public class MessageIntegrityAttribute extends Attribute implements ContentDepen
      * @return true if the attributes are equal and false otherwise.
      */
     public boolean equals(Object obj) {
-        if (!(obj instanceof MessageIntegrityAttribute))
+        if (!(obj instanceof MessageIntegrityAttribute)) {
             return false;
-
-        if (obj == this)
+        }
+        if (obj == this) {
             return true;
-
+        }
         MessageIntegrityAttribute att = (MessageIntegrityAttribute) obj;
-        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength() || !Arrays.equals(att.hmacSha1Content, hmacSha1Content))
+        if (att.getAttributeType() != getAttributeType() || att.getDataLength() != getDataLength() || !Arrays.equals(att.hmacSha1Content, hmacSha1Content)) {
             return false;
-
+        }
         return true;
     }
 }
