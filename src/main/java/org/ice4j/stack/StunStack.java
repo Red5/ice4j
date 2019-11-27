@@ -38,6 +38,7 @@ import org.ice4j.security.CredentialsManager;
 import org.ice4j.security.LongTermCredential;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -748,7 +749,7 @@ public class StunStack implements MessageEventHandler {
      */
     public boolean validateMessageIntegrity(MessageIntegrityAttribute msgInt, String username, boolean shortTermCredentialMechanism, RawMessage message) {
         if (logger.isTraceEnabled()) {
-            logger.trace("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}\nRawMessage: {}\n{}", username, shortTermCredentialMechanism, msgInt.getDataLength(), toHexString(msgInt.getHmacSha1Content()), message.getMessageLength(), toHexString(message.getBytes()));
+            logger.trace("validateMessageIntegrity username: {} short term: {}\nMI attr data length: {} hmac content: {}\nRawMessage: {}\n{}", username, shortTermCredentialMechanism, msgInt.getDataLength(), Utils.toHexString(msgInt.getHmacSha1Content()), message.getMessageLength(), Utils.toHexString(message.getBytes()));
         }
         if (username == null || username.length() < 1 || (shortTermCredentialMechanism && !username.contains(":"))) {
             logger.debug("Received a message with an improperly formatted username");
@@ -765,7 +766,7 @@ public class StunStack implements MessageEventHandler {
         }
         if (logger.isTraceEnabled() && shortTermCredentialMechanism) {
             // no username[1] with long term creds
-            logger.trace("Local key: {} remote key: {}", toHexString(key), toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
+            logger.trace("Local key: {} remote key: {}", Utils.toHexString(key), Utils.toHexString(getCredentialsManager().getRemoteKey(usernameParts[1], "media-0")));
         }
         /*
          * Now check whether the SHA1 matches. Using MessageIntegrityAttribute.calculateHmacSha1 on the bytes of the RawMessage will be incorrect if there are other Attributes
@@ -785,32 +786,11 @@ public class StunStack implements MessageEventHandler {
         }
         byte[] msgIntHmacSha1Content = msgInt.getHmacSha1Content();
         if (!Arrays.equals(expectedMsgIntHmacSha1Content, msgIntHmacSha1Content)) {
-            logger.warn("Received a message with a wrong MESSAGE-INTEGRITY signature expected:\n{}\nreceived:\n{}", toHexString(expectedMsgIntHmacSha1Content), toHexString(msgIntHmacSha1Content));
+            logger.warn("Received a message with a wrong MESSAGE-INTEGRITY signature expected:\n{}\nreceived:\n{}", Utils.toHexString(expectedMsgIntHmacSha1Content), Utils.toHexString(msgIntHmacSha1Content));
             return false;
         }
         logger.trace("Successfully verified msg integrity");
         return true;
-    }
-
-    /**
-     * Returns a String representation of a specific byte array as an unsigned integer in base 16.
-     *
-     * @param bytes the byte to get the String representation of as an unsigned integer in base 16
-     * @return a String representation of the specified byte array as an unsigned integer in base 16
-     */
-    public static String toHexString(byte[] bytes) {
-        if (bytes == null) {
-            return null;
-        } else {
-            StringBuilder hexStringBuilder = new StringBuilder(2 * bytes.length);
-            char[] hexes = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-            for (int i = 0; i < bytes.length; i++) {
-                byte b = bytes[i];
-                hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
-                hexStringBuilder.append(hexes[b & 0x0F]);
-            }
-            return hexStringBuilder.toString();
-        }
     }
 
     /**

@@ -219,7 +219,7 @@ public class Agent {
     /**
      * Indicates that ICE will be shutdown.
      */
-    private boolean shutdown;
+    private volatile boolean shutdown;
 
     /**
      * Indicates that harvesting has been started at least once. Used to warn users who are trying to trickle, that they have already completed a
@@ -245,7 +245,7 @@ public class Agent {
     static {
         logger.info("Termination delay: {}ms", terminationDelay);
     }
-    
+
     /**
      * Creates an empty Agent with no streams, and no address.
      */
@@ -1443,55 +1443,45 @@ public class Agent {
     }
 
     /**
-     * Called by the garbage collector when garbage collection determines that there are no more references to this instance. Calls {@link #free()} on
-     * this instance.
-     *
-     * @throws Throwable if anything goes wrong and the finalization of this instance is to be halted
-     * @see #free()
-     */
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-    }
-
-    /**
      * Prepares this Agent for garbage collection by ending all related processes and freeing its IceMediaStreams, Components
      * and Candidates. This method will also place the agent in the terminated state in case it wasn't already there.
      */
     public void free() {
         logger.debug("Free ICE agent");
-        shutdown = true;
-        // stop sending keep alives (STUN Binding Indications)
-        if (stunKeepAlive != null) {
-            stunKeepAlive.cancel(true);
-            stunKeepAlive = null;
-        }
-        // stop responding to STUN Binding Requests
-        connCheckServer.stop();
-        // set the IceProcessingState#TERMINATED state on this Agent unless it is in a termination state already
-        IceProcessingState state = getState();
-        if (!IceProcessingState.FAILED.equals(state) && !IceProcessingState.TERMINATED.equals(state)) {
-            terminate(IceProcessingState.TERMINATED);
-        }
-        // Free its IceMediaStreams, Components and Candidates.
-        if (!mediaStreams.isEmpty()) {
-            logger.debug("Remove streams");
-            for (IceMediaStream stream : mediaStreams.values()) {
-                try {
-                    removeStream(stream);
-                    logger.debug("Remove stream {}", stream.getName());
-                } catch (Throwable t) {
-                    logger.debug("Remove stream {} failed", stream.getName(), t);
-                    if (t instanceof InterruptedException) {
-                        Thread.currentThread().interrupt();
-                    } else if (t instanceof ThreadDeath) {
-                        throw (ThreadDeath) t;
+        if (!shutdown) {
+            shutdown = true;
+            // stop sending keep alives (STUN Binding Indications)
+            if (stunKeepAlive != null) {
+                stunKeepAlive.cancel(true);
+                stunKeepAlive = null;
+            }
+            // stop responding to STUN Binding Requests
+            connCheckServer.stop();
+            // set the IceProcessingState#TERMINATED state on this Agent unless it is in a termination state already
+            IceProcessingState state = getState();
+            if (!IceProcessingState.FAILED.equals(state) && !IceProcessingState.TERMINATED.equals(state)) {
+                terminate(IceProcessingState.TERMINATED);
+            }
+            // Free its IceMediaStreams, Components and Candidates.
+            if (!mediaStreams.isEmpty()) {
+                logger.debug("Remove streams");
+                for (IceMediaStream stream : mediaStreams.values()) {
+                    try {
+                        removeStream(stream);
+                        logger.debug("Remove stream {}", stream.getName());
+                    } catch (Throwable t) {
+                        logger.debug("Remove stream {} failed", stream.getName(), t);
+                        if (t instanceof InterruptedException) {
+                            Thread.currentThread().interrupt();
+                        } else if (t instanceof ThreadDeath) {
+                            throw (ThreadDeath) t;
+                        }
                     }
                 }
             }
+            getStunStack().shutDown();
+            logger.info("ICE agent freed for: {}", ufrag);
         }
-        getStunStack().shutDown();
-        logger.info("ICE agent freed for: {}", ufrag);
     }
 
     /**
@@ -1817,22 +1807,13 @@ public class Agent {
                                     socketWrapper.setRemoteTransportAddress(remoteAddress);
                                 }
                                 /*
-                                // get the transport id so we can use it for clean up
-                                if (socketWrapper.isUDP()) {
-                                    final IceUdpTransport transport = IceUdpTransport.getInstance(socketWrapper.getId());
-                                    // clean up candidate sessions not selected
-                                    component.getRemoteCandidates().forEach(candidate -> {
-                                        //logger.info("Clean up check for remote address: {}", candidate.getTransportAddress());
-                                        Optional<IoSession> session = Optional.ofNullable(transport.getSessionByRemote(candidate.getTransportAddress()));
-                                        if (session.isPresent()) {
-                                            if (!session.get().containsAttribute(Ice.ACTIVE_SESSION)) {
-                                                logger.warn("Cleaning up non-active session: {}", session.get().getId());
-                                                session.get().closeNow();
-                                            }
-                                        }
-                                    });
-                                }
-                                */
+                                 * // get the transport id so we can use it for clean up if (socketWrapper.isUDP()) { final IceUdpTransport transport =
+                                 * IceUdpTransport.getInstance(socketWrapper.getId()); // clean up candidate sessions not selected component.getRemoteCandidates().forEach(candidate
+                                 * -> { //logger.info("Clean up check for remote address: {}", candidate.getTransportAddress()); Optional<IoSession> session =
+                                 * Optional.ofNullable(transport.getSessionByRemote(candidate.getTransportAddress())); if (session.isPresent()) { if
+                                 * (!session.get().containsAttribute(Ice.ACTIVE_SESSION)) { logger.warn("Cleaning up non-active session: {}", session.get().getId());
+                                 * session.get().closeNow(); } } }); }
+                                 */
                             }
                         }
                     });

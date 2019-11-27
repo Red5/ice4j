@@ -42,56 +42,20 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
 
     /** {@inheritDoc} */
     /*
-    @SuppressWarnings("static-access")
-    @Override
-    public void newSession(SocketAddress destAddress) {
-        logger.debug("newSession: {}", destAddress);
-        // look for an existing acceptor
-        IceTcpTransport transport = IceTcpTransport.getInstance(getId());
-        NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor();
-        if (acceptor != null) {
-            try {
-                if (!transport.isBound(transportAddress.getPort())) {
-                    transport.addBinding(transportAddress);
-                }
-                // if we're not bound, attempt to create a client session
-                NioSocketConnector connector = new NioSocketConnector();
-                SocketSessionConfig config = connector.getSessionConfig();
-                config.setReuseAddress(true);
-                config.setTcpNoDelay(true);
-                // set an idle time of 30s (default)
-                config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout());
-                // QoS
-                config.setTrafficClass(IceTransport.trafficClass);
-                // set connection timeout of x milliseconds
-                connector.setConnectTimeoutMillis(3000L);
-                // add the ice protocol encoder/decoder
-                connector.getFilterChain().addLast("protocol", IceTransport.getProtocolcodecfilter());
-                // re-use the io handler
-                IceHandler handler = IceTransport.getIceHandler();
-                // set the handler on the connector
-                connector.setHandler(handler);
-                // check for existing registration
-                if (handler.lookupBinding(transportAddress) == null) {
-                    // add this socket for attachment to the session upon opening
-                    handler.registerStackAndSocket(null, this);
-                }
-                // connect it
-                ConnectFuture future = connector.connect(destAddress, transportAddress);
-                future.addListener(connectListener);
-            } catch (Throwable t) {
-                logger.warn("Exception creating new session using acceptor for {}, a direct acceptor binding will be attempted", transportAddress, t);
-                try {
-                    acceptor.bind(transportAddress);
-                } catch (Exception e) {
-                    logger.warn("Exception binding for new session using acceptor for {}", transportAddress, e);
-                }
-            }
-        } else {
-            logger.debug("No existing TCP acceptor available");
-        }
-    }
-    */
+     * @SuppressWarnings("static-access")
+     * @Override public void newSession(SocketAddress destAddress) { logger.debug("newSession: {}", destAddress); // look for an existing acceptor IceTcpTransport transport =
+     * IceTcpTransport.getInstance(getId()); NioSocketAcceptor acceptor = (NioSocketAcceptor) transport.getAcceptor(); if (acceptor != null) { try { if
+     * (!transport.isBound(transportAddress.getPort())) { transport.addBinding(transportAddress); } // if we're not bound, attempt to create a client session NioSocketConnector
+     * connector = new NioSocketConnector(); SocketSessionConfig config = connector.getSessionConfig(); config.setReuseAddress(true); config.setTcpNoDelay(true); // set an idle
+     * time of 30s (default) config.setIdleTime(IdleStatus.BOTH_IDLE, IceTransport.getTimeout()); // QoS config.setTrafficClass(IceTransport.trafficClass); // set connection
+     * timeout of x milliseconds connector.setConnectTimeoutMillis(3000L); // add the ice protocol encoder/decoder connector.getFilterChain().addLast("protocol",
+     * IceTransport.getProtocolcodecfilter()); // re-use the io handler IceHandler handler = IceTransport.getIceHandler(); // set the handler on the connector
+     * connector.setHandler(handler); // check for existing registration if (handler.lookupBinding(transportAddress) == null) { // add this socket for attachment to the session
+     * upon opening handler.registerStackAndSocket(null, this); } // connect it ConnectFuture future = connector.connect(destAddress, transportAddress);
+     * future.addListener(connectListener); } catch (Throwable t) { logger.warn("Exception creating new session using acceptor for {}, a direct acceptor binding will be attempted",
+     * transportAddress, t); try { acceptor.bind(transportAddress); } catch (Exception e) { logger.warn("Exception binding for new session using acceptor for {}", transportAddress,
+     * e); } } } else { logger.debug("No existing TCP acceptor available"); } }
+     */
 
     /** {@inheritDoc} */
     @Override
@@ -157,17 +121,19 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
     /** {@inheritDoc} */
     @Override
     public void receive(DatagramPacket p) throws IOException {
-        RawMessage message = rawMessageQueue.poll();
-        if (message != null) {
-            p.setData(message.getBytes(), 0, message.getMessageLength());
-            p.setSocketAddress(message.getRemoteAddress());
+        if (rawMessageQueue != null) {
+            RawMessage message = rawMessageQueue.poll();
+            if (message != null) {
+                p.setData(message.getBytes(), 0, message.getMessageLength());
+                p.setSocketAddress(message.getRemoteAddress());
+            }
         }
     }
 
     /** {@inheritDoc} */
     @Override
     public RawMessage read() {
-        return rawMessageQueue.poll();
+        return rawMessageQueue != null ? rawMessageQueue.poll() : null;
     }
 
     /**

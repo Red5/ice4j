@@ -17,6 +17,7 @@ import org.ice4j.attribute.ContentDependentAttribute;
 import org.ice4j.attribute.FingerprintAttribute;
 import org.ice4j.stack.StunStack;
 import org.ice4j.stack.TransactionID;
+import org.ice4j.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -852,7 +853,7 @@ public abstract class Message {
      */
     public static Message decode(byte[] binMessage, int offset, int arrayLen) throws StunException {
         if (logger.isDebugEnabled()) {
-            logger.debug("decode - offset: {} length: {}\n{}", offset, arrayLen, StunStack.toHexString(Arrays.copyOfRange(binMessage, offset, (offset + arrayLen))));
+            logger.debug("decode - offset: {} length: {}\n{}", offset, arrayLen, Utils.toHexString(Arrays.copyOfRange(binMessage, offset, (offset + arrayLen))));
         }
         int originalOffset = offset;
         arrayLen = Math.min(binMessage.length, arrayLen);

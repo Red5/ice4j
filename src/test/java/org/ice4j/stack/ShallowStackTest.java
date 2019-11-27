@@ -4,8 +4,6 @@ package org.ice4j.stack;
 import java.net.DatagramPacket;
 import java.util.Arrays;
 
-import junit.framework.TestCase;
-
 import org.ice4j.AbstractResponseCollector;
 import org.ice4j.BaseStunMessageEvent;
 import org.ice4j.MsgFixture;
@@ -29,6 +27,7 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import junit.framework.TestCase;
 import test.PortUtil;
 
 /**
@@ -135,8 +134,8 @@ public class ShallowStackTest extends TestCase {
         assertTrue("The stack did not properly send a Binding Request", (receivedPacket.getLength() > 0));
         Request receivedRequest = (Request) Request.decode(receivedPacket.getData(), 0, receivedPacket.getLength());
         assertEquals("The received request did not match the one that was sent", bindingRequest, receivedRequest);
-        logger.info("Sent request: {}", Utils.byteArrayToHexString(bindingRequest.encode(stunStack)));
-        logger.info("Received request: {}", Utils.byteArrayToHexString(receivedRequest.encode(stunStack)));
+        logger.info("Sent request: {}", Utils.toHexString(bindingRequest.encode(stunStack)));
+        logger.info("Received request: {}", Utils.toHexString(receivedRequest.encode(stunStack)));
         // wait for retransmissions
         //dgramCollector.startListening(serverAddress);
         dgramCollector.waitForPacket();
@@ -169,8 +168,8 @@ public class ShallowStackTest extends TestCase {
         byte[] expectedReturn = msgFixture.bindingRequest2;
         byte[] actualReturn = collectedRequest.encode(stunStack);
         assertTrue("Received request was not the same as the one that was sent", Arrays.equals(expectedReturn, actualReturn));
-        logger.info(Utils.byteArrayToHexString(expectedReturn));
-        logger.info(Utils.byteArrayToHexString(actualReturn));
+        logger.info(Utils.toHexString(expectedReturn));
+        logger.info(Utils.toHexString(actualReturn));
     }
 
     /**

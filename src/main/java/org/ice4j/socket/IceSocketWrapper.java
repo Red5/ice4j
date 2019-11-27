@@ -191,6 +191,15 @@ public abstract class IceSocketWrapper {
      */
     public void close(IoSession sess) {
         //logger.debug("Close: {}", this);
+        // clear out raw messages lingering around at close
+        try {
+            if (rawMessageQueue != null) {
+                rawMessageQueue.clear();
+                rawMessageQueue = null;
+            }
+        } catch (Throwable t) {
+            logger.warn("Exception clearing queue", t);
+        }
         if (!closed) {
             // set closed flag
             closed = true;
@@ -244,8 +253,6 @@ public abstract class IceSocketWrapper {
                     logger.warn("Fail on close", t);
                 }
             }
-            // clear out raw messages lingering around at close
-            rawMessageQueue.clear();
             logger.trace("Exit close: {} closed: {}", this, closed);
         }
     }
@@ -355,8 +362,8 @@ public abstract class IceSocketWrapper {
             newSession.setAttribute(Ice.CONNECTION, this);
             // flag the session as selected / active!
             newSession.setAttribute(Ice.ACTIVE_SESSION, Boolean.TRUE);
-        //} else if (session.get().getId() != newSession.getId()) {
-        //logger.warn("Sessions don't match, current: {} incoming: {}", session.get(), newSession);
+            //} else if (session.get().getId() != newSession.getId()) {
+            //logger.warn("Sessions don't match, current: {} incoming: {}", session.get(), newSession);
         } else {
             logger.warn("Session already set: {} incoming: {}", session.get(), newSession);
         }
@@ -407,14 +414,18 @@ public abstract class IceSocketWrapper {
             // set the selected session on the wrapper
             setSession(sess);
         }
-        // clear the queue of any messages not meant for the remote address being set
-        rawMessageQueue.forEach(message -> {
-            TransportAddress messageRemoteAddress = message.getRemoteAddress();
-            if (!messageRemoteAddress.equals(remoteAddress)) {
-                logger.warn("Ejecting message from {}", messageRemoteAddress);
-                rawMessageQueue.remove(message);
-            }
-        });
+        if (rawMessageQueue != null) {
+            // clear the queue of any messages not meant for the remote address being set
+            rawMessageQueue.forEach(message -> {
+                TransportAddress messageRemoteAddress = message.getRemoteAddress();
+                if (!messageRemoteAddress.equals(remoteAddress)) {
+                    logger.warn("Ejecting message from {}", messageRemoteAddress);
+                    rawMessageQueue.remove(message);
+                }
+            });
+        } else {
+            logger.warn("Queue is not available");
+        }
     }
 
     public TransportAddress getRemoteTransportAddress() {
@@ -494,9 +505,11 @@ public abstract class IceSocketWrapper {
     public boolean offerMessage(RawMessage message) {
         if (!closed) {
             //logger.trace("offered message: {} local: {} remote: {}", message, transportAddress, remoteTransportAddress);
-            return rawMessageQueue.offer(message);
+            if (rawMessageQueue != null) {
+                return rawMessageQueue.offer(message);
+            }
         }
-        logger.debug("Message rejected, socket is closed");
+        logger.debug("Message rejected, socket is closed or queue is not available");
         return false;
     }
 
@@ -516,20 +529,6 @@ public abstract class IceSocketWrapper {
      */
     public boolean isUDP() {
         return (this instanceof IceUdpSocketWrapper);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            if (rawMessageQueue != null) {
-                rawMessageQueue.clear();
-                rawMessageQueue = null;
-            }
-        } catch (Throwable t) {
-            throw t;
-        } finally {
-            super.finalize();
-        }
     }
 
     /**

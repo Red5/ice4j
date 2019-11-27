@@ -18,6 +18,7 @@ import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.SocketClosedException;
 import org.ice4j.stack.RawMessage;
 import org.ice4j.stack.StunStack;
+import org.ice4j.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,6 +238,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 logger.warn("Not enough data in the buffer to parse: {}", in);
             }
         }
+        buf = null;
     }
 
     /**
@@ -251,6 +253,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
      */
     public static void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, byte[] buf) {
         // if special TURN processing is needed, we'll have to separate it out to be run first since TURN messages are STUN messages
+        RawMessage message = null;
         if ((isStun(buf) && isStunMethod(buf)) || (isTurn(buf) && isTurnMethod(buf))) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Dispatching a STUN message");
@@ -259,7 +262,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             if (stunStack != null) {
                 try {
                     // create a message
-                    RawMessage message = RawMessage.build(buf, remoteAddr, localAddr);
+                    message = RawMessage.build(buf, remoteAddr, localAddr);
                     Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
                     if (logger.isDebugEnabled()) {
                         logger.debug("Message: {}", stunMessage);
@@ -291,17 +294,24 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 System.arraycopy(buf, offset, record, 0, record.length);
                 if (logger.isTraceEnabled()) {
                     String dtlsVersion = getDtlsVersion(buf, 0, buf.length);
-                    logger.trace("Queuing DTLS {} length: {} message: {}", dtlsVersion, dtlsRecordLength, StunStack.toHexString(record));
+                    logger.trace("Queuing DTLS {} length: {} message: {}", dtlsVersion, dtlsRecordLength, Utils.toHexString(record));
                 }
                 // create a message
-                iceSocket.offerMessage(RawMessage.build(record, remoteAddr, localAddr));
-                // increment the offset
-                offset += record.length;
-                logger.trace("Offset: {}", offset);
+                message = RawMessage.build(record, remoteAddr, localAddr);
+                if (iceSocket.offerMessage(message)) {
+                    // increment the offset
+                    offset += record.length;
+                    logger.trace("Offset: {}", offset);
+                } else {
+                    message = null;
+                }
             } while (offset < (buf.length - DTLS_RECORD_HEADER_LENGTH));
         } else {
             // this should catch anything else not identified as stun or dtls
-            iceSocket.offerMessage(RawMessage.build(buf, remoteAddr, localAddr));
+            message = RawMessage.build(buf, remoteAddr, localAddr);
+            if (!iceSocket.offerMessage(message)) {
+                message = null;
+            }
         }
     }
 

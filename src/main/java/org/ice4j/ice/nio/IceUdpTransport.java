@@ -36,6 +36,8 @@ public class IceUdpTransport extends IceTransport {
 
     private Semaphore lock = new Semaphore(1, true);
 
+    private long lastGCTime = System.currentTimeMillis();
+
     /**
      * Recycler's session map.
      */
@@ -57,7 +59,7 @@ public class IceUdpTransport extends IceTransport {
         public IoSession recycle(SocketAddress remoteAddress) {
             //logger.trace("Recycle remote address: {}", remoteAddress);
             IoSession sess = null;
-            // this is expected to return an existing session for the remote address                    
+            // this is expected to return an existing session for the remote address
             Optional<IoSession> opt = sessions.values().stream().filter(session -> session.getRemoteAddress().equals(remoteAddress)).findFirst();
             if (opt.isPresent()) {
                 sess = opt.get();
@@ -78,6 +80,13 @@ public class IceUdpTransport extends IceTransport {
             sessions.remove(key);
             if (logger.isTraceEnabled()) {
                 logger.trace("Removed session: {} {}", session.getId(), key);
+            }
+            // see if we should GC to keep the heap as clean as possible
+            long now = System.currentTimeMillis();
+            // is every x minutes too much?
+            if (now - lastGCTime > 300000L) {
+                lastGCTime = now;
+                System.gc();
             }
         }
 
@@ -158,11 +167,23 @@ public class IceUdpTransport extends IceTransport {
                 @Override
                 public void sessionClosed(IoSession session) throws Exception {
                     //logger.debug("sessionClosed: {}", session);
+                    /*
+                    if (session.containsAttribute(Ice.CONNECTION)) {
+                        IceSocketWrapper wrapper = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
+                        logger.warn("Wrapper closed: {} id: {}", wrapper.isClosed(), wrapper.getId());
+                        if (IceSocketWrapper.DISCONNECTED.equals(wrapper.getId()) && !wrapper.isClosed()) {
+                            wrapper.close();
+                        }
+                    }
+                    */
                 }
 
                 @Override
                 public void sessionDestroyed(IoSession session) throws Exception {
                     //logger.debug("sessionDestroyed: {}", session);
+                    if (session.containsAttribute(IceTransport.Ice.UUID)) {
+                        session.removeAttribute(IceTransport.Ice.UUID);
+                    }
                 }
             });
             // set the recycler

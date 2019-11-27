@@ -104,7 +104,7 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                             writeFuture.addListener(writeListener);
                         }
                     } else {
-                        logger.warn("Session established, skipping write to: {}", destAddress);
+                        logger.info("Session established, skipping write to: {}", destAddress);
                     }
                 } else {
                     if (logger.isTraceEnabled()) {
@@ -131,17 +131,19 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
     /** {@inheritDoc} */
     @Override
     public void receive(DatagramPacket p) throws IOException {
-        RawMessage message = rawMessageQueue.poll();
-        if (message != null) {
-            p.setData(message.getBytes(), 0, message.getMessageLength());
-            p.setSocketAddress(message.getRemoteAddress());
+        if (rawMessageQueue != null) {
+            RawMessage message = rawMessageQueue.poll();
+            if (message != null) {
+                p.setData(message.getBytes(), 0, message.getMessageLength());
+                p.setSocketAddress(message.getRemoteAddress());
+            }
         }
     }
 
     /** {@inheritDoc} */
     @Override
     public RawMessage read() {
-        return rawMessageQueue.poll();
+        return rawMessageQueue != null ? rawMessageQueue.poll() : null;
     }
 
     /** {@inheritDoc} */

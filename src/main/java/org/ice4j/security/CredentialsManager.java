@@ -8,7 +8,7 @@ package org.ice4j.security;
 
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import org.ice4j.stack.StunStack;
+import org.ice4j.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ public class CredentialsManager {
             byte[] passwd = auth.getLocalKey(username);
             if (passwd != null) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Local key: {}", StunStack.toHexString(passwd));
+                    logger.trace("Local key: {}", Utils.toHexString(passwd));
                 }
                 return passwd;
             }
@@ -91,7 +91,7 @@ public class CredentialsManager {
             byte[] passwd = auth.getRemoteKey(username, media);
             if (passwd != null) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Remote key: {}", StunStack.toHexString(passwd));
+                    logger.trace("Remote key: {}", Utils.toHexString(passwd));
                 }
                 return passwd;
             }

@@ -128,7 +128,7 @@ public class IceHandler extends IoHandlerAdapter {
             session.setAttribute(IceTransport.Ice.STUN_STACK, stunStack);
             // XXX create socket registration
             if (transport == Transport.TCP) {
-                IceSocketWrapper iceSocket = iceSockets.get(addr);               
+                IceSocketWrapper iceSocket = iceSockets.get(addr);
                 if (iceSocket != null) {
                     // get the remote address
                     inetAddr = (InetSocketAddress) session.getRemoteAddress();
