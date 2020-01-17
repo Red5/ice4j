@@ -1,19 +1,8 @@
 /*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal. Copyright @ 2015 Atlassian Pty Ltd Licensed under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or
+ * agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under the License.
  */
 package org.ice4j.attribute;
 
@@ -24,19 +13,18 @@ import org.ice4j.StunException;
  *
  * @author Aakash Garg
  */
-public class RequestedAddressFamilyAttribute extends Attribute 
-{
+public class RequestedAddressFamilyAttribute extends Attribute {
 
     /**
      * The length of the data contained in this attribute.
      */
     public static final int DATA_LENGTH = 1;
-    
+
     /**
      * The IPv4 family type.
      */
     public static final char IPv4 = 0x01;
-    
+
     /**
      * The IPv6 family type.
      */
@@ -46,23 +34,22 @@ public class RequestedAddressFamilyAttribute extends Attribute
      * The address family value.
      */
     char family = IPv4;
-    
+
     /**
      * Constructor.
      */
-    protected RequestedAddressFamilyAttribute() 
-    {
-		super(Attribute.Type.REQUESTED_ADDRESS_FAMILY);
+    protected RequestedAddressFamilyAttribute() {
+        super(Attribute.Type.REQUESTED_ADDRESS_FAMILY);
     }
 
     /**
      * Returns the length of this attribute's body.
-     * @return the length of this attribute's value (1 byte).
+     * 
+     * @return the length of this attribute's value (1 byte)
      */
     @Override
-    public int getDataLength() 
-    {
-		return DATA_LENGTH;
+    public int getDataLength() {
+        return DATA_LENGTH;
     }
 
     /**
@@ -72,24 +59,17 @@ public class RequestedAddressFamilyAttribute extends Attribute
      * @return true if the attributes are equal and false otherwise.
      */
     @Override
-    public boolean equals(Object obj) 
-    {
-	    if (! (obj instanceof RequestedAddressFamilyAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof RequestedAddressFamilyAttribute)) {
             return false;
-
-        if (obj == this)
+        }
+        if (obj == this) {
             return true;
-
-        RequestedAddressFamilyAttribute att
-            = (RequestedAddressFamilyAttribute) obj;
-
-        if (att.getAttributeType() != getAttributeType()
-                || att.getDataLength() != getDataLength()
-                /* compare data */
-                || att.family != family
-           )
+        }
+        RequestedAddressFamilyAttribute att = (RequestedAddressFamilyAttribute) obj;
+        if (att.getAttributeType() != getAttributeType() || att.family != family) {
             return false;
-
+        }
         return true;
     }
 
@@ -98,24 +78,23 @@ public class RequestedAddressFamilyAttribute extends Attribute
     * @return a binary representation of this attribute.
     */
     @Override
-    public byte[] encode() 
-    {
+    public byte[] encode() {
         byte binValue[] = new byte[HEADER_LENGTH + DATA_LENGTH];
 
         //Type
         int type = getAttributeType().getType();
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
         //Data
         binValue[4] = (byte) family;
 
         return binValue;
     }
 
-   /**
+    /**
     * Sets this attribute's fields according to attributeValue array.
     * @param attributeValue a binary array containing this attribute's field
     *                       values and NOT containing the attribute header.
@@ -126,18 +105,14 @@ public class RequestedAddressFamilyAttribute extends Attribute
     * @throws StunException if attrubteValue contains invalid data.
     */
     @Override
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length) 
-	    throws StunException
-    {
-	    if(length != DATA_LENGTH)
-        {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        if (length != DATA_LENGTH) {
             throw new StunException("length invalid: " + length);
         }
 
-        family = (char)(attributeValue[offset] & 0xff);
+        family = (char) (attributeValue[offset] & 0xff);
 
-        if(family != IPv4 && family != IPv6)
-        {
+        if (family != IPv4 && family != IPv6) {
             // instead throw TurnException
             throw new StunException("invalid family value: " + family);
         }
@@ -147,27 +122,22 @@ public class RequestedAddressFamilyAttribute extends Attribute
      * Gets the address family value
      * @return family the address family value
      */
-    public char getFamily() 
-    {
+    public char getFamily() {
         return family;
     }
-    
+
     /**
      * Sets the address family value
      * @param family the address family value to set
      * @return true if argument is IPv4 or IPv6 otherwise false
      */
-    public boolean setFamily(char family) 
-    {	
-    	if(family == IPv4 || family == IPv6)
-        {
+    public boolean setFamily(char family) {
+        if (family == IPv4 || family == IPv6) {
             this.family = family;
             return true;
-        }
-        else
-        {
+        } else {
             return false;
         }
     }
-    
+
 }

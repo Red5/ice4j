@@ -433,6 +433,8 @@ public class HostCandidateHarvester {
                 // create a new socket since there isn't one registered for the local address
                 if (sock == null) {
                     sock = new IceUdpSocketWrapper(localAddress);
+                } else {
+                    localAddress = null;
                 }
                 // return the socket
                 return sock;

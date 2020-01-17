@@ -47,9 +47,7 @@ public class AttributeFactory {
      * @return the newly created address attribute.
      */
     public static ChangedAddressAttribute createChangedAddressAttribute(TransportAddress address) {
-        ChangedAddressAttribute attribute = new ChangedAddressAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new ChangedAddressAttribute(address);
     }
 
     /**
@@ -116,9 +114,7 @@ public class AttributeFactory {
      * @return the newly created address attribute
      */
     public static MappedAddressAttribute createMappedAddressAttribute(TransportAddress address) {
-        MappedAddressAttribute attribute = new MappedAddressAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new MappedAddressAttribute(address);
     }
 
     /**
@@ -128,9 +124,7 @@ public class AttributeFactory {
      * @return the newly created address attribute
      */
     public static ReflectedFromAttribute createReflectedFromAttribute(TransportAddress address) {
-        ReflectedFromAttribute attribute = new ReflectedFromAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new ReflectedFromAttribute(address);
     }
 
     /**
@@ -140,9 +134,7 @@ public class AttributeFactory {
      * @return the newly created address attribute
      */
     public static ResponseAddressAttribute createResponseAddressAttribute(TransportAddress address) {
-        ResponseAddressAttribute attribute = new ResponseAddressAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new ResponseAddressAttribute(address);
     }
 
     /**
@@ -152,9 +144,7 @@ public class AttributeFactory {
      * @return the newly created address attribute
      */
     public static SourceAddressAttribute createSourceAddressAttribute(TransportAddress address) {
-        SourceAddressAttribute attribute = new SourceAddressAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new SourceAddressAttribute(address);
     }
 
     /**
@@ -461,17 +451,14 @@ public class AttributeFactory {
      * @return the newly created address attribute.
      */
     public static DestinationAddressAttribute createDestinationAddressAttribute(TransportAddress address) {
-        DestinationAddressAttribute attribute = new DestinationAddressAttribute();
-        attribute.setAddress(address);
-        return attribute;
+        return new DestinationAddressAttribute(address);
     }
 
     /**
      * Creates a new RequestedAddressFamilyAttribute of the specified family
      * 
      * @param family address family value as specified in the RFC
-     * @return the newly created RequestedAddressFamily attribute if family is
-     *         IPv4/IPv6 otherwise null.
+     * @return the newly created RequestedAddressFamily attribute if family is IPv4/IPv6 otherwise null
      */
     public static RequestedAddressFamilyAttribute createRequestedAddressFamilyAttribute(char family) {
         RequestedAddressFamilyAttribute attribute = new RequestedAddressFamilyAttribute();

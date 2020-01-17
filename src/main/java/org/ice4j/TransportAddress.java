@@ -25,7 +25,7 @@ public class TransportAddress extends InetSocketAddress {
      * <p>
      * A valid port value is between 0 and 65535. A port number of zero will let the system pick up an
      * ephemeral port in a bind operation.
-     * <P>
+     * <p>
      * A null address will assign the <i>wildcard</i> address.
      * <p>
      * @param   hostname    The IP address
@@ -73,7 +73,7 @@ public class TransportAddress extends InetSocketAddress {
     public TransportAddress(InetSocketAddress address, Transport transport) {
         this(address.getAddress(), address.getPort(), transport);
     }
-
+    
     /**
      * Creates an address instance from a host name and a port number.
      * <p>
@@ -106,7 +106,7 @@ public class TransportAddress extends InetSocketAddress {
     public byte[] getAddressBytes() {
         return getAddress().getAddress();
     }
-
+    
     /**
      * Constructs a string representation of this InetSocketAddress. This String
      * is constructed by calling toString() on the InetAddress and concatenating

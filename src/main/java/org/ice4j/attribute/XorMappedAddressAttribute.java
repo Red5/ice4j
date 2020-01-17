@@ -66,6 +66,10 @@ public class XorMappedAddressAttribute extends AddressAttribute {
         super(type);
     }
 
+    XorMappedAddressAttribute(TransportAddress address) {
+        super(Attribute.Type.XOR_MAPPED_ADDRESS, address);
+    }
+
     /**
      * Returns the result of applying XOR on the specified attribute's address.
      * The method may be used for both encoding and decoding XorMappedAddresses.
@@ -78,14 +82,11 @@ public class XorMappedAddressAttribute extends AddressAttribute {
     public static TransportAddress applyXor(TransportAddress address, byte[] transactionID) {
         byte[] addressBytes = address.getAddressBytes();
         char port = (char) address.getPort();
-
         char portModifier = (char) ((transactionID[0] << 8 & 0x0000FF00) | (transactionID[1] & 0x000000FF));
-
         port ^= portModifier;
-
-        for (int i = 0; i < addressBytes.length; i++)
+        for (int i = 0; i < addressBytes.length; i++) {
             addressBytes[i] ^= transactionID[i];
-
+        }
         TransportAddress xoredAdd;
         try {
             xoredAdd = new TransportAddress(addressBytes, port, Transport.UDP);
@@ -93,7 +94,6 @@ public class XorMappedAddressAttribute extends AddressAttribute {
             //shouldn't happen so just throw an illegal arg
             throw new IllegalArgumentException(e);
         }
-
         return xoredAdd;
     }
 
@@ -108,10 +108,8 @@ public class XorMappedAddressAttribute extends AddressAttribute {
      */
     public TransportAddress getAddress(byte[] transactionID) {
         byte[] xorMask = new byte[16];
-
         System.arraycopy(Message.MAGIC_COOKIE, 0, xorMask, 0, 4);
         System.arraycopy(transactionID, 0, xorMask, 4, 12);
-
         return applyXor(xorMask);
     }
 
@@ -120,9 +118,8 @@ public class XorMappedAddressAttribute extends AddressAttribute {
      * specified XOR mask. The method may be used for both encoding and
      * decoding XorMappedAddresses.
      *
-     * @param xorMask the XOR mask to use when obtaining the original address.
-     *
-     * @return the XOR-ed address.
+     * @param xorMask the XOR mask to use when obtaining the original address
+     * @return the XOR-ed address
      */
     public TransportAddress applyXor(byte[] xorMask) {
         return applyXor(getAddress(), xorMask);
@@ -132,19 +129,17 @@ public class XorMappedAddressAttribute extends AddressAttribute {
      * Applies a XOR mask to the specified address and then sets it as the value
      * transported by this attribute.
      *
-     * @param address the address that we should xor and then record in this
-     * attribute.
-     * @param transactionID the transaction identifier that we should use
-     * when creating the XOR mask.
+     * @param tranportAddress the address that we should xor and then record in this attribute
+     * @param transactionID the transaction identifier that we should use when creating the XOR mask
      */
-    public void setAddress(TransportAddress address, byte[] transactionID) {
+    public void setAddress(TransportAddress tranportAddress, byte[] transactionID) {
         byte[] xorMask = new byte[16];
-
         System.arraycopy(Message.MAGIC_COOKIE, 0, xorMask, 0, 4);
         System.arraycopy(transactionID, 0, xorMask, 4, 12);
-
-        TransportAddress xorAddress = applyXor(address, xorMask);
-
-        super.setAddress(xorAddress);
+        TransportAddress xorAddress = applyXor(tranportAddress, xorMask);
+        // set members directly; family and transport remain the same
+        address = xorAddress.getAddressBytes();
+        port = xorAddress.getPort();
     }
+
 }

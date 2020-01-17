@@ -1,23 +1,8 @@
-/*
- * ice4j, the OpenSource Java Solution for NAT and Firewall Traversal.
- *
- * Copyright @ 2015 Atlassian Pty Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* See LICENSE.md for license information */
 package org.ice4j.attribute;
 
 import java.net.*;
+import java.util.Arrays;
 
 import org.ice4j.*;
 
@@ -59,8 +44,7 @@ import org.ice4j.*;
  * </p>
  * @author Emil Ivov
  */
-abstract class AddressAttribute extends Attribute
-{
+abstract class AddressAttribute extends Attribute {
     /**
      * Indicates that this attribute is transporting an IPv4 address
      */
@@ -71,53 +55,68 @@ abstract class AddressAttribute extends Attribute
      */
     static final byte ADDRESS_FAMILY_IPV6 = 0x02;
 
-     /**
-      * The address represented by this message;
-      */
-     protected TransportAddress address = null;
+    // transport type
+    protected Transport transport = Transport.UDP;
 
-     /**
-      * The length of the data contained by this attribute in the case of an
-      * IPv6 address.
-      */
-     private static final int DATA_LENGTH_FOR_IPV6 = 20;
+    // family
+    protected byte family = ADDRESS_FAMILY_IPV4;
 
-     /**
-      * The length of the data contained by this attribute in the case of an
-      * IPv4 address.
-      */
-     private static final int DATA_LENGTH_FOR_IPV4 = 8;
+    // address as bytes
+    protected byte[] address;
+
+    // port
+    protected int port;
+
+    /**
+     * The length of the data contained by this attribute in the case of an IPv6 address.
+     */
+    private static final int DATA_LENGTH_FOR_IPV6 = 20;
+
+    /**
+     * The length of the data contained by this attribute in the case of an IPv4 address.
+     */
+    private static final int DATA_LENGTH_FOR_IPV4 = 8;
 
     /**
      * Constructs an address attribute with the specified type.
      *
-     * @param attributeType the type of the address attribute.
+     * @param attributeType the type
      */
-    AddressAttribute(char attributeType)
-    {
+    AddressAttribute(char attributeType) {
         super(attributeType);
     }
 
     /**
      * Constructs an address attribute with the specified type.
      *
-     * @param attributeType the type of the address attribute.
+     * @param attributeType the type
      */
-    public AddressAttribute(Type attributeType)
-    {
+    public AddressAttribute(Type attributeType) {
         super(attributeType);
+    }
+
+    /**
+     * Constructs an address attribute with the specified type.
+     *
+     * @param attributeType the attribute type
+     * @param transportAddress the transport address
+     */
+    public AddressAttribute(Type attributeType, TransportAddress transportAddress) {
+        super(attributeType);
+        transport = transportAddress.getTransport();
+        address = transportAddress.getAddressBytes();
+        port = transportAddress.getPort();
+        family = address.length == 16 ? ADDRESS_FAMILY_IPV6 : ADDRESS_FAMILY_IPV4;
     }
 
     /**
      * Verifies that type is a valid address attribute type.
+     * 
      * @param type the type to test
-     * @return true if the type is a valid address attribute type and false
-     * otherwise
+     * @return true if the type is a valid address attribute type and false otherwise
      */
-    private boolean isTypeValid(int type)
-    {
-        switch(Attribute.Type.valueOf(type))
-        {
+    private boolean isTypeValid(int type) {
+        switch (Attribute.Type.valueOf(type)) {
             case MAPPED_ADDRESS:
             case RESPONSE_ADDRESS:
             case SOURCE_ADDRESS:
@@ -137,192 +136,147 @@ abstract class AddressAttribute extends Attribute
     /**
      * Sets it as this attribute's type.
      *
-     * @param type the new type of the attribute.
+     * @param type the new type of the attribute
      */
-    protected void setAttributeType(char  type)
-    {
-        if (!isTypeValid(type))
-            throw new IllegalArgumentException(((int)type)
-                                + "is not a valid address attribute!");
-
+    protected void setAttributeType(char type) {
+        if (!isTypeValid(type)) {
+            throw new IllegalArgumentException(((int) type) + "is not a valid address attribute!");
+        }
         super.setAttributeType(type);
     }
 
-   /**
-    * Compares two STUN Attributes. Attributes are considered equal when their
-    * type, length, and all data are the same.
+    /**
+    * Compares two STUN Attributes. Attributes are considered equal when their type, length, and all data are the same.
     *
-    * @param obj the object to compare this attribute with.
-    * @return true if the attributes are equal and false otherwise.
+    * @param obj the object to compare this attribute with
+    * @return true if the attributes are equal and false otherwise
     */
-    public boolean equals(Object obj)
-    {
-        if (! (obj instanceof AddressAttribute))
+    public boolean equals(Object obj) {
+        if (!(obj instanceof AddressAttribute)) {
             return false;
-
-        if (obj == this)
+        }
+        if (obj == this) {
             return true;
-
+        }
         AddressAttribute att = (AddressAttribute) obj;
-        if (att.getAttributeType() != getAttributeType()
-            || att.getDataLength() != getDataLength()
-            //compare data
-            || att.getFamily()     != getFamily()
-            || (att.getAddress()   != null
-                && !address.equals(att.getAddress()))
-            )
+        if (att.getAttributeType() != getAttributeType() || att.getPort() != port || !Arrays.equals(att.getAddressBytes(), address)) {
             return false;
-
-        //addresses
-        if( att.getAddress() == null && getAddress() == null)
-            return true;
-
+        }
         return true;
     }
 
     /**
      * Returns the length of this attribute's body.
-     * @return the length of this attribute's value (8 bytes).
+     * 
+     * @return the length of this attribute's value (8 bytes)
      */
-    public int getDataLength()
-    {
-        if (getFamily() == ADDRESS_FAMILY_IPV6)
+    public int getDataLength() {
+        if (family == ADDRESS_FAMILY_IPV6) {
             return DATA_LENGTH_FOR_IPV6;
-        else
+        } else {
             return DATA_LENGTH_FOR_IPV4;
+        }
     }
 
     /**
      * Returns a binary representation of this attribute.
-     * @return a binary representation of this attribute.
+     * 
+     * @return a binary representation
      */
-    public byte[] encode()
-    {
+    public byte[] encode() {
         int type = getAttributeType().getType();
-        if (!isTypeValid(type))
-            throw new IllegalStateException(type
-                            + "is not a valid address attribute!");
+        if (!isTypeValid(type)) {
+            throw new IllegalStateException(type + "is not a valid address attribute!");
+        }
         byte binValue[] = new byte[HEADER_LENGTH + getDataLength()];
-
         //Type
-        binValue[0] = (byte)(type >> 8);
-        binValue[1] = (byte)(type & 0x00FF);
+        binValue[0] = (byte) (type >> 8);
+        binValue[1] = (byte) (type & 0x00FF);
         //Length
-        binValue[2] = (byte)(getDataLength() >> 8);
-        binValue[3] = (byte)(getDataLength() & 0x00FF);
+        binValue[2] = (byte) (getDataLength() >> 8);
+        binValue[3] = (byte) (getDataLength() & 0x00FF);
         //Not used
         binValue[4] = 0x00;
         //Family
         binValue[5] = getFamily();
         //port
-        binValue[6] = (byte)(getPort() >> 8);
-        binValue[7] = (byte)(getPort() & 0x00FF);
-
+        binValue[6] = (byte) (getPort() >> 8);
+        binValue[7] = (byte) (getPort() & 0x00FF);
         //address
-        if(getFamily() == ADDRESS_FAMILY_IPV6){
+        if (getFamily() == ADDRESS_FAMILY_IPV6) {
             System.arraycopy(getAddressBytes(), 0, binValue, 8, 16);
-        }
-        else{
+        } else {
             System.arraycopy(getAddressBytes(), 0, binValue, 8, 4);
         }
-
         return binValue;
-    }
-
-    /**
-     * Sets address to be the address transported by this attribute.
-     * @param address that this attribute should encapsulate.
-     */
-    public void setAddress(TransportAddress address)
-    {
-        this.address = address;
     }
 
     /**
      * Returns the address encapsulated by this attribute.
      *
-     * @return the address encapsulated by this attribute.
+     * @return the transport address or null if the address is invalid
      */
-    public TransportAddress getAddress()
-    {
-        return address;
+    public TransportAddress getAddress() {
+        // XXX we're only going to create a TA when something requests it
+        try {
+            return new TransportAddress(address, port, Transport.UDP);
+        } catch (UnknownHostException e) {
+        }
+        return null;
     }
 
     /**
      * Returns the bytes of the address.
      *
-     * @return the byte[] array containing the address.
+     * @return the byte[] array containing the address
      */
-    public byte[] getAddressBytes()
-    {
-        return address.getAddressBytes();
+    public byte[] getAddressBytes() {
+        return address;
     }
 
     /**
      * Returns the family that the this.address belongs to.
-     * @return the family that the this.address belongs to.
+     * 
+     * @return the address family
      */
-    public byte getFamily()
-    {
-        if ( address.getAddress() instanceof Inet6Address )
-            return ADDRESS_FAMILY_IPV6;
-        else
-            return ADDRESS_FAMILY_IPV4;
+    public byte getFamily() {
+        return family;
     }
 
     /**
      * Returns the port associated with the address contained by the attribute.
-     * @return the port associated with the address contained by the attribute.
+     * 
+     * @return the port associated with the address
      */
-    public int getPort()
-    {
-        return address.getPort();
+    public int getPort() {
+        return port;
     }
 
     /**
       * Sets this attribute's fields according to attributeValue array.
       *
       * @param attributeValue a binary array containing this attribute's field
-      *                       values and NOT containing the attribute header.
+      *                       values and NOT containing the attribute header
       * @param offset the position where attribute values begin (most often
       *                  offset is equal to the index of the first byte after
       *                  length)
-      * @param length the length of the binary array.
-      * @throws StunException if attrubteValue contains invalid data.
+      * @param length the length of the binary array
+      * @throws StunException if attrubteValue contains invalid data
       */
-    void decodeAttributeBody(byte[] attributeValue, int offset, int length)
-        throws StunException
-    {
-        //skip through padding
-        offset ++;
-
-        //get family
-        byte family = attributeValue[offset++];
-
-        //port
-        char port = ((char)((attributeValue[offset++] << 8 )
-                        | (attributeValue[offset++] & 0xFF) ));
-
-        //address
-        byte address[] = null;
-        if(family == ADDRESS_FAMILY_IPV6)
-        {
+    void decodeAttributeBody(byte[] attributeValue, int offset, int length) throws StunException {
+        // skip through padding
+        offset++;
+        // family
+        family = attributeValue[offset++];
+        // port
+        port = ((char) ((attributeValue[offset++] << 8) | (attributeValue[offset++] & 0xFF)));
+        // address
+        if (family == ADDRESS_FAMILY_IPV6) {
             address = new byte[16];
-        }
-        else
-        {
+        } else {
             //ipv4
             address = new byte[4];
         }
-
         System.arraycopy(attributeValue, offset, address, 0, address.length);
-        try
-        {
-            setAddress(new TransportAddress(address, port, Transport.UDP));
-        }
-        catch (UnknownHostException e)
-        {
-            throw new StunException(e);
-        }
     }
 }

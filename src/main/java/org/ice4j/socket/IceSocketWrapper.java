@@ -45,7 +45,7 @@ public abstract class IceSocketWrapper {
     protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
     // whether or not we've been closed
-    public boolean closed;
+    public volatile boolean closed;
 
     protected TransportAddress transportAddress;
 
@@ -253,6 +253,10 @@ public abstract class IceSocketWrapper {
                     logger.warn("Fail on close", t);
                 }
             }
+            // for GC
+            transportAddress = null;
+            remoteTransportAddress = null;
+            relayedCandidateConnection = null;
             logger.trace("Exit close: {} closed: {}", this, closed);
         }
     }
@@ -531,6 +535,16 @@ public abstract class IceSocketWrapper {
         return (this instanceof IceUdpSocketWrapper);
     }
 
+    @Override
+    public void finalize() {
+        try {
+            session.set(null);
+            session = null;
+        } catch (Exception e) {
+            // ...
+        }
+    }
+    
     /**
      * Builder for immutable IceSocketWrapper instance. If the IoSession is connection-less, an IceUdpSocketWrapper is returned; otherwise
      * an IceTcpSocketWrapper is returned.
