@@ -94,12 +94,12 @@ public abstract class LocalCandidate extends Candidate<LocalCandidate> {
      * LocalCandidate is closed only if it is not the socket of the base of this LocalCandidate.
      */
     protected void free() {
-        logger.info("free! {}", propertyMap);
+        logger.info("free! {}", (!propertyMap.isEmpty() ? propertyMap : "no-props"));
         // Close the socket associated with this LocalCandidate.
         IceSocketWrapper socket = getCandidateIceSocketWrapper();
         if (socket != null) {
             LocalCandidate base = getBase();
-            logger.info("free! {} {} {}", (ufrag != null ? ufrag : (base != null ? base.ufrag : null)), socket.getTransportAddress(), base.propertyMap);
+            logger.info("free! {} {} {}", (ufrag != null ? ufrag : (base.ufrag != null ? base.ufrag : "no-ufrag")), socket.getTransportAddress(), (!base.propertyMap.isEmpty() ? base.propertyMap : "no-props"));
             if (base == null || base == this || base.getCandidateIceSocketWrapper() != socket) {
                 // remove our socket from the stack
                 getStunStack().removeSocket(socket.getId(), getTransportAddress());

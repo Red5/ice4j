@@ -421,33 +421,39 @@ public class HostCandidateHarvester {
      * @throws BindException if we couldn't find a free port between minPort and maxPort before reaching the maximum allowed number of retries
      */
     private IceSocketWrapper createDatagramSocket(InetAddress laddr, int preferredPort, int minPort, int maxPort) throws IllegalArgumentException, IOException, BindException {
-        // make sure port numbers are valid.
-        checkPorts(preferredPort, minPort, maxPort);
-        int bindRetries = StackProperties.getInt(StackProperties.BIND_RETRIES, StackProperties.BIND_RETRIES_DEFAULT_VALUE);
-        int port = preferredPort;
-        for (int i = 0; i < bindRetries; i++) {
-            try {
-                TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
-                // we successfully bound to the address so create a wrapper
-                IceSocketWrapper sock = IceTransport.getIceHandler().lookupBinding(localAddress);
-                // create a new socket since there isn't one registered for the local address
-                if (sock == null) {
-                    sock = new IceUdpSocketWrapper(localAddress);
-                } else {
-                    localAddress = null;
+        // make sure port numbers are valid
+        //checkPorts(preferredPort, minPort, maxPort);
+        int mx = Math.min(maxPort, 65535);
+        int mn = Math.max(minPort, 1024);
+        if (preferredPort >= mn && preferredPort <= mx) {
+            int bindRetries = StackProperties.getInt(StackProperties.BIND_RETRIES, StackProperties.BIND_RETRIES_DEFAULT_VALUE);
+            int port = preferredPort;
+            logger.info("Bind on {} retries:{}", port, bindRetries);
+            for (int i = 0; i < bindRetries; i++) {
+                try {
+                    TransportAddress localAddress = new TransportAddress(laddr, port, Transport.UDP);
+                    // we successfully bound to the address so create a wrapper
+                    IceSocketWrapper sock = IceTransport.getIceHandler().lookupBinding(localAddress);
+                    // create a new socket since there isn't one registered for the local address
+                    if (sock == null) {
+                        sock = new IceUdpSocketWrapper(localAddress);
+                    } else {
+                        localAddress = null;
+                    }
+                    // return the socket
+                    return sock;
+                } catch (Exception se) {
+                    logger.warn("Retrying a bind because of a failure to bind to address {}:{}", laddr, port, se);
                 }
-                // return the socket
-                return sock;
-            } catch (Exception se) {
-                logger.warn("Retrying a bind because of a failure to bind to address {}:{}", laddr, port, se);
+                // increment for the next port attempt
+                port++;
+                if (port > maxPort) {
+                    port = minPort;
+                }
             }
-            // increment for the next port attempt
-            port++;
-            if (port > maxPort) {
-                port = minPort;
-            }
+            throw new BindException("Could not bind to any port between " + minPort + " and " + (port - 1));
         }
-        throw new BindException("Could not bind to any port between " + minPort + " and " + (port - 1));
+        throw new BindException("Could not bind preferred port, its not between " + minPort + " and " + maxPort);
     }
 
     /**
@@ -462,13 +468,13 @@ public class HostCandidateHarvester {
     private void checkPorts(int preferredPort, int minPort, int maxPort) throws IllegalArgumentException {
         // make sure port numbers are valid
         if (!NetworkUtils.isValidPortNumber(minPort) || !NetworkUtils.isValidPortNumber(maxPort)) {
-            throw new IllegalArgumentException("minPort (" + minPort + ") and maxPort (" + maxPort + ") should be integers between 1024 and 65535.");
+            throw new IllegalArgumentException("minPort (" + minPort + ") and maxPort (" + maxPort + ") should be integers between 1024 and 65535");
         }
         // make sure minPort comes before maxPort.
         if (minPort > maxPort) {
             throw new IllegalArgumentException("minPort (" + minPort + ") should be less than orequal to maxPort (" + maxPort + ")");
         }
-        // if preferredPort is not  in the allowed range, place it at min.
+        // if preferredPort is not in the allowed range, place it at min.
         if (minPort > preferredPort || preferredPort > maxPort) {
             throw new IllegalArgumentException("preferredPort (" + preferredPort + ") must be between minPort (" + minPort + ") and maxPort (" + maxPort + ")");
         }

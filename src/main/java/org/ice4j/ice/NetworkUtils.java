@@ -542,14 +542,14 @@ public class NetworkUtils {
 
     /**
      * Determines whether port is a valid port number bindable by an
-     * application (i.e. an integer between 1024 and 65535).
+     * application (i.e. an integer between 1024 and 65536).
      *
      * @param port the port number that we'd like verified.
      *
      * @return true if port is a valid and bindable port number and alse otherwise.
      */
     public static boolean isValidPortNumber(int port) {
-        return MIN_PORT_NUMBER < port && port < MAX_PORT_NUMBER;
+        return port > MIN_PORT_NUMBER && port <= MAX_PORT_NUMBER;
     }
 
     /**

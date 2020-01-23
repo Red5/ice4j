@@ -135,6 +135,15 @@ public abstract class IceControlAttribute extends Attribute {
         return tieBreaker;
     }
 
+    /**
+     * Returns the controlling property.
+     * 
+     * @return true if controlling and false if controlled 
+     */
+    public boolean isControlling() {
+        return isControlling;
+    }
+
     @Override
     public String toString() {
         return "IceControlAttribute [tieBreaker=" + tieBreaker + ", isControlling=" + isControlling + "]";

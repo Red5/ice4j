@@ -161,7 +161,7 @@ public class Agent {
     private long tieBreaker;
 
     /**
-     * Determines whether this is the controlling agent in a an ICE interaction.
+     * Determines whether this agent has a controlling role in an ICE interaction.
      */
     private boolean isControlling = true;
 
@@ -272,8 +272,8 @@ public class Agent {
         String ufrag = ufragPrefix == null ? "" : ufragPrefix;
         ufrag += new BigInteger(24, random).toString(32);
         ufrag += BigInteger.valueOf(System.currentTimeMillis()).toString(32);
-        // min: 4 max: 256
-        ufrag = ensureIceAttributeLength(ufrag, 4, 256);
+        // min: 4 max: 256 (spec)
+        ufrag = ensureIceAttributeLength(ufrag, 4, 8); // using 8 for max
         this.ufrag = ufrag;
         // min: 22 max: 256
         password = ensureIceAttributeLength(new BigInteger(128, random).toString(32), 22, 256);
@@ -894,6 +894,9 @@ public class Agent {
      * @param isControlling true if this is to be the controlling Agent and false otherwise
      */
     public void setControlling(boolean isControlling) {
+        if (this.isControlling != isControlling) {
+            logger.info("Changing agent {} role from controlling = {} to controlling = {}", this.toString(), this.isControlling, isControlling);
+        }
         this.isControlling = isControlling;
         // in case we have already initialized our check lists we'd need to recompute pair priorities
         for (IceMediaStream stream : getStreams()) {
