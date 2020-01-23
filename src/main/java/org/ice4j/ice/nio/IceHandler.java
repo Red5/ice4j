@@ -219,12 +219,21 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-        logger.warn("Exception on session: {}", session.getId(), cause);
+        // XXX to prevent questions about exceptions in the log, the final dtls message will be filtered if it causes an exception
+        String causeMessage = cause.getMessage();
+        if (causeMessage != null && causeMessage.contains("Hexdump: 15")) {
+            // only log it at trace level if we're debugging
+            if (logger.isTraceEnabled()) {
+                logger.warn("Exception on session: {}", session.getId(), cause);
+            }
+        } else {
+            logger.warn("Exception on session: {}", session.getId(), cause);
+        }
         // determine transport type
         Transport transportType = (session.removeAttribute(IceTransport.Ice.TRANSPORT) == Transport.TCP) ? Transport.TCP : Transport.UDP;
         InetSocketAddress inetAddr = (InetSocketAddress) session.getLocalAddress();
         TransportAddress addr = new TransportAddress(inetAddr.getAddress(), inetAddr.getPort(), transportType);
-        logger.info("Exception on {}", addr);
+        //logger.info("Exception on {}", addr);
         // get the transport / acceptor identifier
         String id = (String) session.getAttribute(IceTransport.Ice.UUID);
         // get transport by type
