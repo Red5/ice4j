@@ -64,6 +64,10 @@ public class IceTcpSocketWrapper extends IceSocketWrapper {
             logger.debug("Connection is closed");
             throw new ClosedChannelException();
         } else {
+            // exclude .local hosts since they are local to the browser / client
+            if ((((InetSocketAddress) destAddress).getHostString()).endsWith(".local")) {
+                throw new IOException("Address not supported: .local");
+            }
             if (logger.isTraceEnabled()) {
                 logger.trace("send: {} to: {}", buf, destAddress);
             }
