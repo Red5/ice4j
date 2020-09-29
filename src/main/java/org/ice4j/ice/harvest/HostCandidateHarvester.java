@@ -7,6 +7,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -224,6 +225,21 @@ public class HostCandidateHarvester {
         List<AddressRef> addresses = new LinkedList<>();
         boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean isIPv6LinkLocalDisabled = StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
+        // White list from the configuration
+        String[] allowedAddressesStr = StackProperties.getStringArray(StackProperties.ALLOWED_ADDRESSES, ";");
+        if (allowedAddressesStr != null) {
+            for (int i = 0; i < allowedAddressesStr.length; i++) {
+                try {
+                    addresses.add(new AddressRef(InetAddress.getByName(allowedAddressesStr[i]), false));
+                } catch (UnknownHostException e) {
+                    logger.warn("Unknown host address during initial lookup", e);
+                }
+            }
+            // bust-out early if we've got proper allowed addresses
+            if (!addresses.isEmpty()) {
+                return addresses;
+            }
+        }
         try {
             for (NetworkInterface iface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (NetworkUtils.isInterfaceLoopback(iface) || !NetworkUtils.isInterfaceUp(iface) || !isInterfaceAllowed(iface)) {

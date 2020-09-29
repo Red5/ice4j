@@ -147,8 +147,6 @@ public class StackProperties {
 
     /**
      * The name of the property which specifies a ";"-separated list of IP addresses that are allowed to be used for host candidate allocations.
-     *
-     * NOTE: this is currently only supported by {@link org.ice4j.ice.harvest.TcpHarvester}.
      */
     public static final String ALLOWED_ADDRESSES = "org.ice4j.ice.harvest.ALLOWED_ADDRESSES";
 
