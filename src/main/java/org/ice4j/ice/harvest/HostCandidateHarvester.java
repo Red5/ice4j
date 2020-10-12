@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ice4j.StackProperties;
@@ -225,12 +227,37 @@ public class HostCandidateHarvester {
         List<AddressRef> addresses = new LinkedList<>();
         boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean isIPv6LinkLocalDisabled = StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
+        // holder of bindable addresses
+        final Set<InetAddress> bindableAddresses = new HashSet<>();
+        // gather network interfaces
+        List<NetworkInterface> nics = Collections.emptyList();
+        try {
+            nics = Collections.list(NetworkInterface.getNetworkInterfaces());
+            // collect all the addresses that could possibly be bound on this system
+            nics.forEach(iface -> {
+                if (!NetworkUtils.isInterfaceLoopback(iface) || NetworkUtils.isInterfaceUp(iface) || isInterfaceAllowed(iface)) {
+                    Enumeration<InetAddress> ifaceAddresses = iface.getInetAddresses();
+                    while (ifaceAddresses.hasMoreElements()) {
+                        InetAddress addr = ifaceAddresses.nextElement();
+                        logger.info("Address {} is bindable on interface: {}", addr, iface.getDisplayName());
+                        bindableAddresses.add(addr);
+                    }
+                }
+            });
+        } catch (SocketException se) {
+            logger.warn("Exception collecting network interfaces", se);
+        }
         // White list from the configuration
         String[] allowedAddressesStr = StackProperties.getStringArray(StackProperties.ALLOWED_ADDRESSES, ";");
         if (allowedAddressesStr != null) {
             for (int i = 0; i < allowedAddressesStr.length; i++) {
                 try {
-                    addresses.add(new AddressRef(InetAddress.getByName(allowedAddressesStr[i]), false));
+                    InetAddress addr = InetAddress.getByName(allowedAddressesStr[i]);
+                    if (bindableAddresses.contains(addr)) {
+                        addresses.add(new AddressRef(addr, false));
+                    } else {
+                        logger.info("Address is not bindable on existing interfaces: {}", addr);
+                    }
                 } catch (UnknownHostException e) {
                     logger.warn("Unknown host address during initial lookup", e);
                 }
