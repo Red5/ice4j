@@ -224,7 +224,7 @@ public class HostCandidateHarvester {
      * @return the list of all local IP addresses from all allowed network interfaces, which are allowed addresses.
      */
     public static List<AddressRef> getAvailableHostAddresses() {
-        List<AddressRef> addresses = new LinkedList<>();
+        Set<AddressRef> addresses = new HashSet<>();
         boolean isIPv6Disabled = StackProperties.getBoolean(StackProperties.DISABLE_IPv6, true);
         boolean isIPv6LinkLocalDisabled = StackProperties.getBoolean(StackProperties.DISABLE_LINK_LOCAL_ADDRESSES, false);
         // holder of bindable addresses
@@ -232,6 +232,9 @@ public class HostCandidateHarvester {
         // gather network interfaces
         List<NetworkInterface> nics = Collections.emptyList();
         try {
+            // ensure we dont allow local host
+            InetAddress localAddr = InetAddress.getLocalHost();
+            // get network interfaces
             nics = Collections.list(NetworkInterface.getNetworkInterfaces());
             // collect all the addresses that could possibly be bound on this system
             nics.forEach(iface -> {
@@ -239,12 +242,17 @@ public class HostCandidateHarvester {
                     Enumeration<InetAddress> ifaceAddresses = iface.getInetAddresses();
                     while (ifaceAddresses.hasMoreElements()) {
                         InetAddress addr = ifaceAddresses.nextElement();
-                        logger.info("Address {} is bindable on interface: {}", addr, iface.getDisplayName());
+                        String interfaceName = iface.getDisplayName();
+                        logger.info("Address {} is bindable on interface: {}", addr, interfaceName);
                         bindableAddresses.add(addr);
+                        // if the address is bindable and not on an `lo` interface, add to addresses list
+                        if (!interfaceName.startsWith("lo")) {
+                            addresses.add(new AddressRef(addr, NetworkUtils.isInterfaceVirtual(iface)));
+                        }
                     }
                 }
             });
-        } catch (SocketException se) {
+        } catch (Exception se) {
             logger.warn("Exception collecting network interfaces", se);
         }
         // White list from the configuration
@@ -264,7 +272,7 @@ public class HostCandidateHarvester {
             }
             // bust-out early if we've got proper allowed addresses
             if (!addresses.isEmpty()) {
-                return addresses;
+                return new ArrayList<AddressRef>(addresses);
             }
         }
         try {
@@ -290,7 +298,7 @@ public class HostCandidateHarvester {
         } catch (SocketException se) {
             logger.warn("Failed to get network interfaces", se);
         }
-        return addresses;
+        return new ArrayList<AddressRef>(addresses);
     }
 
     /**
@@ -331,8 +339,7 @@ public class HostCandidateHarvester {
                 component.getComponentSocket().setSocketWrapper(iceSocket);
             } catch (Throwable t) {
                 // There seems to be a problem with this particular address let's just move on for now and hope we will find better
-                logger.info("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort);
-                logger.warn("Host harvest failed", t);
+                logger.warn("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort, t);
             }
         });
         logger.trace("Exited socket creation loop");
