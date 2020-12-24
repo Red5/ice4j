@@ -937,10 +937,25 @@ public class Agent {
      * streams or null if it doesn't
      */
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
+        return findLocalCandidate(localAddress, null);
+    }
+
+    /**
+     * Returns the local <tt>LocalCandidate</tt> with the specified <tt>address</tt> if it belongs to any of this
+     * {@link Agent}'s streams or <tt>null</tt> if it doesn't. If {@code base} is also specified, tries to find a
+     * candidate whose base matches {@code base}.
+     *
+     * @param address the {@link TransportAddress} we are looking for
+     * @param base an optional base to match
+     *
+     * @return the local <tt>LocalCandidate</tt> with the specified <tt>address</tt> if it belongs to any of this
+     * {@link Agent}'s streams or <tt>null</tt> if it doesn't.
+     */
+    public LocalCandidate findLocalCandidate(TransportAddress address, LocalCandidate base) {
         for (IceMediaStream stream : mediaStreams.values()) {
-            LocalCandidate cnd = stream.findLocalCandidate(localAddress);
-            if (cnd != null) {
-                return cnd;
+            LocalCandidate localCandidate = stream.findLocalCandidate(address, base);
+            if (localCandidate != null) {
+                return localCandidate;
             }
         }
         return null;
@@ -955,18 +970,18 @@ public class Agent {
      * @return the local LocalCandidate with the specified localAddress if it belongs to any of this {@link Agent}'s
      * streams or null if it doesn't
      */
-    public LocalCandidate findLocalCandidate(TransportAddress localAddress, String ufrag) {
-        for (IceMediaStream stream : mediaStreams.values()) {
-            for (Component c : stream.getComponents()) {
-                for (LocalCandidate cnd : c.getLocalCandidates()) {
-                    if (cnd != null && cnd.getUfrag() != null && cnd.getUfrag().equals(ufrag)) {
-                        return cnd;
-                    }
-                }
-            }
-        }
-        return null;
-    }
+//    public LocalCandidate findLocalCandidate(TransportAddress localAddress, String ufrag) {
+//        for (IceMediaStream stream : mediaStreams.values()) {
+//            for (Component c : stream.getComponents()) {
+//                for (LocalCandidate cnd : c.getLocalCandidates()) {
+//                    if (cnd != null && cnd.getUfrag() != null && cnd.getUfrag().equals(ufrag)) {
+//                        return cnd;
+//                    }
+//                }
+//            }
+//        }
+//        return null;
+//    }
 
     /**
      * Returns the remote Candidate with the specified remoteAddress if it belongs to any of this {@link Agent}'s
@@ -1382,11 +1397,9 @@ public class Agent {
      * Initializes and starts the background Thread which is to send STUN keep-alives once this Agent is COMPLETED.
      */
     private void scheduleStunKeepAlive() {
-        stunKeepAlive = submit(new Runnable() {
-            public void run() {
-                Thread.currentThread().setName("StunKeepAliveThread");
-                runInStunKeepAliveThread();
-            }
+        stunKeepAlive = submit(() -> {
+            Thread.currentThread().setName("StunKeepAliveThread");
+            runInStunKeepAliveThread();
         });
     }
 

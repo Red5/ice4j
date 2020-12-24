@@ -202,7 +202,7 @@ public class Component implements PropertyChangeListener {
             }
         });
     }
-    
+
     /**
      * Returns a copy of the list containing all local candidates currently registered in this component.
      *
@@ -493,13 +493,44 @@ public class Component implements PropertyChangeListener {
      * @return the LocalCandidate with the specified localAddress if it belongs or null if not
      */
     public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
-        for (LocalCandidate localCnd : localCandidates) {
-            if (localCnd.getTransportAddress().equals(localAddress)) {
-                logger.debug("Found local {} candidate for address: {}", localCnd.getType(), localAddress);
-                return localCnd;
+        //        for (LocalCandidate localCnd : localCandidates) {
+        //            if (localCnd.getTransportAddress().equals(localAddress)) {
+        //                logger.debug("Found local {} candidate for address: {}", localCnd.getType(), localAddress);
+        //                return localCnd;
+        //            }
+        //        }
+        //        logger.debug("No local candidate for address: {}", localAddress);
+        //        return null;
+        return findLocalCandidate(localAddress, null);
+    }
+
+    /**
+     * Returns the local LocalCandidate with the specified address if it belongs to this component or null
+     * if it doesn't. If {@code base} is also specified, tries to find a candidate whose base matches {@code base}.
+     *
+     * @param address the {@link TransportAddress} we are looking for
+     * @param base an optional base to match
+     *
+     * @return  the local LocalCandidate with the specified address if it belongs to this component or null
+     * if it doesn't.
+     */
+    public LocalCandidate findLocalCandidate(TransportAddress localAddress, LocalCandidate base) {
+        for (LocalCandidate localCandidate : localCandidates) {
+            if (localCandidate.getTransportAddress().equals(localAddress)) {
+                if (base == null || base.equals(localCandidate.getBase())) {
+                    logger.debug("Found local {} candidate for address: {}", localCandidate.getType(), localAddress);
+                    return localCandidate;
+                }
             }
         }
-        logger.debug("No local candidate for address: {}", localAddress);
+        // In case the above loop failed to find a result because `base` was specified, fallback to the original
+        // behavior and return the first candidate matching `address` regardless of `base`.
+        for (LocalCandidate localCandidate : localCandidates) {
+            if (localCandidate.getTransportAddress().equals(localAddress)) {
+                logger.warn("Returning a candidate matching the address, while no candidates match both address ({}) and base ({}): {} with base {}", localAddress, base, localCandidate, localCandidate.getBase());
+                return localCandidate;
+            }
+        }
         return null;
     }
 

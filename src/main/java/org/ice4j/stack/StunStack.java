@@ -103,6 +103,7 @@ public class StunStack implements MessageEventHandler {
     private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         public Thread newThread(Runnable r) {
             Thread t = new Thread(r);
+            t.setName(String.format("StunStack@%d", System.currentTimeMillis()));
             t.setDaemon(true);
             t.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
 

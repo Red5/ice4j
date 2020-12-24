@@ -1,5 +1,6 @@
 package org.ice4j.ice.harvest;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 
 /**
@@ -28,6 +29,7 @@ public class AddressRef {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((address instanceof Inet6Address) ? 64 : 0);
         result = prime * result + ((address == null) ? 0 : address.hashCode());
         result = prime * result + (virtual ? 1231 : 1237);
         return result;

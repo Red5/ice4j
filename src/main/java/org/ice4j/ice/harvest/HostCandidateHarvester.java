@@ -232,8 +232,6 @@ public class HostCandidateHarvester {
         // gather network interfaces
         List<NetworkInterface> nics = Collections.emptyList();
         try {
-            // ensure we dont allow local host
-            InetAddress localAddr = InetAddress.getLocalHost();
             // get network interfaces
             nics = Collections.list(NetworkInterface.getNetworkInterfaces());
             // collect all the addresses that could possibly be bound on this system
@@ -247,6 +245,11 @@ public class HostCandidateHarvester {
                         bindableAddresses.add(addr);
                         // if the address is bindable and not on an `lo` interface, add to addresses list
                         if (!interfaceName.startsWith("lo")) {
+                            // IPv6 addresses display with a suffix might be confusing if string compare is done
+                            if (isIPv6Disabled && addr instanceof Inet6Address) {
+                                logger.debug("IPv6 address disabled: {}", addr);
+                                continue;
+                            }                        
                             addresses.add(new AddressRef(addr, NetworkUtils.isInterfaceVirtual(iface)));
                         }
                     }

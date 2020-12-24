@@ -76,6 +76,7 @@ public class XorOnlyTest extends TestCase
      * Test positive and negative XorOnly.equals() returns
      * @throws Exception if decoding fails
      */
+    @SuppressWarnings("unlikely-arg-type")
     public void testEquals() throws Exception
     {
         XorOnlyAttribute xor2 = new XorOnlyAttribute();

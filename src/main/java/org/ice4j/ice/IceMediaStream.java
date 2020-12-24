@@ -358,11 +358,31 @@ public class IceMediaStream {
      * @return  the local LocalCandidate with the specified localAddress if it belongs to any of this stream's components
      * or null otherwise
      */
-    public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
-        for (Component cmp : components) {
-            LocalCandidate cnd = cmp.findLocalCandidate(localAddress);
-            if (cnd != null) {
-                return cnd;
+//    public LocalCandidate findLocalCandidate(TransportAddress localAddress) {
+//        for (Component cmp : components) {
+//            LocalCandidate cnd = cmp.findLocalCandidate(localAddress);
+//            if (cnd != null) {
+//                return cnd;
+//            }
+//        }
+//        return null;
+//    }
+
+    /**
+     * Returns the local LocalCandidate with the specified address if it belongs to any of this stream's components
+     * or null otherwise. If {@code base} is also specified, tries to find a candidate whose base matches {@code base}.
+     *
+     * @param address the {@link TransportAddress} we are looking for
+     * @param base an optional base to match
+     *
+     * @return  the local LocalCandidate with the specified address if it belongs to any of this stream's components
+     * or null otherwise
+     */
+    public LocalCandidate findLocalCandidate(TransportAddress address, LocalCandidate base) {
+        for (Component component : components) {
+            LocalCandidate localCandidate = component.findLocalCandidate(address, base);
+            if (localCandidate != null) {
+                return localCandidate;
             }
         }
         return null;

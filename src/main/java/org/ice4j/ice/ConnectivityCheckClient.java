@@ -373,8 +373,11 @@ class ConnectivityCheckClient implements ResponseCollector {
         if (checkedPair.getLocalCandidate().getTransport() == Transport.TCP) {
             mappedAddress = new TransportAddress(mappedAddress.getAddress(), mappedAddress.getPort(), Transport.TCP);
         }
-        LocalCandidate validLocalCandidate = null;
-        validLocalCandidate = parentAgent.findLocalCandidate(mappedAddress);
+        // In some situations we may have more than one local candidate matching
+        // the mapped address. In this case we want to find the that matches
+        // the socket we received the response on.
+        LocalCandidate base = checkedPair.getLocalCandidate().getBase();
+        LocalCandidate validLocalCandidate = parentAgent.findLocalCandidate(mappedAddress, base);
         RemoteCandidate validRemoteCandidate = checkedPair.getRemoteCandidate();
         // RFC 5245: The agent checks the mapped address from the STUN response. If the transport address does not match any of the
         // local candidates that the agent knows about, the mapped address represents a new candidate -- a peer reflexive candidate.
