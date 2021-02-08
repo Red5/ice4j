@@ -31,18 +31,14 @@ public class RawMessage {
     /**
      * Constructs a raw message with the specified field values. All parameters are cloned before being assigned to class members.
      *
-     * @param messageBytes the message itself.
-     * @param messageLength the number of bytes currently stored in the messageBytes array.
-     * @param remoteAddress the address where the message came from.
-     * @param localAddress the TransportAddress that the message was received on.
+     * @param messageBytes the message itself
+     * @param remoteAddress the address where the message came from
+     * @param localAddress the TransportAddress that the message was received on
      *
      * @throws NullPointerException if one or more of the parameters were null.
      */
-    private RawMessage(byte[] messageBytes, int messageLength, TransportAddress remoteAddress, TransportAddress localAddress) {
-        // Let NullPointerException go out. The length of the array messgeBytes may be enormous while messageLength may
-        // be tiny so it does not make sense to clone messageBytes.
-        this.messageBytes = new byte[messageLength];
-        System.arraycopy(messageBytes, 0, this.messageBytes, 0, messageLength);
+    private RawMessage(byte[] messageBytes, TransportAddress remoteAddress, TransportAddress localAddress) {
+        this.messageBytes = messageBytes;
         this.localAddress = localAddress;
         this.remoteAddress = remoteAddress;
     }
@@ -103,10 +99,19 @@ public class RawMessage {
      * @param messageBytes the message itself
      * @param remoteAddress the address where the message came from
      * @param localAddress the TransportAddress that the message was received on
+     * @param copy to copy or not to copy the bytes coming in
      * @return RawMessage instance
      */
-    public static RawMessage build(byte[] messageBytes, TransportAddress remoteAddress, TransportAddress localAddress) {
-        return new RawMessage(messageBytes, messageBytes.length, remoteAddress, localAddress);
+    public static RawMessage build(byte[] messageBytes, TransportAddress remoteAddress, TransportAddress localAddress, boolean copy) {
+        // make a copy of the message bytes for the new raw message
+        if (copy) {
+            int bufLength = messageBytes.length;
+            byte[] buf = new byte[bufLength];
+            System.arraycopy(messageBytes, 0, buf, 0, bufLength);
+            return new RawMessage(buf, remoteAddress, localAddress);
+        } else {
+            return new RawMessage(messageBytes, remoteAddress, localAddress);
+        }
     }
 
     /**
@@ -118,7 +123,20 @@ public class RawMessage {
      * @return RawMessage instance
      */
     public static RawMessage build(byte[] messageBytes, SocketAddress remoteAddress, SocketAddress localAddress) {
-        return new RawMessage(messageBytes, messageBytes.length, (TransportAddress) remoteAddress, (TransportAddress) localAddress);
+        return RawMessage.build(messageBytes, (TransportAddress) remoteAddress, (TransportAddress) localAddress, true);
+    }
+    
+    /**
+     * Use builder pattern to allow creation of immutable RawMessage instances, from outside the current package.
+     *
+     * @param messageBytes the message itself
+     * @param remoteAddress the SocketAddress where the message came from
+     * @param localAddress the SocketAddress that the message was received on
+     * @param copy to copy or not to copy the bytes coming in
+     * @return RawMessage instance
+     */
+    public static RawMessage build(byte[] messageBytes, SocketAddress remoteAddress, SocketAddress localAddress, boolean copy) {
+        return RawMessage.build(messageBytes, (TransportAddress) remoteAddress, (TransportAddress) localAddress, copy);
     }
 
 }

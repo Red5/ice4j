@@ -38,11 +38,11 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class IceSocketWrapper {
 
+    protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
+
     public final static IoSession NULL_SESSION = new DummySession();
 
     public final static String DISCONNECTED = "disconnected";
-
-    protected final Logger logger = LoggerFactory.getLogger(IceSocketWrapper.class);
 
     // whether or not we've been closed
     public volatile boolean closed;
@@ -87,8 +87,8 @@ public abstract class IceSocketWrapper {
     /**
      * The message queue is where incoming messages are added that were not otherwise processed (ie. DTLS etc..).
      */
-    protected LinkedTransferQueue<RawMessage> rawMessageQueue = new LinkedTransferQueue<>();
-
+    protected SizeTrackedLinkedTransferQueue<RawMessage> rawMessageQueue = new SizeTrackedLinkedTransferQueue<>();
+    
     /**
      * Reusable IoFutureListener for connect.
      */
@@ -510,6 +510,7 @@ public abstract class IceSocketWrapper {
         if (!closed) {
             //logger.trace("offered message: {} local: {} remote: {}", message, transportAddress, remoteTransportAddress);
             if (rawMessageQueue != null) {
+                // while the queue type is unbounded, this will always return true
                 return rawMessageQueue.offer(message);
             }
         }
@@ -618,5 +619,5 @@ public abstract class IceSocketWrapper {
         iceSocket.setRelayedConnection(relayedCandidateConnection);
         return iceSocket;
     }
-
+    
 }

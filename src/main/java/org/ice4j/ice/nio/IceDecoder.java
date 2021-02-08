@@ -2,6 +2,7 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Optional;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.session.IoSession;
@@ -30,6 +31,10 @@ import org.slf4j.LoggerFactory;
 public class IceDecoder extends ProtocolDecoderAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(IceDecoder.class);
+    
+    private static final boolean isTrace = logger.isTraceEnabled();
+
+    private static final boolean isDebug = logger.isDebugEnabled();
 
     /**
      * Length of a DTLS record header.
@@ -37,7 +42,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
     private static final int DTLS_RECORD_HEADER_LENGTH = 13;
 
     /**
-     * Holder of incomplete frames.
+     * Holder of incomplete TCP frames.
      */
     class FrameChunk {
 
@@ -98,9 +103,9 @@ public class IceDecoder extends ProtocolDecoderAdapter {
 
     @Override
     public void decode(IoSession session, IoBuffer in, ProtocolDecoderOutput out) throws Exception {
-        if (logger.isTraceEnabled()) {
+        if (isTrace) {
             logger.trace("Decode start pos: {} session: {} input: {}", in.position(), session.getId(), in);
-        } else if (logger.isDebugEnabled()) {
+        } else if (isDebug) {
             logger.debug("Decode session: {}", session);
         }
         IceSocketWrapper iceSocket = null;
@@ -219,26 +224,100 @@ public class IceDecoder extends ProtocolDecoderAdapter {
             logger.trace("All TCP input data decoded");
         } else {
             // do udp
-            buf = new byte[frameLength];
-            // get the bytes into our buffer
-            in.get(buf);
             //logger.trace("Decode frame length: {} buffer length: {}", frameLength, buf.length);
             // STUN messages are at least 20 bytes and DTLS are 13+
-            if (buf.length > DTLS_RECORD_HEADER_LENGTH) {
+            if (frameLength > DTLS_RECORD_HEADER_LENGTH) {
                 // get the socket which may be null if the associated candidate hasn't been nominated yet
-                iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
-                // if the ice socket is not in the session yet, attempt to pull it from those registered in the handler
-                if (iceSocket == null) {
-                    iceSocket = IceUdpTransport.getIceHandler().lookupBinding((TransportAddress) localAddr);
-                }
+                // else if the ice socket is not in the session yet, attempt to pull it from those registered in the handler
+                iceSocket = (IceSocketWrapper) Optional.ofNullable(session.getAttribute(Ice.CONNECTION)).orElse(IceUdpTransport.getIceHandler().lookupBinding((TransportAddress) localAddr));
                 // send a buffer of bytes for further processing / handling
-                process(session, iceSocket, localAddr, remoteAddr, buf);
+                process(session, iceSocket, localAddr, remoteAddr, in, frameLength);
             } else {
                 // there was not enough data in the buffer to parse - this should never happen
                 logger.warn("Not enough data in the buffer to parse: {}", in);
             }
         }
         buf = null;
+    }
+    
+    /**
+     * Process the given bytes for handling as STUN, DTLS, or data (usually rtp/rtcp). Incoming webrtc packets in udp contain only one message,
+     * in tcp they may come in as a whole, fragments, or any combo of the two as well as multiple messages.
+     * 
+     * @param session
+     * @param iceSocket
+     * @param localAddr
+     * @param remoteAddr
+     * @param in incoming I/O buffer
+     * @param frameLength length of the current input frame
+     */
+    public static void process(IoSession session, IceSocketWrapper iceSocket, SocketAddress localAddr, SocketAddress remoteAddr, IoBuffer in, int frameLength) {
+        // create a buffer to extract data into
+        byte[] buf = new byte[frameLength];
+        // get the bytes into our buffer
+        in.get(buf);
+        // if special TURN processing is needed, we'll have to separate it out to be run first since TURN messages are STUN messages
+        RawMessage message = null;
+        if ((isStun(buf) && isStunMethod(buf)) || (isTurn(buf) && isTurnMethod(buf))) {
+            if (isTrace) {
+                logger.trace("Dispatching a STUN message");
+            }
+            StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
+            if (stunStack != null) {
+                try {
+                    // create a message
+                    message = RawMessage.build(buf, remoteAddr, localAddr, false);
+                    Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
+                    if (isDebug) {
+                        logger.debug("Message: {}", stunMessage);
+                        stunMessage.getAttributes().forEach(attr -> {
+                            logger.debug("Attribute: {}", attr);
+                        });
+                    }
+                    // handling of stun/turn messages without an icesocket should be allowed to proceed
+                    stunStack.handleMessageEvent(new StunMessageEvent(stunStack, message, stunMessage));
+                } catch (Exception ex) {
+                    logger.warn("Failed to decode a stun message!", ex);
+                }
+            } else {
+                logger.warn("Stun stack was null for session: {}, cannot decode STUN messages", session.getId());
+                session.closeNow();
+            }
+        } else if (isDtls(buf)) {
+            int offset = 0;
+            do {
+                if (isTrace) {
+                    short contentType = (short) (buf[offset] & 0xff);
+                    if (contentType == DtlsContentType.handshake) {
+                        short messageType = (short) (buf[offset + 11] & 0xff);
+                        logger.trace("DTLS handshake message type: {}", getMessageType(messageType));
+                    }
+                }
+                // get the length of the dtls record
+                int dtlsRecordLength = (buf[offset + 11] & 0xff) << 8 | (buf[offset + 12] & 0xff);
+                byte[] record = new byte[dtlsRecordLength + DTLS_RECORD_HEADER_LENGTH];
+                System.arraycopy(buf, offset, record, 0, record.length);
+                if (isTrace) {
+                    String dtlsVersion = getDtlsVersion(buf, 0, buf.length);
+                    logger.trace("Queuing DTLS {} length: {} message: {}", dtlsVersion, dtlsRecordLength, Utils.toHexString(record));
+                }
+                // create a message
+                message = RawMessage.build(record, remoteAddr, localAddr, false);
+                if (iceSocket.offerMessage(message)) {
+                    // increment the offset
+                    offset += record.length;
+                    logger.trace("Offset: {}", offset);
+                } else {
+                    message = null;
+                }
+            } while (offset < (buf.length - DTLS_RECORD_HEADER_LENGTH));
+        } else {
+            // this should catch anything else not identified as stun or dtls
+            message = RawMessage.build(buf, remoteAddr, localAddr, false);
+            if (!iceSocket.offerMessage(message)) {
+                message = null;
+            }
+        }
     }
 
     /**
@@ -255,7 +334,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
         // if special TURN processing is needed, we'll have to separate it out to be run first since TURN messages are STUN messages
         RawMessage message = null;
         if ((isStun(buf) && isStunMethod(buf)) || (isTurn(buf) && isTurnMethod(buf))) {
-            if (logger.isTraceEnabled()) {
+            if (isTrace) {
                 logger.trace("Dispatching a STUN message");
             }
             StunStack stunStack = (StunStack) session.getAttribute(Ice.STUN_STACK);
@@ -264,7 +343,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                     // create a message
                     message = RawMessage.build(buf, remoteAddr, localAddr);
                     Message stunMessage = Message.decode(message.getBytes(), 0, message.getMessageLength());
-                    if (logger.isDebugEnabled()) {
+                    if (isDebug) {
                         logger.debug("Message: {}", stunMessage);
                         stunMessage.getAttributes().forEach(attr -> {
                             logger.debug("Attribute: {}", attr);
@@ -277,11 +356,12 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 }
             } else {
                 logger.warn("Stun stack was null for session: {}, cannot decode STUN messages", session.getId());
+                session.closeNow();
             }
         } else if (isDtls(buf)) {
             int offset = 0;
             do {
-                if (logger.isTraceEnabled()) {
+                if (isTrace) {
                     short contentType = (short) (buf[offset] & 0xff);
                     if (contentType == DtlsContentType.handshake) {
                         short messageType = (short) (buf[offset + 11] & 0xff);
@@ -292,7 +372,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 int dtlsRecordLength = (buf[offset + 11] & 0xff) << 8 | (buf[offset + 12] & 0xff);
                 byte[] record = new byte[dtlsRecordLength + DTLS_RECORD_HEADER_LENGTH];
                 System.arraycopy(buf, offset, record, 0, record.length);
-                if (logger.isTraceEnabled()) {
+                if (isTrace) {
                     String dtlsVersion = getDtlsVersion(buf, 0, buf.length);
                     logger.trace("Queuing DTLS {} length: {} message: {}", dtlsVersion, dtlsRecordLength, Utils.toHexString(record));
                 }
@@ -475,7 +555,7 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 Message stunMessage = Message.decode(buf, off, len);
                 if (stunMessage.getMessageType() == Message.BINDING_REQUEST) {
                     UsernameAttribute usernameAttribute = (UsernameAttribute) stunMessage.getAttribute(Attribute.Type.USERNAME);
-                    if (logger.isTraceEnabled()) {
+                    if (isTrace) {
                         logger.trace("UsernameAttribute: {}", usernameAttribute);
                     }
                     if (usernameAttribute != null) {
@@ -485,12 +565,12 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 }
             } catch (Exception e) {
                 // Catch everything. We are going to log, and then drop the packet anyway.
-                if (logger.isDebugEnabled()) {
+                if (isDebug) {
                     logger.warn("Failed to extract local ufrag", e);
                 }
             }
         } else {
-            if (logger.isDebugEnabled()) {
+            if (isDebug) {
                 logger.debug("Not a STUN packet, magic cookie not found.");
             }
         }
