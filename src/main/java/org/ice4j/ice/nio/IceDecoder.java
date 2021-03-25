@@ -232,8 +232,14 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                 // get the socket which may be null if the associated candidate hasn't been nominated yet
                 // else if the ice socket is not in the session yet, attempt to pull it from those registered in the handler
                 iceSocket = (IceSocketWrapper) Optional.ofNullable(session.getAttribute(Ice.CONNECTION)).orElse(IceUdpTransport.getIceHandler().lookupBinding((TransportAddress) localAddr));
-                // send a buffer of bytes for further processing / handling
-                process(session, iceSocket, localAddr, remoteAddr, in, frameLength);
+                // if the socket is valid for processing input
+                if (iceSocket != null && !iceSocket.isClosed()) {
+                    // send a buffer of bytes for further processing / handling
+                    process(session, iceSocket, localAddr, remoteAddr, in, frameLength);
+                } else {
+                    logger.warn("No ice socket in session, closing: {}", session);
+                    throw new SocketClosedException("Socket closed or wrapper unavailable");
+                }
             } else {
                 // there was not enough data in the buffer to parse - this should never happen
                 logger.warn("Not enough data in the buffer to parse: {}", in);
