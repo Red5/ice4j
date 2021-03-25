@@ -169,7 +169,20 @@ public class HostCandidateHarvester {
                 }
             }
             String[] blockedAddressesStr = StackProperties.getStringArray(StackProperties.BLOCKED_ADDRESSES, ";");
-            if (blockedAddressesStr != null) {
+            // if allowed addresses is specified and blocked addresses are not, block all other addresses
+            if (allowedAddressesStr != null && blockedAddressesStr == null) {
+                // create the blocked address holder if not done already
+                if (blockedAddresses == null) {
+                    blockedAddresses = new ArrayList<>();
+                }
+                // go thru detected host addresses and block those that aren't explicitly allowed
+                availableHostAddresses.forEach(ref -> {
+                    InetAddress addr = ref.getAddress();
+                    if (!allowedAddresses.contains(addr)) {
+                        blockedAddresses.add(addr);
+                    }
+                });
+            } else if (blockedAddressesStr != null) {
                 for (String addressStr : blockedAddressesStr) {
                     InetAddress address;
                     try {

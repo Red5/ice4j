@@ -514,7 +514,7 @@ public abstract class IceSocketWrapper {
                 return rawMessageQueue.offer(message);
             }
         }
-        logger.debug("Message rejected, socket is closed or queue is not available");
+        logger.debug("Message rejected, socket ({}) is closed or queue is not available", remoteTransportAddress);
         return false;
     }
 

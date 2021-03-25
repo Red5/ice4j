@@ -22,4 +22,14 @@ public class SocketClosedException extends SocketException {
         // might be matching against the string.
         super("Socket closed");
     }
+
+    /**
+     * Initializes a new {@link SocketClosedException}.
+     * 
+     * @param message
+     */
+    public SocketClosedException(String message) {
+        super(message);
+    }
+
 }

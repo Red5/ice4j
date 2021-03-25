@@ -150,12 +150,13 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                         session.removeAttribute(Ice.TCP_BUFFER);
                         // get the socket
                         iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
-                        if (iceSocket != null) {
+                        // if the socket is valid for processing input
+                        if (iceSocket != null && !iceSocket.isClosed()) {
                             // send a buffer of bytes for further processing / handling
                             process(session, iceSocket, localAddr, remoteAddr, buf);
                         } else {
                             logger.warn("No ice socket in session, closing: {}", session);
-                            throw new SocketClosedException();
+                            throw new SocketClosedException("Socket closed or wrapper unavailable");
                         }
                         // no more frame chunks, so regular processing will proceed
                         continue checkFrameComplete;
@@ -206,12 +207,13 @@ public class IceDecoder extends ProtocolDecoderAdapter {
                             in.get(buf);
                             // get the socket
                             iceSocket = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
-                            if (iceSocket != null) {
+                            // if the socket is valid for processing input
+                            if (iceSocket != null && !iceSocket.isClosed()) {
                                 // send a buffer of bytes for further processing / handling
                                 process(session, iceSocket, localAddr, remoteAddr, buf);
                             } else {
                                 logger.warn("No ice socket in session, closing: {}", session);
-                                throw new SocketClosedException();
+                                throw new SocketClosedException("Socket closed or wrapper unavailable");
                             }
                         }
                     } else {
