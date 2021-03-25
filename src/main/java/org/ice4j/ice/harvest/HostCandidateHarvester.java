@@ -338,24 +338,31 @@ public class HostCandidateHarvester {
         logger.trace("Starting socket creation loop");
         availableHostAddresses.forEach(addrRef -> {
             logger.debug("addr: {}", addrRef);
-            IceSocketWrapper iceSocket = null;
-            try {
-                if (transport == Transport.UDP) {
-                    iceSocket = createDatagramSocket(addrRef.getAddress(), preferredPort, minPort, maxPort);
-                } else if (transport == Transport.TCP) {
-                    iceSocket = createServerSocket(addrRef.getAddress(), preferredPort, minPort, maxPort, component);
+            // grab the address
+            InetAddress addr = addrRef.getAddress();
+            // ensure address is allowed first
+            if (isAddressAllowed(addr)) {
+                IceSocketWrapper iceSocket = null;
+                try {
+                    if (transport == Transport.UDP) {
+                        iceSocket = createDatagramSocket(addr, preferredPort, minPort, maxPort);
+                    } else if (transport == Transport.TCP) {
+                        iceSocket = createServerSocket(addr, preferredPort, minPort, maxPort, component);
+                    }
+                    logger.debug("Socket created/bound: {}", iceSocket);
+                    HostCandidate candidate = new HostCandidate(iceSocket, component, transport);
+                    candidate.setVirtual(addrRef.isVirtual());
+                    component.addLocalCandidate(candidate);
+                    StunStack stunStack = candidate.getStunStack();
+                    // add the socket wrapper to the stack which gets the bind and listening process started
+                    stunStack.addSocket(iceSocket, null, true); // do socket binding
+                    component.getComponentSocket().setSocketWrapper(iceSocket);
+                } catch (Throwable t) {
+                    // There seems to be a problem with this particular address let's just move on for now and hope we will find better
+                    logger.warn("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort, t);
                 }
-                logger.debug("Socket created/bound: {}", iceSocket);
-                HostCandidate candidate = new HostCandidate(iceSocket, component, transport);
-                candidate.setVirtual(addrRef.isVirtual());
-                component.addLocalCandidate(candidate);
-                StunStack stunStack = candidate.getStunStack();
-                // add the socket wrapper to the stack which gets the bind and listening process started
-                stunStack.addSocket(iceSocket, null, true); // do socket binding
-                component.getComponentSocket().setSocketWrapper(iceSocket);
-            } catch (Throwable t) {
-                // There seems to be a problem with this particular address let's just move on for now and hope we will find better
-                logger.warn("Socket creation failed on: {} transport: {}\nPorts - preferred: {} min: {} max: {}", addrRef, transport, preferredPort, minPort, maxPort, t);
+            } else {
+                logger.debug("Address is not allowed: {}", addr);
             }
         });
         logger.trace("Exited socket creation loop");
