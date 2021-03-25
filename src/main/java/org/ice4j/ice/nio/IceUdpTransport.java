@@ -228,9 +228,7 @@ public class IceUdpTransport extends IceTransport {
                 @Override
                 public Boolean call() throws Exception {
                     logger.debug("Adding UDP binding: {}", addr);
-                    synchronized (acceptor) {
-                        acceptor.bind(addr);
-                    }
+                    acceptor.bind(addr);
                     // add the port to the bound list
                     boundPorts.add(((InetSocketAddress) addr).getPort());
                     logger.debug("UDP binding added: {}", addr);

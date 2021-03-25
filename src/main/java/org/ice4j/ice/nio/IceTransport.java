@@ -167,9 +167,7 @@ public abstract class IceTransport {
                             public Boolean call() throws Exception {
                                 logger.debug("Removing binding: {}", addr);
                                 // perform the unbinding
-                                synchronized (acceptor) {
-                                    acceptor.unbind(addr);
-                                }
+                                acceptor.unbind(addr);
                                 logger.debug("Binding removed: {}", addr);
                                 return Boolean.TRUE;
                             }
@@ -188,11 +186,9 @@ public abstract class IceTransport {
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
                 if (aggressiveAcceptorReset && acceptor != null) {
-                    synchronized (acceptor) {
-                        logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
-                        acceptor.dispose(false);
-                        acceptor = null;
-                    }
+                    logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
+                    acceptor.dispose(false);
+                    acceptor = null;
                 } else if (logger.isDebugEnabled()) {
                     // putting on the debug guard to prevent flooding the log
                     logger.warn("Remove binding failed on {}", addr, t);
@@ -210,11 +206,9 @@ public abstract class IceTransport {
             executor.shutdown();
         }
         if (acceptor != null) {
-            synchronized (acceptor) {
-                acceptor.unbind();
-                acceptor.dispose(true);
-                logger.info("Disposed acceptor: {}", id);
-            }
+            acceptor.unbind();
+            acceptor.dispose(true);
+            logger.info("Disposed acceptor: {}", id);
         }
     }
 
