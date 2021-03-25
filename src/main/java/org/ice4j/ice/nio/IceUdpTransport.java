@@ -34,7 +34,7 @@ public class IceUdpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceUdpTransport.class);
 
-    private Semaphore lock = new Semaphore(1, true);
+    //private Semaphore lock = new Semaphore(1, true);
 
     private long lastGCTime = System.currentTimeMillis();
 
@@ -277,20 +277,20 @@ public class IceUdpTransport extends IceTransport {
             // get the local address
             TransportAddress transportAddress = socketWrapper.getTransportAddress();
             // newSession calls recycler.recycle(destAddress)
-            try {
-                if (lock.tryAcquire(500L, TimeUnit.MILLISECONDS)) {
+            //try {
+                //if (lock.tryAcquire(500L, TimeUnit.MILLISECONDS)) {
                     // create the new session
                     session = acceptor.newSession(destAddress, transportAddress);
                     // set the session directly
                     socketWrapper.setSession(session);
                     // we're done with the lock
-                    lock.release();
-                } else {
-                    logger.info("Lock aquire timed out for session creation");
-                }
-            } catch (InterruptedException e) {
-                logger.warn("Create session interrupted", e);
-            }
+                    //lock.release();
+                //} else {
+                //    logger.info("Lock aquire timed out for session creation");
+                //}
+            //} catch (InterruptedException e) {
+            //    logger.warn("Create session interrupted", e);
+            //}
         } else {
             logger.debug("No UDP acceptor available");
         }
