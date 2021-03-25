@@ -8,7 +8,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.service.IoService;
@@ -33,8 +32,6 @@ import org.slf4j.LoggerFactory;
 public class IceUdpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceUdpTransport.class);
-
-    //private Semaphore lock = new Semaphore(1, true);
 
     private long lastGCTime = System.currentTimeMillis();
 
@@ -277,20 +274,11 @@ public class IceUdpTransport extends IceTransport {
             // get the local address
             TransportAddress transportAddress = socketWrapper.getTransportAddress();
             // newSession calls recycler.recycle(destAddress)
-            //try {
-                //if (lock.tryAcquire(500L, TimeUnit.MILLISECONDS)) {
-                    // create the new session
-                    session = acceptor.newSession(destAddress, transportAddress);
-                    // set the session directly
-                    socketWrapper.setSession(session);
-                    // we're done with the lock
-                    //lock.release();
-                //} else {
-                //    logger.info("Lock aquire timed out for session creation");
-                //}
-            //} catch (InterruptedException e) {
-            //    logger.warn("Create session interrupted", e);
-            //}
+            session = acceptor.newSession(destAddress, transportAddress);
+            if (session != null) {
+                // set the session directly
+                socketWrapper.setSession(session);
+            }
         } else {
             logger.debug("No UDP acceptor available");
         }
