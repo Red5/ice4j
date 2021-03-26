@@ -2,13 +2,11 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayDeque;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.service.IoServiceListener;
@@ -32,13 +30,20 @@ import org.slf4j.LoggerFactory;
 public class IceUdpTransport extends IceTransport {
 
     private static final Logger logger = LoggerFactory.getLogger(IceUdpTransport.class);
+    
+    private static boolean isTrace = logger.isTraceEnabled();
 
-    private long lastGCTime = System.currentTimeMillis();
+    private static boolean isDebug = logger.isDebugEnabled();
+
+    //private long lastGCTime = System.currentTimeMillis();
 
     /**
      * Recycler's session map.
      */
     private ConcurrentMap<String, IoSession> sessions = new ConcurrentHashMap<>();
+    
+    // track sequence to ensure we don't nack those that are too old
+    private ArrayDeque<ExpirableAddressEntry> recentBindingsQueue = new ArrayDeque<>();
 
     private IoSessionRecycler recycler = new IoSessionRecycler() {
 
@@ -46,9 +51,30 @@ public class IceUdpTransport extends IceTransport {
         public void put(IoSession session) {
             //logger.trace("Adding session to recycler: {}", session);
             String key = generateKey(session);
-            sessions.put(key, session);
-            if (logger.isTraceEnabled()) {
-                logger.trace("Added session: {} {}", session.getId(), key);
+            // to allow binding/storage or not
+            boolean allowUse = true;
+            // check for recent binding removals
+            for (ExpirableAddressEntry expEntry : recentBindingsQueue) {
+                // remove entries when they've expired as we roll through
+                if (expEntry.isExpired()) {
+                    // these also won't count as a match
+                    recentBindingsQueue.remove(expEntry);
+                    // continue on...
+                    continue;
+                }
+                if (key.equals(expEntry.getAddressKey())) {
+                    // we've match a recently unbound address, don't allow re-use quite so quickly
+                    allowUse = false;
+                    break;
+                }
+            }
+            if (allowUse) {
+                sessions.put(key, session);
+                if (isTrace) {
+                    logger.trace("Added session: {} {} to recycler", session.getId(), key);
+                }
+            } else {
+                logger.debug("Failed to add session: {} {} to recycler, too soon", session.getId(), key);
             }
         }
 
@@ -62,7 +88,7 @@ public class IceUdpTransport extends IceTransport {
                 sess = opt.get();
                 return sess;
             } else {
-                if (logger.isTraceEnabled()) {
+                if (isTrace) {
                     logger.trace("Session not found in recycler for remote address: {}\n{}", remoteAddress, sessions.keySet());
                 }
             }
@@ -74,10 +100,14 @@ public class IceUdpTransport extends IceTransport {
             //logger.trace("Removing session from recycler: {}", session);
             String key = generateKey(session);
             // remove by key
-            sessions.remove(key);
-            if (logger.isTraceEnabled()) {
-                logger.trace("Removed session: {} {}", session.getId(), key);
+            if (sessions.remove(key) != null) {
+                // make an entry for the key we're removed
+                recentBindingsQueue.add(new ExpirableAddressEntry(key));
+                if (isTrace) {
+                    logger.trace("Removed session: {} {} from recycler", session.getId(), key);
+                }
             }
+            /* disable GC request for now
             // see if we should GC to keep the heap as clean as possible
             long now = System.currentTimeMillis();
             // is every x minutes too much?
@@ -85,6 +115,7 @@ public class IceUdpTransport extends IceTransport {
                 lastGCTime = now;
                 System.gc();
             }
+            */
         }
 
         private String generateKey(IoSession session) {
@@ -206,7 +237,7 @@ public class IceUdpTransport extends IceTransport {
             // add our handler
             acceptor.setHandler(iceHandler);
             logger.info("Started socket transport");
-            if (logger.isTraceEnabled()) {
+            if (isTrace) {
                 logger.trace("Acceptor sizes - send: {} recv: {}", sessionConf.getSendBufferSize(), sessionConf.getReadBufferSize());
             }
             // add ourself to the transports map
@@ -292,7 +323,7 @@ public class IceUdpTransport extends IceTransport {
      * @return IoSession if match is found and null if not found
      */
     public IoSession getSessionByLocal(TransportAddress localAddress) {
-        if (logger.isDebugEnabled()) {
+        if (isDebug) {
             logger.debug("Session values: {}", sessions.values());
         }
         for (IoSession sess : sessions.values()) {
