@@ -223,21 +223,23 @@ public class IceUdpTransport extends IceTransport {
     @Override
     public boolean addBinding(SocketAddress addr) {
         try {
-            Future<Boolean> bindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
-
-                @Override
-                public Boolean call() throws Exception {
+//            Future<Boolean> bindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
+//
+//                @Override
+//                public Boolean call() throws Exception {
                     logger.debug("Adding UDP binding: {}", addr);
                     acceptor.bind(addr);
                     // add the port to the bound list
                     boundPorts.add(((InetSocketAddress) addr).getPort());
                     logger.debug("UDP binding added: {}", addr);
-                    return Boolean.TRUE;
-                }
-
-            });
-            // wait a maximum of x seconds for this to complete the binding
-            return bindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+                    // no exceptions? return true for adding the binding
+                    return true;
+//                    return Boolean.TRUE;
+//                }
+//
+//            });
+//            // wait a maximum of x seconds for this to complete the binding
+//            return bindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
         } catch (Throwable t) {
             logger.warn("Add binding failed on {}", addr, t);
         }

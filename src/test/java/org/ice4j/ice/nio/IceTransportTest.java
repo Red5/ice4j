@@ -1,5 +1,7 @@
 package org.ice4j.ice.nio;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -41,7 +43,7 @@ public class IceTransportTest {
     private static int GOOGLE_STUN_PORT = 19302;
     
     @Test
-    public void testUDP() {
+    public void testUDPWithGoogleStun() {
         // udp for this test
         Transport transport = Transport.UDP;
         String localIP = "10.0.0.36", publicIP = "71.38.180.149";
@@ -59,6 +61,7 @@ public class IceTransportTest {
             log.warn("Exception contacting STUN server at: {}", stunTransportAddress, t);
         }
         log.info("Public IP address: {}", publicIP);
+        assertEquals("71.38.180.149", publicIP);
         // set up allowed addresses to prevent NIC scanning in HostCandidateHarvester.getAvailableHostAddresses()
         String allowedIPs = null;
         if (localIP.contentEquals(publicIP)) {

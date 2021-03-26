@@ -160,29 +160,35 @@ public abstract class IceTransport {
                 if (isBound(port)) {
                     // remove the port from the list
                     if (boundPorts.remove(port)) {
-                        // unbind
-                        Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
-
-                            @Override
-                            public Boolean call() throws Exception {
-                                logger.debug("Removing binding: {}", addr);
-                                // perform the unbinding
-                                acceptor.unbind(addr);
-                                logger.debug("Binding removed: {}", addr);
-                                return Boolean.TRUE;
-                            }
-
-                        });
-                        // wait a maximum of x seconds for this to complete the binding
-                        return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+//                        // unbind
+//                        Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
+//
+//                            @Override
+//                            public Boolean call() throws Exception {
+//                                logger.debug("Removing binding: {}", addr);
+//                                // perform the unbinding
+//                                acceptor.unbind(addr);
+//                                logger.debug("Binding removed: {}", addr);
+//                                return Boolean.TRUE;
+//                            }
+//
+//                        });
+//                        // wait a maximum of x seconds for this to complete the binding
+//                        return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
                     }
                 }
-            } catch (InterruptedException iex) {
-                if (logger.isDebugEnabled()) {
-                    logger.warn("Binding removal interrupted on {}", addr, iex);
-                }
-            } catch (TimeoutException tex) {
-                logger.warn("Binding removal timed-out on {}", addr, tex);
+                logger.debug("Removing binding: {}", addr);
+                // perform the unbinding
+                acceptor.unbind(addr);
+                logger.debug("Binding removed: {}", addr);
+                // no exceptions? return true for removing the binding
+                return true;                
+//            } catch (InterruptedException iex) {
+//                if (logger.isDebugEnabled()) {
+//                    logger.warn("Binding removal interrupted on {}", addr, iex);
+//                }
+//            } catch (TimeoutException tex) {
+//                logger.warn("Binding removal timed-out on {}", addr, tex);
             } catch (Throwable t) {
                 // if aggressive acceptor handling is enabled, reset the acceptor
                 if (aggressiveAcceptorReset && acceptor != null) {
