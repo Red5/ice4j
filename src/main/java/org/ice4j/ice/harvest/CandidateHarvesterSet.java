@@ -113,20 +113,15 @@ public class CandidateHarvesterSet extends AbstractSet<CandidateHarvester> {
         while (true) {
             // Find the next CandidateHarvester which is to start gathering candidates.
             CandidateHarvesterSetElement harvester;
-            synchronized (harvesters) {
                 if (harvesters.hasNext()) {
                     harvester = harvesters.next();
                 } else {
                     break;
                 }
-            }
             if (!harvester.isEnabled()) {
                 continue;
             }
-            List<Component> componentsCopy;
-            synchronized (components) {
-                componentsCopy = new ArrayList<>(components);
-            }
+            List<Component> componentsCopy = new ArrayList<>(components);
             // Asynchronously start gathering candidates using the harvester.
             CandidateHarvesterSetTask task = new CandidateHarvesterSetTask(harvester, componentsCopy, trickleCallback);
             tasks.put(task, executorService.submit(task));

@@ -188,6 +188,9 @@ public class StunStack implements MessageEventHandler {
      */
     public void removeSocket(String id, TransportAddress localAddr, TransportAddress remoteAddr) {
         logger.debug("removeSocket: {} remote address: {}", localAddr, remoteAddr);
+        // first cancel all transactions using this address
+        cancelTransactionsForAddress(localAddr, remoteAddr);
+        netAccessManager.removeSocket(localAddr, remoteAddr);
         // clean up server bindings and listener
         IceTransport transport = IceTransport.getInstance(localAddr.getTransport(), id);
         if (transport != null) {
@@ -205,9 +208,6 @@ public class StunStack implements MessageEventHandler {
                 }
             }
         }
-        // first cancel all transactions using this address
-        cancelTransactionsForAddress(localAddr, remoteAddr);
-        netAccessManager.removeSocket(localAddr, remoteAddr);
     }
 
     /**

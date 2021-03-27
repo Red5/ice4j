@@ -102,7 +102,7 @@ public class MappingCandidateHarvesters {
      *
      * Three types of mapping harvesters are supported: NAT (with pre-configured addresses), AWS and STUN.
      */
-    public static synchronized void initialize() {
+    public static void initialize() {
         if (!initialized) {
             initialized = true;
             long start = System.currentTimeMillis();

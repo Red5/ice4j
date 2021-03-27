@@ -128,7 +128,7 @@ public class CheckList extends PriorityBlockingQueue<CandidatePair> {
      * @return the next {@link CandidatePair} that is eligible for a regular connectivity check, which would either be the highest priority
      * Waiting pair or, when there's no such pair, the highest priority Frozen pair or null otherwise
      */
-    protected synchronized CandidatePair getNextOrdinaryPairToCheck() {
+    protected CandidatePair getNextOrdinaryPairToCheck() {
         if (isEmpty()) {
             return null;
         }

@@ -258,9 +258,15 @@ public class IceHandler extends IoHandlerAdapter {
         }
     }
 
-    public void remove(SocketAddress addr) {
-        stunStacks.remove(addr);
-        iceSockets.remove(addr);
+    public boolean remove(SocketAddress addr) {
+        if (stunStacks.remove(addr) != null) {
+            logger.debug("StunStack removed from handler {}", addr);
+        }
+        if (iceSockets.remove(addr) != null) {
+            logger.debug("SocketAddress removed from handler {}", addr);
+            return true;
+        }
+        return false;
     }
 
     /* From BC TlsUtils for debugging */

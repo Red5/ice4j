@@ -8,10 +8,10 @@ package org.ice4j.ice;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ public class DefaultNominator implements PropertyChangeListener {
      * Map that will remember association between validated relayed candidate
      * and a timer. It is used with the NOMINATE_FIRST_HIGHEST_VALID strategy.
      */
-    private final Map<String, TimerTask> validatedCandidates = new HashMap<>();
+    private final ConcurrentMap<String, TimerTask> validatedCandidates = new ConcurrentHashMap<>();
 
     /**
      * Creates a new instance of this nominator using parentAgent as
@@ -167,24 +167,22 @@ public class DefaultNominator implements PropertyChangeListener {
             LocalCandidate localCandidate = validPair.getLocalCandidate();
             boolean isRelayed = (localCandidate instanceof RelayedCandidate) || localCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE) || validPair.getRemoteCandidate().getType().equals(CandidateType.RELAYED_CANDIDATE);
             boolean nominate = false;
-            synchronized (validatedCandidates) {
-                TimerTask task = validatedCandidates.get(component.toShortString());
-                if (isRelayed && task == null) {
-                    // armed a timer and see if a host or server reflexive pair gets nominated. Otherwise nominate the relayed candidate pair
-                    Timer timer = new Timer();
-                    task = new RelayedCandidateTask(validPair);
-                    logger.debug("Wait timeout to nominate relayed candidate");
-                    timer.schedule(task, 0);
-                    validatedCandidates.put(component.toShortString(), task);
-                } else if (!isRelayed) {
-                    // host or server reflexive candidate pair
-                    if (task != null) {
-                        task.cancel();
-                        logger.debug("Found a better candidate pair to nominate for {}", component.toShortString());
-                    }
-                    logger.debug("Nominate (first highest valid): {}", validPair.toShortString());
-                    nominate = true;
+            TimerTask task = validatedCandidates.get(component.toShortString());
+            if (isRelayed && task == null) {
+                // armed a timer and see if a host or server reflexive pair gets nominated. Otherwise nominate the relayed candidate pair
+                Timer timer = new Timer();
+                task = new RelayedCandidateTask(validPair);
+                logger.debug("Wait timeout to nominate relayed candidate");
+                timer.schedule(task, 0);
+                validatedCandidates.put(component.toShortString(), task);
+            } else if (!isRelayed) {
+                // host or server reflexive candidate pair
+                if (task != null) {
+                    task.cancel();
+                    logger.debug("Found a better candidate pair to nominate for {}", component.toShortString());
                 }
+                logger.debug("Nominate (first highest valid): {}", validPair.toShortString());
+                nominate = true;
             }
             if (nominate) {
                 parentAgent.nominate(validPair);
@@ -235,12 +233,10 @@ public class DefaultNominator implements PropertyChangeListener {
             // the relayed candidate
             CheckList checkList = (CheckList) evt.getSource();
             boolean allFailed = true;
-            synchronized (checkList) {
-                for (CandidatePair c : checkList) {
-                    if (c != pair && c.getState() != CandidatePairState.FAILED) {
-                        allFailed = false;
-                        break;
-                    }
+            for (CandidatePair c : checkList) {
+                if (c != pair && c.getState() != CandidatePairState.FAILED) {
+                    allFailed = false;
+                    break;
                 }
             }
             if (allFailed && !pair.isNominated()) {

@@ -409,14 +409,12 @@ class ConnectivityCheckClient implements ResponseCollector {
         // its pair here if the pair has useCandidateReceived as true (set in triggerCheck) or in triggerCheck if the pair state is succeeded (set
         // here). So be sure that if a binding response and a binding request (for the same check) from other peer come at the very same time, that
         // we will trigger the nominationConfirmed (that will pass the pair as selected if it is the first time).
-        synchronized (checkedPair) {
-            //The agent sets the state of the pair that *generated* the check to Succeeded.  Note that, the pair which *generated* the check may be
-            //different than the valid pair constructed above
-            if (checkedPair.getParentComponent().getSelectedPair() == null) {
-                logger.info("Pair succeeded: {} Local ufrag: {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
-            }
-            checkedPair.setStateSucceeded();
+        //The agent sets the state of the pair that *generated* the check to Succeeded.  Note that, the pair which *generated* the check may be
+        //different than the valid pair constructed above
+        if (checkedPair.getParentComponent().getSelectedPair() == null) {
+            logger.info("Pair succeeded: {} Local ufrag: {}", checkedPair.toShortString(), parentAgent.getLocalUfrag());
         }
+        checkedPair.setStateSucceeded();
         if (!validPair.isValid()) {
             if (validPair.getParentComponent().getSelectedPair() == null) {
                 logger.debug("Pair validated: {} Local ufrag: {}", validPair.toShortString(), parentAgent.getLocalUfrag());
@@ -609,7 +607,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                         }
                         // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
                         // setStateInProgress, we'll synchronize. The synchronization root is the one of the CandidatePair#setState method.
-                        synchronized (pairToCheck) {
+                        //synchronized (pairToCheck) {
                             TransactionID transactionID = startCheckForPair(pairToCheck);
                             if (transactionID == null) {
                                 logger.warn("Pair failed: {}", pairToCheck.toShortString());
@@ -617,7 +615,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                             } else {
                                 pairToCheck.setStateInProgress(transactionID);
                             }
-                        }
+                        //}
                     } else {
                         // done sending checks for this list; set the final state in processResponse, processTimeout or processFailure method.
                         checkList.fireEndOfOrdinaryChecks();

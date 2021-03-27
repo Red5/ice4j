@@ -128,7 +128,7 @@ public class HostCandidateHarvester {
      * 
      * @return the list of explicitly allowed addresses
      */
-    public static synchronized List<InetAddress> getAllowedAddresses() {
+    public static List<InetAddress> getAllowedAddresses() {
         if (!addressFiltersInitialized.get()) {
             initializeAddressFilters();
         }
@@ -140,7 +140,7 @@ public class HostCandidateHarvester {
      * 
      * @return the list of blocked addresses
      */
-    public static synchronized List<InetAddress> getBlockedAddresses() {
+    public static List<InetAddress> getBlockedAddresses() {
         if (!addressFiltersInitialized.get()) {
             initializeAddressFilters();
         }

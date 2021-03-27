@@ -149,51 +149,32 @@ public abstract class IceTransport {
      */
     public boolean removeBinding(SocketAddress addr) {
         // remove map entry
-        iceHandler.remove(addr);
-        if (acceptor != null) {
-            try {
-                int port = ((InetSocketAddress) addr).getPort();
-                if (isBound(port)) {
-                    // remove the port from the list
-                    if (boundPorts.remove(port)) {
-//                        // unbind
-//                        Future<Boolean> unbindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
-//
-//                            @Override
-//                            public Boolean call() throws Exception {
-//                                logger.debug("Removing binding: {}", addr);
-//                                // perform the unbinding
-//                                acceptor.unbind(addr);
-//                                logger.debug("Binding removed: {}", addr);
-//                                return Boolean.TRUE;
-//                            }
-//
-//                        });
-//                        // wait a maximum of x seconds for this to complete the binding
-//                        return unbindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+        if (iceHandler.remove(addr)) {
+            if (acceptor != null) {
+                try {
+                    int port = ((InetSocketAddress) addr).getPort();
+                    if (isBound(port)) {
+                        // remove the port from the list
+                        if (boundPorts.remove(port)) {
+
+                        }
                     }
-                }
-                logger.debug("Removing binding: {}", addr);
-                // perform the unbinding
-                acceptor.unbind(addr);
-                logger.debug("Binding removed: {}", addr);
-                // no exceptions? return true for removing the binding
-                return true;                
-//            } catch (InterruptedException iex) {
-//                if (logger.isDebugEnabled()) {
-//                    logger.warn("Binding removal interrupted on {}", addr, iex);
-//                }
-//            } catch (TimeoutException tex) {
-//                logger.warn("Binding removal timed-out on {}", addr, tex);
-            } catch (Throwable t) {
-                // if aggressive acceptor handling is enabled, reset the acceptor
-                if (aggressiveAcceptorReset && acceptor != null) {
-                    logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
-                    acceptor.dispose(false);
-                    acceptor = null;
-                } else if (logger.isDebugEnabled()) {
-                    // putting on the debug guard to prevent flooding the log
-                    logger.warn("Remove binding failed on {}", addr, t);
+                    logger.debug("Removing binding: {}", addr);
+                    // perform the unbinding
+                    acceptor.unbind(addr);
+                    logger.debug("Binding removed: {}", addr);
+                    // no exceptions? return true for removing the binding
+                    return true;
+                } catch (Throwable t) {
+                    // if aggressive acceptor handling is enabled, reset the acceptor
+                    if (aggressiveAcceptorReset) {
+                        logger.warn("Acceptor will be reset with extreme predudice, due to remove binding failed on {}", addr, t);
+                        acceptor.dispose(false);
+                        acceptor = null;
+                    } else if (logger.isDebugEnabled()) {
+                        // putting on the debug guard to prevent flooding the log
+                        logger.warn("Remove binding failed on {}", addr, t);
+                    }
                 }
             }
         }

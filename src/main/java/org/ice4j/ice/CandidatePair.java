@@ -216,7 +216,7 @@ public class CandidatePair implements Comparable<CandidatePair> {
      * state and null otherwise
      * @throws IllegalArgumentException if state is {@link CandidatePairState#IN_PROGRESS} and tranID is null
      */
-    private synchronized void setState(CandidatePairState newState, TransactionID tranID) throws IllegalArgumentException {
+    private void setState(CandidatePairState newState, TransactionID tranID) throws IllegalArgumentException {
         CandidatePairState oldState = state.getAndSet(newState);
         if (newState == CandidatePairState.IN_PROGRESS) {
             if (tranID == null) {

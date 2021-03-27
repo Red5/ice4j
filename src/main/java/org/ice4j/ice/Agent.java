@@ -140,11 +140,6 @@ public class Agent {
     private final Set<CandidatePair> preDiscoveredPairsQueue = new HashSet<>();
 
     /**
-     * The lock that we use while starting connectivity establishment.
-     */
-    private final Boolean startLock = Boolean.TRUE;
-
-    /**
      * The user fragment that we should use for the ice-ufrag attribute.
      */
     private final String ufrag;
@@ -450,26 +445,24 @@ public class Agent {
      * Initializes all stream check lists and begins the checks.
      */
     public void startConnectivityEstablishment() {
-        synchronized (startLock) {
-            logger.info("Start ICE connectivity establishment. Local ufrag {}", getLocalUfrag());
-            shutdown = false;
-            pruneNonMatchedStreams();
-            try {
-                initCheckLists();
-            } catch (ArithmeticException e) {
-                setState(IceProcessingState.FAILED);
-                return;
-            }
-            // change state before we actually send checks so that we don't miss responses and hence the possibility to nominate a pair.
-            setState(IceProcessingState.RUNNING);
-            // if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
-            preDiscoveredPairsQueue.forEach(pair -> {
-                logger.debug("Triggering check on prediscovered pair: {}", pair);
-                triggerCheck(pair);
-            });
-            preDiscoveredPairsQueue.clear();
-            connCheckClient.startChecks();
+        logger.info("Start ICE connectivity establishment. Local ufrag {}", getLocalUfrag());
+        shutdown = false;
+        pruneNonMatchedStreams();
+        try {
+            initCheckLists();
+        } catch (ArithmeticException e) {
+            setState(IceProcessingState.FAILED);
+            return;
         }
+        // change state before we actually send checks so that we don't miss responses and hence the possibility to nominate a pair.
+        setState(IceProcessingState.RUNNING);
+        // if we have received connectivity checks before RUNNING state, trigger a check for those candidate pairs.
+        preDiscoveredPairsQueue.forEach(pair -> {
+            logger.debug("Triggering check on prediscovered pair: {}", pair);
+            triggerCheck(pair);
+        });
+        preDiscoveredPairsQueue.clear();
+        connCheckClient.startChecks();
     }
 
     /**
@@ -1066,19 +1059,17 @@ public class Agent {
         if (useCandidate) {
             triggeredPair.setUseCandidateReceived();
         }
-        synchronized (startLock) {
-            if (state.get() == IceProcessingState.WAITING) {
-                logger.debug("Receive STUN checks before our ICE has started. Current size: {}", preDiscoveredPairsQueue.size());
-                // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
-                preDiscoveredPairsQueue.add(triggeredPair);
-            } else if (state.get() != IceProcessingState.FAILED) {
-                // Running, Connected or Terminated, but not Failed
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Received check from {} triggered a check. Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
-                }
-                // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
-                triggerCheck(triggeredPair);
+        if (state.get() == IceProcessingState.WAITING) {
+            logger.debug("Receive STUN checks before our ICE has started. Current size: {}", preDiscoveredPairsQueue.size());
+            // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
+            preDiscoveredPairsQueue.add(triggeredPair);
+        } else if (state.get() != IceProcessingState.FAILED) {
+            // Running, Connected or Terminated, but not Failed
+            if (logger.isDebugEnabled()) {
+                logger.debug("Received check from {} triggered a check. Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
             }
+            // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
+            triggerCheck(triggeredPair);
         }
     }
 
