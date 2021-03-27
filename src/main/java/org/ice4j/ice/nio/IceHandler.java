@@ -27,6 +27,10 @@ import org.slf4j.LoggerFactory;
 public class IceHandler extends IoHandlerAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(IceHandler.class);
+    
+    private static boolean isTrace = logger.isTraceEnabled();
+
+    private static boolean isDebug = logger.isDebugEnabled();
 
     // temporary holding area for stun stacks awaiting session creation
     private static ConcurrentMap<TransportAddress, StunStack> stunStacks = new ConcurrentHashMap<>();
@@ -154,7 +158,7 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void messageReceived(IoSession session, Object message) throws Exception {
-        if (logger.isTraceEnabled()) {
+        if (isTrace) {
             logger.trace("Message received (session: {}) local: {} remote: {}\nReceived: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), String.valueOf(message));
         }
         IceSocketWrapper iceSocket = (IceSocketWrapper) session.getAttribute(IceTransport.Ice.CONNECTION);
@@ -174,7 +178,7 @@ public class IceHandler extends IoHandlerAdapter {
     @Override
     public void messageSent(IoSession session, Object message) throws Exception {
         if (message instanceof IoBuffer) {
-            if (logger.isTraceEnabled()) {
+            if (isTrace) {
                 logger.trace("Message sent (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
                 //logger.trace("Sent: {}", String.valueOf(message));
                 byte[] output = ((IoBuffer) message).array();
@@ -195,7 +199,7 @@ public class IceHandler extends IoHandlerAdapter {
     /** {@inheritDoc} */
     @Override
     public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
-        if (logger.isTraceEnabled()) {
+        if (isTrace) {
             logger.trace("Idle (session: {}) local: {} remote: {}\nread: {} write: {}", session.getId(), session.getLocalAddress(), session.getRemoteAddress(), session.getReadBytes(), session.getWrittenBytes());
         }
         session.closeNow();
@@ -223,7 +227,7 @@ public class IceHandler extends IoHandlerAdapter {
         String causeMessage = cause.getMessage();
         if (causeMessage != null && causeMessage.contains("Hexdump: 15")) {
             // only log it at trace level if we're debugging
-            if (logger.isTraceEnabled()) {
+            if (isTrace) {
                 logger.warn("Exception on session: {}", session.getId(), cause);
             }
         } else {
@@ -258,6 +262,12 @@ public class IceHandler extends IoHandlerAdapter {
         }
     }
 
+    /**
+     * Removes an address entry from this handler. This includes the STUN stack and ICE sockets collections.
+     * 
+     * @param addr
+     * @return true if removed from sockets list and false if not
+     */
     public boolean remove(SocketAddress addr) {
         if (stunStacks.remove(addr) != null) {
             logger.debug("StunStack removed from handler {}", addr);

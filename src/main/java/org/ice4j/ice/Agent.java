@@ -1045,31 +1045,40 @@ public class Agent {
      * @param useCandidate indicates whether the incoming check {@link org.ice4j.message.Request} contained the USE-CANDIDATE ICE attribute
      */
     protected void incomingCheckReceived(TransportAddress remoteAddress, TransportAddress localAddress, long priority, String remoteUFrag, String localUFrag, boolean useCandidate) {
-        String ufrag = null;
         LocalCandidate localCandidate = findLocalCandidate(localAddress);
-        if (localCandidate == null) {
-            logger.info("No localAddress for this incoming check: {}", localAddress);
-            return;
-        }
-        Component parentComponent = localCandidate.getParentComponent();
-        // We can not know the related candidate of a remote peer reflexive candidate. We must set it to "null".
-        RemoteCandidate remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority, null, ufrag);
-        CandidatePair triggeredPair = createCandidatePair(localCandidate, remoteCandidate);
-        logger.debug("Set use-candidate {} for pair {}", useCandidate, triggeredPair.toShortString());
-        if (useCandidate) {
-            triggeredPair.setUseCandidateReceived();
-        }
-        if (state.get() == IceProcessingState.WAITING) {
-            logger.debug("Receive STUN checks before our ICE has started. Current size: {}", preDiscoveredPairsQueue.size());
-            // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
-            preDiscoveredPairsQueue.add(triggeredPair);
-        } else if (state.get() != IceProcessingState.FAILED) {
-            // Running, Connected or Terminated, but not Failed
-            if (logger.isDebugEnabled()) {
-                logger.debug("Received check from {} triggered a check. Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
+        if (localCandidate != null) {
+            // lookup a remote candidate match first before creating a peer candidate
+            RemoteCandidate remoteCandidate = findRemoteCandidate(remoteAddress);
+            if (remoteCandidate == null) {
+                logger.debug("Remote candidate for {} was not found, creating a peer candidate", remoteAddress);
+                Component parentComponent = localCandidate.getParentComponent();
+                // We can not know the related candidate of a remote peer reflexive candidate. We must set it to "null".
+                String ufrag = null;
+                remoteCandidate = new RemoteCandidate(remoteAddress, parentComponent, CandidateType.PEER_REFLEXIVE_CANDIDATE, foundationsRegistry.obtainFoundationForPeerReflexiveCandidate(), priority, null, ufrag);
             }
-            // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
-            triggerCheck(triggeredPair);
+            // look up existing pair first
+            CandidatePair triggeredPair = findCandidatePair(localAddress, remoteAddress);
+            if (triggeredPair == null) {
+                triggeredPair = createCandidatePair(localCandidate, remoteCandidate);
+            }
+            logger.debug("Set use-candidate {} for pair {}", useCandidate, triggeredPair.toShortString());
+            if (useCandidate) {
+                triggeredPair.setUseCandidateReceived();
+            }
+            if (state.get() == IceProcessingState.WAITING) {
+                logger.debug("Receive STUN checks before our ICE has started. Current size: {}", preDiscoveredPairsQueue.size());
+                // we are not started yet so we'd better wait until we get the remote candidates in case we are holding to a new PR one.
+                preDiscoveredPairsQueue.add(triggeredPair);
+            } else if (state.get() != IceProcessingState.FAILED) {
+                // Running, Connected or Terminated, but not Failed
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Received check from {} triggered a check. Local ufrag {}", triggeredPair.toShortString(), getLocalUfrag());
+                }
+                // We have been started, and have not failed (yet). If this is a new pair, handle it (even if we have already completed).
+                triggerCheck(triggeredPair);
+            }
+        } else {
+            logger.info("No localAddress for this incoming check: {}", localAddress);
         }
     }
 

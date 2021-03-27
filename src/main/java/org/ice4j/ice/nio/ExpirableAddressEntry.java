@@ -11,6 +11,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class ExpirableAddressEntry implements Delayed {
 
+    // use the acceptor timeout as our expiration time modifier (multiply by 1k because its in seconds)
+    private static final long TIMEOUT = IceTransport.getAcceptorTimeout() * 1000L;
+    
     private final String addressKey;
 
     private final long expirationTime;
@@ -19,7 +22,7 @@ public class ExpirableAddressEntry implements Delayed {
         // represents an address binding
         this.addressKey = addressKey;
         // entries are allowed to exist for up-to 3 seconds
-        this.expirationTime = System.currentTimeMillis() + 3000L;
+        this.expirationTime = System.currentTimeMillis() + TIMEOUT;
     }
 
     public boolean isExpired() {

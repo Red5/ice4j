@@ -272,4 +272,13 @@ public abstract class IceTransport {
         return sharedAcceptor;
     }
 
+    /**
+     * Returns the acceptor timeout.
+     * 
+     * @return acceptorTimeout
+     */
+    public static long getAcceptorTimeout() {
+        return acceptorTimeout;
+    }
+
 }
