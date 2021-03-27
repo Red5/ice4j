@@ -2,10 +2,10 @@ package org.ice4j.ice.nio;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.ArrayDeque;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.mina.core.service.IoService;
@@ -43,7 +43,7 @@ public class IceUdpTransport extends IceTransport {
     private ConcurrentMap<String, IoSession> sessions = new ConcurrentHashMap<>();
     
     // track sequence to ensure we don't nack those that are too old
-    private ArrayDeque<ExpirableAddressEntry> recentBindingsQueue = new ArrayDeque<>();
+    private ConcurrentLinkedDeque<ExpirableAddressEntry> recentBindingsQueue = new ConcurrentLinkedDeque<>();
 
     private IoSessionRecycler recycler = new IoSessionRecycler() {
 
