@@ -139,6 +139,7 @@ class ConnectivityCheckServer implements RequestListener, CredentialsAuthority {
         Attribute messageIntegrityAttribute = AttributeFactory.createMessageIntegrityAttribute(username);
         response.putAttribute(messageIntegrityAttribute);
         try {
+            logger.debug("Sending response: {}", response);
             stunStack.sendResponse(evt.getTransactionID().getBytes(), response, evt.getLocalAddress(), evt.getRemoteAddress());
         } catch (Exception e) {
             logger.warn("Failed to send {} through {}", response, evt.getLocalAddress(), e);

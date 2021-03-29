@@ -30,6 +30,7 @@ public class IceHandler extends IoHandlerAdapter {
     
     private static boolean isTrace = logger.isTraceEnabled();
 
+    @SuppressWarnings("unused")
     private static boolean isDebug = logger.isDebugEnabled();
 
     // temporary holding area for stun stacks awaiting session creation

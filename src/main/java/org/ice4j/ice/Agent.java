@@ -892,11 +892,15 @@ public class Agent {
         }
         this.isControlling = isControlling;
         // in case we have already initialized our check lists we'd need to recompute pair priorities
-        for (IceMediaStream stream : getStreams()) {
-            CheckList list = stream.getCheckList();
-            if (list != null) {
-                list.recomputePairPriorities();
+        if (isStarted()) {
+            for (IceMediaStream stream : getStreams()) {
+                CheckList list = stream.getCheckList();
+                if (list != null) {
+                    list.recomputePairPriorities();
+                }
             }
+        } else {
+            logger.debug("Not yet started, recompute of priorities skipped on control change");
         }
     }
 

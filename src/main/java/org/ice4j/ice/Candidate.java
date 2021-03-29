@@ -57,6 +57,11 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     private CandidateType candidateType;
 
     /**
+     * Component id from the candidate definition.
+     */
+    private int componentId;
+    
+    /**
      * An arbitrary string that is the same for two candidates that have the same type, base IP address, protocol (UDP, TCP,
      * etc.) and STUN or TURN server. If any of these are different then the foundation will be different. Two candidate pairs with the
      * same foundation pairs are likely to have similar network characteristics. Foundations are used in the frozen algorithm.
@@ -152,8 +157,23 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     public Candidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, T relatedCandidate) {
         this.transportAddress = transportAddress;
         this.parentComponent = parentComponent;
+        this.setComponentId(parentComponent.getComponentID());
         this.candidateType = type;
-        this.relatedCandidate = relatedCandidate;
+        // don't allow mismatched components
+        if (relatedCandidate != null && parentComponent.getComponentID() == relatedCandidate.getComponentId()) {
+            this.relatedCandidate = relatedCandidate;
+        }
+    }
+
+    public Candidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, int componentId, T relatedCandidate) {
+        this.transportAddress = transportAddress;
+        this.parentComponent = parentComponent;
+        this.setComponentId(componentId);
+        this.candidateType = type;
+        // don't allow mismatched components
+        if (relatedCandidate != null && parentComponent.getComponentID() == relatedCandidate.getComponentId()) {
+            this.relatedCandidate = relatedCandidate;
+        }
     }
 
     /**
@@ -172,6 +192,14 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
      */
     public void setCandidateType(CandidateType candidateType) {
         this.candidateType = candidateType;
+    }
+
+    public int getComponentId() {
+        return componentId;
+    }
+
+    public void setComponentId(int componentId) {
+        this.componentId = componentId;
     }
 
     /**
@@ -573,7 +601,7 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
     public String toString() {
         StringBuilder buff = new StringBuilder("candidate:");
         buff.append(getFoundation());
-        buff.append(" ").append(getParentComponent().getComponentID());
+        buff.append(" ").append(componentId);
         buff.append(" ").append(getTransport());
         buff.append(" ").append(getPriority());
         buff.append(" ").append(getTransportAddress().getHostAddress());
@@ -606,6 +634,8 @@ public abstract class Candidate<T extends Candidate<?>> implements Comparable<T>
                 buff.append(' ').append(key).append(' ').append(value);
             });
         }
+        // adding for checking which component we've been matched with
+        buff.append(" parent ").append(getParentComponent().getComponentID());
         return buff.toString();
     }
 

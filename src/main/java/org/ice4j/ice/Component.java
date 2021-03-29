@@ -53,6 +53,11 @@ public class Component implements PropertyChangeListener {
         @Override
         public int compare(LocalCandidate cand1, LocalCandidate cand2) {
             int result = 0;
+            if (cand1.getComponentId() < cand2.getComponentId()) {
+                result -= 1;
+            } else if (cand1.getComponentId() > cand2.getComponentId()) {
+                result += 1;
+            }
             if (cand1.priority < cand2.priority) {
                 result -= 1;
             } else if (cand1.priority > cand2.priority) {

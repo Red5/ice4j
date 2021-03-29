@@ -48,6 +48,29 @@ public class RemoteCandidate extends Candidate<RemoteCandidate> {
      * @param type the CandidateType for this Candidate.
      * @param foundation the RemoteCandidate's foundation as reported
      * by the session description protocol.
+     * @param componentId component id
+     * @param priority the RemoteCandidate's priority as reported
+     * by the session description protocol.
+     * @param relatedCandidate the relatedCandidate: null for a host candidate,
+     * the base address (host candidate) for a reflexive candidate, the mapped
+     * address (the mapped address of the TURN allocate response) for a relayed
+     * candidate.
+     */
+    public RemoteCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, String foundation, int componentId, long priority, RemoteCandidate relatedCandidate) {
+        this(transportAddress, parentComponent, type, foundation, componentId, priority, relatedCandidate, null);
+    }
+
+    /**
+     * Creates a RemoteCandidate instance for the specified transport
+     * address and properties.
+     *
+     * @param transportAddress  the transport address that this candidate is
+     * encapsulating.
+     * @param parentComponent the Component that this candidate
+     * belongs to.
+     * @param type the CandidateType for this Candidate.
+     * @param foundation the RemoteCandidate's foundation as reported
+     * by the session description protocol.
      * @param priority the RemoteCandidate's priority as reported
      * by the session description protocol.
      * @param relatedCandidate the relatedCandidate: null for a host candidate,
@@ -58,6 +81,35 @@ public class RemoteCandidate extends Candidate<RemoteCandidate> {
      */
     public RemoteCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, String foundation, long priority, RemoteCandidate relatedCandidate, String ufrag) {
         super(transportAddress, parentComponent, type, relatedCandidate);
+        setFoundation(foundation);
+        setPriority(priority);
+        this.ufrag = ufrag;
+        logger.debug("ctor - addr: {} comp: {}\n    remote type: {} priority: {} related candidate: {}", transportAddress, parentComponent, type, priority, relatedCandidate);
+    }
+
+    /**
+     * Creates a RemoteCandidate instance for the specified transport
+     * address and properties.
+     *
+     * @param transportAddress  the transport address that this candidate is
+     * encapsulating.
+     * @param parentComponent the Component that this candidate
+     * belongs to.
+     * @param type the CandidateType for this Candidate.
+     * @param foundation the RemoteCandidate's foundation as reported
+     * @param componentId component id
+     * by the session description protocol.
+     * @param priority the RemoteCandidate's priority as reported
+     * by the session description protocol.
+     * @param relatedCandidate the relatedCandidate: null for a host candidate,
+     * the base address (host candidate) for a reflexive candidate, the mapped
+     * address (the mapped address of the TURN allocate response) for a relayed
+     * candidate.
+     * @param ufrag ufrag for the remote candidate
+     */
+    public RemoteCandidate(TransportAddress transportAddress, Component parentComponent, CandidateType type, String foundation, int componentId, long priority, RemoteCandidate relatedCandidate, String ufrag) {
+        // forces a component id, which in a bad circumstance may not match the parentComponents id
+        super(transportAddress, parentComponent, type, componentId, relatedCandidate);
         setFoundation(foundation);
         setPriority(priority);
         this.ufrag = ufrag;
