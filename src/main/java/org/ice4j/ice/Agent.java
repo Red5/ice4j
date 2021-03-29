@@ -1225,10 +1225,12 @@ public class Agent {
         boolean allListsEnded = true;
         boolean atLeastOneListSucceeded = false;
         if (getState().isEstablished()) {
+            logger.trace("Established: {}", getLocalUfrag());
             return;
         }
         for (IceMediaStream stream : getStreams()) {
             CheckListState checkListState = stream.getCheckList().getState();
+            logger.trace("Stream: {} checklist state: {}", stream.getName(), checkListState);
             if (checkListState == CheckListState.RUNNING) {
                 allListsEnded = false;
                 break;
@@ -1241,6 +1243,7 @@ public class Agent {
             return;
         }
         if (!atLeastOneListSucceeded) {
+            logger.trace("All lists ended, no success for {}", getLocalUfrag());
             // all lists ended but none succeeded. No love today ;(
             if (logger.isInfoEnabled()) {
                 if (connCheckClient.isAlive() || connCheckServer.isAlive()) {
@@ -1252,6 +1255,7 @@ public class Agent {
             return;
         }
         //Once the state of each check list is Completed: The agent sets the state of ICE processing overall to Completed.
+        logger.trace("All lists ended with a success for {}, current state: {}", getLocalUfrag(), getState());
         if (getState() != IceProcessingState.RUNNING) {
             //Oh, seems like we already did this.
             return;

@@ -851,6 +851,7 @@ public class StunStack implements MessageEventHandler {
                         long idleStartTime = -1;
                         do {
                             try {
+                                logger.debug("Going to sleep for 16s before cleaning up server txns");
                                 Thread.sleep(StunServerTransaction.LIFETIME);
                             } catch (InterruptedException ie) {
                             }
@@ -876,6 +877,7 @@ public class StunStack implements MessageEventHandler {
                         // If serverTransactionExpireThread dies unexpectedly and yet it is still necessary, resurrect it.
                         serverTransactionExpireFuture.cancel(true);
                         try {
+                            logger.debug("Delaying 1s to wait for expiration of server txn future");
                             serverTransactionExpireFuture.get(1L, TimeUnit.SECONDS);
                         } catch (Exception e) {
                             // wait for the future to finish its work

@@ -261,6 +261,7 @@ public class DefaultNominator implements PropertyChangeListener {
          */
         public void run() {
             try {
+                logger.debug("Going to sleep for 800ms for pair: {}", pair.toShortString());
                 Thread.sleep(WAIT_TIME);
             } catch (InterruptedException e) {
                 cancelled = true;

@@ -325,6 +325,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                     timerFutures.put(streamName, parentAgent.submit(new Runnable() {
                         public void run() {
                             try {
+                                logger.debug("Going to sleep for 5s for stream {}", streamName);
                                 Thread.sleep(5000L);
                                 if (checkList.getState() != CheckListState.COMPLETED) {
                                     logger.warn("CheckList for stream {} FAILED", streamName);
@@ -588,7 +589,7 @@ class ConnectivityCheckClient implements ResponseCollector {
                 try {
                     long waitFor = getNextWaitInterval();
                     if (waitFor > 0) {
-                        //logger.trace(">>>> Going to sleep for {}", waitFor);
+                        logger.trace("Going to sleep for {} for ufrag: {}", waitFor, parentAgent.getLocalUfrag());
                         // waitFor will be 0 for the first check since we won't have any active check lists at that point yet
                         Thread.sleep(waitFor);
                     }
