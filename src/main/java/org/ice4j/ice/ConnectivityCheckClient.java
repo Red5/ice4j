@@ -606,17 +606,15 @@ class ConnectivityCheckClient implements ResponseCollector {
                             pairToCheck.setStateFailed();
                             continue;
                         }
-                        // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then
-                        // setStateInProgress, we'll synchronize. The synchronization root is the one of the CandidatePair#setState method.
-                        //synchronized (pairToCheck) {
-                            TransactionID transactionID = startCheckForPair(pairToCheck);
-                            if (transactionID == null) {
-                                logger.warn("Pair failed: {}", pairToCheck.toShortString());
-                                pairToCheck.setStateFailed();
-                            } else {
-                                pairToCheck.setStateInProgress(transactionID);
-                            }
-                        //}
+                        // Since we suspect that it is possible to startCheckForPair, processSuccessResponse and only then setStateInProgress, no synchronized
+                        // since the CandidatePair#setState method is atomically enabled.
+                        TransactionID transactionID = startCheckForPair(pairToCheck);
+                        if (transactionID == null) {
+                            logger.warn("Pair failed: {}", pairToCheck.toShortString());
+                            pairToCheck.setStateFailed();
+                        } else {
+                            pairToCheck.setStateInProgress(transactionID);
+                        }
                     } else {
                         // done sending checks for this list; set the final state in processResponse, processTimeout or processFailure method.
                         checkList.fireEndOfOrdinaryChecks();
