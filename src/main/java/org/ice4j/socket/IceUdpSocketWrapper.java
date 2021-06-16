@@ -84,13 +84,9 @@ public class IceUdpSocketWrapper extends IceSocketWrapper {
                             // if the session wasn't found elsewhere, create one
                             if (sess == null) {
                                 // verify that the address can be reached first
-                                //if (InetAddress.getByName(((InetSocketAddress) destAddress).getHostString()).isReachable(500)) {
-                                    logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
-                                    // attempt to create a server session, if it fails the local address isn't bound
-                                    sess = transport.createSession(this, destAddress);
-                                //} else {
-                                //    logger.warn("Destination address: {} not reachable from: {}", destAddress, transportAddress);
-                                //}
+                                logger.debug("No session, attempting connect from: {} to: {}", transportAddress, destAddress);
+                                // attempt to create a server session, if it fails the local address isn't bound
+                                sess = transport.createSession(this, destAddress);
                             }
                         } catch (Exception e) {
                             logger.warn("Exception getting session for: {}", transportAddress, e);

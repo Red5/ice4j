@@ -401,7 +401,7 @@ public class TransactionSupportTests extends TestCase {
          *
          * @param tranid the transaction that we'd like to get requests for.
          *
-         * @return a Vector containing all request that we have received and that match <tt>tranid</tt>.
+         * @return a Vector containing all request that we have received and that match <pre>tranid</pre>.
          */
         public Vector<StunMessageEvent> getRequestsForTransaction(byte[] tranid) {
             logger.info("getRequestsForTransaction: {}", TransactionID.toString(tranid));
@@ -438,11 +438,11 @@ public class TransactionSupportTests extends TestCase {
         public final Vector<Object> receivedResponses = new Vector<>();
 
         /**
-         * Notifies this <tt>ResponseCollector</tt> that a transaction described by
-         * the specified <tt>BaseStunMessageEvent</tt> has failed. The possible
+         * Notifies this <pre>ResponseCollector</pre> that a transaction described by
+         * the specified <pre>BaseStunMessageEvent</pre> has failed. The possible
          * reasons for the failure include timeouts, unreachable destination, etc.
          *
-         * @param event the <tt>BaseStunMessageEvent</tt> which describes the failed
+         * @param event the <pre>BaseStunMessageEvent</pre> which describes the failed
          * transaction and the runtime type of which specifies the failure reason
          * @see AbstractResponseCollector#processFailure(BaseStunMessageEvent)
          */
@@ -459,7 +459,7 @@ public class TransactionSupportTests extends TestCase {
         }
 
         /**
-         * Logs the received <tt>response</tt>
+         * Logs the received <pre>response</pre>
          *
          * @param response the event to log.
          */

@@ -35,8 +35,6 @@ public class IceUdpTransport extends IceTransport {
 
     private static boolean isDebug = logger.isDebugEnabled();
 
-    //private long lastGCTime = System.currentTimeMillis();
-
     /**
      * Recycler's session map.
      */
@@ -49,7 +47,7 @@ public class IceUdpTransport extends IceTransport {
 
         @Override
         public void put(IoSession session) {
-            //logger.trace("Adding session to recycler: {}", session);
+            logger.trace("Adding session to recycler: {}", session);
             String key = generateKey(session);
             // to allow binding/storage or not
             boolean allowUse = true;
@@ -80,24 +78,15 @@ public class IceUdpTransport extends IceTransport {
 
         @Override
         public IoSession recycle(SocketAddress remoteAddress) {
-            //logger.trace("Recycle remote address: {}", remoteAddress);
-            IoSession sess = null;
-            // this is expected to return an existing session for the remote address
-            Optional<IoSession> opt = sessions.values().stream().filter(session -> session.getRemoteAddress().equals(remoteAddress)).findFirst();
-            if (opt.isPresent()) {
-                sess = opt.get();
-                return sess;
-            } else {
-                if (isTrace) {
-                    logger.trace("Session not found in recycler for remote address: {}\n{}", remoteAddress, sessions.keySet());
-                }
-            }
-            return sess;
+            logger.trace("Recycle remote address: {}", remoteAddress);
+            // recycler is locked by NioDatagramAcceptor.newSessionWithoutLock so we'll attempt to prevent deadlocking
+            // by using our concurrent map from outside the recycler itself
+            return getSessionByRemote(remoteAddress);
         }
 
         @Override
         public void remove(IoSession session) {
-            //logger.trace("Removing session from recycler: {}", session);
+            logger.trace("Removing session from recycler: {}", session);
             String key = generateKey(session);
             // remove by key
             if (sessions.remove(key) != null) {
@@ -107,15 +96,6 @@ public class IceUdpTransport extends IceTransport {
                     logger.trace("Removed session: {} {} from recycler", session.getId(), key);
                 }
             }
-            /* disable GC request for now
-            // see if we should GC to keep the heap as clean as possible
-            long now = System.currentTimeMillis();
-            // is every x minutes too much?
-            if (now - lastGCTime > 300000L) {
-                lastGCTime = now;
-                System.gc();
-            }
-            */
         }
 
         private String generateKey(IoSession session) {
@@ -187,14 +167,14 @@ public class IceUdpTransport extends IceTransport {
 
                 @Override
                 public void sessionCreated(IoSession session) throws Exception {
-                    //logger.debug("sessionCreated: {}", session);
-                    //logger.debug("Acceptor sessions: {}", acceptor.getManagedSessions());
+                    logger.debug("sessionCreated: {}", session);
+                    //logger.debug("sessionCreated acceptor sessions: {}", acceptor.getManagedSessions());
                     session.setAttribute(IceTransport.Ice.UUID, id);
                 }
 
                 @Override
                 public void sessionClosed(IoSession session) throws Exception {
-                    //logger.debug("sessionClosed: {}", session);
+                    logger.debug("sessionClosed: {}", session);
                     /*
                     if (session.containsAttribute(Ice.CONNECTION)) {
                         IceSocketWrapper wrapper = (IceSocketWrapper) session.getAttribute(Ice.CONNECTION);
@@ -208,7 +188,7 @@ public class IceUdpTransport extends IceTransport {
 
                 @Override
                 public void sessionDestroyed(IoSession session) throws Exception {
-                    //logger.debug("sessionDestroyed: {}", session);
+                    logger.debug("sessionDestroyed: {}", session);
                     if (session.containsAttribute(IceTransport.Ice.UUID)) {
                         session.removeAttribute(IceTransport.Ice.UUID);
                     }
@@ -254,23 +234,13 @@ public class IceUdpTransport extends IceTransport {
     @Override
     public boolean addBinding(SocketAddress addr) {
         try {
-//            Future<Boolean> bindFuture = (Future<Boolean>) executor.submit(new Callable<Boolean>() {
-//
-//                @Override
-//                public Boolean call() throws Exception {
-                    logger.debug("Adding UDP binding: {}", addr);
-                    acceptor.bind(addr);
-                    // add the port to the bound list
-                    boundPorts.add(((InetSocketAddress) addr).getPort());
-                    logger.debug("UDP binding added: {}", addr);
-                    // no exceptions? return true for adding the binding
-                    return true;
-//                    return Boolean.TRUE;
-//                }
-//
-//            });
-//            // wait a maximum of x seconds for this to complete the binding
-//            return bindFuture.get(acceptorTimeout, TimeUnit.SECONDS);
+            logger.debug("Adding UDP binding: {}", addr);
+            acceptor.bind(addr);
+            // add the port to the bound list
+            boundPorts.add(((InetSocketAddress) addr).getPort());
+            logger.debug("UDP binding added: {}", addr);
+            // no exceptions? return true for adding the binding
+            return true;
         } catch (Throwable t) {
             logger.warn("Add binding failed on {}", addr, t);
         }
@@ -342,7 +312,18 @@ public class IceUdpTransport extends IceTransport {
      * @return IoSession matching remote address or null if its not found
      */
     public IoSession getSessionByRemote(SocketAddress remoteAddress) {
-        return recycler.recycle(remoteAddress);
+        IoSession sess = null;
+        // this is expected to return an existing session for the remote address
+        Optional<IoSession> opt = sessions.values().stream().filter(session -> session.getRemoteAddress().equals(remoteAddress)).findFirst();
+        if (opt.isPresent()) {
+            sess = opt.get();
+            return sess;
+        } else {
+            if (isTrace) {
+                logger.trace("Session not found in recycler for remote address: {}\n{}", remoteAddress, sessions.keySet());
+            }
+        }
+        return sess;
     }
 
 }

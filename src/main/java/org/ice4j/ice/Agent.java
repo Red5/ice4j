@@ -938,15 +938,15 @@ public class Agent {
     }
 
     /**
-     * Returns the local <tt>LocalCandidate</tt> with the specified <tt>address</tt> if it belongs to any of this
-     * {@link Agent}'s streams or <tt>null</tt> if it doesn't. If {@code base} is also specified, tries to find a
+     * Returns the local <pre>LocalCandidate</pre> with the specified <pre>address</pre> if it belongs to any of this
+     * {@link Agent}'s streams or <pre>null</pre> if it doesn't. If {@code base} is also specified, tries to find a
      * candidate whose base matches {@code base}.
      *
      * @param address the {@link TransportAddress} we are looking for
      * @param base an optional base to match
      *
-     * @return the local <tt>LocalCandidate</tt> with the specified <tt>address</tt> if it belongs to any of this
-     * {@link Agent}'s streams or <tt>null</tt> if it doesn't.
+     * @return the local <pre>LocalCandidate</pre> with the specified <pre>address</pre> if it belongs to any of this
+     * {@link Agent}'s streams or <pre>null</pre> if it doesn't.
      */
     public LocalCandidate findLocalCandidate(TransportAddress address, LocalCandidate base) {
         for (IceMediaStream stream : mediaStreams.values()) {

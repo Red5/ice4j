@@ -321,19 +321,17 @@ class ConnectivityCheckClient implements ResponseCollector {
                 final String streamName = stream.getName();
                 Future<?> future = timerFutures.get(streamName);
                 if (future == null) {
-                    logger.debug("CheckList will failed in a few seconds if no succeeded checks come");
-                    timerFutures.put(streamName, parentAgent.submit(new Runnable() {
-                        public void run() {
-                            try {
-                                logger.debug("Going to sleep for 5s for stream {}", streamName);
-                                Thread.sleep(5000L);
-                                if (checkList.getState() != CheckListState.COMPLETED) {
-                                    logger.warn("CheckList for stream {} FAILED", streamName);
-                                    checkList.setState(CheckListState.FAILED);
-                                    parentAgent.checkListStatesUpdated();
-                                }
-                            } catch (InterruptedException e) {
+                    logger.debug("CheckList marked as failed in a few seconds if no succeeded checks arrive");
+                    timerFutures.put(streamName, parentAgent.submit(() -> {
+                        try {
+                            logger.debug("Going to sleep for 5s for stream {}", streamName);
+                            Thread.sleep(3000L);
+                            if (checkList.getState() != CheckListState.COMPLETED) {
+                                logger.warn("CheckList for stream {} FAILED", streamName);
+                                checkList.setState(CheckListState.FAILED);
+                                parentAgent.checkListStatesUpdated();
                             }
+                        } catch (InterruptedException e) {
                         }
                     }));
                 }
@@ -640,6 +638,10 @@ class ConnectivityCheckClient implements ResponseCollector {
             }
         }
         paceMakerFutures.clear();
+        timerFutures.forEach((key, future) -> {
+            future.cancel(true);
+        });
+        timerFutures.clear();
     }
 
 }

@@ -1,26 +1,44 @@
 /* See LICENSE.md for license information */
 package org.ice4j.stack;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.ice4j.AbstractResponseCollector;
 import org.ice4j.BaseStunMessageEvent;
 import org.ice4j.MsgFixture;
+import org.ice4j.StunException;
 import org.ice4j.StunFailureEvent;
 import org.ice4j.StunMessageEvent;
 import org.ice4j.StunResponseEvent;
 import org.ice4j.StunTimeoutEvent;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
+import org.ice4j.ice.Agent;
+import org.ice4j.ice.CandidateType;
+import org.ice4j.ice.Component;
+import org.ice4j.ice.IceMediaStream;
+import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.LocalCandidate;
+import org.ice4j.ice.RemoteCandidate;
+import org.ice4j.ice.harvest.MappingCandidateHarvesters;
 import org.ice4j.ice.nio.IceTcpTransport;
 import org.ice4j.ice.nio.IceUdpTransport;
 import org.ice4j.message.MessageFactory;
 import org.ice4j.message.Request;
 import org.ice4j.message.Response;
+import org.ice4j.security.CredentialsAuthority;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceTcpSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
+import org.ice4j.stunclient.ResponseSequenceServer;
 import org.ice4j.util.Utils;
 import org.junit.After;
 import org.junit.Before;
@@ -39,6 +57,8 @@ public class ShallowStackTest extends TestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(ShallowStackTest.class);
 
+    private static ExecutorService executor = Executors.newCachedThreadPool();
+
     private StunStack stunStack;
 
     private MsgFixture msgFixture;
@@ -55,6 +75,8 @@ public class ShallowStackTest extends TestCase {
      * Transport type to be used for the test.
      */
     static Transport selectedTransport = Transport.UDP;
+    
+    static String IPAddress = "10.0.0.35";
 
     /**
      * Creates a test instance for the method with the specified name.
@@ -74,19 +96,26 @@ public class ShallowStackTest extends TestCase {
     protected void setUp() throws Exception {
         super.setUp();
         logger.info("--------------------------------------------------------------------------------------\nSettting up {}", getClass().getName());
+        System.setProperty("org.ice4j.BIND_RETRIES", "1");
+        System.setProperty("org.ice4j.ice.harvest.NAT_HARVESTER_LOCAL_ADDRESS", IPAddress);
+        System.setProperty("org.ice4j.ice.harvest.NAT_HARVESTER_PUBLIC_ADDRESS", IPAddress);
+        System.setProperty("org.ice4j.ice.harvest.ALLOWED_ADDRESSES", IPAddress);
+        System.setProperty("org.ice4j.TERMINATION_DELAY", "500");
+        // initializes the mapping harvesters
+        MappingCandidateHarvesters.getHarvesters();
         //logger.info("setup");
         msgFixture = new MsgFixture();
         // XXX Paul: ephemeral port selection using 0 isnt working since the InetSocketAddress used by TransportAddress doesnt show the selected port
         // this causes connector lookups to fail due to port being still set to 0
         int serverPort = PortUtil.getPort();
-        serverAddress = new TransportAddress("127.0.0.1", serverPort, selectedTransport);
+        serverAddress = new TransportAddress(IPAddress, serverPort, selectedTransport);
         // create and start listening here
         dgramCollector = new DatagramCollector();
         dgramCollector.startListening(serverAddress);
         // init the stack
         stunStack = new StunStack();
         // access point
-        localAddress = new TransportAddress("127.0.0.1", PortUtil.getPort(), selectedTransport);
+        localAddress = new TransportAddress(IPAddress, PortUtil.getPort(), selectedTransport);
         logger.info("Server: {} Client: {}", serverPort, localAddress.getPort());
         if (selectedTransport == Transport.UDP) {
             localSock = new IceUdpSocketWrapper(localAddress);
@@ -114,6 +143,106 @@ public class ShallowStackTest extends TestCase {
         stunStack.shutDown();
         super.tearDown();
         logger.info("======================================================================================\nTorn down {}", getClass().getName());
+    }
+
+    @SuppressWarnings("incomplete-switch")
+    public void testMassBindings() throws Exception {
+        // setup the acceptor 
+        //IceUdpTransport.getInstance(localSock.getId()).registerStackAndSocket(stunStack, localSock);
+        // create some agents
+        int agentCount = 1;
+        final List<Agent> agents = new ArrayList<>();
+        for (int a = 0; a < agentCount; a++) {
+            Agent agent = new Agent();
+            agent.setProperty("proref", String.format("agent#%d", a));
+            agent.setProperty("allocatedPort", String.format("%d", 49160 + a));
+            agent.setProperty("remotePort", String.format("%d", 49260 + a));
+            agents.add(agent);
+        }
+        // spawn n agents
+        agents.forEach(agent -> {
+            executor.submit(() -> {
+                // publisher = false; subscriber = true
+                agent.setControlling(true);
+                agent.setTrickling(true);
+                logger.debug("Agent state: {}", agent.getState());
+                // create latch
+                CountDownLatch iceSetupLatch = new CountDownLatch(1);
+                // use a property change listener
+                agent.addStateChangeListener((evt) -> {
+                    logger.debug("Change event: {}", evt);
+                    String id = agent.getProperty("proref");
+                    int allocatedPort = Integer.valueOf(agent.getProperty("allocatedPort"));
+                    long iceStartTime = Long.valueOf(agent.getProperty("iceStartTime"));
+                    final IceProcessingState state = (IceProcessingState) evt.getNewValue();
+                    switch (state) {
+                        case COMPLETED:
+                            logger.debug("ICE connectivity completed: {} elapsed: {}", id, (System.currentTimeMillis() - iceStartTime));
+                            break;
+                        case FAILED:
+                            logger.warn("ICE connectivity failed for: {} port: {} elapsed: {}", id, allocatedPort, (System.currentTimeMillis() - iceStartTime));
+                            // now stop
+                            agent.free();
+                            break;
+                        case TERMINATED:
+                            logger.warn("ICE connectivity terminated: {} elapsed: {}", id, (System.currentTimeMillis() - iceStartTime));
+                            iceSetupLatch.countDown();
+                            break;
+                    }
+                });
+                try {
+                    IceMediaStream stream = agent.createMediaStream("media-0");
+                    int port = Integer.valueOf(agent.getProperty("allocatedPort"));
+                    Component component = agent.createComponent(stream, Transport.UDP, port, port, port);
+                    int allocatedPort = component.getSocket().getLocalPort();
+                    assertEquals(port, allocatedPort);
+                    // may want to check port
+                    LocalCandidate localCand = component.getDefaultCandidate();
+                    // create server-end / remote
+                    int remotePort = Integer.valueOf(agent.getProperty("remotePort"));
+                    TransportAddress serverAddr = new TransportAddress(IPAddress, remotePort, Transport.UDP);
+                    // create remote candidate
+                    RemoteCandidate remoteCand = new RemoteCandidate(serverAddr, component, CandidateType.HOST_CANDIDATE, localCand.getFoundation(), localCand.getComponentId(), 1686052607L, null);
+                    String remoteUfrag = String.format("rem%d", remotePort);
+                    remoteCand.setUfrag(remoteUfrag);
+                    stream.setRemoteUfrag(remoteUfrag);
+                    component.addRemoteCandidate(remoteCand);
+                    remoteCand.setProperty("proref", agent.getProperty("proref"));
+                    // server socket and its own stunstack
+                    StunStack stnStack = new StunStack();
+                    IceUdpSocketWrapper serverSock = new IceUdpSocketWrapper(serverAddr);
+                    stnStack.addSocket(serverSock, serverSock.getRemoteTransportAddress(), true); // do socket binding   
+                    // instance a remote server
+                    //ResponseSequenceServer server = new ResponseSequenceServer(stnStack, serverAddr);
+                    //server.start();             
+                } catch (Exception e) {
+                    logger.warn("Exception in setupICE for: {}", agent.getProperty("proref"));
+                }
+                long iceStartTime = System.currentTimeMillis();
+                agent.setProperty("iceStartTime", String.format("%d", iceStartTime));
+                agent.startConnectivityEstablishment();
+                try {
+                    if (iceSetupLatch.await(5000L, TimeUnit.MILLISECONDS)) {
+                        logger.debug("ICE establishment is complete");
+                    } else {
+                        logger.warn("ICE establishment failed for: {}", agent.getProperty("proref"));
+                        fail("ICE timeded out");
+                    }
+                } catch (Exception e) {
+                    logger.warn("Exception in setupICE for: {}", agent.getProperty("proref"));
+                }
+            });
+        });
+        try {
+            Thread.sleep(7000L);
+        } catch (Exception e) {
+            logger.warn("Exception in test", e);
+        }
+        logger.info("Cleaning up agents");
+        agents.forEach(agent -> {
+            agent.free();
+        });
+        //server.shutDown();
     }
 
     /**

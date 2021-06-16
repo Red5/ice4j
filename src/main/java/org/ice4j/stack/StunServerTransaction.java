@@ -39,7 +39,7 @@ public class StunServerTransaction {
     /**
      * The time that we keep server transactions active.
      */
-    static final long LIFETIME = 16000L;
+    static final long LIFETIME = 9500L;
 
     /**
      * The StunStack that created us.
