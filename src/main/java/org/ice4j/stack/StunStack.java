@@ -851,7 +851,7 @@ public class StunStack implements MessageEventHandler {
                         long idleStartTime = -1;
                         do {
                             try {
-                                logger.debug("Going to sleep for 16s before cleaning up server txns");
+                                logger.debug("Going to sleep for {}s before cleaning up server txns", (StunServerTransaction.LIFETIME / 1000L));
                                 Thread.sleep(StunServerTransaction.LIFETIME);
                             } catch (InterruptedException ie) {
                             }

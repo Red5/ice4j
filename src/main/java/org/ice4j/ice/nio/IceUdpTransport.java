@@ -14,7 +14,7 @@ import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.core.session.IoSessionRecycler;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
-import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
+import org.apache.mina.transport.socket.nio.IceDatagramAcceptor;
 import org.ice4j.TransportAddress;
 import org.ice4j.socket.IceSocketWrapper;
 import org.ice4j.socket.IceUdpSocketWrapper;
@@ -147,7 +147,8 @@ public class IceUdpTransport extends IceTransport {
     void createAcceptor() {
         if (acceptor == null) {
             // create the nio acceptor
-            acceptor = new NioDatagramAcceptor();
+            //acceptor = new NioDatagramAcceptor(); // mina base acceptor
+            acceptor = new IceDatagramAcceptor();
             acceptor.addListener(new IoServiceListener() {
 
                 @Override
@@ -195,9 +196,9 @@ public class IceUdpTransport extends IceTransport {
                 }
             });
             // set the recycler
-            ((NioDatagramAcceptor) acceptor).setSessionRecycler(recycler);
+            ((IceDatagramAcceptor) acceptor).setSessionRecycler(recycler);
             // configure the acceptor
-            DatagramSessionConfig sessionConf = ((NioDatagramAcceptor) acceptor).getSessionConfig();
+            DatagramSessionConfig sessionConf = ((IceDatagramAcceptor) acceptor).getSessionConfig();
             sessionConf.setReuseAddress(true);
             sessionConf.setSendBufferSize(sendBufferSize);
             sessionConf.setReadBufferSize(receiveBufferSize);
